@@ -20,11 +20,40 @@ on:
   pull_request:
 
 jobs:
+  build:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Set up Go 1.18
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.18
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: Check License
+        uses: apache/skywalking-eyes@9bd5feb86b5817aa6072b008f9866a2c3bbc8587
+      - name: Get dependencies
+        run: make deps
+      - name: Test
+        run: make test
+      - name: Lint
+        run: make lint
+      - name: Build
+        run: make build
+
   required:
     if: always()
     name: Required
+    needs:
+      - build
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - name: Merge Requirement
-        run: echo "success"
+        run: |
+          if [[ ${{ needs.build.result }} != 'success' ]]; then
+            exit -1
+          fi

@@ -1,0 +1,133 @@
+// Licensed to Apache Software Foundation (ASF) under one or more contributor
+// license agreements. See the NOTICE file distributed with
+// this work for additional information regarding copyright
+// ownership. Apache Software Foundation (ASF) licenses this file to you under
+// the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
+package core
+
+import (
+	"math"
+	"time"
+
+	"github.com/apache/skywalking-go/reporter"
+
+	commonv3 "skywalking.apache.org/repo/goapi/collect/common/v3"
+	agentv3 "skywalking.apache.org/repo/goapi/collect/language/agent/v3"
+)
+
+type DefaultSpan struct {
+	Refs          []reporter.SpanContext
+	tracer        *Tracer
+	StartTime     time.Time
+	EndTime       time.Time
+	OperationName string
+	Peer          string
+	Layer         agentv3.SpanLayer
+	ComponentID   int32
+	Tags          []*commonv3.KeyStringValuePair
+	Logs          []*agentv3.Log
+	IsError       bool
+	SpanType      SpanType
+	Parent        Span
+}
+
+func NewDefaultSpan(tracer *Tracer, parent Span) *DefaultSpan {
+	return &DefaultSpan{
+		tracer:    tracer,
+		StartTime: time.Now(),
+		SpanType:  SpanTypeLocal,
+		Parent:    parent,
+	}
+}
+
+// For Span
+func (ds *DefaultSpan) SetOperationName(name string) {
+	ds.OperationName = name
+}
+
+func (ds *DefaultSpan) GetOperationName() string {
+	return ds.OperationName
+}
+
+func (ds *DefaultSpan) SetPeer(peer string) {
+	ds.Peer = peer
+}
+
+func (ds *DefaultSpan) GetPeer() string {
+	return ds.Peer
+}
+
+func (ds *DefaultSpan) SetSpanLayer(layer agentv3.SpanLayer) {
+	ds.Layer = layer
+}
+
+func (ds *DefaultSpan) GetSpanLayer() agentv3.SpanLayer {
+	return ds.Layer
+}
+
+func (ds *DefaultSpan) SetComponent(componentID int32) {
+	ds.ComponentID = componentID
+}
+
+func (ds *DefaultSpan) GetComponent() int32 {
+	return ds.ComponentID
+}
+
+func (ds *DefaultSpan) Tag(key Tag, value string) {
+	ds.Tags = append(ds.Tags, &commonv3.KeyStringValuePair{Key: string(key), Value: value})
+}
+
+func (ds *DefaultSpan) Log(t time.Time, ll ...string) {
+	data := make([]*commonv3.KeyStringValuePair, 0, int32(math.Ceil(float64(len(ll))/2.0)))
+	var kvp *commonv3.KeyStringValuePair
+	for i, l := range ll {
+		if i%2 == 0 {
+			kvp = &commonv3.KeyStringValuePair{}
+			data = append(data, kvp)
+			kvp.Key = l
+		} else if kvp != nil {
+			kvp.Value = l
+		}
+	}
+	ds.Logs = append(ds.Logs, &agentv3.Log{Time: Millisecond(t), Data: data})
+}
+
+func (ds *DefaultSpan) Error(t time.Time, ll ...string) {
+	ds.IsError = true
+	ds.Log(t, ll...)
+}
+
+func (ds *DefaultSpan) End() {
+	ds.EndTime = time.Now()
+	if ctx := GetTracingContext(); ctx != nil {
+		ctx.ActiveSpan = ds.Parent
+	}
+}
+
+func (ds *DefaultSpan) IsEntry() bool {
+	return ds.SpanType == SpanTypeEntry
+}
+
+func (ds *DefaultSpan) IsExit() bool {
+	return ds.SpanType == SpanTypeExit
+}
+
+func (ds *DefaultSpan) IsValid() bool {
+	return ds.EndTime.IsZero()
+}
+
+func (ds *DefaultSpan) ParentSpan() Span {
+	return ds.Parent
+}
