@@ -23,6 +23,6 @@ import (
 	_ "github.com/pkg/errors"
 
 	// force compile for the agent core copied
-	_ "github.com/apache/skywalking-go/enhance/core"
-	_ "github.com/apache/skywalking-go/enhance/core/tracing"
+	_ "github.com/apache/skywalking-go/agent/core"
+	_ "github.com/apache/skywalking-go/agent/core/tracing"
 )

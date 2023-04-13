@@ -34,10 +34,10 @@ import (
 )
 
 var (
-	EnhanceBasePackage     = "github.com/apache/skywalking-go/enhance/core"
+	EnhanceBasePackage     = "github.com/apache/skywalking-go/agent/core"
 	EnhanceFromBasePackage = "github.com/apache/skywalking-go/plugins/core"
 
-	CopiedBasePackage = "skywalking-go/enhance/core"
+	CopiedBasePackage = "skywalking-go/agent/core"
 	CopiedSubPackages = []string{"", "tracing"}
 )
 
