@@ -22,7 +22,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/apache/skywalking-go/skylog"
+	"github.com/apache/skywalking-go/log"
 
 	"google.golang.org/grpc/credentials/insecure"
 
@@ -43,9 +43,9 @@ const (
 )
 
 // NewGRPCReporter create a new reporter to send data to gRPC oap server. Only one backend address is allowed.
-func NewGRPCReporter(log skylog.Logger, serverAddr string, opts ...GRPCReporterOption) (Reporter, error) {
+func NewGRPCReporter(logger log.Logger, serverAddr string, opts ...GRPCReporterOption) (Reporter, error) {
 	r := &gRPCReporter{
-		logger:        log,
+		logger:        logger,
 		sendCh:        make(chan *agentv3.SegmentObject, maxSendQueueSize),
 		checkInterval: defaultCheckInterval,
 		cdsInterval:   defaultCDSInterval, // cds default on
@@ -78,7 +78,7 @@ func NewGRPCReporter(log skylog.Logger, serverAddr string, opts ...GRPCReporterO
 
 type gRPCReporter struct {
 	entity           Entity
-	logger           skylog.Logger
+	logger           log.Logger
 	sendCh           chan *agentv3.SegmentObject
 	conn             *grpc.ClientConn
 	traceClient      agentv3.TraceSegmentReportServiceClient
