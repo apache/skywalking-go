@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package skylog
+package skywalking
 
 type Logger interface {
 	// Info logs to the INFO log.
