@@ -77,4 +77,4 @@ check:
 
 .PHONY: build
 build:
-	@make -C tools/go-agent-enhance build
+	@make -C tools/go-agent build
