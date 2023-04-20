@@ -1,0 +1,33 @@
+defer func() {
+	if err := recover(); err != nil {
+		// log error
+		log.Errorf("execute interceptor before invoke error, instrument name: %s, interceptor name: %s, function ID: %s, error: %v",
+		    "{{.InstrumentName}}", "{{.InterceptorDefineName}}", "{{.FuncID}}", err)
+	}
+}()
+invocation := &operator.Invocation{}
+{{if .Recvs -}}
+invocation.CallerInstance = *recv_0	// for caller if exist
+{{- end}}
+invocation.Args = make([]interface{}, {{len .Parameters}})
+{{- range $index, $value := .Parameters}}
+invocation.Args[{{$index}}] = *param_{{$index}}
+{{- end}}
+
+// real invoke
+if err := {{.InterceptorVarName}}.BeforeInvoke(invocation); err != nil {
+	// using go2sky log error
+	log.Warnf("execute interceptor before invoke error, instrument name: %s, interceptor name: %s, function ID: %s, error: %v",
+    		    "{{.InstrumentName}}", "{{.InterceptorDefineName}}", "{{.FuncID}}", err)
+	return {{ range $index, $value := .Results -}}
+$value.DefaultValueAsString,
+{{- end}}invocation, true
+}
+if (invocation.Continue) {
+	return {{ range $index, $value := .Results -}}
+    invocation.Return[$index],
+{{- end}}invocation, false
+}
+return {{ range $index, $value := .Results -}}
+{{- if ne .index 0}}, {{end}}$value.DefaultValueAsString
+{{- end}}{{if .Results}}, {{- end}}invocation, true

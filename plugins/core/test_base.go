@@ -18,10 +18,12 @@
 package core
 
 import (
+	"github.com/apache/skywalking-go/plugins/core/operator"
 	"github.com/apache/skywalking-go/reporter"
 )
 
 var tlsData interface{}
+var Tracing *Tracer
 
 func init() {
 	SetGLS = func(i interface{}) {
@@ -30,16 +32,30 @@ func init() {
 	GetGLS = func() interface{} {
 		return tlsData
 	}
+	operator.GetOperator = func() operator.Operator {
+		return Tracing
+	}
 	ResetTracingContext()
 }
 
 func ResetTracingContext() {
 	SetGLS(nil)
-	SetGlobalTracer(&Tracer{initFlag: 1, Sampler: NewConstSampler(true), Reporter: &StoreReporter{}})
+	Tracing = &Tracer{initFlag: 1, Sampler: NewConstSampler(true), Reporter: &StoreReporter{}}
+	SetAsNewGoroutine()
+}
+
+func SetAsNewGoroutine() {
+	gls := GetGLS()
+	if gls == nil {
+		return
+	}
+	if e := gls.(ContextSnapshoter); e != nil {
+		SetGLS(e.TakeSnapShot(GetGLS()))
+	}
 }
 
 func GetReportedSpans() []reporter.ReportedSpan {
-	return GetGlobalTracer().Reporter.(*StoreReporter).Spans
+	return Tracing.Reporter.(*StoreReporter).Spans
 }
 
 type StoreReporter struct {

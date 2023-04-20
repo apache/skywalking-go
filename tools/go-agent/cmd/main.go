@@ -18,46 +18,75 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"os/exec"
 
-	"github.com/apache/skywalking-go/tools/go-agent-enhance/instrument"
-	"github.com/apache/skywalking-go/tools/go-agent-enhance/instrument/api"
-	"github.com/apache/skywalking-go/tools/go-agent-enhance/tools"
+	"github.com/apache/skywalking-go/tools/go-agent/instrument"
+	"github.com/apache/skywalking-go/tools/go-agent/instrument/api"
+	"github.com/apache/skywalking-go/tools/go-agent/tools"
 )
 
 var toolFlags = &EnhancementToolFlags{}
 
 func main() {
+	writeArgs()
 	args := os.Args[1:]
+	var err error
+	var firstNonOptionIndex int
 	// Print usage
-	if err := tools.ParseFlags(toolFlags, args); err != nil || toolFlags.Help {
+	if firstNonOptionIndex, err = tools.ParseFlags(toolFlags, args); err != nil || toolFlags.Help {
 		PrintUsageWithExit()
 	}
 
+	if toolFlags.Debug != "" {
+		stat, err1 := os.Stat(toolFlags.Debug)
+		if err1 != nil {
+			fmt.Printf("debug path not existing: %s", toolFlags.Debug)
+			return
+		}
+		if !stat.IsDir() {
+			fmt.Printf("debug path must be a directory: %s", toolFlags.Debug)
+			return
+		}
+	}
+
 	// only enhance the "compile" phase
-	cmdName := tools.ParseProxyCommandName(args)
+	cmdName := tools.ParseProxyCommandName(args, firstNonOptionIndex)
 	if cmdName != "compile" {
-		executeDelegateCommand(args)
+		executeDelegateCommand(args[firstNonOptionIndex:])
 		return
 	}
 
 	// parse the args
 	compileOptions := &api.CompileOptions{}
-	if err := tools.ParseFlags(compileOptions, args); err != nil {
-		executeDelegateCommand(args)
+	if _, err = tools.ParseFlags(compileOptions, args); err != nil {
+		executeDelegateCommand(args[firstNonOptionIndex:])
 		return
 	}
 
 	// execute the enhancement
-	args, err := instrument.Execute(compileOptions, args)
+	args, err = instrument.Execute(compileOptions, args)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// execute the delegate command with updated args
-	executeDelegateCommand(args)
+	executeDelegateCommand(args[firstNonOptionIndex:])
+}
+
+func writeArgs() {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		panic(err)
+	}
+	file, err := os.OpenFile(homeDir+"/Desktop/skywalking-go.txt", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0o666)
+	if err != nil {
+		os.Exit(1)
+	}
+	defer file.Close()
+	_, _ = fmt.Fprintf(file, "%v\n", os.Args[1:])
 }
 
 func executeDelegateCommand(args []string) {

@@ -23,6 +23,7 @@ import (
 	_ "fmt"
 	_ "math"
 	_ "math/rand"
+	_ "reflect"
 	_ "strconv"
 	_ "strings"
 	_ "sync"
@@ -30,6 +31,8 @@ import (
 	_ "time"
 
 	//go:nolint
+	_ "github.com/apache/skywalking-go/agent/core/operator"
+	_ "github.com/apache/skywalking-go/agent/core/tracing"
 	_ "github.com/apache/skywalking-go/reporter"
 
 	//go:nolint

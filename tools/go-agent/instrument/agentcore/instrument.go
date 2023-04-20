@@ -24,11 +24,11 @@ import (
 	"strings"
 
 	"github.com/apache/skywalking-go/plugins/core"
+	"github.com/apache/skywalking-go/tools/go-agent/instrument/api"
+	"github.com/apache/skywalking-go/tools/go-agent/instrument/runtime"
+	"github.com/apache/skywalking-go/tools/go-agent/tools"
 
-	"github.com/apache/skywalking-go/tools/go-agent-enhance/instrument/api"
-	"github.com/apache/skywalking-go/tools/go-agent-enhance/instrument/runtime"
-	"github.com/apache/skywalking-go/tools/go-agent-enhance/tools"
-
+	"github.com/dave/dst"
 	"github.com/dave/dst/decorator"
 	"github.com/dave/dst/dstutil"
 )
@@ -38,12 +38,13 @@ var (
 	EnhanceFromBasePackage = "github.com/apache/skywalking-go/plugins/core"
 
 	CopiedBasePackage = "skywalking-go/agent/core"
-	CopiedSubPackages = []string{"", "tracing"}
+	CopiedSubPackages = []string{"", "tracing", "operator"}
 )
 
 type Instrument struct {
 	hasCopyPath  bool
 	needsCopyDir string
+	compileOpts  *api.CompileOptions
 }
 
 func NewInstrument() *Instrument {
@@ -51,10 +52,11 @@ func NewInstrument() *Instrument {
 }
 
 func (i *Instrument) CouldHandle(opts *api.CompileOptions) bool {
+	i.compileOpts = opts
 	return strings.HasPrefix(opts.Package, EnhanceBasePackage)
 }
 
-func (i *Instrument) FilterAndEdit(path string, cursor *dstutil.Cursor) bool {
+func (i *Instrument) FilterAndEdit(path string, cursor *dstutil.Cursor, allFiles []*dst.File) bool {
 	if i.hasCopyPath {
 		return false
 	}
@@ -69,7 +71,7 @@ func (i *Instrument) FilterAndEdit(path string, cursor *dstutil.Cursor) bool {
 	return false
 }
 
-func (i *Instrument) AfterEnhanceFile(path string) error {
+func (i *Instrument) AfterEnhanceFile(fromPath, newPath string) error {
 	return nil
 }
 
@@ -81,22 +83,6 @@ func (i *Instrument) WriteExtraFiles(dir string) ([]string, error) {
 	results := make([]string, 0)
 	if sub == "" {
 		sub = "."
-		// append the context adapter if is root package
-		tmp, err := tools.WriteMultipleFile(dir, map[string]string{
-			"adapter_context.go": tools.ExecuteTemplate(`package core
-
-import (
-	_ "unsafe"
-)
-
-//go:linkname {{.}} {{.}}
-var {{.}} = TaskTracingContextSnapshot
-`, runtime.TLSTakeSnapshotMethodName),
-		})
-		if err != nil {
-			return nil, err
-		}
-		results = append(results, tmp...)
 	}
 	files, err := core.FS.ReadDir(sub)
 	if err != nil {
@@ -129,14 +115,78 @@ var {{.}} = TaskTracingContextSnapshot
 		if err != nil {
 			return nil, err
 		}
+		debugInfo, err := i.buildDSTDebugInfo(f)
+		if err != nil {
+			return nil, err
+		}
 
 		tools.ChangePackageImportPath(parse, pkgUpdates)
 		copiedFilePath := filepath.Join(dir, f.Name())
-		if err := tools.WriteDSTFile(copiedFilePath, "", parse); err != nil {
+		if err := tools.WriteDSTFile(copiedFilePath, parse, debugInfo); err != nil {
 			return nil, err
 		}
 		results = append(results, copiedFilePath)
 	}
 
+	// write extra file to link the operator and TLS methods
+	if sub == "." {
+		file, err := i.writeLinkerFile(dir)
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, file)
+	}
+
 	return results, nil
+}
+
+func (i *Instrument) buildDSTDebugInfo(entry fs.DirEntry) (*tools.DebugInfo, error) {
+	if i.compileOpts.DebugDir == "" {
+		return nil, nil
+	}
+	debugPath := filepath.Join(i.compileOpts.DebugDir, "plugins", "core", entry.Name())
+	return tools.BuildDSTDebugInfo(debugPath, nil)
+}
+
+func (i *Instrument) writeLinkerFile(dir string) (string, error) {
+	return tools.WriteFile(dir, "runtime_linker.go", tools.ExecuteTemplate(`package core
+
+import (
+	_ "unsafe"
+)
+
+//go:linkname {{.TLSGetLinkMethod}} {{.TLSGetLinkMethod}}
+var {{.TLSGetLinkMethod}} func() interface{}
+
+//go:linkname {{.TLSSetLinkMethod}} {{.TLSSetLinkMethod}}
+var {{.TLSSetLinkMethod}} func(interface{})
+
+//go:linkname {{.SetGlobalOperatorLinkMethod}} {{.SetGlobalOperatorLinkMethod}}
+var {{.SetGlobalOperatorLinkMethod}} func(interface{}) 
+
+//go:linkname {{.GetGlobalOperatorLinkMethod}} {{.GetGlobalOperatorLinkMethod}}
+var {{.GetGlobalOperatorLinkMethod}} func() interface{}
+
+func init() {
+	if {{.TLSGetLinkMethod}} != nil && {{.TLSSetLinkMethod}} != nil {
+		GetGLS = {{.TLSGetLinkMethod}}
+		SetGLS = {{.TLSSetLinkMethod}}
+	}
+	if {{.SetGlobalOperatorLinkMethod}} != nil && {{.GetGlobalOperatorLinkMethod}} != nil {
+		SetGlobalOperator = {{.SetGlobalOperatorLinkMethod}}
+		GetGlobalOperator = {{.GetGlobalOperatorLinkMethod}}
+		SetGlobalOperator(&Tracer{initFlag: 1, Sampler: NewConstSampler(true)})
+	}
+}
+`, struct {
+		TLSGetLinkMethod            string
+		TLSSetLinkMethod            string
+		SetGlobalOperatorLinkMethod string
+		GetGlobalOperatorLinkMethod string
+	}{
+		TLSGetLinkMethod:            runtime.TLSGetMethodName,
+		TLSSetLinkMethod:            runtime.TLSSetMethodName,
+		SetGlobalOperatorLinkMethod: runtime.GlobalTracerSetMethodName,
+		GetGlobalOperatorLinkMethod: runtime.GlobalTracerGetMethodName,
+	}))
 }

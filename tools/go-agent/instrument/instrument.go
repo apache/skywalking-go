@@ -29,15 +29,17 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/apache/skywalking-go/tools/go-agent-enhance/instrument/agentcore"
-	"github.com/apache/skywalking-go/tools/go-agent-enhance/instrument/api"
-	"github.com/apache/skywalking-go/tools/go-agent-enhance/instrument/runtime"
-	"github.com/apache/skywalking-go/tools/go-agent-enhance/tools"
+	"github.com/apache/skywalking-go/tools/go-agent/instrument/agentcore"
+	"github.com/apache/skywalking-go/tools/go-agent/instrument/api"
+	"github.com/apache/skywalking-go/tools/go-agent/instrument/framework"
+	"github.com/apache/skywalking-go/tools/go-agent/instrument/runtime"
+	"github.com/apache/skywalking-go/tools/go-agent/tools"
 )
 
 var instruments = []api.Instrument{
 	runtime.NewInstrument(),
 	agentcore.NewInstrument(),
+	framework.NewInstrument(),
 }
 
 func Execute(opts *api.CompileOptions, args []string) ([]string, error) {
@@ -95,12 +97,17 @@ func instrumentFiles(buildDir string, inst api.Instrument, args []string) error 
 		return err
 	}
 
+	allFiles := make([]*dst.File, 0)
+	for _, f := range parsedFiles {
+		allFiles = append(allFiles, f.dstFile)
+	}
+
 	// filter and edit the files
 	instrumentedFiles := make([]string, 0)
 	for path, info := range parsedFiles {
 		hasInstruted := false
 		dstutil.Apply(info.dstFile, func(cursor *dstutil.Cursor) bool {
-			if inst.FilterAndEdit(path, cursor) {
+			if inst.FilterAndEdit(path, cursor, allFiles) {
 				hasInstruted = true
 			}
 			return true
@@ -118,10 +125,14 @@ func instrumentFiles(buildDir string, inst api.Instrument, args []string) error 
 		info := parsedFiles[updateFileSrc]
 		filename := filepath.Base(updateFileSrc)
 		dest := filepath.Join(buildDir, filename)
-		if err := tools.WriteDSTFile(dest, updateFileSrc, info.dstFile); err != nil {
+		debugInfo, err := tools.BuildDSTDebugInfo(updateFileSrc, nil)
+		if err != nil {
 			return err
 		}
-		if err := inst.AfterEnhanceFile(dest); err != nil {
+		if err := tools.WriteDSTFile(dest, info.dstFile, debugInfo); err != nil {
+			return err
+		}
+		if err := inst.AfterEnhanceFile(updateFileSrc, dest); err != nil {
 			return err
 		}
 		args[info.argsIndex] = dest

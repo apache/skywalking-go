@@ -18,6 +18,7 @@
 package api
 
 import (
+	"github.com/dave/dst"
 	"github.com/dave/dst/dstutil"
 )
 
@@ -25,9 +26,9 @@ type Instrument interface {
 	// CouldHandle verify current instrument can handle this request
 	CouldHandle(opts *CompileOptions) bool
 	// FilterAndEdit filter the matched data which decode by DST, and edit the data
-	FilterAndEdit(path string, cursor *dstutil.Cursor) bool
+	FilterAndEdit(path string, cursor *dstutil.Cursor, allFiles []*dst.File) bool
 	// AfterEnhanceFile after the enhanced file been written, check the file is needs rewrite
-	AfterEnhanceFile(path string) error
+	AfterEnhanceFile(fromPath, newPath string) error
 	// WriteExtraFiles customized the extra files when there have instrumented files
 	WriteExtraFiles(dir string) ([]string, error)
 }

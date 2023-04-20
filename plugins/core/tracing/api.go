@@ -18,246 +18,132 @@
 package tracing
 
 import (
-	"fmt"
-	"reflect"
-
-	"github.com/apache/skywalking-go/plugins/core"
-	"github.com/apache/skywalking-go/reporter"
-
-	"github.com/pkg/errors"
-
-	commonv3 "skywalking.apache.org/repo/goapi/collect/common/v3"
-	agentv3 "skywalking.apache.org/repo/goapi/collect/language/agent/v3"
+	"github.com/apache/skywalking-go/plugins/core/operator"
 )
 
 var (
-	errParameter = fmt.Errorf("parameter are nil")
+	errParameter = operator.NewError("parameter are nil")
 )
 
-// Extractor is a tool specification which define how to
-// extract trace parent context from propagation context
-type Extractor func(headerKey string) (string, error)
-
-// Injector is a tool specification which define how to
-// inject trace context into propagation context
-type Injector func(headerKey, headerValue string) error
-
-func CreateEntrySpan(operationName string, extractor Extractor, opts ...SpanOption) (s core.Span, err error) {
+func CreateEntrySpan(operationName string, extractor Extractor, opts ...SpanOption) (s Span, err error) {
 	if operationName == "" || extractor == nil {
 		return nil, errParameter
 	}
-	tracer, ctx, s, noop := createNoop()
-	if noop {
-		return s, nil
+	op := operator.GetOperator()
+	if op == nil {
+		return &NoopSpan{}, nil
 	}
-	defer func() {
-		saveSpanToActiveIfNotError(ctx, s, err)
-	}()
-	var ref = &core.SpanContext{}
-	if err := ref.Decode(extractor); err != nil {
+	span, err := op.Tracing().(operator.TracingOperator).CreateEntrySpan(operationName, extractorWrapper(extractor), copyOptsAsInterface(opts)...)
+	if err != nil {
 		return nil, err
 	}
-	if !ref.Valid {
-		ref = nil
-	}
-
-	return createSpan0(tracer, s, append(opts, withRef(ref), withSpanType(core.SpanTypeEntry), withOperationName(operationName))...)
+	return newSpanAdapter(span.(AdaptSpan)), nil
 }
 
-func CreateLocalSpan(operationName string, opts ...SpanOption) (s core.Span, err error) {
+func CreateLocalSpan(operationName string, opts ...SpanOption) (s Span, err error) {
 	if operationName == "" {
 		return nil, errParameter
 	}
-	tracer, ctx, s, noop := createNoop()
-	if noop {
-		return s, nil
+	op := operator.GetOperator()
+	if op == nil {
+		return &NoopSpan{}, nil
 	}
-	defer func() {
-		saveSpanToActiveIfNotError(ctx, s, err)
-	}()
-
-	return createSpan0(tracer, s, append(opts, withSpanType(core.SpanTypeLocal), withOperationName(operationName))...)
+	span, err := op.Tracing().(operator.TracingOperator).CreateLocalSpan(operationName, copyOptsAsInterface(opts)...)
+	if err != nil {
+		return nil, err
+	}
+	return newSpanAdapter(span.(AdaptSpan)), nil
 }
 
-func CreateExitSpan(operationName, peer string, injector Injector, opts ...SpanOption) (s core.Span, err error) {
+func CreateExitSpan(operationName, peer string, injector Injector, opts ...SpanOption) (s Span, err error) {
 	if operationName == "" || peer == "" || injector == nil {
 		return nil, errParameter
 	}
-	tracer, ctx, s, noop := createNoop()
-	if noop {
-		return s, nil
+	op := operator.GetOperator()
+	if op == nil {
+		return &NoopSpan{}, nil
 	}
-	defer func() {
-		saveSpanToActiveIfNotError(ctx, s, err)
-	}()
-
-	span, err := createSpan0(tracer, s, append(opts, withSpanType(core.SpanTypeExit), withOperationName(operationName), withPeer(peer))...)
+	span, err := op.Tracing().(operator.TracingOperator).CreateExitSpan(operationName, peer, injectorWrapper(injector), copyOptsAsInterface(opts)...)
 	if err != nil {
 		return nil, err
 	}
-	spanContext := &core.SpanContext{}
-	reportedSpan, ok := span.(core.SegmentSpan)
-	if !ok {
-		return nil, errors.New("span type is wrong")
-	}
-
-	firstSpan := reportedSpan.GetSegmentContext().FirstSpan
-	spanContext.Sample = 1
-	spanContext.TraceID = reportedSpan.GetSegmentContext().TraceID
-	spanContext.ParentSegmentID = reportedSpan.GetSegmentContext().SegmentID
-	spanContext.ParentSpanID = reportedSpan.GetSegmentContext().SpanID
-	spanContext.ParentService = tracer.Service
-	spanContext.ParentServiceInstance = tracer.Instance
-	spanContext.ParentEndpoint = firstSpan.GetOperationName()
-	spanContext.AddressUsedAtClient = peer
-	spanContext.CorrelationContext = reportedSpan.GetSegmentContext().CorrelationContext
-
-	err = spanContext.Encode(injector)
-	if err != nil {
-		return nil, err
-	}
-	return span, nil
+	return newSpanAdapter(span.(AdaptSpan)), nil
 }
 
-func ActiveSpan() core.Span {
-	ctx := getTracingContext()
-	if ctx == nil || ctx.ActiveSpan == nil {
+func ActiveSpan() Span {
+	op := operator.GetOperator()
+	if op == nil {
 		return nil
 	}
-	if _, ok := ctx.ActiveSpan.(*core.SnapshotSpan); ok {
-		return nil
+	if span, ok := op.Tracing().(operator.TracingOperator).ActiveSpan().(AdaptSpan); ok {
+		return newSpanAdapter(span)
 	}
-	return ctx.ActiveSpan
-}
-
-// SpanOption allows for functional options to adjust behavior
-// of a Span to be created by CreateLocalSpan
-type SpanOption func(s *core.DefaultSpan)
-
-func WithLayer(layer agentv3.SpanLayer) SpanOption {
-	return func(s *core.DefaultSpan) {
-		s.Layer = layer
-	}
-}
-
-func WithComponent(componentID int32) SpanOption {
-	return func(s *core.DefaultSpan) {
-		s.ComponentID = componentID
-	}
-}
-
-func WithTag(key, value string) SpanOption {
-	return func(s *core.DefaultSpan) {
-		s.Tags = append(s.Tags, &commonv3.KeyStringValuePair{Key: key, Value: value})
-	}
+	return nil
 }
 
 func GetRuntimeContextValue(key string) interface{} {
-	context := core.GetTracingContext()
-	if context == nil {
+	op := operator.GetOperator()
+	if op == nil {
 		return nil
 	}
-	return context.Runtime.Get(key)
+	return op.Tracing().(operator.TracingOperator).GetRuntimeContextValue(key)
 }
 
 func SetRuntimeContextValue(key string, val interface{}) {
-	context := core.GetTracingContext()
-	if context == nil {
-		context = core.NewTracingContext()
-		core.SetGLS(context)
-	}
-	context.Runtime.Set(key, val)
-}
-
-func createNoop() (*core.Tracer, *core.TracingContext, core.Span, bool) {
-	tracer := core.GetGlobalTracer()
-	if tracer == nil || !tracer.InitSuccess() {
-		return nil, nil, &core.NoopSpan{}, true
-	}
-	ctx := getTracingContext()
-	if ctx != nil {
-		_, ok := ctx.ActiveSpan.(*core.NoopSpan)
-		return tracer, ctx, ctx.ActiveSpan, ok
-	}
-	return tracer, nil, nil, false
-}
-
-func createSpan0(tracer *core.Tracer, parent core.Span, opts ...SpanOption) (s core.Span, err error) {
-	ds := core.NewDefaultSpan(tracer, parent)
-	for _, opt := range opts {
-		opt(ds)
-	}
-	var parentSpan core.SegmentSpan
-	if parent != nil {
-		tmpSpan, ok := parent.(core.SegmentSpan)
-		if ok {
-			parentSpan = tmpSpan
-		}
-	}
-	isForceSample := len(ds.Refs) > 0
-	// Try to sample when it is not force sample
-	if parentSpan == nil && !isForceSample {
-		// Force sample
-		sampled := tracer.Sampler.IsSampled(ds.OperationName)
-		if !sampled {
-			// Filter by sample just return noop span
-			s = &core.NoopSpan{}
-			return s, nil
-		}
-	}
-	s, err = core.NewSegmentSpan(ds, parentSpan)
-	if err != nil {
-		return nil, err
-	}
-	return s, nil
-}
-
-func withSpanType(spanType core.SpanType) SpanOption {
-	return func(span *core.DefaultSpan) {
-		span.SpanType = spanType
+	op := operator.GetOperator()
+	if op != nil {
+		op.Tracing().(operator.TracingOperator).SetRuntimeContextValue(key, val)
 	}
 }
 
-func withOperationName(opName string) SpanOption {
-	return func(span *core.DefaultSpan) {
-		span.OperationName = opName
+func copyOptsAsInterface(opts []SpanOption) []interface{} {
+	optsVal := make([]interface{}, len(opts))
+	for i := range opts {
+		optsVal[i] = opts[i]
 	}
+	return optsVal
 }
 
-func withRef(sc reporter.SpanContext) SpanOption {
-	return func(span *core.DefaultSpan) {
-		if sc == nil {
-			return
-		}
-		v := reflect.ValueOf(sc)
-		if v.Interface() == reflect.Zero(v.Type()).Interface() {
-			return
-		}
-		span.Refs = append(span.Refs, sc)
-	}
+type extractorWrapperImpl struct {
+	extractor Extractor
 }
 
-func withPeer(peer string) SpanOption {
-	return func(span *core.DefaultSpan) {
-		span.Peer = peer
-	}
+func (e *extractorWrapperImpl) Fun() func(headerKey string) (string, error) {
+	return e.extractor
 }
 
-func getTracingContext() *core.TracingContext {
-	ctx := core.GetGLS()
-	if ctx == nil {
-		return nil
-	}
-	return ctx.(*core.TracingContext)
+func extractorWrapper(extractor Extractor) *extractorWrapperImpl {
+	return &extractorWrapperImpl{extractor: extractor}
 }
 
-func saveSpanToActiveIfNotError(ctx *core.TracingContext, span core.Span, err error) {
-	if err != nil {
-		return
-	}
-	if ctx == nil {
-		ctx = core.NewTracingContext()
-	}
-	ctx.ActiveSpan = span
-	core.SetGLS(ctx)
+type injectorWrapperImpl struct {
+	injector Injector
+}
+
+func (i *injectorWrapperImpl) Fun() func(headerKey, headerValue string) error {
+	return i.injector
+}
+
+func injectorWrapper(injector Injector) *injectorWrapperImpl {
+	return &injectorWrapperImpl{injector: injector}
+}
+
+type NoopSpan struct {
+}
+
+func (n *NoopSpan) SetOperationName(string) {
+}
+func (n *NoopSpan) SetPeer(string) {
+}
+func (n *NoopSpan) SetSpanLayer(SpanLayer) {
+}
+func (n *NoopSpan) SetComponent(int32) {
+}
+func (n *NoopSpan) Tag(Tag, string) {
+}
+func (n *NoopSpan) Log(...string) {
+}
+func (n *NoopSpan) Error(...string) {
+}
+func (n *NoopSpan) End() {
 }

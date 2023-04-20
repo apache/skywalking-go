@@ -34,3 +34,11 @@ func WriteMultipleFile(baseDir string, nameWithData map[string]string) ([]string
 
 	return paths, nil
 }
+
+func WriteFile(baseDir, fileName, data string) (string, error) {
+	res := filepath.Join(baseDir, fileName)
+	if err := os.WriteFile(res, []byte(data), 0o600); err != nil {
+		return "", err
+	}
+	return res, nil
+}

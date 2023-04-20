@@ -40,10 +40,10 @@ type DefaultSpan struct {
 	Logs          []*agentv3.Log
 	IsError       bool
 	SpanType      SpanType
-	Parent        Span
+	Parent        TracingSpan
 }
 
-func NewDefaultSpan(tracer *Tracer, parent Span) *DefaultSpan {
+func NewDefaultSpan(tracer *Tracer, parent TracingSpan) *DefaultSpan {
 	return &DefaultSpan{
 		tracer:    tracer,
 		StartTime: time.Now(),
@@ -52,7 +52,7 @@ func NewDefaultSpan(tracer *Tracer, parent Span) *DefaultSpan {
 	}
 }
 
-// For Span
+// For TracingSpan
 func (ds *DefaultSpan) SetOperationName(name string) {
 	ds.OperationName = name
 }
@@ -69,8 +69,8 @@ func (ds *DefaultSpan) GetPeer() string {
 	return ds.Peer
 }
 
-func (ds *DefaultSpan) SetSpanLayer(layer agentv3.SpanLayer) {
-	ds.Layer = layer
+func (ds *DefaultSpan) SetSpanLayer(layer int32) {
+	ds.Layer = agentv3.SpanLayer(layer)
 }
 
 func (ds *DefaultSpan) GetSpanLayer() agentv3.SpanLayer {
@@ -85,11 +85,11 @@ func (ds *DefaultSpan) GetComponent() int32 {
 	return ds.ComponentID
 }
 
-func (ds *DefaultSpan) Tag(key Tag, value string) {
-	ds.Tags = append(ds.Tags, &commonv3.KeyStringValuePair{Key: string(key), Value: value})
+func (ds *DefaultSpan) Tag(key, value string) {
+	ds.Tags = append(ds.Tags, &commonv3.KeyStringValuePair{Key: key, Value: value})
 }
 
-func (ds *DefaultSpan) Log(t time.Time, ll ...string) {
+func (ds *DefaultSpan) Log(ll ...string) {
 	data := make([]*commonv3.KeyStringValuePair, 0, int32(math.Ceil(float64(len(ll))/2.0)))
 	var kvp *commonv3.KeyStringValuePair
 	for i, l := range ll {
@@ -101,18 +101,18 @@ func (ds *DefaultSpan) Log(t time.Time, ll ...string) {
 			kvp.Value = l
 		}
 	}
-	ds.Logs = append(ds.Logs, &agentv3.Log{Time: Millisecond(t), Data: data})
+	ds.Logs = append(ds.Logs, &agentv3.Log{Time: Millisecond(time.Now()), Data: data})
 }
 
-func (ds *DefaultSpan) Error(t time.Time, ll ...string) {
+func (ds *DefaultSpan) Error(ll ...string) {
 	ds.IsError = true
-	ds.Log(t, ll...)
+	ds.Log(ll...)
 }
 
 func (ds *DefaultSpan) End() {
 	ds.EndTime = time.Now()
-	if ctx := GetTracingContext(); ctx != nil {
-		ctx.ActiveSpan = ds.Parent
+	if ctx := getTracingContext(); ctx != nil {
+		ctx.SaveActiveSpan(ds.Parent)
 	}
 }
 
@@ -128,6 +128,6 @@ func (ds *DefaultSpan) IsValid() bool {
 	return ds.EndTime.IsZero()
 }
 
-func (ds *DefaultSpan) ParentSpan() Span {
+func (ds *DefaultSpan) ParentSpan() TracingSpan {
 	return ds.Parent
 }

@@ -26,65 +26,75 @@ import (
 
 const flagTagKey = "skyflag"
 
-func ParseFlags(result interface{}, args []string) error {
+func ParseFlags(result interface{}, args []string) (noOpIndex int, err error) {
 	if len(args) == 0 {
-		return fmt.Errorf("no args")
+		return 0, fmt.Errorf("no args")
 	}
 	flags := parseFlagsFromStruct(result)
 	if len(flags) == 0 {
-		return nil
+		return 0, nil
 	}
 
 	i := 0
+	firstNonOptionIndex := -1
 	for i < len(args)-1 {
-		i += parseFlag(flags, args[i], args[i+1])
+		shift, isOption := parseFlag(flags, args[i], args[i+1])
+		if !isOption && firstNonOptionIndex == -1 {
+			firstNonOptionIndex = i
+		}
+		i += shift
 	}
 
 	if i < len(args) {
 		parseFlag(flags, args[i], "")
 	}
-	return nil
+
+	// process the all args flag
+	if v, exist := flags["all-args"]; exist {
+		v.Set(reflect.ValueOf(args))
+	}
+	return firstNonOptionIndex, nil
 }
 
-func ParseProxyCommandName(args []string) string {
+func ParseProxyCommandName(args []string, firstNonOptionIndex int) string {
 	if len(args) == 0 {
 		return ""
 	}
 
-	cmd := filepath.Base(args[0])
+	cmd := filepath.Base(args[firstNonOptionIndex])
 	if ext := filepath.Ext(cmd); ext != "" {
 		cmd = strings.TrimSuffix(cmd, ext)
 	}
 	return cmd
 }
 
-func parseFlag(flags map[string]reflect.Value, curArg, nextArg string) int {
+func parseFlag(flags map[string]reflect.Value, curArg, nextArg string) (shift int, isOption bool) {
 	if curArg[0] != '-' {
-		return 1
+		return 1, false
 	}
 
 	kv := strings.SplitN(curArg, "=", 2)
 	option := kv[0]
 	if v, exist := flags[option]; !exist {
 		if len(kv) == 2 {
-			return 1
+			return 1, true
 		} else if nextArg == "" || (len(nextArg) > 1 && nextArg[0] != '-') {
-			return 2
+			return 2, true
 		}
-		return 1
+		return 1, true
 	} else if len(kv) == 2 {
 		v.SetString(kv[1])
-		return 1
+		return 1, true
 	} else {
 		switch v.Kind() {
 		case reflect.String:
 			v.SetString(nextArg)
-			return 2
+			return 2, true
 		case reflect.Bool:
 			v.SetBool(true)
-			return 1
+			return 1, true
 		}
-		return 1
+		return 1, true
 	}
 }
 

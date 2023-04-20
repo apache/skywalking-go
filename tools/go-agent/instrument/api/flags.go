@@ -20,8 +20,11 @@ package api
 import "path/filepath"
 
 type CompileOptions struct {
-	Package string `skyflag:"-p"`
-	Output  string `skyflag:"-o"`
+	Package string   `skyflag:"-p"`
+	Output  string   `skyflag:"-o"`
+	AllArgs []string `skyflag:"all-args"`
+
+	DebugDir string `skyflag:"-debug"` // from tools flag
 }
 
 func (c *CompileOptions) IsValid() bool {

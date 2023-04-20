@@ -18,8 +18,6 @@
 package core
 
 import (
-	"time"
-
 	agentv3 "skywalking.apache.org/repo/goapi/collect/language/agent/v3"
 )
 
@@ -40,7 +38,7 @@ func (*NoopSpan) GetPeer() string {
 	return ""
 }
 
-func (*NoopSpan) SetSpanLayer(agentv3.SpanLayer) {
+func (*NoopSpan) SetSpanLayer(layer int32) {
 }
 
 func (*NoopSpan) GetSpanLayer() agentv3.SpanLayer {
@@ -54,13 +52,13 @@ func (*NoopSpan) GetComponent() int32 {
 	return 0
 }
 
-func (*NoopSpan) Tag(Tag, string) {
+func (*NoopSpan) Tag(string, string) {
 }
 
-func (*NoopSpan) Log(time.Time, ...string) {
+func (*NoopSpan) Log(...string) {
 }
 
-func (*NoopSpan) Error(time.Time, ...string) {
+func (*NoopSpan) Error(...string) {
 }
 
 func (*NoopSpan) End() {
@@ -78,6 +76,6 @@ func (*NoopSpan) IsValid() bool {
 	return true
 }
 
-func (n *NoopSpan) ParentSpan() Span {
+func (n *NoopSpan) ParentSpan() TracingSpan {
 	return nil
 }

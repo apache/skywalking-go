@@ -18,18 +18,13 @@
 package core
 
 import (
-	"time"
+	"github.com/apache/skywalking-go/plugins/core/tracing"
 
 	agentv3 "skywalking.apache.org/repo/goapi/collect/language/agent/v3"
 )
 
 // SpanType is used to identify entry, exit and local
 type SpanType int32
-
-// Tag are supported by sky-walking engine.
-// As default, all Tags will be stored, but these ones have
-// particular meanings.
-type Tag string
 
 const (
 	// SpanTypeEntry is a entry span, eg http server
@@ -40,35 +35,19 @@ const (
 	SpanTypeLocal SpanType = 2
 )
 
-const (
-	TagURL             Tag = "url"
-	TagStatusCode      Tag = "status_code"
-	TagHTTPMethod      Tag = "http.method"
-	TagDBType          Tag = "db.type"
-	TagDBInstance      Tag = "db.instance"
-	TagDBStatement     Tag = "db.statement"
-	TagDBSqlParameters Tag = "db.sql.parameters"
-	TagMQQueue         Tag = "mq.queue"
-	TagMQBroker        Tag = "mq.broker"
-	TagMQTopic         Tag = "mq.topic"
-)
-
-// Span interface as commonv3 span specification
-type Span interface {
+// TracingSpan interface as commonv3 span specification
+type TracingSpan interface {
+	tracing.AdaptSpan
 	SetOperationName(string)
 	GetOperationName() string
 	SetPeer(string)
 	GetPeer() string
-	SetSpanLayer(agentv3.SpanLayer)
 	GetSpanLayer() agentv3.SpanLayer
 	SetComponent(int32)
 	GetComponent() int32
-	Tag(Tag, string)
-	Log(time.Time, ...string)
-	Error(time.Time, ...string)
 	End()
 	IsEntry() bool
 	IsExit() bool
 	IsValid() bool
-	ParentSpan() Span
+	ParentSpan() TracingSpan
 }

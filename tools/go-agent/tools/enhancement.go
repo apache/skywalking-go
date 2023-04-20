@@ -75,6 +75,17 @@ func main() {
 	return parsed.Decls[0].(*dst.FuncDecl).Body.List
 }
 
+func GoStringToDecls(goString string) []dst.Decl {
+	parsed, err := decorator.Parse(fmt.Sprintf(`
+package main
+%s`, goString))
+	if err != nil {
+		panic(fmt.Sprintf("parsing go failure: %v\n%s", err, goString))
+	}
+
+	return parsed.Decls
+}
+
 func InsertStmtsBeforeBody(body *dst.BlockStmt, tmpl string, data interface{}) {
 	body.List = append(GoStringToStats(ExecuteTemplate(tmpl, data)), body.List...)
 }
