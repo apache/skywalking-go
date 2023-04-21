@@ -22,7 +22,6 @@ import "reflect"
 var (
 	GetGLS            = func() interface{} { return nil }
 	SetGLS            = func(interface{}) {}
-	GetIsNewGoroutine = func() bool { return false }
 	SetGlobalOperator = func(interface{}) {}
 	GetGlobalOperator = func() interface{} { return nil }
 )
