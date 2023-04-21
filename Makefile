@@ -41,6 +41,7 @@ test:
 	echo "mode: atomic" > ${REPODIR}/coverage.txt;
 	@for dir in $$(find . -name go.mod -exec dirname {} \; ); do \
 		cd $$dir; \
+		echo "Testing $$dir"; \
 		go test -v -coverprofile=module_coverage.txt -covermode=atomic ./...; \
 		test_status=$$?; \
 		if [ -f module_coverage.txt ]; then \

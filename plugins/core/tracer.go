@@ -18,6 +18,7 @@
 package core
 
 import (
+	"github.com/apache/skywalking-go/plugins/core/operator"
 	"github.com/apache/skywalking-go/reporter"
 )
 
@@ -33,6 +34,7 @@ type Tracer struct {
 	// 0 not init 1 init
 	initFlag int32
 	Sampler  Sampler
+	Log      operator.LogOperator
 	// correlation *CorrelationConfig	// temporarily disable, because haven't been implemented yet
 	cdsWatchers []reporter.AgentConfigChangeWatcher
 }

@@ -15,24 +15,20 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package core
+package framework
 
-type Invocation struct {
-	CallerInstance interface{}
-	Args           []interface{}
+import (
+	"github.com/apache/skywalking-go/plugins/core/instrument"
+	"github.com/apache/skywalking-go/plugins/ginv2"
+)
 
-	Continue bool
-	Return   []interface{}
+var instruments = make([]instrument.Instrument, 0)
 
-	Context interface{}
+func init() {
+	// register the framework instrument
+	registerFramework(ginv2.NewInstrument())
 }
 
-type EnhancedInstance interface {
-	GetSkyWalkingDynamicField() interface{}
-	SetSkyWalkingDynamicField(interface{})
-}
-
-type Interceptor interface {
-	BeforeInvoke(invocation *Invocation) error
-	AfterInvoke(invocation *Invocation, result ...interface{}) error
+func registerFramework(ins instrument.Instrument) {
+	instruments = append(instruments, ins)
 }

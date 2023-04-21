@@ -17,14 +17,45 @@
 
 package core
 
+import "reflect"
+
 var (
-	GetGLS = func() interface{} { return nil }
-	SetGLS = func(interface{}) {}
+	GetGLS            = func() interface{} { return nil }
+	SetGLS            = func(interface{}) {}
+	SetGlobalOperator = func(interface{}) {}
+	GetGlobalOperator = func() interface{} { return nil }
 )
 
+type ContextSnapshoter interface {
+	TakeSnapShot(val interface{}) interface{}
+}
+
 type TracingContext struct {
-	ActiveSpan Span
+	activeSpan TracingSpan
 	Runtime    *RuntimeContext
+}
+
+func (t *TracingContext) TakeSnapShot(val interface{}) interface{} {
+	snapshot := newSnapshotSpan(t.ActiveSpan())
+	return &TracingContext{
+		activeSpan: snapshot,
+		Runtime:    t.Runtime.clone(),
+	}
+}
+
+func (t *TracingContext) ActiveSpan() TracingSpan {
+	if t.activeSpan == nil || reflect.ValueOf(t.activeSpan).IsZero() {
+		return nil
+	}
+	return t.activeSpan
+}
+
+func (t *TracingContext) SaveActiveSpan(s TracingSpan) {
+	t.activeSpan = s
+}
+
+func (t *TracingContext) RuntimeContext() *RuntimeContext {
+	return t.Runtime
 }
 
 type RuntimeContext struct {
@@ -49,33 +80,10 @@ func (r *RuntimeContext) clone() *RuntimeContext {
 	}
 }
 
-func GetTracingContext() *TracingContext {
-	gls := GetGLS()
-	if gls == nil {
-		return nil
-	}
-	return gls.(*TracingContext)
-}
-
 func (r *RuntimeContext) Get(key string) interface{} {
 	return r.data[key]
 }
 
 func (r *RuntimeContext) Set(key string, value interface{}) {
 	r.data[key] = value
-}
-
-func TaskTracingContextSnapshot(val interface{}) interface{} {
-	if val == nil {
-		return nil
-	}
-	context, ok := val.(*TracingContext)
-	if !ok {
-		return nil
-	}
-	snapshot := newSnapshotSpan(context.ActiveSpan)
-	return &TracingContext{
-		ActiveSpan: snapshot,
-		Runtime:    context.Runtime.clone(),
-	}
 }

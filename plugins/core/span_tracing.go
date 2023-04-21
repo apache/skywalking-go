@@ -20,7 +20,6 @@ package core
 import (
 	"fmt"
 	"sync/atomic"
-	"time"
 
 	"github.com/apache/skywalking-go/reporter"
 
@@ -59,7 +58,7 @@ type SegmentContext struct {
 	collect            chan<- reporter.ReportedSpan
 	refNum             *int32
 	spanIDGenerator    *int32
-	FirstSpan          Span `json:"-"`
+	FirstSpan          TracingSpan `json:"-"`
 	CorrelationContext map[string]string
 }
 
@@ -84,7 +83,7 @@ func (c *SegmentContext) GetParentSegmentID() string {
 }
 
 type SegmentSpan interface {
-	Span
+	TracingSpan
 	GetSegmentContext() SegmentContext
 	tracer() *Tracer
 	segmentRegister() bool
@@ -95,7 +94,7 @@ type SegmentSpanImpl struct {
 	SegmentContext
 }
 
-// For Span
+// For TracingSpan
 func (s *SegmentSpanImpl) End() {
 	if !s.IsValid() {
 		return
@@ -110,7 +109,7 @@ func (s *SegmentSpanImpl) GetDefaultSpan() DefaultSpan {
 	return s.DefaultSpan
 }
 
-// For Reported Span
+// For Reported TracingSpan
 
 func (s *SegmentSpanImpl) Context() reporter.SegmentContext {
 	return &s.SegmentContext
@@ -251,7 +250,7 @@ func (s *SnapshotSpan) SetOperationName(_ string) {
 	panic(fmt.Errorf("cannot update the operation name of span in other goroutine"))
 }
 
-func (s *SnapshotSpan) SetSpanLayer(_ agentv3.SpanLayer) {
+func (s *SnapshotSpan) SetSpanLayer(_ int32) {
 	panic(fmt.Errorf("cannot update the layer of span in other goroutine"))
 }
 
@@ -259,15 +258,15 @@ func (s *SnapshotSpan) SetComponent(_ int32) {
 	panic(fmt.Errorf("cannot update the compoenent of span in other goroutine"))
 }
 
-func (s *SnapshotSpan) Tag(key Tag, value string) {
+func (s *SnapshotSpan) Tag(key, value string) {
 	panic(fmt.Errorf("cannot add tag of span in other goroutine"))
 }
 
-func (s *SnapshotSpan) Log(_ time.Time, _ ...string) {
+func (s *SnapshotSpan) Log(_ ...string) {
 	panic(fmt.Errorf("cannot add log of span in other goroutine"))
 }
 
-func (s *SnapshotSpan) Error(_ time.Time, _ ...string) {
+func (s *SnapshotSpan) Error(_ ...string) {
 	panic(fmt.Errorf("cannot add error of span in other goroutine"))
 }
 
@@ -322,7 +321,7 @@ func newSegmentRoot(segmentSpan *SegmentSpanImpl) *RootSegmentSpan {
 	return s
 }
 
-func newSnapshotSpan(current Span) *SnapshotSpan {
+func newSnapshotSpan(current TracingSpan) *SnapshotSpan {
 	if current == nil {
 		return nil
 	}

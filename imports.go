@@ -24,5 +24,6 @@ import (
 
 	// force compile for the agent core copied
 	_ "github.com/apache/skywalking-go/agent/core"
+	_ "github.com/apache/skywalking-go/agent/core/operator"
 	_ "github.com/apache/skywalking-go/agent/core/tracing"
 )

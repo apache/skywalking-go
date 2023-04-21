@@ -23,7 +23,8 @@ import (
 )
 
 type EnhancementToolFlags struct {
-	Help bool `skyflag:"-h"`
+	Help  bool   `swflag:"-h"`
+	Debug string `swflag:"-debug"`
 }
 
 func PrintUsageWithExit() {
