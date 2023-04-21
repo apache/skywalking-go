@@ -78,7 +78,7 @@ func (i *Instrument) CouldHandle(opts *api.CompileOptions) bool {
 			i.realInst = ins
 			i.compileOpts = opts
 			for _, p := range ins.Points() {
-				switch p.Enhance.Type {
+				switch p.At.Type {
 				case instrument.EnhanceTypeMethod:
 					i.methodFilters = append(i.methodFilters, p)
 				case instrument.EnhanceTypeStruct:
@@ -95,14 +95,14 @@ func (i *Instrument) FilterAndEdit(path string, cursor *dstutil.Cursor, allFiles
 	switch n := cursor.Node().(type) {
 	case *dst.TypeSpec:
 		for _, filter := range i.structFilters {
-			if i.verifyPackageIsMatch(path, filter) && i.validateStructIsMatch(filter.Enhance, n, allFiles) {
+			if i.verifyPackageIsMatch(path, filter) && i.validateStructIsMatch(filter.At, n, allFiles) {
 				i.enhanceStruct(i.realInst, filter, n, path)
 				return true
 			}
 		}
 	case *dst.FuncDecl:
 		for _, filter := range i.methodFilters {
-			if i.verifyPackageIsMatch(path, filter) && i.validateMethodInsMatch(filter.Enhance, n, allFiles) {
+			if i.verifyPackageIsMatch(path, filter) && i.validateMethodInsMatch(filter.At, n, allFiles) {
 				i.enhanceMethod(i.realInst, filter, n, path)
 				return true
 			}

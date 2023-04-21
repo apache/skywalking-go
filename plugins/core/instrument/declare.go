@@ -29,5 +29,6 @@ type Instrument interface {
 
 type Point struct {
 	PackagePath string
-	Enhance     *EnhanceMatcher
+	At          *EnhanceMatcher
+	Interceptor string
 }

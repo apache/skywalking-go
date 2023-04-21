@@ -24,7 +24,7 @@ import (
 	"strings"
 )
 
-const flagTagKey = "skyflag"
+const flagTagKey = "swflag"
 
 func ParseFlags(result interface{}, args []string) (noOpIndex int, err error) {
 	if len(args) == 0 {

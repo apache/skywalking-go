@@ -30,20 +30,19 @@ type MethodFilterOption func(decl *dst.FuncDecl, files []*dst.File) bool
 type StructFilterOption func(structType *dst.TypeSpec, files []*dst.File) bool
 
 type EnhanceMatcher struct {
-	Type            EnhanceType
-	Name            string
-	Receiver        string
-	InterceptorName string
-	MethodFilters   []MethodFilterOption
-	StructFilters   []StructFilterOption
+	Type          EnhanceType
+	Name          string
+	Receiver      string
+	MethodFilters []MethodFilterOption
+	StructFilters []StructFilterOption
 }
 
-func NewStaticMethodEnhance(name, interceptorName string, filters ...MethodFilterOption) *EnhanceMatcher {
-	return &EnhanceMatcher{Type: EnhanceTypeMethod, Name: name, InterceptorName: interceptorName, MethodFilters: filters}
+func NewStaticMethodEnhance(name string, filters ...MethodFilterOption) *EnhanceMatcher {
+	return &EnhanceMatcher{Type: EnhanceTypeMethod, Name: name, MethodFilters: filters}
 }
 
-func NewMethodEnhance(receiver, name, interceptorName string, filters ...MethodFilterOption) *EnhanceMatcher {
-	return &EnhanceMatcher{Type: EnhanceTypeMethod, Name: name, Receiver: receiver, InterceptorName: interceptorName, MethodFilters: filters}
+func NewMethodEnhance(receiver, name string, filters ...MethodFilterOption) *EnhanceMatcher {
+	return &EnhanceMatcher{Type: EnhanceTypeMethod, Name: name, Receiver: receiver, MethodFilters: filters}
 }
 
 func NewStructEnhance(name string, filters ...StructFilterOption) *EnhanceMatcher {

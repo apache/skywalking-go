@@ -70,7 +70,7 @@ func NewMethodEnhance(inst instrument.Instrument, matcher *instrument.Point, f *
 		fullPackage:           fullPackage,
 		packageName:           filepath.Base(fullPackage),
 		InstrumentName:        inst.Name(),
-		InterceptorDefineName: matcher.Enhance.InterceptorName,
+		InterceptorDefineName: matcher.Interceptor,
 		Parameters:            tools.EnhanceParameterNames(f.Type.Params, false),
 		Results:               tools.EnhanceParameterNames(f.Type.Results, true),
 	}
