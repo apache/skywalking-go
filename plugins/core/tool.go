@@ -18,10 +18,16 @@
 package core
 
 import (
+	"net"
+	"os"
+	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
+
+	commonv3 "skywalking.apache.org/repo/goapi/collect/common/v3"
 )
 
 // Millisecond converts time to unix millisecond
@@ -41,4 +47,91 @@ func UUID() (string, error) {
 // GenerateGlobalID generates global unique id
 func GenerateGlobalID() (globalID string, err error) {
 	return UUID()
+}
+
+func ProcessNo() string {
+	if os.Getpid() > 0 {
+		return strconv.Itoa(os.Getpid())
+	}
+	return ""
+}
+
+func HostName() string {
+	if hs, err := os.Hostname(); err == nil {
+		return hs
+	}
+	return "unknown"
+}
+
+func OSName() string {
+	return runtime.GOOS
+}
+
+func AllIPV4() (ipv4s []string) {
+	adders, err := net.InterfaceAddrs()
+	if err != nil {
+		return
+	}
+
+	for _, addr := range adders {
+		if ipNet, ok := addr.(*net.IPNet); ok && !ipNet.IP.IsLoopback() {
+			if ipNet.IP.To4() != nil {
+				ipv4 := ipNet.IP.String()
+				if ipv4 == "127.0.0.1" || ipv4 == "localhost" {
+					continue
+				}
+				ipv4s = append(ipv4s, ipv4)
+			}
+		}
+	}
+	return
+}
+
+func IPV4() string {
+	ipv4s := AllIPV4()
+	if len(ipv4s) > 0 {
+		return ipv4s[0]
+	}
+	return "no-hostname"
+}
+
+func buildOSInfo() (props []*commonv3.KeyStringValuePair) {
+	processNo := ProcessNo()
+	if processNo != "" {
+		kv := &commonv3.KeyStringValuePair{
+			Key:   "Process No.",
+			Value: processNo,
+		}
+		props = append(props, kv)
+	}
+
+	hostname := &commonv3.KeyStringValuePair{
+		Key:   "hostname",
+		Value: HostName(),
+	}
+	props = append(props, hostname)
+
+	language := &commonv3.KeyStringValuePair{
+		Key:   "language",
+		Value: "go",
+	}
+	props = append(props, language)
+
+	osName := &commonv3.KeyStringValuePair{
+		Key:   "OS Name",
+		Value: OSName(),
+	}
+	props = append(props, osName)
+
+	ipv4s := AllIPV4()
+	if len(ipv4s) > 0 {
+		for _, ipv4 := range ipv4s {
+			kv := &commonv3.KeyStringValuePair{
+				Key:   "ipv4",
+				Value: ipv4,
+			}
+			props = append(props, kv)
+		}
+	}
+	return props
 }

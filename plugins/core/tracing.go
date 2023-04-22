@@ -41,7 +41,7 @@ func (t *Tracer) Logger() interface{} {
 func (t *Tracer) CreateEntrySpan(operationName string, extractor interface{}, opts ...interface{}) (s interface{}, err error) {
 	ctx, tracingSpan, noop := t.createNoop()
 	if noop {
-		return s, nil
+		return tracingSpan, nil
 	}
 	defer func() {
 		saveSpanToActiveIfNotError(ctx, s, err)

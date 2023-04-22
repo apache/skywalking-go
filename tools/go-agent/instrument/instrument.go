@@ -31,7 +31,9 @@ import (
 
 	"github.com/apache/skywalking-go/tools/go-agent/instrument/agentcore"
 	"github.com/apache/skywalking-go/tools/go-agent/instrument/api"
+	"github.com/apache/skywalking-go/tools/go-agent/instrument/entry"
 	"github.com/apache/skywalking-go/tools/go-agent/instrument/framework"
+	"github.com/apache/skywalking-go/tools/go-agent/instrument/reporter"
 	"github.com/apache/skywalking-go/tools/go-agent/instrument/runtime"
 	"github.com/apache/skywalking-go/tools/go-agent/tools"
 )
@@ -39,6 +41,8 @@ import (
 var instruments = []api.Instrument{
 	runtime.NewInstrument(),
 	agentcore.NewInstrument(),
+	reporter.NewGRPCInstrument(),
+	entry.NewInstrument(),
 	framework.NewInstrument(),
 }
 

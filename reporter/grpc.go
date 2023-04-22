@@ -77,7 +77,7 @@ func NewGRPCReporter(logger log.Logger, serverAddr string, opts ...GRPCReporterO
 }
 
 type gRPCReporter struct {
-	entity           Entity
+	entity           *Entity
 	logger           log.Logger
 	sendCh           chan *agentv3.SegmentObject
 	conn             *grpc.ClientConn
@@ -95,7 +95,7 @@ type gRPCReporter struct {
 	bootFlag bool
 }
 
-func (r *gRPCReporter) Boot(entity Entity, cdsWatchers []AgentConfigChangeWatcher) {
+func (r *gRPCReporter) Boot(entity *Entity, cdsWatchers []AgentConfigChangeWatcher) {
 	r.entity = entity
 	r.initSendPipeline()
 	r.check()
@@ -114,7 +114,7 @@ func (r *gRPCReporter) Send(spans []ReportedSpan) {
 		TraceId:         rootCtx.GetTraceID(),
 		TraceSegmentId:  rootCtx.GetSegmentID(),
 		Spans:           make([]*agentv3.SpanObject, spanSize),
-		Service:         r.entity.ServiceInstanceName,
+		Service:         r.entity.ServiceName,
 		ServiceInstance: r.entity.ServiceInstanceName,
 	}
 	for i, s := range spans {

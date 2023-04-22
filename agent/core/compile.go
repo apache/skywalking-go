@@ -21,9 +21,13 @@ import (
 	//go:nolint
 	_ "encoding/base64"
 	_ "fmt"
+	_ "log"
 	_ "math"
 	_ "math/rand"
+	_ "net"
+	_ "os"
 	_ "reflect"
+	_ "runtime"
 	_ "strconv"
 	_ "strings"
 	_ "sync"
@@ -33,6 +37,7 @@ import (
 	//go:nolint
 	_ "github.com/apache/skywalking-go/agent/core/operator"
 	_ "github.com/apache/skywalking-go/agent/core/tracing"
+	_ "github.com/apache/skywalking-go/log"
 	_ "github.com/apache/skywalking-go/reporter"
 
 	//go:nolint

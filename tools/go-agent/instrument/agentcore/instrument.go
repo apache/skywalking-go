@@ -18,18 +18,19 @@
 package agentcore
 
 import (
-	"bytes"
+	"html"
 	"io/fs"
 	"path/filepath"
 	"strings"
 
 	"github.com/apache/skywalking-go/plugins/core"
+	"github.com/apache/skywalking-go/tools/go-agent/config"
 	"github.com/apache/skywalking-go/tools/go-agent/instrument/api"
+	"github.com/apache/skywalking-go/tools/go-agent/instrument/reporter"
 	"github.com/apache/skywalking-go/tools/go-agent/instrument/runtime"
 	"github.com/apache/skywalking-go/tools/go-agent/tools"
 
 	"github.com/dave/dst"
-	"github.com/dave/dst/decorator"
 	"github.com/dave/dst/dstutil"
 )
 
@@ -84,49 +85,18 @@ func (i *Instrument) WriteExtraFiles(dir string) ([]string, error) {
 	if sub == "" {
 		sub = "."
 	}
-	files, err := core.FS.ReadDir(sub)
-	if err != nil {
-		return nil, err
-	}
 
 	pkgUpdates := make(map[string]string)
 	for _, p := range CopiedSubPackages {
 		pkgUpdates[filepath.Join(EnhanceFromBasePackage, p)] = filepath.Join(EnhanceBasePackage, p)
 	}
-	for _, f := range files {
-		if !strings.HasSuffix(f.Name(), ".go") {
-			continue
-		}
-		if strings.HasSuffix(f.Name(), "_test.go") {
-			continue
-		}
-
-		readFile, err := fs.ReadFile(core.FS, filepath.Join(sub, f.Name()))
-		if err != nil {
-			return nil, err
-		}
-
-		// ignore nocopy files
-		if bytes.Contains(readFile, []byte("//skywalking:nocopy")) {
-			continue
-		}
-
-		parse, err := decorator.Parse(readFile)
-		if err != nil {
-			return nil, err
-		}
-		debugInfo, err := i.buildDSTDebugInfo(f)
-		if err != nil {
-			return nil, err
-		}
-
-		tools.ChangePackageImportPath(parse, pkgUpdates)
-		copiedFilePath := filepath.Join(dir, f.Name())
-		if err := tools.WriteDSTFile(copiedFilePath, parse, debugInfo); err != nil {
-			return nil, err
-		}
-		results = append(results, copiedFilePath)
+	copiedFiles, err := tools.CopyGoFiles(core.FS, sub, dir, i.buildDSTDebugInfo, func(file *dst.File) {
+		tools.ChangePackageImportPath(file, pkgUpdates)
+	})
+	if err != nil {
+		return nil, err
 	}
+	results = append(results, copiedFiles...)
 
 	// write extra file to link the operator and TLS methods
 	if sub == "." {
@@ -135,6 +105,12 @@ func (i *Instrument) WriteExtraFiles(dir string) ([]string, error) {
 			return nil, err
 		}
 		results = append(results, file)
+
+		file1, err := i.writeTracerInitLink(dir)
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, file1)
 	}
 
 	return results, nil
@@ -146,6 +122,37 @@ func (i *Instrument) buildDSTDebugInfo(entry fs.DirEntry) (*tools.DebugInfo, err
 	}
 	debugPath := filepath.Join(i.compileOpts.DebugDir, "plugins", "core", entry.Name())
 	return tools.BuildDSTDebugInfo(debugPath, nil)
+}
+
+func (i *Instrument) writeTracerInitLink(dir string) (string, error) {
+	return tools.WriteFile(dir, "tracer_init.go", html.UnescapeString(tools.ExecuteTemplate(`package core
+
+import (
+	"github.com/apache/skywalking-go/reporter"
+	"fmt"
+	"os"
+	"strconv"
+)
+
+func (t *Tracer) InitTracer(extend map[string]interface{}) {
+	rep, err := reporter.{{.GRPCReporterFuncName}}(t.Log)
+	if err != nil {
+		t.Log.Errorf("cannot initialize the reporter: %v", err)
+		return
+	}
+	entity := NewEntity({{.Config.Agent.ServiceName.ToGoStringValue}}, {{.Config.Agent.InstanceEnvName.ToGoStringValue}}, 
+		{{.Config.Agent.Layer.ToGoStringValue}})
+	samp := NewDynamicSampler({{.Config.Agent.Sampler.ToGoFloatValue "loading the agent sampler error"}}, t)
+	if err := t.Init(entity, rep, samp, nil); err != nil {
+		t.Log.Errorf("cannot initialize the SkyWalking Tracer: %v", err)
+	}
+}`, struct {
+		GRPCReporterFuncName string
+		Config               *config.Config
+	}{
+		GRPCReporterFuncName: reporter.GRPCInitFuncName,
+		Config:               config.GetConfig(),
+	})))
 }
 
 func (i *Instrument) writeLinkerFile(dir string) (string, error) {
@@ -175,7 +182,7 @@ func init() {
 	if {{.SetGlobalOperatorLinkMethod}} != nil && {{.GetGlobalOperatorLinkMethod}} != nil {
 		SetGlobalOperator = {{.SetGlobalOperatorLinkMethod}}
 		GetGlobalOperator = {{.GetGlobalOperatorLinkMethod}}
-		SetGlobalOperator(&Tracer{initFlag: 1, Sampler: NewConstSampler(true)})
+		SetGlobalOperator(newTracer())	// setting the global tracer when init the agent core
 	}
 }
 `, struct {

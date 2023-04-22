@@ -88,7 +88,7 @@ type Entity struct {
 }
 
 type Reporter interface {
-	Boot(entity Entity, cdsWatchers []AgentConfigChangeWatcher)
+	Boot(entity *Entity, cdsWatchers []AgentConfigChangeWatcher)
 	Send(spans []ReportedSpan)
 	Close()
 }
