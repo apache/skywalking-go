@@ -25,10 +25,18 @@ import (
 	"github.com/dave/dst/decorator"
 )
 
+var interfaceName = "interface{}"
+
 type ParameterInfo struct {
 	Name                 string
 	Type                 dst.Expr
 	DefaultValueAsString string
+	TypeName             string
+}
+
+type PackagedParameterInfo struct {
+	ParameterInfo
+	PackageName string
 }
 
 // EnhanceParameterNames enhance the parameter names if they are missing
@@ -58,6 +66,15 @@ func EnhanceParameterNames(fields *dst.FieldList, isResult bool) []*ParameterInf
 				break
 			}
 		}
+	}
+	return result
+}
+
+func EnhanceParameterNamesWithPackagePrefix(pkg string, fields *dst.FieldList, isResult bool) []*PackagedParameterInfo {
+	params := EnhanceParameterNames(fields, isResult)
+	result := make([]*PackagedParameterInfo, 0)
+	for _, p := range params {
+		result = append(result, &PackagedParameterInfo{ParameterInfo: *p, PackageName: pkg})
 	}
 	return result
 }
@@ -92,8 +109,9 @@ func InsertStmtsBeforeBody(body *dst.BlockStmt, tmpl string, data interface{}) {
 
 func newParameterInfo(name string, tp dst.Expr) *ParameterInfo {
 	result := &ParameterInfo{
-		Name: name,
-		Type: tp,
+		Name:     name,
+		Type:     tp,
+		TypeName: generateTypeNameByExp(tp),
 	}
 	var defaultNil = "nil"
 	switch n := tp.(type) {
@@ -110,4 +128,51 @@ func newParameterInfo(name string, tp dst.Expr) *ParameterInfo {
 	}
 
 	return result
+}
+
+func (p *PackagedParameterInfo) PackagedType() dst.Expr {
+	return addPackagePrefixForArgsAndClone(p.PackageName, p.Type)
+}
+
+func (p *PackagedParameterInfo) PackagedTypeName() string {
+	return generateTypeNameByExp(p.PackagedType())
+}
+
+func generateTypeNameByExp(exp dst.Expr) string {
+	var data string
+	switch n := exp.(type) {
+	case *dst.StarExpr:
+		data = "*" + generateTypeNameByExp(n.X)
+	case *dst.TypeAssertExpr:
+		data = generateTypeNameByExp(n.X)
+	case *dst.InterfaceType:
+		data = interfaceName
+	case *dst.Ident:
+		data = n.Name
+	case *dst.SelectorExpr:
+		data = generateTypeNameByExp(n.X) + "." + generateTypeNameByExp(n.Sel)
+	default:
+		return ""
+	}
+	return data
+}
+
+func addPackagePrefixForArgsAndClone(pkg string, tp dst.Expr) dst.Expr {
+	switch t := tp.(type) {
+	case *dst.Ident:
+		if IsBasicDataType(t.Name) {
+			return dst.Clone(tp).(dst.Expr)
+		}
+		// otherwise, add the package prefix
+		return &dst.SelectorExpr{
+			X:   dst.NewIdent(pkg),
+			Sel: dst.NewIdent(t.Name),
+		}
+	case *dst.StarExpr:
+		expr := dst.Clone(tp).(*dst.StarExpr)
+		expr.X = addPackagePrefixForArgsAndClone(pkg, t.X)
+		return expr
+	default:
+		return dst.Clone(tp).(dst.Expr)
+	}
 }

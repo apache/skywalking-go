@@ -5,6 +5,7 @@ go 1.18
 require (
 	github.com/apache/skywalking-go/plugins/core v0.0.0-20230414024435-7b292984eb80
 	github.com/apache/skywalking-go/plugins/ginv2 v0.0.0-20230412041451-ba963278b31e
+	github.com/apache/skywalking-go/plugins/http v0.0.0-20230412041451-ba963278b31e
 	github.com/dave/dst v0.27.2
 	github.com/sirupsen/logrus v1.9.0
 	golang.org/x/text v0.8.0
@@ -50,3 +51,4 @@ replace github.com/apache/skywalking-go => ../../
 replace github.com/apache/skywalking-go/plugins/core => ../../plugins/core
 
 replace github.com/apache/skywalking-go/plugins/ginv2 => ../../plugins/ginv2
+replace github.com/apache/skywalking-go/plugins/http => ../../plugins/http

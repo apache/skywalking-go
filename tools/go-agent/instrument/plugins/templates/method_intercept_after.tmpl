@@ -9,7 +9,7 @@ defer func() {
 
 // real invoke
 if err := {{.InterceptorVarName}}.AfterInvoke(invocation{{ range $index, $value := .Results -}}
-                                                , ret_$index
+                                                , *ret_{{$index}}
                                                 {{- end}}); err != nil {
 	// using go2sky log error
 	log.Warnf("execute interceptor after invoke error, instrument name: %s, interceptor name: %s, function ID: %s, error: %v",

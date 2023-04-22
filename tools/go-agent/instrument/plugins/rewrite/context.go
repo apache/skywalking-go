@@ -26,6 +26,8 @@ import (
 
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
+
+	"github.com/apache/skywalking-go/tools/go-agent/tools"
 )
 
 var GenerateMethodPrefix = "_skywalking_enhance_"
@@ -208,7 +210,7 @@ func (c *Context) enhanceTypeNameWhenRewrite(fieldType dst.Expr, parent dst.Node
 }
 
 func (c *Context) typeIsBasicTypeValueOrEnhanceName(name string) bool {
-	if strings.HasPrefix(name, OperatePrefix) || strings.HasPrefix(name, GenerateMethodPrefix) || IsBasicDataType(name) ||
+	if strings.HasPrefix(name, OperatePrefix) || strings.HasPrefix(name, GenerateMethodPrefix) || tools.IsBasicDataType(name) ||
 		name == "nil" || name == "true" || name == "false" {
 		return true
 	}
@@ -221,14 +223,6 @@ func (c *Context) typeIsBasicTypeValueOrEnhanceName(name string) bool {
 func (c *Context) callIsBasicNamesOrEnhanceName(name string) bool {
 	return strings.HasPrefix(name, OperatePrefix) || strings.HasPrefix(name, GenerateMethodPrefix) ||
 		name == "make" || name == "recover" || name == "len"
-}
-
-// nolint
-func IsBasicDataType(name string) bool {
-	return name == "bool" || name == "int8" || name == "int16" || name == "int32" || name == "int64" || name == "uint8" ||
-		name == "uint16" || name == "uint32" || name == "uint64" || name == "int" || name == "uint" || name == "uintptr" ||
-		name == "float32" || name == "float64" || name == "complex64" || name == "complex128" || name == "string" || name == "error" ||
-		name == "interface{}" || name == "_"
 }
 
 func (r *rewriteImportInfo) generateStaticMethod(name string) *dst.Ident {

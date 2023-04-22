@@ -37,7 +37,8 @@ func (h *HTTPInterceptor) BeforeInvoke(invocation *operator.Invocation) error {
 		},
 		tracing.WithLayer(tracing.SpanLayerHTTP),
 		tracing.WithTag(tracing.TagHTTPMethod, context.Request.Method),
-		tracing.WithTag(tracing.TagURL, context.Request.Host+context.Request.URL.Path))
+		tracing.WithTag(tracing.TagURL, context.Request.Host+context.Request.URL.Path),
+		tracing.WithComponent(5006))
 	if err != nil {
 		return err
 	}

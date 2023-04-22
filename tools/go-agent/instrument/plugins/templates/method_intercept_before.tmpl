@@ -20,14 +20,14 @@ if err := {{.InterceptorVarName}}.BeforeInvoke(invocation); err != nil {
 	log.Warnf("execute interceptor before invoke error, instrument name: %s, interceptor name: %s, function ID: %s, error: %v",
     		    "{{.InstrumentName}}", "{{.InterceptorDefineName}}", "{{.FuncID}}", err)
 	return {{ range $index, $value := .Results -}}
-$value.DefaultValueAsString,
+{{$value.DefaultValueAsString}},
 {{- end}}invocation, true
 }
 if (invocation.Continue) {
 	return {{ range $index, $value := .Results -}}
-    invocation.Return[$index],
+    (invocation.Return[{{$index}}]).({{$value.PackagedTypeName}}),
 {{- end}}invocation, false
 }
 return {{ range $index, $value := .Results -}}
-{{- if ne .index 0}}, {{end}}$value.DefaultValueAsString
+{{- if ne $index 0}}, {{end}}{{$value.DefaultValueAsString }}
 {{- end}}{{if .Results}}, {{- end}}invocation, true

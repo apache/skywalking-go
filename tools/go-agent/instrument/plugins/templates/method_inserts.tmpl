@@ -4,8 +4,8 @@ if {{ range $index, $value := .Results -}}
 	{{ if ne $index 0}},{{ end }}&{{$value.Name -}},
 {{- end -}}{{ range $index, $value := .Parameters -}}
 	{{ if ne $index 0}},{{ end }}&{{$value.Name -}}
-{{- end -}}); !_sw_keep { return {{- range $index, $value := .Results -}}
-	_sw_inv_res_{{$index -}},
+{{- end -}}); !_sw_keep { return {{ range $index, $value := .Results -}}
+	{{ if ne $index 0}},{{ end }}_sw_inv_res_{{$index -}}
 {{- end -}} } else { defer func() { {{.AdapterPostFuncName}}(_sw_invocation{{- range $index, $value := .Results -}}
-,{{- $value.Name -}}
+,&{{- $value.Name -}}
 {{- end -}})}() };

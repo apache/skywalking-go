@@ -15,22 +15,12 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package plugins
+package tools
 
-import (
-	"github.com/apache/skywalking-go/plugins/core/instrument"
-	"github.com/apache/skywalking-go/plugins/ginv2"
-	"github.com/apache/skywalking-go/plugins/http"
-)
-
-var instruments = make([]instrument.Instrument, 0)
-
-func init() {
-	// register the plugins instrument
-	registerFramework(ginv2.NewInstrument())
-	registerFramework(http.NewInstrument())
-}
-
-func registerFramework(ins instrument.Instrument) {
-	instruments = append(instruments, ins)
+// nolint
+func IsBasicDataType(name string) bool {
+	return name == "bool" || name == "int8" || name == "int16" || name == "int32" || name == "int64" || name == "uint8" ||
+		name == "uint16" || name == "uint32" || name == "uint64" || name == "int" || name == "uint" || name == "uintptr" ||
+		name == "float32" || name == "float64" || name == "complex64" || name == "complex128" || name == "string" || name == "error" ||
+		name == "interface{}" || name == "_"
 }
