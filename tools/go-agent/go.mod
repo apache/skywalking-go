@@ -8,6 +8,7 @@ require (
 	github.com/dave/dst v0.27.2
 	github.com/sirupsen/logrus v1.9.0
 	golang.org/x/text v0.8.0
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
@@ -41,7 +42,6 @@ require (
 	google.golang.org/genproto v0.0.0-20230110181048-76db0878b65f // indirect
 	google.golang.org/grpc v1.54.0 // indirect
 	google.golang.org/protobuf v1.29.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 	skywalking.apache.org/repo/goapi v0.0.0-20230314034821-0c5a44bb767a // indirect
 )
 

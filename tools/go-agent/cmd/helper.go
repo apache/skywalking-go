@@ -23,8 +23,9 @@ import (
 )
 
 type EnhancementToolFlags struct {
-	Help  bool   `swflag:"-h"`
-	Debug string `swflag:"-debug"`
+	Help   bool   `swflag:"-h"`
+	Debug  string `swflag:"-debug"`
+	Config string `swflag:"-config"`
 }
 
 func PrintUsageWithExit() {

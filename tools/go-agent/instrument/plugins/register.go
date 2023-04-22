@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package framework
+package plugins
 
 import (
 	"github.com/apache/skywalking-go/plugins/core/instrument"
@@ -25,7 +25,7 @@ import (
 var instruments = make([]instrument.Instrument, 0)
 
 func init() {
-	// register the framework instrument
+	// register the plugins instrument
 	registerFramework(ginv2.NewInstrument())
 }
 

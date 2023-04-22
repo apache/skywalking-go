@@ -66,7 +66,7 @@ func NewStoreReporter() *StoreReporter {
 	return &StoreReporter{}
 }
 
-func (r *StoreReporter) Boot(entity reporter.Entity, cdsWatchers []reporter.AgentConfigChangeWatcher) {
+func (r *StoreReporter) Boot(entity *reporter.Entity, cdsWatchers []reporter.AgentConfigChangeWatcher) {
 }
 
 func (r *StoreReporter) Send(spans []reporter.ReportedSpan) {
