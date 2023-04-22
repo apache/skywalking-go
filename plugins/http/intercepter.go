@@ -36,7 +36,7 @@ func (h *Interceptor) BeforeInvoke(invocation *operator.Invocation) error {
 	}, tracing.WithLayer(tracing.SpanLayerHTTP),
 		tracing.WithTag(tracing.TagHTTPMethod, request.Method),
 		tracing.WithTag(tracing.TagURL, request.Host+request.URL.Path),
-		tracing.WithComponent(5004))
+		tracing.WithComponent(5005))
 	if err != nil {
 		return err
 	}
