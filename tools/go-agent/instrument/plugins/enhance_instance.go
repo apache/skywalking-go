@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package framework
+package plugins
 
 import (
 	"fmt"

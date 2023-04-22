@@ -32,7 +32,7 @@ import (
 	"github.com/apache/skywalking-go/tools/go-agent/instrument/agentcore"
 	"github.com/apache/skywalking-go/tools/go-agent/instrument/api"
 	"github.com/apache/skywalking-go/tools/go-agent/instrument/entry"
-	"github.com/apache/skywalking-go/tools/go-agent/instrument/framework"
+	"github.com/apache/skywalking-go/tools/go-agent/instrument/plugins"
 	"github.com/apache/skywalking-go/tools/go-agent/instrument/reporter"
 	"github.com/apache/skywalking-go/tools/go-agent/instrument/runtime"
 	"github.com/apache/skywalking-go/tools/go-agent/tools"
@@ -43,7 +43,7 @@ var instruments = []api.Instrument{
 	agentcore.NewInstrument(),
 	reporter.NewGRPCInstrument(),
 	entry.NewInstrument(),
-	framework.NewInstrument(),
+	plugins.NewInstrument(),
 }
 
 func Execute(opts *api.CompileOptions, args []string) ([]string, error) {

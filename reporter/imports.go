@@ -18,7 +18,7 @@
 package reporter
 
 import (
-	// for enhance imports
+	// imports required packages for gRPC reporter
 	_ "fmt"
 	_ "os"
 	_ "strconv"

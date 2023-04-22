@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package framework
+package plugins
 
 import (
 	"bytes"
@@ -29,7 +29,7 @@ import (
 	"github.com/apache/skywalking-go/plugins/core"
 	"github.com/apache/skywalking-go/plugins/core/instrument"
 	"github.com/apache/skywalking-go/tools/go-agent/instrument/api"
-	"github.com/apache/skywalking-go/tools/go-agent/instrument/framework/rewrite"
+	"github.com/apache/skywalking-go/tools/go-agent/instrument/plugins/rewrite"
 	"github.com/apache/skywalking-go/tools/go-agent/tools"
 
 	"github.com/dave/dst"

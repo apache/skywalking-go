@@ -20,7 +20,7 @@ package entry
 import (
 	"github.com/apache/skywalking-go/tools/go-agent/config"
 	"github.com/apache/skywalking-go/tools/go-agent/instrument/api"
-	"github.com/apache/skywalking-go/tools/go-agent/instrument/framework/rewrite"
+	"github.com/apache/skywalking-go/tools/go-agent/instrument/plugins/rewrite"
 	"github.com/apache/skywalking-go/tools/go-agent/tools"
 
 	"github.com/dave/dst"
