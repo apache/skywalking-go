@@ -50,9 +50,9 @@ type MethodEnhance struct {
 	InterceptorGeneratedName string
 	InterceptorVarName       string
 
-	Parameters []*tools.ParameterInfo
-	Recvs      []*tools.ParameterInfo
-	Results    []*tools.ParameterInfo
+	Parameters []*tools.PackagedParameterInfo
+	Recvs      []*tools.PackagedParameterInfo
+	Results    []*tools.PackagedParameterInfo
 
 	FuncID              string
 	AdapterPreFuncName  string
@@ -64,18 +64,19 @@ type MethodEnhance struct {
 
 func NewMethodEnhance(inst instrument.Instrument, matcher *instrument.Point, f *dst.FuncDecl, path string) *MethodEnhance {
 	fullPackage := filepath.Join(inst.BasePackage(), matcher.PackagePath)
+	pkgName := filepath.Base(fullPackage)
 	enhance := &MethodEnhance{
 		funcDecl:              f,
 		path:                  path,
 		fullPackage:           fullPackage,
-		packageName:           filepath.Base(fullPackage),
+		packageName:           pkgName,
 		InstrumentName:        inst.Name(),
 		InterceptorDefineName: matcher.Interceptor,
-		Parameters:            tools.EnhanceParameterNames(f.Type.Params, false),
-		Results:               tools.EnhanceParameterNames(f.Type.Results, true),
+		Parameters:            tools.EnhanceParameterNamesWithPackagePrefix(pkgName, f.Type.Params, false),
+		Results:               tools.EnhanceParameterNamesWithPackagePrefix(pkgName, f.Type.Results, true),
 	}
 	if f.Recv != nil {
-		enhance.Recvs = tools.EnhanceParameterNames(f.Recv, false)
+		enhance.Recvs = tools.EnhanceParameterNamesWithPackagePrefix(pkgName, f.Recv, false)
 	}
 
 	enhance.FuncID = buildFrameworkFuncID(filepath.Join(inst.BasePackage(), matcher.PackagePath), f)
@@ -126,19 +127,19 @@ func (m *MethodEnhance) BuildForAdapter() []dst.Decl {
 	for i, recv := range m.Recvs {
 		preFunc.Type.Params.List = append(preFunc.Type.Params.List, &dst.Field{
 			Names: []*dst.Ident{dst.NewIdent(fmt.Sprintf("recv_%d", i))},
-			Type:  &dst.StarExpr{X: m.addPackagePrefixForArgsAndClone(m.packageName, recv.Type)},
+			Type:  &dst.StarExpr{X: recv.PackagedType()},
 		})
 	}
 	for i, parameter := range m.Parameters {
 		preFunc.Type.Params.List = append(preFunc.Type.Params.List, &dst.Field{
 			Names: []*dst.Ident{dst.NewIdent(fmt.Sprintf("param_%d", i))},
-			Type:  &dst.StarExpr{X: m.addPackagePrefixForArgsAndClone(m.packageName, parameter.Type)},
+			Type:  &dst.StarExpr{X: parameter.PackagedType()},
 		})
 	}
 	for i, result := range m.Results {
 		preFunc.Type.Results.List = append(preFunc.Type.Results.List, &dst.Field{
 			Names: []*dst.Ident{dst.NewIdent(fmt.Sprintf("ret_%d", i))},
-			Type:  &dst.StarExpr{X: m.addPackagePrefixForArgsAndClone(m.packageName, result.Type)},
+			Type:  result.PackagedType(),
 		})
 	}
 	preFunc.Type.Results.List = append(preFunc.Type.Results.List, &dst.Field{
@@ -189,7 +190,7 @@ func (m *MethodEnhance) BuildForAdapter() []dst.Decl {
 func (m *MethodEnhance) addPackagePrefixForArgsAndClone(pkg string, tp dst.Expr) dst.Expr {
 	switch t := tp.(type) {
 	case *dst.Ident:
-		if rewrite.IsBasicDataType(t.Name) {
+		if tools.IsBasicDataType(t.Name) {
 			return dst.Clone(tp).(dst.Expr)
 		}
 		// otherwise, add the package prefix
@@ -198,8 +199,9 @@ func (m *MethodEnhance) addPackagePrefixForArgsAndClone(pkg string, tp dst.Expr)
 			Sel: dst.NewIdent(t.Name),
 		}
 	case *dst.StarExpr:
-		t.X = m.addPackagePrefixForArgsAndClone(pkg, t.X)
-		return t
+		expr := dst.Clone(tp).(*dst.StarExpr)
+		expr.X = m.addPackagePrefixForArgsAndClone(pkg, t.X)
+		return expr
 	default:
 		return dst.Clone(tp).(dst.Expr)
 	}

@@ -15,30 +15,28 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package ginv2
+package http
 
 import (
 	"fmt"
-
-	"github.com/gin-gonic/gin"
+	"net/http"
 
 	"github.com/apache/skywalking-go/plugins/core/operator"
 	"github.com/apache/skywalking-go/plugins/core/tracing"
 )
 
-type HTTPInterceptor struct {
+type Interceptor struct {
 }
 
-func (h *HTTPInterceptor) BeforeInvoke(invocation *operator.Invocation) error {
-	context := invocation.Args[0].(*gin.Context)
-	s, err := tracing.CreateEntrySpan(
-		fmt.Sprintf("%s:%s", context.Request.Method, context.Request.RequestURI), func(headerKey string) (string, error) {
-			return context.Request.Header.Get(headerKey), nil
-		},
-		tracing.WithLayer(tracing.SpanLayerHTTP),
-		tracing.WithTag(tracing.TagHTTPMethod, context.Request.Method),
-		tracing.WithTag(tracing.TagURL, context.Request.Host+context.Request.URL.Path),
-		tracing.WithComponent(5006))
+func (h *Interceptor) BeforeInvoke(invocation *operator.Invocation) error {
+	request := invocation.Args[0].(*http.Request)
+	s, err := tracing.CreateExitSpan(fmt.Sprintf("%s:%s", request.Method, request.URL.Path), request.Host, func(headerKey, headerValue string) error {
+		request.Header.Add(headerKey, headerValue)
+		return nil
+	}, tracing.WithLayer(tracing.SpanLayerHTTP),
+		tracing.WithTag(tracing.TagHTTPMethod, request.Method),
+		tracing.WithTag(tracing.TagURL, request.Host+request.URL.Path),
+		tracing.WithComponent(5005))
 	if err != nil {
 		return err
 	}
@@ -46,15 +44,22 @@ func (h *HTTPInterceptor) BeforeInvoke(invocation *operator.Invocation) error {
 	return nil
 }
 
-func (h *HTTPInterceptor) AfterInvoke(invocation *operator.Invocation, result ...interface{}) error {
+func (h *Interceptor) AfterInvoke(invocation *operator.Invocation, result ...interface{}) error {
 	if invocation.Context == nil {
 		return nil
 	}
-	context := invocation.Args[0].(*gin.Context)
 	span := invocation.Context.(tracing.Span)
-	span.Tag(tracing.TagStatusCode, fmt.Sprintf("%d", context.Writer.Status()))
-	if len(context.Errors) > 0 {
-		span.Error(context.Errors.String())
+	res0 := result[0]
+	res1 := result[1]
+	if res0 != nil {
+		resp := res0.(*http.Response)
+		span.Tag(tracing.TagStatusCode, fmt.Sprintf("%d", resp.StatusCode))
+	}
+	if res1 != nil {
+		err := result[1].(error)
+		if err != nil {
+			span.Error(err.Error())
+		}
 	}
 	span.End()
 	return nil

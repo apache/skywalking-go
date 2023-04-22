@@ -15,22 +15,48 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package plugins
+package http
 
 import (
+	"embed"
+
 	"github.com/apache/skywalking-go/plugins/core/instrument"
-	"github.com/apache/skywalking-go/plugins/ginv2"
-	"github.com/apache/skywalking-go/plugins/http"
 )
 
-var instruments = make([]instrument.Instrument, 0)
+//go:embed *
+var fs embed.FS
 
-func init() {
-	// register the plugins instrument
-	registerFramework(ginv2.NewInstrument())
-	registerFramework(http.NewInstrument())
+//skywalking:nocopy
+type Instrument struct {
 }
 
-func registerFramework(ins instrument.Instrument) {
-	instruments = append(instruments, ins)
+func NewInstrument() *Instrument {
+	return &Instrument{}
+}
+
+func (i *Instrument) Name() string {
+	return "http"
+}
+
+func (i *Instrument) BasePackage() string {
+	return "net/http"
+}
+
+func (i *Instrument) VersionChecker(version string) bool {
+	return true
+}
+
+func (i *Instrument) Points() []*instrument.Point {
+	return []*instrument.Point{
+		{
+			PackagePath: "",
+			At: instrument.NewMethodEnhance("Transport", "RoundTrip",
+				instrument.WithArgsCount(1), instrument.WithArgType(0, "*Request")),
+			Interceptor: "Interceptor",
+		},
+	}
+}
+
+func (i *Instrument) FS() *embed.FS {
+	return &fs
 }

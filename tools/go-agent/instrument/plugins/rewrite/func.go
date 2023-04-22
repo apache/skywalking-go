@@ -181,6 +181,8 @@ func (c *Context) rewriteVarIfExistingMapping(exp dst.Expr) bool {
 		for _, arg := range n.Args {
 			c.rewriteVarIfExistingMapping(arg)
 		}
+	case *dst.StarExpr:
+		c.enhanceTypeNameWhenRewrite(n.X, n, -1)
 	}
 	return false
 }

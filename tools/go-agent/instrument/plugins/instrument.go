@@ -68,7 +68,7 @@ func (i *Instrument) CouldHandle(opts *api.CompileOptions) bool {
 			continue
 		}
 		// check the version of the framework could handler
-		version, err := i.tryToFindThePluginVersion(opts, ins.BasePackage())
+		version, err := i.tryToFindThePluginVersion(opts, ins)
 		if err != nil {
 			logrus.Warnf("ignore the plugin %s, because: %s", ins.Name(), err)
 			continue
@@ -362,21 +362,25 @@ func (i *Instrument) validateMethodInsMatch(matcher *instrument.EnhanceMatcher, 
 	return true
 }
 
-func (i *Instrument) tryToFindThePluginVersion(opts *api.CompileOptions, pkg string) (string, error) {
+func (i *Instrument) tryToFindThePluginVersion(opts *api.CompileOptions, ins instrument.Instrument) (string, error) {
 	for _, arg := range opts.AllArgs {
 		// find the go file
 		if !strings.HasSuffix(arg, ".go") {
 			continue
 		}
+		basePkg := ins.BasePackage()
 
-		parts := strings.SplitN(arg, pkg, 2)
+		parts := strings.SplitN(arg, basePkg, 2)
 		// example: github.com/gin-gonic/gin@1.1.1/gin.go
-		if len(parts) != 2 || !strings.HasPrefix(parts[1], "@") {
-			return "", fmt.Errorf("could not found the go version of the package %s, go file path: %s", pkg, arg)
+		if len(parts) != 2 {
+			return "", fmt.Errorf("could not found the go version of the package %s, go file path: %s", basePkg, arg)
+		}
+		if !strings.HasPrefix(parts[1], "@") {
+			return "", nil
 		}
 		firstDir := strings.Index(parts[1], "/")
 		if firstDir == -1 {
-			return "", fmt.Errorf("could not found the first directory index for package: %s, go file path: %s", pkg, arg)
+			return "", fmt.Errorf("could not found the first directory index for package: %s, go file path: %s", basePkg, arg)
 		}
 		return parts[1][1:firstDir], nil
 	}
