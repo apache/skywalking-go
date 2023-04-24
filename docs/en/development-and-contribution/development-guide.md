@@ -19,7 +19,7 @@ Plugins can import the following two modules:
 Agent core plugin should be `github.com/apache/skywalking-go/plugins/core` and replaced by the relative location.
 2. **Framework to be enhanced**: Import the framework you wish to enhance.
 
-Note: Plugins should not import and use other unrelated modules, as this may cause compilation issues for users. If certain tools are needed, they should be provided by the agent core.
+Note: Plugins should **NOT** import and use any other modules, as this may cause compilation issues for users. If certain tools are needed, they should be provided by the agent core.
 
 ## Define the enhancement object
 
@@ -37,7 +37,7 @@ Also, this file involves the use of the `embed` package, and if the target frame
 
 ### Instrument Point
 
-Instrument points are used to enhance methods and struct in the current package. They mainly include the following information:
+Instrument points are used to declare that which methods and structs in the current package should be instrumented. They mainly include the following information:
 
 1. **Package path**: If the interception point that needs to be intercepted is not in the root directory of the current package, you need to fill in the relative path to the package. 
 For example, if this interception point wants to instrument content in the `github.com/gin-gonic/gin/render` directory, you need to fill in `render` here.
@@ -203,7 +203,7 @@ type Invocation struct {
 The `Interceptor` instance would **define new instance at the current package level**, 
 rather than creating a new instance each time a method is intercepted. 
 
-Therefore, please try not to define intercepted objects in the interceptor, and instead use `Invocation.Context` to pass data.
+Therefore, do not declare objects in the interceptor, and instead use `Invocation.Context` to pass data.
 
 ##### Package Path
 

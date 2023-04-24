@@ -84,7 +84,6 @@ type Entity struct {
 	ServiceName         string
 	ServiceInstanceName string
 	Props               []*commonv3.KeyStringValuePair
-	Layer               string
 }
 
 type Reporter interface {

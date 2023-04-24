@@ -26,6 +26,9 @@ var (
 )
 
 // CreateEntrySpan creates a new entry span.
+// operationName is the name of the span.
+// extractor is the extractor to extract the context from the carrier.
+// opts is the options to create the span.
 func CreateEntrySpan(operationName string, extractor Extractor, opts ...SpanOption) (s Span, err error) {
 	if operationName == "" || extractor == nil {
 		return nil, errParameter
@@ -42,6 +45,8 @@ func CreateEntrySpan(operationName string, extractor Extractor, opts ...SpanOpti
 }
 
 // CreateLocalSpan creates a new local span.
+// operationName is the name of the span.
+// opts is the options to create the span.
 func CreateLocalSpan(operationName string, opts ...SpanOption) (s Span, err error) {
 	if operationName == "" {
 		return nil, errParameter
@@ -58,6 +63,10 @@ func CreateLocalSpan(operationName string, opts ...SpanOption) (s Span, err erro
 }
 
 // CreateExitSpan creates a new exit span.
+// operationName is the name of the span.
+// peer is the peer address of the span.
+// injector is the injector to inject the context into the carrier.
+// opts is the options to create the span.
 func CreateExitSpan(operationName, peer string, injector Injector, opts ...SpanOption) (s Span, err error) {
 	if operationName == "" || peer == "" || injector == nil {
 		return nil, errParameter

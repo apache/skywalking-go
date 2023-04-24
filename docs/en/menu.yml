@@ -22,19 +22,19 @@ catalog:
         - name: Design
           catalog:
             - name: Hybrid Compilation
-              path: /en/concepts-and-designs/hybird-compilcation
+              path: /en/concepts-and-designs/hybrid-compilation
             - name: Key Principles
               path: /en/concepts-and-designs/key-principles
             - name: Project Structure
               path: /en/concepts-and-designs/project-structure
     - name: Setup
-      catalog:
-        - name: Setup in Build
-          path: /en/setup/gobuild
+      path: /en/setup/gobuild
     - name: Advanced Features
       catalog:
         - name: Setting Override
           path: /en/advanced-features/settings-override
+        - name: Logging Setup
+          path: /en/advanced-features/logging-setup
     - name: Agent
       catalog:
         - name: Supported Frameworks

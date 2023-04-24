@@ -32,11 +32,11 @@ The code above demonstrates the parameters used when a custom program is execute
 
 ## Toolchain with SkyWalking Go Agent
 
-SkyWalking Go Agent works by intercepting the `compile` program in the toolchain and making changes to the program based on the information above. The main parts include:
+SkyWalking Go Agent works by intercepting the `compile` program through the toolchain and making changes to the program based on the information above. The main parts include:
 
-1. **AST**: Using `AST` to parse or modify files which ready for compiled.
+1. **AST**: Using `AST` to parse and manipulate the codes.
 2. **File copying/generation**: Copy or generate files to the temporary directory required for the compilation, and add file path addresses when the compilation command is executed.
-3. **Proxy command execution**: After completing the modification of the specified package, the command execution in the toolchain will be proxied.
+3. **Proxy command execution**: After completing the modification of the specified package, the new codes are weaved into the target.
 
 ### Hybrid Compilation
 

@@ -22,8 +22,6 @@ agent:
   service_name: ${SW_AGENT_NAME:Your_ApplicationName}
   # To obtain the environment variable key for the instance name, if it cannot be obtained, an instance name will be automatically generated.
   instance_env_name: SW_AGENT_INSTANCE_NAME
-  # The layer of the agent.
-  layer: GENERAL
   # Sampling rate of tracing data, which is a floating-point value that must be between 0 and 1.
   sampler: ${SW_AGENT_SAMPLE:1}
 

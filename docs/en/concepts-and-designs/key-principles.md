@@ -1,7 +1,6 @@
 # Key Principle
 
-Enhancing applications in hybrid compilation is very important for SkyWalking Go Agent. 
-In this section, I will delve deeper into several key technical points.
+Introduce the key technical processes used in the SkyWalking Go Agent, to help the developers and end users understand how the agent works easier.
 
 ## Method Interceptor
 
@@ -13,10 +12,10 @@ Method interception is particularly important in SkyWalking Go, as it enables th
 
 ### Finding Method
 
-When looking for methods, the SkyWalking Go Agent need to search according to the provided compilation arguments, which mainly include the following two parts:
+When looking for methods, the SkyWalking Go Agent requires to search according to the provided compilation arguments, which mainly include the following two parts:
 
 1. **Package information**: Based on the package name provided by the arguments, the Agent can find the specific plugin.
-2 **Go files**: When a matching plugin is found, Agent can read the `.go` files and use `AST` to parse the method information contained in these files. When the method information matches the method information required by the plugin for interception, Agent can consider the method found.
+2. **Go files**: When a matching plugin is found, the Agent reads the `.go` files and uses `AST` to parse the method information from these source files. When the method information matches the method information required by the plugin for the interception, the agent would consider the method found.
 
 ### Modifying Methods
 
@@ -35,25 +34,53 @@ Based on these two methods, the agent can intercept before and after method exec
 In order not to affect the line of code execution, this code segment will only be executed in the **same line as the first statement in the method**. 
 This ensures that when an exception occurs in the framework code execution, the exact location can still be found without being affected by the enhanced code.
 
-#### Write Adapter File
+#### Write Delegator File
 
-After the agent enhances the method body, it needs to implement the above two methods and write them into a single file, called the **adapter file**. These two methods will do the following:
+After the agent enhances the method body, it needs to implement the above two methods and write them into a single file, called the **delegator file**. These two methods would do the following:
 
 1. **Before method execution**: [Build by the template](../../../tools/go-agent/instrument/plugins/templates/method_intercept_before.tmpl). Build the context for before and after interception, and pass the parameter information during execution to the interceptor in each plugin.
 2. **After method execution**: [Build by the template](../../../tools/go-agent/instrument/plugins/templates/method_intercept_after.tmpl). Pass the method return value to the interceptor and execute the method.
 
 #### Copy Files
 
-After completing the adapter file, the agent would perform the following copy operations:
+After completing the delegator file, the agent would perform the following copy operations:
 
 1. **Plugin Code**: Copy the Go files containing the interceptors in the plugin to the same level directory as the current framework.
-2. **Plugin Development API Code**: Copy the operation APIs needed by the interceptors in the plugin to the same level directory as the current framework, such as `tracing`.
+2. **Plugin Development API Code**: Copy the operation APIs required by the interceptors in the plugin to the same level directory as the current framework, such as `tracing`.
 
 After copying the files, they cannot be immediately added to the compilation parameters, because they may have the same name as the existing framework code. Therefore, we need to perform some rewriting operations, which include the following parts:
 
 1. **Types**: Rename created structures, interfaces, methods, and other types by adding a unified prefix.
 2. **Static Methods**: Add a prefix to non-instance methods. Static methods do not need to be rewritten since they have already been processed in the types.
 3. **Variables**: Add a prefix to global variables. It's not necessary to add a prefix to variables inside methods because they can ensure no conflicts would arise and are helpful for debugging.
+
+In the Tracing API, we can see several methods, such as:
+
+```go
+var (
+	errParameter = operator.NewError("parameter are nil")
+)
+
+func CreateLocalSpan(operationName string, opts ...SpanOption) (s Span, err error)
+
+type SpanOption interface {
+    Apply(interface{})
+}
+```
+
+After performed rewriting operations, they would become:
+
+```go
+var (
+	skywalkingOperatorVarTracingerrParameter = skywalkingOperatorStaticMethodOperatorNewError("parameter are nil")
+)
+
+func skywalkingOperatorStaticMethodTracingCreateLocalSpan(operationName string, opts ...skywalkingOperatorTypeTracingSpanOption) (s skywalkingOperatorTypeTracingSpan, err error)
+
+type skywalkingOperatorTypeTracingSpanOption interface {
+    Apply(interface{})
+}
+```
 
 ### Saving and Compiling
 
@@ -64,11 +91,10 @@ At this point, when the framework executes the enhanced method, it can have the 
 1. **Execute Plugin Code**: Custom code can be embedded before and after the method execution, and real-time parameter information can be obtained.
 2. **Operate Agent**: By calling the Agent API, interaction with the Agent Core can be achieved, enabling functions such as distributed tracing.
 
-## Propagation context
+## Propagation Context
 
-In Golang programs, we use `context.Context` to achieve data exchange between methods and goroutines. 
-However, if the framework or environment does not provide `context.Context` for propagation, or it is not required as a parameter when used, it would result in the inability to pass information. 
-Therefore, we need to consider a method to pass data using **non-**`context.Context` objects to keep the entire distributed tracing chain complete.
+SkyWalking uses a new and internal mechanism to propagate context(e.g. tracing context) instead of
+relying on go native `context.Context`. This reduces the requirement for the target codes.
 
 ### Context Propagation between Methods
 
@@ -82,20 +108,20 @@ Enhancement includes the following steps:
 2. **Export Methods**: Export methods for real-time setting and getting of custom field values in the current goroutine through `go:linkname`.
 3. **Import methods**: In the Agent Core, import the setting and getting methods for custom fields.
 
-After completing the above steps, the agent can get or set data of the same goroutine in any method within the same goroutine, similar to Java's `Thread Local`.
+Through these, the agent has a shared context in any place within the same goroutine, similar to Java's `Thread Local`.
 
 ### Context Propagation between Goroutines
 
-For cross-goroutine situations, since different goroutines have different `g` objects, 
-the agent cannot access data from one goroutine in another goroutine. 
+Besides using `g` object as the in-goroutine context propagation, SkyWalking builds a mechanism
+to propagate context between Goroutines.
 
-However, when a new goroutine is started on an existing goroutine, the `runtime.newproc1` method is called to create a new goroutine based on the existing one. 
-The current solution used by the Agent is to, after the method execution is finished, use the `defer` command so that the Agent can access both the previous and the new goroutine. 
-At this point, the data in the custom fields is copied. The purpose of copying is to prevent panic caused by the same object being accessed in multiple goroutines.
+When a new goroutine is started on an existing goroutine, the `runtime.newproc1` method is called to create a new goroutine based on the existing one.
+The agent would do `context-copy` from the previous goroutine to the newly created goroutine.
+The new context in the `goroutine` only shares limited information to help continues tracing.
 
 The specific operation process is as follows:
 
-1. **Write the copy method**: Create a method for copying data from the custom fields.
+1. **Write the copy method**: Create a method for copying data from the previous goroutine.
 2. **Insert code into newproc1**: Insert the `defer` code, intercept the `g` objects before and after the execution, and call the copy method to assign values to the custom fields' data.
 
 ## Agent with Dependency
@@ -104,7 +130,7 @@ Since SkyWalking Go Agent is based on compile-time enhancement, it cannot introd
 For example, when SkyWalking Agent communicates with OAP, it needs to exchange data through the `gRPC` protocol. 
 If the user does not introduce the gRPC module, it cannot be completed.
 
-Due to this problem, users need to introduce relevant modules to complete the basic dependency functions. 
+Due to resolve this problem, users need to introduce relevant modules to complete the basic dependency functions. This is why `import _ "github.com/apache/skywalking-go"` is required.
 The main key modules that users currently need to introduce include:
 
 1. **uuid**: Used to generate UUIDs, mainly for `TraceID` generation.
@@ -148,7 +174,7 @@ When a plugin needs to interact with Agent Core, it simply searches for this glo
 
 1. **Global object definition**: Add a global variable when the `runtime` package is loaded and provide corresponding set and get methods.
 2. **Set the variable when the Agent loads**: When the Agent Core is copied and enhanced, import the method for setting the global variable and initialize the object in the global variable.
-3. **Plugin enhancement**: When the plugin is enhanced, import the method for getting the global variable and the interface definition for the global variable. 
+3. **Plugins**: When the plugin is built, import the methods for reading the global variables and APIs.
 At this point, we can access the object set in Agent Core and use the defined interface for the plugin to access methods in Agent Core.
 
 ### Limitation

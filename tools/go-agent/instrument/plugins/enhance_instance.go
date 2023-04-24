@@ -43,7 +43,7 @@ func (i *InstanceEnhance) EnhanceField() {
 	})
 }
 
-func (i *InstanceEnhance) BuildForAdapter() []dst.Decl {
+func (i *InstanceEnhance) BuildForDelegator() []dst.Decl {
 	return []dst.Decl{
 		&dst.FuncDecl{
 			Name: &dst.Ident{Name: "GetSkyWalkingDynamicField"},

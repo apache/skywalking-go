@@ -4,7 +4,7 @@ When you want to integrate the Agent using the original go build command, you ne
 
 ## Install SkyWalking Go
 
-Use go get to import the `skywalking-go` program. 
+Use `go get` to import the `skywalking-go` program.
 
 ```shell
 go get github.com/apache/skywalking-go
@@ -30,7 +30,7 @@ When using go build, add the following parameters:
 ```
 
 1. `-toolexec` is the path to the Golang enhancement program.
-2. `-a` is the parameter to force rebuild all packages.
+2. `-a` is the parameter for rebuilding all packages forcibly.
 
 If you want to customize the configuration information for the current service, please add the following parameters, 
 [read more please refer the settings override documentation](../advanced-features/settings-override.md)):
