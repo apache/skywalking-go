@@ -1,0 +1,21 @@
+# Project Structure
+
+- agent: The agent core files copied when hybrid compilation.
+- bin: The binary files of Go agent program.
+- docs: The documentation of Go agent.
+- log: The log configuration for adapt the Golang agent.
+- plugins: The plugins for adapt the frameworks.
+  - core: Agent core and API for the SkyWalking Agent, the plugins should import this module.
+  - xxx: The plugins for adapt the framework.
+- reporter: The reporter for adapt the SkyWalking backend.
+- tools/go-agent: The Golang Agent enhancement program.
+  - cmd: The agent starter.
+  - config: The application register configuration for agent.
+  - instrument: Perform enhancement on different packages during hybrid compilation.
+    - agentcore: When compiling SkyWalking Go, enhance its code, mainly for Agent Core file copying.
+    - api: The API of the instrument.
+    - entry: When compiling the `main` package, enhance its code, mainly focusing on starting the Agent system.
+    - plugins: When detecting a framework that requires enhancement, enhance its. For specific operation details, please refer to the [Key Principle document](../concepts-and-designs/key-principles.md#method-interceptor).
+    - reporter: When compiling the `reporter` package under agent, enhance its code, mainly focusing on starting the reporter.
+    - runtime: When compiling the `runtime` package, enhance its code. For specific operation details, please refer to the [Key Principle document](../concepts-and-designs/key-principles.md#propagation-context).
+  - tools: helps to build the agent.

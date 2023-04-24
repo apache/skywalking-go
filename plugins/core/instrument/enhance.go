@@ -37,14 +37,17 @@ type EnhanceMatcher struct {
 	StructFilters []StructFilterOption
 }
 
+// NewStaticMethodEnhance creates a new EnhanceMatcher for static method.
 func NewStaticMethodEnhance(name string, filters ...MethodFilterOption) *EnhanceMatcher {
 	return &EnhanceMatcher{Type: EnhanceTypeMethod, Name: name, MethodFilters: filters}
 }
 
+// NewMethodEnhance creates a new EnhanceMatcher for method.
 func NewMethodEnhance(receiver, name string, filters ...MethodFilterOption) *EnhanceMatcher {
 	return &EnhanceMatcher{Type: EnhanceTypeMethod, Name: name, Receiver: receiver, MethodFilters: filters}
 }
 
+// NewStructEnhance creates a new EnhanceMatcher for struct.
 func NewStructEnhance(name string, filters ...StructFilterOption) *EnhanceMatcher {
 	return &EnhanceMatcher{Type: EnhanceTypeStruct, Name: name, StructFilters: filters}
 }
