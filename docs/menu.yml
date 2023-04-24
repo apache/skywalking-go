@@ -17,16 +17,12 @@
 catalog:
     - name: Concepts and Designs
       catalog:
-        - name: Introduction
-          path: /en/concepts-and-designs/introduction
-        - name: Design
-          catalog:
-            - name: Hybrid Compilation
-              path: /en/concepts-and-designs/hybrid-compilation
-            - name: Key Principles
-              path: /en/concepts-and-designs/key-principles
-            - name: Project Structure
-              path: /en/concepts-and-designs/project-structure
+        - name: Hybrid Compilation
+          path: /en/concepts-and-designs/hybrid-compilation
+        - name: How SkyWalking Agent Works
+          path: /en/concepts-and-designs/key-principles
+        - name: Project Structure
+          path: /en/concepts-and-designs/project-structure
     - name: Setup
       path: /en/setup/gobuild
     - name: Advanced Features
