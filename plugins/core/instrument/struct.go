@@ -19,6 +19,7 @@ package instrument
 
 import "github.com/dave/dst"
 
+// WithFieldExists filter the struct has the field with specific name.
 func WithFieldExists(fieldName string) StructFilterOption {
 	return func(structType *dst.TypeSpec, files []*dst.File) bool {
 		st := structType.Type.(*dst.StructType)
@@ -31,6 +32,7 @@ func WithFieldExists(fieldName string) StructFilterOption {
 	}
 }
 
+// WithFiledType filter the struct has the field with specific name and type.
 func WithFiledType(filedName, filedType string) StructFilterOption {
 	return func(structType *dst.TypeSpec, files []*dst.File) bool {
 		st := structType.Type.(*dst.StructType)

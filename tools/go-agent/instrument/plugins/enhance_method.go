@@ -103,7 +103,7 @@ func (m *MethodEnhance) BuildForInvoker() {
 	m.funcDecl.Body.Decs.Lbrace.Prepend("\n", m.replacementKey)
 }
 
-func (m *MethodEnhance) BuildForAdapter() []dst.Decl {
+func (m *MethodEnhance) BuildForDelegator() []dst.Decl {
 	result := make([]dst.Decl, 0)
 	if !methodEnhanceAdapterFiles[m.path] {
 		// append the import for logger, one file only need import once

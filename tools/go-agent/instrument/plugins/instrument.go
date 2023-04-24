@@ -57,7 +57,7 @@ func NewInstrument() *Instrument {
 }
 
 type Enhance interface {
-	BuildForAdapter() []dst.Decl
+	BuildForDelegator() []dst.Decl
 	ReplaceFileContent(path, content string) string
 }
 
@@ -159,10 +159,10 @@ func (i *Instrument) WriteExtraFiles(basePath string) ([]string, error) {
 	context := rewrite.NewContext(i.compileOpts.Package, packageName)
 
 	var results = make([]string, 0)
-	// write adapter file
+	// write delegator file
 	var files []string
 	var err error
-	if files, err = i.writeAdapterFile(context, basePath); err != nil {
+	if files, err = i.writeDelegatorFile(context, basePath); err != nil {
 		return nil, err
 	}
 	results = append(results, files...)
@@ -297,18 +297,18 @@ func init() {
 	return result, nil
 }
 
-func (i *Instrument) writeAdapterFile(ctx *rewrite.Context, basePath string) ([]string, error) {
+func (i *Instrument) writeDelegatorFile(ctx *rewrite.Context, basePath string) ([]string, error) {
 	file := &dst.File{
-		Name: dst.NewIdent("adapter"), // write to adapter temporary, it will be rewritten later
+		Name: dst.NewIdent("delegator"), // write to adapter temporary, it will be rewritten later
 	}
 
 	for _, enhance := range i.enhancements {
-		file.Decls = append(file.Decls, enhance.BuildForAdapter()...)
+		file.Decls = append(file.Decls, enhance.BuildForDelegator()...)
 	}
 
 	ctx.SingleFile(file)
 
-	adapterFile := filepath.Join(basePath, "skywalking_adapter.go")
+	adapterFile := filepath.Join(basePath, "skywalking_delegator.go")
 	if err := tools.WriteDSTFile(adapterFile, file, nil); err != nil {
 		return nil, err
 	}

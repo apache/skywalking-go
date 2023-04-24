@@ -61,18 +61,21 @@ const (
 	TagMQTopic         Tag = "mq.topic"
 )
 
+// WithLayer set the SpanLayer of the Span
 func WithLayer(layer SpanLayer) SpanOption {
 	return buildSpanOption(func(s AdaptSpan) {
 		s.SetSpanLayer(int32(layer))
 	})
 }
 
+// WithComponent set the component id of the Span
 func WithComponent(componentID int32) SpanOption {
 	return buildSpanOption(func(s AdaptSpan) {
 		s.SetComponent(componentID)
 	})
 }
 
+// WithTag set the Tag of the Span
 func WithTag(key Tag, value string) SpanOption {
 	return buildSpanOption(func(s AdaptSpan) {
 		s.Tag(string(key), value)
@@ -101,11 +104,18 @@ type InjectorWrapper interface {
 
 // Span for plugin API
 type Span interface {
+	// Tag set the Tag of the Span
 	Tag(Tag, string)
+	// SetSpanLayer set the SpanLayer of the Span
 	SetSpanLayer(SpanLayer)
+	// SetOperationName re-set the operation name of the Span
 	SetOperationName(string)
+	// SetPeer re-set the peer address of the Span
 	SetPeer(string)
+	// Log add log to the Span
 	Log(...string)
+	// Error add error log to the Span
 	Error(...string)
+	// End end the Span
 	End()
 }

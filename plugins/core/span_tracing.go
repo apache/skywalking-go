@@ -346,8 +346,6 @@ func newSnapshotSpan(current TracingSpan) *SnapshotSpan {
 			TraceID:            segCtx.GetTraceID(),
 			SegmentID:          segCtx.SegmentID,
 			SpanID:             segCtx.SpanID,
-			ParentSpanID:       segCtx.ParentSpanID,
-			ParentSegmentID:    segCtx.ParentSegmentID,
 			collect:            segCtx.collect,
 			refNum:             segCtx.refNum,
 			spanIDGenerator:    segCtx.spanIDGenerator,

@@ -140,8 +140,7 @@ func (t *Tracer) InitTracer(extend map[string]interface{}) {
 		t.Log.Errorf("cannot initialize the reporter: %v", err)
 		return
 	}
-	entity := NewEntity({{.Config.Agent.ServiceName.ToGoStringValue}}, {{.Config.Agent.InstanceEnvName.ToGoStringValue}}, 
-		{{.Config.Agent.Layer.ToGoStringValue}})
+	entity := NewEntity({{.Config.Agent.ServiceName.ToGoStringValue}}, {{.Config.Agent.InstanceEnvName.ToGoStringValue}})
 	samp := NewDynamicSampler({{.Config.Agent.Sampler.ToGoFloatValue "loading the agent sampler error"}}, t)
 	if err := t.Init(entity, rep, samp, nil); err != nil {
 		t.Log.Errorf("cannot initialize the SkyWalking Tracer: %v", err)

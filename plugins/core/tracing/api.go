@@ -25,6 +25,10 @@ var (
 	errParameter = operator.NewError("parameter are nil")
 )
 
+// CreateEntrySpan creates a new entry span.
+// operationName is the name of the span.
+// extractor is the extractor to extract the context from the carrier.
+// opts is the options to create the span.
 func CreateEntrySpan(operationName string, extractor Extractor, opts ...SpanOption) (s Span, err error) {
 	if operationName == "" || extractor == nil {
 		return nil, errParameter
@@ -40,6 +44,9 @@ func CreateEntrySpan(operationName string, extractor Extractor, opts ...SpanOpti
 	return newSpanAdapter(span.(AdaptSpan)), nil
 }
 
+// CreateLocalSpan creates a new local span.
+// operationName is the name of the span.
+// opts is the options to create the span.
 func CreateLocalSpan(operationName string, opts ...SpanOption) (s Span, err error) {
 	if operationName == "" {
 		return nil, errParameter
@@ -55,6 +62,11 @@ func CreateLocalSpan(operationName string, opts ...SpanOption) (s Span, err erro
 	return newSpanAdapter(span.(AdaptSpan)), nil
 }
 
+// CreateExitSpan creates a new exit span.
+// operationName is the name of the span.
+// peer is the peer address of the span.
+// injector is the injector to inject the context into the carrier.
+// opts is the options to create the span.
 func CreateExitSpan(operationName, peer string, injector Injector, opts ...SpanOption) (s Span, err error) {
 	if operationName == "" || peer == "" || injector == nil {
 		return nil, errParameter
@@ -70,6 +82,9 @@ func CreateExitSpan(operationName, peer string, injector Injector, opts ...SpanO
 	return newSpanAdapter(span.(AdaptSpan)), nil
 }
 
+// ActiveSpan returns the current active span, it can be got the current span in the current goroutine.
+// If the current goroutine is not in the context of the span, it will return nil.
+// If get the span from other goroutine, it can only get information but cannot be operated.
 func ActiveSpan() Span {
 	op := operator.GetOperator()
 	if op == nil {
@@ -81,6 +96,8 @@ func ActiveSpan() Span {
 	return nil
 }
 
+// GetRuntimeContextValue returns the value of the key in the runtime context, which is current goroutine.
+// The value can also read from the goroutine which is created by the current goroutine
 func GetRuntimeContextValue(key string) interface{} {
 	op := operator.GetOperator()
 	if op == nil {
@@ -89,6 +106,7 @@ func GetRuntimeContextValue(key string) interface{} {
 	return op.Tracing().(operator.TracingOperator).GetRuntimeContextValue(key)
 }
 
+// SetRuntimeContextValue sets the value of the key in the runtime context.
 func SetRuntimeContextValue(key string, val interface{}) {
 	op := operator.GetOperator()
 	if op != nil {

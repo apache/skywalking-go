@@ -61,7 +61,7 @@ func (t *Tracer) Init(entity *reporter.Entity, rep reporter.Reporter, samp Sampl
 	return nil
 }
 
-func NewEntity(service, instanceEnvName, layer string) *reporter.Entity {
+func NewEntity(service, instanceEnvName string) *reporter.Entity {
 	instanceName := os.Getenv(instanceEnvName)
 	if instanceName == "" {
 		id, err := UUID()
@@ -75,7 +75,6 @@ func NewEntity(service, instanceEnvName, layer string) *reporter.Entity {
 		ServiceName:         service,
 		ServiceInstanceName: instanceName,
 		Props:               propResult,
-		Layer:               layer,
 	}
 }
 

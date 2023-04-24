@@ -44,7 +44,6 @@ type Agent struct {
 	ServiceName     StringValue `yaml:"service_name"`
 	InstanceEnvName StringValue `yaml:"instance_env_name"`
 	Sampler         StringValue `yaml:"sampler"`
-	Layer           StringValue `yaml:"layer"`
 }
 
 type Reporter struct {

@@ -265,7 +265,6 @@ func (r *gRPCReporter) reportInstanceProperties() (err error) {
 		Service:         r.entity.ServiceName,
 		ServiceInstance: r.entity.ServiceInstanceName,
 		Properties:      r.entity.Props,
-		Layer:           r.entity.Layer,
 	})
 	return err
 }
@@ -294,7 +293,6 @@ func (r *gRPCReporter) check() {
 			_, err := r.managementClient.KeepAlive(metadata.NewOutgoingContext(context.Background(), r.md), &managementv3.InstancePingPkg{
 				Service:         r.entity.ServiceName,
 				ServiceInstance: r.entity.ServiceInstanceName,
-				Layer:           r.entity.Layer,
 			})
 
 			if err != nil {
