@@ -95,17 +95,25 @@ func (i *Instrument) FilterAndEdit(path string, cursor *dstutil.Cursor, allFiles
 	switch n := cursor.Node().(type) {
 	case *dst.TypeSpec:
 		for _, filter := range i.structFilters {
-			if i.verifyPackageIsMatch(path, filter) && i.validateStructIsMatch(filter.At, n, allFiles) {
-				i.enhanceStruct(i.realInst, filter, n, path)
-				return true
+			if !(i.verifyPackageIsMatch(path, filter) && i.validateStructIsMatch(filter.At, n, allFiles)) {
+				continue
 			}
+			i.enhanceStruct(i.realInst, filter, n, path)
+			tools.LogWithStructEnhance(i.compileOpts.Package, n.Name.Name, "", "adding enhanced instance field")
+			return true
 		}
 	case *dst.FuncDecl:
 		for _, filter := range i.methodFilters {
-			if i.verifyPackageIsMatch(path, filter) && i.validateMethodInsMatch(filter.At, n, allFiles) {
-				i.enhanceMethod(i.realInst, filter, n, path)
-				return true
+			if !(i.verifyPackageIsMatch(path, filter) && i.validateMethodInsMatch(filter.At, n, allFiles)) {
+				continue
 			}
+			i.enhanceMethod(i.realInst, filter, n, path)
+			var receiver string
+			if n.Recv != nil && len(n.Recv.List) > 0 {
+				receiver = i.buildReceiverName(n.Recv.List[0].Type)
+			}
+			tools.LogWithMethodEnhance(i.compileOpts.Package, receiver, n.Name.Name, "adding enhanced method")
+			return true
 		}
 	}
 	return false
@@ -338,21 +346,8 @@ func (i *Instrument) validateMethodInsMatch(matcher *instrument.EnhanceMatcher, 
 		if node.Recv == nil || len(node.Recv.List) == 0 {
 			return false
 		}
-		var data dst.Expr
-		switch t := node.Recv.List[0].Type.(type) {
-		case *dst.StarExpr:
-			data = t.X
-		case *dst.TypeAssertExpr:
-			data = t.X
-		default:
-			return false
-		}
-
-		if id, ok := data.(*dst.Ident); !ok {
-			return false
-		} else if id.Name != matcher.Receiver {
-			return false
-		}
+		var name = i.buildReceiverName(node.Recv.List[0].Type)
+		return name == matcher.Receiver
 	}
 	for _, filter := range matcher.MethodFilters {
 		if !filter(node, allFiles) {
@@ -360,6 +355,24 @@ func (i *Instrument) validateMethodInsMatch(matcher *instrument.EnhanceMatcher, 
 		}
 	}
 	return true
+}
+
+func (i *Instrument) buildReceiverName(receiver dst.Expr) string {
+	var data dst.Expr
+	switch t := receiver.(type) {
+	case *dst.StarExpr:
+		data = t.X
+	case *dst.TypeAssertExpr:
+		data = t.X
+	default:
+		return ""
+	}
+
+	id, ok := data.(*dst.Ident)
+	if !ok {
+		return ""
+	}
+	return id.Name
 }
 
 func (i *Instrument) tryToFindThePluginVersion(opts *api.CompileOptions, ins instrument.Instrument) (string, error) {

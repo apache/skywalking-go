@@ -3,5 +3,7 @@
 .DS_Store
 *~
 .cache/
-bin/
+/bin
 coverage.txt
+/test/plugins/workspace
+/test/plugins/dist/

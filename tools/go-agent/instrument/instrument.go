@@ -58,6 +58,7 @@ func Execute(opts *api.CompileOptions, args []string) ([]string, error) {
 		return nil, err
 	}
 	defer loggerFile.Close()
+	logrus.Infof("executing instrument with args: %v", args)
 
 	return execute0(opts, args)
 }
