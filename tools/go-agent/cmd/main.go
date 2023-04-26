@@ -32,7 +32,6 @@ import (
 var toolFlags = &EnhancementToolFlags{}
 
 func main() {
-	writeArgs()
 	args := os.Args[1:]
 	var err error
 	var firstNonOptionIndex int
@@ -80,19 +79,6 @@ func main() {
 
 	// execute the delegate command with updated args
 	executeDelegateCommand(args[firstNonOptionIndex:])
-}
-
-func writeArgs() {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		panic(err)
-	}
-	file, err := os.OpenFile(homeDir+"/Desktop/skywalking-go.txt", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0o666)
-	if err != nil {
-		os.Exit(1)
-	}
-	defer file.Close()
-	_, _ = fmt.Fprintf(file, "%v\n", os.Args[1:])
 }
 
 func executeDelegateCommand(args []string) {

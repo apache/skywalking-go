@@ -1,0 +1,117 @@
+// Licensed to Apache Software Foundation (ASF) under one or more contributor
+// license agreements. See the NOTICE file distributed with
+// this work for additional information regarding copyright
+// ownership. Apache Software Foundation (ASF) licenses this file to you under
+// the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
+package main
+
+import (
+	"log"
+	"os"
+	"path/filepath"
+	"strings"
+
+	"plugin-runner-helper/templates"
+)
+
+func main() {
+	log.Printf("helper execute args: %v", os.Args)
+	context, err := BuildContext()
+	if err != nil {
+		log.Fatalf("building context failure: %v", err)
+	}
+
+	// generate Dockerfile to build the plugin
+	err = RenderDockerFile(context)
+	if err != nil {
+		log.Fatalf("build dockerfile failure: %v", err)
+	}
+
+	// generate docker-compose.yml to run the plugin
+	err = RenderDockerCompose(context)
+	if err != nil {
+		log.Fatalf("build docker-compose failure: %v", err)
+	}
+
+	// generate validator.sh to validate the plugin
+	err = RenderValidatorScript(context)
+	if err != nil {
+		log.Fatalf("build validator failure: %v", err)
+	}
+
+	// generate scenarios.sh to start the plugin test case
+	err = RenderScenariosScript(context)
+	if err != nil {
+		log.Fatalf("build scenarios failure: %v", err)
+	}
+}
+
+func RenderDockerFile(context *Context) error {
+	render, err := templates.Render("dockerfile.tpl", struct {
+		ToolExecPath string
+		Context      *Context
+	}{
+		ToolExecPath: strings.TrimPrefix(context.GoAgentPath, context.ProjectDir),
+		Context:      context,
+	})
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(filepath.Join(context.WorkSpaceDir, "Dockerfile"), []byte(render), 0o600)
+}
+
+func RenderDockerCompose(context *Context) error {
+	rel, err := filepath.Rel(context.ProjectDir, filepath.Join(context.WorkSpaceDir, "Dockerfile"))
+	if err != nil {
+		return err
+	}
+	render, err := templates.Render("docker-compose.tpl", struct {
+		DockerFilePathRelateToProject string
+		Context                       *Context
+	}{
+		DockerFilePathRelateToProject: rel,
+		Context:                       context,
+	})
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(filepath.Join(context.WorkSpaceDir, "docker-compose.yml"), []byte(render), 0o600)
+}
+
+func RenderValidatorScript(context *Context) error {
+	render, err := templates.Render("validator.tpl", struct {
+		Context *Context
+	}{
+		Context: context,
+	})
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(filepath.Join(context.WorkSpaceDir, "validator.sh"), []byte(render), 0o600)
+}
+
+func RenderScenariosScript(context *Context) error {
+	render, err := templates.Render("scenarios.tpl", struct {
+		DockerComposeFilePath string
+		Context               *Context
+	}{
+		DockerComposeFilePath: filepath.Join(context.WorkSpaceDir, "docker-compose.yml"),
+		Context:               context,
+	})
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(filepath.Join(context.WorkSpaceDir, "scenarios.sh"), []byte(render), 0o600)
+}
