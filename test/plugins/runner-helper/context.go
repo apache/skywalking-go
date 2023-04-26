@@ -85,7 +85,7 @@ type Config struct {
 }
 
 type SupportVersion struct {
-	MinimalGo  string   `yaml:"minimal-go"`
+	GoVersion  string   `yaml:"go"`
 	Frameworks []string `yaml:"framework"`
 }
 

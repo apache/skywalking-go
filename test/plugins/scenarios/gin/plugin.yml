@@ -20,11 +20,11 @@ start-script: ./bin/startup.sh
 framework: github.com/gin-gonic/gin
 export-port: 8080
 support-version:
-  - minimal-go: 1.17
+  - go: 1.17
     framework:
       - v1.7.0
       - v1.8.0
       - v1.8.2
-  - minimal-go: 1.18
+  - go: 1.18
     framework:
       - v1.9.0

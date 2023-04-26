@@ -30,7 +30,7 @@ start_stamp=`date +%s`
 
 print_help() {
     echo  "Usage: run.sh [OPTION] SCENARIO_NAME"
-    echo -e "\t--cleanup, \t\t\t remove the related images and directories"
+    echo -e "\t--clean, \t\t\t remove the related images and directories"
     echo -e "\t--debug, \t\t\t to save the log files and actualData.yaml"
 }
 
@@ -116,11 +116,11 @@ if [ "$support_version_count" -eq 0 ]; then
 fi
 index=0
 while [ $index -lt $support_version_count ]; do
-  minimal_go=$(yq e ".support-version[$index].minimal-go" $configuration)
+  go_version=$(yq e ".support-version[$index].go" $configuration)
   framework_count=$(yq e ".support-version[$index].framework | length" $configuration)
 
-  if [ -z "$minimal_go" ] || [ "$framework_count" -eq 0 ]; then
-    exitWithMessage "Missing minimal-go or framework in list entry $index."
+  if [ -z "$go_version" ] || [ "$framework_count" -eq 0 ]; then
+    exitWithMessage "Missing go or framework in list entry $index."
   fi
 
   index=$((index+1))
@@ -138,8 +138,8 @@ if [[ ! -f $go_agent ]]; then
     exitWithMessage "cannot found 'go-agent' in directory ${home}/dist"
 fi
 
-yq e '.support-version[].minimal-go' $configuration | while read -r go_version; do
-frameworks=$(yq e ".support-version[] | select(.minimal-go == \"$go_version\") | .framework[]" $configuration)
+yq e '.support-version[].go' $configuration | while read -r go_version; do
+frameworks=$(yq e ".support-version[] | select(.go == \"$go_version\") | .framework[]" $configuration)
 for framework_version in $frameworks; do
   echo "ready to run test case: ${scenario_name} with go version: ${go_version} and framework version: ${framework_version}"
   case_name="go${go_version}-${framework_version}"
