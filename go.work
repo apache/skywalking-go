@@ -1,0 +1,14 @@
+go 1.18
+
+use (
+	.
+	./tools/go-agent
+
+	./test/plugins/runner-helper
+
+	./plugins/core
+	./plugins/ginv2
+	./plugins/http
+
+	./test/plugins/scenarios/gin
+)

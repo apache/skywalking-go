@@ -41,9 +41,16 @@ services:
         condition: service_healthy
     ports:
       - {{.Context.Config.ExportPort}}
+    {{ if .Context.DebugMode -}}
+    volumes:
+      - {{.Context.WorkSpaceDir}}/gobuild:/gotmp
+    {{ end -}}
     environment:
       SW_AGENT_NAME: {{.Context.ScenarioName}}
       SW_AGENT_REPORTER_GRPC_BACKEND_SERVICE: oap:19876
+      {{ if .Context.DebugMode -}}
+      GOTMPDIR: /gotmp
+      {{- end }}
     healthcheck:
       test: ["CMD", "bash", "-c", "cat < /dev/null > /dev/tcp/127.0.0.1/{{.Context.Config.ExportPort}}"]
       interval: 5s

@@ -20,7 +20,7 @@ set -ex
 
 home="$(cd "$(dirname $0)"; pwd)"
 scenario_name=
-debug_mode=
+debug_mode="off"
 cleanup="off"
 
 scenarios_home="${home}/scenarios"
@@ -169,6 +169,7 @@ for framework_version in $frameworks; do
     -go-version ${go_version} \
     -scenario ${scenario_name} \
     -case ${case_name} \
+    -debug ${debug_mode} \
     -go-agent ${go_agent} > ${case_logs}/runner-helper.log
 
   echo "staring the testcase ${scenario_name}, ${case_name}"
@@ -176,7 +177,7 @@ for framework_version in $frameworks; do
   bash ${case_home}/scenarios.sh > ${case_logs}/scenarios.log
   status=$?
   if [[ $status == 0 ]]; then
-      [[ -z $debug_mode ]] && remove_dir ${case_home}
+      [[ $debug_mode == "off" ]] && remove_dir ${case_home}
   else
       exitWithMessage "Testcase ${case_name} failed!"
   fi

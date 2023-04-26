@@ -32,7 +32,7 @@ type HTTPInterceptor struct {
 func (h *HTTPInterceptor) BeforeInvoke(invocation *operator.Invocation) error {
 	context := invocation.Args[0].(*gin.Context)
 	s, err := tracing.CreateEntrySpan(
-		fmt.Sprintf("%s:%s", context.Request.Method, context.Request.RequestURI), func(headerKey string) (string, error) {
+		fmt.Sprintf("%s:%s", context.Request.Method, context.Request.URL.Path), func(headerKey string) (string, error) {
 			return context.Request.Header.Get(headerKey), nil
 		},
 		tracing.WithLayer(tracing.SpanLayerHTTP),

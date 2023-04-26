@@ -18,9 +18,11 @@
 package main
 
 import (
+	"errors"
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"plugin-runner-helper/templates"
@@ -59,12 +61,27 @@ func main() {
 }
 
 func RenderDockerFile(context *Context) error {
+	_, v, found := strings.Cut(context.GoVersion, ".")
+	if !found {
+		return errors.New("invalid go version")
+	}
+	i, err := strconv.ParseInt(v, 10, 64)
+	if err != nil {
+		return errors.New("invalid go version")
+	}
+	var greaterThanGo18 bool
+	if i >= 18 {
+		greaterThanGo18 = true
+	}
+
 	render, err := templates.Render("dockerfile.tpl", struct {
-		ToolExecPath string
-		Context      *Context
+		ToolExecPath    string
+		GreaterThanGo18 bool
+		Context         *Context
 	}{
-		ToolExecPath: strings.TrimPrefix(context.GoAgentPath, context.ProjectDir),
-		Context:      context,
+		ToolExecPath:    strings.TrimPrefix(context.GoAgentPath, context.ProjectDir),
+		GreaterThanGo18: greaterThanGo18,
+		Context:         context,
 	})
 	if err != nil {
 		return err
