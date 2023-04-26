@@ -32,7 +32,7 @@ var goVersion = flag.String("go-version", "", "go version")
 var scenarioName = flag.String("scenario", "", "scenario name")
 var caseName = flag.String("case", "", "case name")
 var goAgentPath = flag.String("go-agent", "", "go agent file path")
-var debugMode = flag.Bool("debug", false, "is debug mode")
+var debugMode = flag.String("debug", "", "is debug mode")
 
 func BuildContext() (*Context, error) {
 	flag.Parse()
@@ -59,7 +59,7 @@ func BuildContext() (*Context, error) {
 		ScenarioName: *scenarioName,
 		CaseName:     *caseName,
 		GoAgentPath:  filepath.Clean(*goAgentPath),
-		DebugMode:    *debugMode,
+		DebugMode:    *debugMode == "on",
 		Config:       config,
 	}, nil
 }

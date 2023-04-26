@@ -2,10 +2,8 @@ module test
 
 go 1.18
 
-replace github.com/apache/skywalking-go => ../../../../
-
 require (
-	github.com/apache/skywalking-go v0.0.0-00010101000000-000000000000
+	github.com/apache/skywalking-go v0.0.0-20230426040646-191ee520f376
 	github.com/gin-gonic/gin v1.9.0
 )
 

@@ -383,19 +383,20 @@ func (i *Instrument) tryToFindThePluginVersion(opts *api.CompileOptions, ins ins
 		}
 		basePkg := ins.BasePackage()
 
-		parts := strings.SplitN(arg, basePkg, 2)
 		// example: github.com/gin-gonic/gin@1.1.1/gin.go
-		if len(parts) != 2 {
+		_, afterPkg, found := strings.Cut(arg, basePkg)
+		if !found {
 			return "", fmt.Errorf("could not found the go version of the package %s, go file path: %s", basePkg, arg)
 		}
-		if !strings.HasPrefix(parts[1], "@") {
+
+		if !strings.HasPrefix(afterPkg, "@") {
 			return "", nil
 		}
-		firstDir := strings.Index(parts[1], "/")
-		if firstDir == -1 {
+		version, _, foundDir := strings.Cut(afterPkg, "/")
+		if !foundDir {
 			return "", fmt.Errorf("could not found the first directory index for package: %s, go file path: %s", basePkg, arg)
 		}
-		return parts[1][1:firstDir], nil
+		return version[1:], nil
 	}
 	return "", nil
 }

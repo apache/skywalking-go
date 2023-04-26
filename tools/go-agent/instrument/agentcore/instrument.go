@@ -21,6 +21,7 @@ import (
 	"html"
 	"io/fs"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/apache/skywalking-go/plugins/core"
@@ -38,7 +39,7 @@ var (
 	EnhanceBasePackage     = "github.com/apache/skywalking-go/agent/core"
 	EnhanceFromBasePackage = "github.com/apache/skywalking-go/plugins/core"
 
-	CopiedBasePackage = "skywalking-go/agent/core"
+	CopiedBasePackage = `skywalking-go(@[\d\w\.\-]+)?\/agent\/core`
 	CopiedSubPackages = []string{"", "tracing", "operator"}
 )
 
@@ -63,7 +64,7 @@ func (i *Instrument) FilterAndEdit(path string, cursor *dstutil.Cursor, allFiles
 	}
 	targetDir := filepath.Dir(path)
 	for _, sub := range CopiedSubPackages {
-		if strings.HasSuffix(targetDir, filepath.Join(CopiedBasePackage, sub)) {
+		if regexp.MustCompile(filepath.Join(CopiedBasePackage, sub) + "$").MatchString(targetDir) {
 			i.needsCopyDir = sub
 			i.hasCopyPath = true
 			return true

@@ -3,9 +3,9 @@ module github.com/apache/skywalking-go/tools/go-agent
 go 1.18
 
 require (
-	github.com/apache/skywalking-go/plugins/core v0.0.0-20230414024435-7b292984eb80
-	github.com/apache/skywalking-go/plugins/ginv2 v0.0.0-20230412041451-ba963278b31e
-	github.com/apache/skywalking-go/plugins/http v0.0.0-20230412041451-ba963278b31e
+	github.com/apache/skywalking-go/plugins/core v0.0.0-20230426040646-191ee520f376
+	github.com/apache/skywalking-go/plugins/ginv2 v0.0.0-20230426040646-191ee520f376
+	github.com/apache/skywalking-go/plugins/http v0.0.0-20230426040646-191ee520f376
 	github.com/dave/dst v0.27.2
 	github.com/sirupsen/logrus v1.9.0
 	golang.org/x/text v0.8.0
@@ -13,7 +13,7 @@ require (
 )
 
 require (
-	github.com/apache/skywalking-go v0.0.0-20230412041451-ba963278b31e // indirect
+	github.com/apache/skywalking-go v0.0.0-20230426040646-191ee520f376 // indirect
 	github.com/bytedance/sonic v1.8.0 // indirect
 	github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
@@ -45,10 +45,3 @@ require (
 	google.golang.org/protobuf v1.29.0 // indirect
 	skywalking.apache.org/repo/goapi v0.0.0-20230314034821-0c5a44bb767a // indirect
 )
-
-replace github.com/apache/skywalking-go => ../../
-
-replace github.com/apache/skywalking-go/plugins/core => ../../plugins/core
-
-replace github.com/apache/skywalking-go/plugins/ginv2 => ../../plugins/ginv2
-replace github.com/apache/skywalking-go/plugins/http => ../../plugins/http

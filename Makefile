@@ -68,7 +68,10 @@ lint: linter
 
 .PHONY: check
 check:
-	$(GO) mod tidy > /dev/null
+	@for dir in $$(find . -name go.mod -exec dirname {} \; ); do \
+		echo "Tidy $$dir"; \
+		(cd $$dir && go mod tidy); \
+	done
 	@if [ ! -z "`git status -s`" ]; then \
 		echo "Following files are not consistent with CI:"; \
 		git status -s; \

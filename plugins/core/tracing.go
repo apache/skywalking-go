@@ -26,10 +26,6 @@ import (
 	"github.com/apache/skywalking-go/reporter"
 )
 
-func (t *Tracer) Test() bool {
-	return true
-}
-
 func (t *Tracer) Tracing() interface{} {
 	return t
 }

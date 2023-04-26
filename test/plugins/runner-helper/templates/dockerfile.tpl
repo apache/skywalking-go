@@ -19,6 +19,13 @@ FROM golang:{{.Context.GoVersion}}
 WORKDIR /skywalking-go
 COPY . .
 
+{{ if .Context.DebugMode -}}
+RUN mkdir -p /gotmp
+{{ end -}}
+{{ if .GreaterThanGo18 -}}
+RUN go work use test/plugins/workspace/{{.Context.ScenarioName}}/{{.Context.CaseName}}
+{{ end -}}
+
 WORKDIR /skywalking-go/test/plugins/workspace/{{.Context.ScenarioName}}/{{.Context.CaseName}}/
 
 ENV GO_BUILD_OPTS=" -toolexec \"/skywalking-go{{.ToolExecPath}}\" -a -work "

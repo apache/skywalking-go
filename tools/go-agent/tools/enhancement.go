@@ -25,7 +25,7 @@ import (
 	"github.com/dave/dst/decorator"
 )
 
-var interfaceName = "interface{}"
+const interfaceName = "interface{}"
 
 type ParameterInfo struct {
 	Name                 string

@@ -29,7 +29,7 @@ import (
 )
 
 // nolint
-var defaultLogPrefix = "skywalking-go "
+const defaultLogPrefix = "skywalking-go "
 
 type CorrelationConfig struct {
 	MaxKeyCount  int

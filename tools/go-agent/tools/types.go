@@ -17,10 +17,19 @@
 
 package tools
 
+var basicDataTypes = make(map[string]bool)
+
+func init() {
+	types := []string{
+		"bool", "int8", "int16", "int32", "int64", "uint8", "uint16", "uint32", "uint64", "int", "uint", "uintptr",
+		"float32", "float64", "complex64", "complex128", "string", "error", "interface{}", "_",
+	}
+	for _, tp := range types {
+		basicDataTypes[tp] = true
+	}
+}
+
 // nolint
 func IsBasicDataType(name string) bool {
-	return name == "bool" || name == "int8" || name == "int16" || name == "int32" || name == "int64" || name == "uint8" ||
-		name == "uint16" || name == "uint32" || name == "uint64" || name == "int" || name == "uint" || name == "uintptr" ||
-		name == "float32" || name == "float64" || name == "complex64" || name == "complex128" || name == "string" || name == "error" ||
-		name == "interface{}" || name == "_"
+	return basicDataTypes[name]
 }
