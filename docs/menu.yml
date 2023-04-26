@@ -31,12 +31,10 @@ catalog:
           path: /en/advanced-features/settings-override
         - name: Logging Setup
           path: /en/advanced-features/logging-setup
-    - name: Agent
-      catalog:
-        - name: Supported Frameworks
-          path: /en/agent/support-plugins
-        - name: Performance Test
-          path: /en/agent/performance-tests
+    - name: Supported Libraries
+      path: /en/agent/support-plugins
+    - name: Performance Test
+      path: /en/agent/performance-tests
     - name: Development and Contribution
       catalog:
         - name: Plugin Development Guild
