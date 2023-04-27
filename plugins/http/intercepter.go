@@ -49,17 +49,11 @@ func (h *Interceptor) AfterInvoke(invocation *operator.Invocation, result ...int
 		return nil
 	}
 	span := invocation.Context.(tracing.Span)
-	res0 := result[0]
-	res1 := result[1]
-	if res0 != nil {
-		resp := res0.(*http.Response)
+	if resp, ok := result[0].(*http.Response); ok && resp != nil {
 		span.Tag(tracing.TagStatusCode, fmt.Sprintf("%d", resp.StatusCode))
 	}
-	if res1 != nil {
-		err := result[1].(error)
-		if err != nil {
-			span.Error(err.Error())
-		}
+	if err, ok := result[1].(error); ok && err != nil {
+		span.Error(err.Error())
 	}
 	span.End()
 	return nil
