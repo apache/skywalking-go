@@ -58,7 +58,7 @@ Please replace the above `CONSUMER_IP` with the real IP address of the consumer 
 
 #### Consumer and Provider
 
-Install the skywalking-go service on the machines to be tested, and compile both versions with and without the Agent.
+Install the skywalking-go service on the machines to be tested, and compile with and without the Agent.
 
 Modify the machine's file limit to prevent the inability to create new connections due to excessive handles: `ulimit -n 65536`.
 
