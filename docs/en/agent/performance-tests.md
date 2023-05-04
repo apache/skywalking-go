@@ -93,3 +93,5 @@ In the tests, we used **1000 QPS** as a benchmark to stress test both the Consum
 * In the **Agent-compiled version**, the CPU usage was around **81%**, memory usage was **2.61%**, and the average response time for a single request was **4.32ms**.
 
 From these results, we can conclude that after adding the Agent, **the CPU usage increased by about 9%, memory usage experienced almost no growth, and the average response time for requests increased by approximately 0.15ms**.
+
+Explanation, `approximately 0.15ms` is the in-band cost. The most of CPU(`extra 9%`) cost are due to the amount of out of band data being sent to the collectors from the application(consumer), which is 4000 spans/s in our test case.
