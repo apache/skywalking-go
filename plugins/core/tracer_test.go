@@ -21,7 +21,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/apache/skywalking-go/reporter"
+	"github.com/apache/skywalking-go/plugins/core/reporter"
 
 	"github.com/stretchr/testify/assert"
 )

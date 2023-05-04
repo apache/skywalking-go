@@ -22,8 +22,8 @@ import (
 
 	"github.com/pkg/errors"
 
+	"github.com/apache/skywalking-go/plugins/core/reporter"
 	"github.com/apache/skywalking-go/plugins/core/tracing"
-	"github.com/apache/skywalking-go/reporter"
 )
 
 func (t *Tracer) Tracing() interface{} {

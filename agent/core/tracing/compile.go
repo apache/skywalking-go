@@ -27,7 +27,7 @@ import (
 
 	//go:nolint
 	_ "github.com/apache/skywalking-go/agent/core/operator"
-	_ "github.com/apache/skywalking-go/reporter"
+	_ "github.com/apache/skywalking-go/agent/reporter"
 
 	//go:nolint
 	_ "skywalking.apache.org/repo/goapi/collect/common/v3"

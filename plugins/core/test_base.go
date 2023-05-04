@@ -19,7 +19,7 @@ package core
 
 import (
 	"github.com/apache/skywalking-go/plugins/core/operator"
-	"github.com/apache/skywalking-go/reporter"
+	"github.com/apache/skywalking-go/plugins/core/reporter"
 )
 
 var tlsData interface{}

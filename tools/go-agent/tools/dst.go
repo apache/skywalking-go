@@ -25,6 +25,7 @@ import (
 	"go/token"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/dave/dst"
@@ -41,6 +42,76 @@ func ChangePackageImportPath(file dst.Node, pkgChanges map[string]string) {
 					n.Path.Value = fmt.Sprintf("%q", targetPkg)
 				}
 			}
+		}
+		return true
+	}, func(cursor *dstutil.Cursor) bool {
+		return true
+	})
+}
+
+func DeletePackageImports(file dst.Node, imports ...string) {
+	containsDeletedImport := false
+	deletedPackages := make(map[string]string)
+	dstutil.Apply(file, func(cursor *dstutil.Cursor) bool {
+		switch n := cursor.Node().(type) {
+		case *dst.ImportSpec:
+			for _, pkg := range imports {
+				if n.Path.Value == fmt.Sprintf("%q", pkg) {
+					containsDeletedImport = true
+					cursor.Delete()
+
+					if n.Name != nil {
+						deletedPackages[n.Name.Name] = pkg
+					} else {
+						deletedPackages[filepath.Base(pkg)] = pkg
+					}
+				}
+			}
+			return false
+		case *dst.SelectorExpr:
+			pkgRefName, ok := n.X.(*dst.Ident)
+			if !ok {
+				return true
+			}
+			if _, ok := deletedPackages[pkgRefName.Name]; ok {
+				removePackageRef(cursor.Parent(), n)
+			}
+		}
+		return true
+	}, func(cursor *dstutil.Cursor) bool {
+		return true
+	})
+
+	if containsDeletedImport {
+		RemoveImportDefineIfNoPackage(file)
+	}
+}
+
+func removePackageRef(parent dst.Node, current *dst.SelectorExpr) {
+	switch p := parent.(type) {
+	case *dst.Field:
+		p.Type = dst.NewIdent(current.Sel.Name)
+	case *dst.Ellipsis:
+		p.Elt = dst.NewIdent(current.Sel.Name)
+	case *dst.StarExpr:
+		p.X = dst.NewIdent(current.Sel.Name)
+	case *dst.TypeAssertExpr:
+		p.Type = dst.NewIdent(current.Sel.Name)
+	case *dst.CompositeLit:
+		p.Type = dst.NewIdent(current.Sel.Name)
+	case *dst.ArrayType:
+		p.Elt = dst.NewIdent(current.Sel.Name)
+	case *dst.CallExpr:
+		p.Fun = dst.NewIdent(current.Sel.Name)
+	}
+}
+
+func RemoveImportDefineIfNoPackage(file dst.Node) {
+	// remove the import decl if empty
+	dstutil.Apply(file, func(cursor *dstutil.Cursor) bool {
+		if decl, ok := cursor.Node().(*dst.GenDecl); ok && decl.Tok == token.IMPORT && len(decl.Specs) == 0 {
+			cursor.Delete()
+			return false
 		}
 		return true
 	}, func(cursor *dstutil.Cursor) bool {

@@ -25,7 +25,7 @@ import (
 
 	"github.com/apache/skywalking-go/log"
 	"github.com/apache/skywalking-go/plugins/core/operator"
-	"github.com/apache/skywalking-go/reporter"
+	"github.com/apache/skywalking-go/plugins/core/reporter"
 )
 
 // nolint

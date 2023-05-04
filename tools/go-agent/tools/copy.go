@@ -28,7 +28,7 @@ import (
 )
 
 func CopyGoFiles(fromFS fs.ReadDirFS, fromDir, targetDir string,
-	debugInfoBuilder func(entry fs.DirEntry) (*DebugInfo, error),
+	debugInfoBuilder func(entry fs.DirEntry, file *dst.File) (*DebugInfo, error),
 	peek func(file *dst.File)) ([]string, error) {
 	results := make([]string, 0)
 	files, err := fromFS.ReadDir(fromDir)
@@ -57,7 +57,7 @@ func CopyGoFiles(fromFS fs.ReadDirFS, fromDir, targetDir string,
 		if err != nil {
 			return nil, err
 		}
-		debugInfo, err := debugInfoBuilder(f)
+		debugInfo, err := debugInfoBuilder(f, parse)
 		if err != nil {
 			return nil, err
 		}

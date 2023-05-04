@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package reporter
+package grpc
 
 import (
 	"context"
@@ -24,16 +24,17 @@ import (
 
 	"github.com/apache/skywalking-go/log"
 
-	"google.golang.org/grpc/credentials/insecure"
-
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
 
 	configuration "skywalking.apache.org/repo/goapi/collect/agent/configuration/v3"
 	agentv3 "skywalking.apache.org/repo/goapi/collect/language/agent/v3"
 	managementv3 "skywalking.apache.org/repo/goapi/collect/management/v3"
+
+	"github.com/apache/skywalking-go/plugins/core/reporter"
 )
 
 const (
@@ -43,7 +44,7 @@ const (
 )
 
 // NewGRPCReporter create a new reporter to send data to gRPC oap server. Only one backend address is allowed.
-func NewGRPCReporter(logger log.Logger, serverAddr string, opts ...GRPCReporterOption) (Reporter, error) {
+func NewGRPCReporter(logger log.Logger, serverAddr string, opts ...ReporterOption) (reporter.Reporter, error) {
 	r := &gRPCReporter{
 		logger:        logger,
 		sendCh:        make(chan *agentv3.SegmentObject, maxSendQueueSize),
@@ -71,13 +72,13 @@ func NewGRPCReporter(logger log.Logger, serverAddr string, opts ...GRPCReporterO
 	r.managementClient = managementv3.NewManagementServiceClient(r.conn)
 	if r.cdsInterval > 0 {
 		r.cdsClient = configuration.NewConfigurationDiscoveryServiceClient(r.conn)
-		r.cdsService = NewConfigDiscoveryService()
+		r.cdsService = reporter.NewConfigDiscoveryService()
 	}
 	return r, nil
 }
 
 type gRPCReporter struct {
-	entity           *Entity
+	entity           *reporter.Entity
 	logger           log.Logger
 	sendCh           chan *agentv3.SegmentObject
 	conn             *grpc.ClientConn
@@ -85,7 +86,7 @@ type gRPCReporter struct {
 	managementClient managementv3.ManagementServiceClient
 	checkInterval    time.Duration
 	cdsInterval      time.Duration
-	cdsService       *ConfigDiscoveryService
+	cdsService       *reporter.ConfigDiscoveryService
 	cdsClient        configuration.ConfigurationDiscoveryServiceClient
 
 	md    metadata.MD
@@ -95,7 +96,7 @@ type gRPCReporter struct {
 	bootFlag bool
 }
 
-func (r *gRPCReporter) Boot(entity *Entity, cdsWatchers []AgentConfigChangeWatcher) {
+func (r *gRPCReporter) Boot(entity *reporter.Entity, cdsWatchers []reporter.AgentConfigChangeWatcher) {
 	r.entity = entity
 	r.initSendPipeline()
 	r.check()
@@ -103,7 +104,7 @@ func (r *gRPCReporter) Boot(entity *Entity, cdsWatchers []AgentConfigChangeWatch
 	r.bootFlag = true
 }
 
-func (r *gRPCReporter) Send(spans []ReportedSpan) {
+func (r *gRPCReporter) Send(spans []reporter.ReportedSpan) {
 	spanSize := len(spans)
 	if spanSize < 1 {
 		return
@@ -217,7 +218,7 @@ func (r *gRPCReporter) initSendPipeline() {
 	}()
 }
 
-func (r *gRPCReporter) initCDS(cdsWatchers []AgentConfigChangeWatcher) {
+func (r *gRPCReporter) initCDS(cdsWatchers []reporter.AgentConfigChangeWatcher) {
 	if r.cdsClient == nil {
 		return
 	}

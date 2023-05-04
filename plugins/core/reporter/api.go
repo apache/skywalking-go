@@ -18,45 +18,58 @@
 package reporter
 
 import (
-	"time"
-
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/metadata"
-
-	configuration "skywalking.apache.org/repo/goapi/collect/agent/configuration/v3"
 	commonv3 "skywalking.apache.org/repo/goapi/collect/common/v3"
 	agentv3 "skywalking.apache.org/repo/goapi/collect/language/agent/v3"
-	managementv3 "skywalking.apache.org/repo/goapi/collect/management/v3"
 )
 
-//skywalking:nocopy
+// Tag are supported by sky-walking engine.
+// As default, all Tags will be stored, but these ones have
+// particular meanings.
+type Tag string
 
-// All struct are from the reporter package in the library, copy these files is works for compiler
+// SegmentContext is the context in a segment
+type SegmentContext interface {
+	GetTraceID() string
+	GetSegmentID() string
+	GetSpanID() int32
+	GetParentSpanID() int32
+	GetParentSegmentID() string
+}
 
-// nolint
+// SpanContext defines propagation specification of SkyWalking
+type SpanContext interface {
+	GetTraceID() string
+	GetParentSegmentID() string
+	GetParentService() string
+	GetParentServiceInstance() string
+	GetParentEndpoint() string
+	GetAddressUsedAtClient() string
+	GetParentSpanID() int32
+}
+
+type ReportedSpan interface {
+	Context() SegmentContext
+	Refs() []SpanContext
+	StartTime() int64
+	EndTime() int64
+	OperationName() string
+	Peer() string
+	SpanType() agentv3.SpanType
+	SpanLayer() agentv3.SpanLayer
+	IsError() bool
+	Tags() []*commonv3.KeyStringValuePair
+	Logs() []*agentv3.Log
+	ComponentID() int32
+}
+
 type Entity struct {
 	ServiceName         string
 	ServiceInstanceName string
 	Props               []*commonv3.KeyStringValuePair
-	Layer               string
 }
 
-// nolint
-type gRPCReporter struct {
-	entity           Entity
-	sendCh           chan *agentv3.SegmentObject
-	conn             *grpc.ClientConn
-	traceClient      agentv3.TraceSegmentReportServiceClient
-	managementClient managementv3.ManagementServiceClient
-	checkInterval    time.Duration
-	cdsInterval      time.Duration
-	cdsClient        configuration.ConfigurationDiscoveryServiceClient
-
-	md    metadata.MD
-	creds credentials.TransportCredentials
+type Reporter interface {
+	Boot(entity *Entity, cdsWatchers []AgentConfigChangeWatcher)
+	Send(spans []ReportedSpan)
+	Close()
 }
-
-// GRPCReporterOption allows for functional options to adjust behavior
-// of a gRPC reporter to be created by NewGRPCReporter
-type GRPCReporterOption func(r *gRPCReporter)
