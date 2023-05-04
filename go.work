@@ -6,6 +6,9 @@ use (
 
 	./test/plugins/runner-helper
 
+	./test/benchmark-codebase/provider
+	./test/benchmark-codebase/consumer
+
 	// define the plugins
 	./plugins/core
 	./plugins/ginv2

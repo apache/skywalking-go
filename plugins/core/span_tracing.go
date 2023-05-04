@@ -326,7 +326,7 @@ func newSnapshotSpan(current TracingSpan) *SnapshotSpan {
 		return nil
 	}
 	segmentSpan, ok := current.(SegmentSpan)
-	if !ok {
+	if !ok || !segmentSpan.IsValid() { // is not segment span or segment is invalid(Executed End() method
 		return nil
 	}
 

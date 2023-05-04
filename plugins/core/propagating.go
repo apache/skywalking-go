@@ -162,10 +162,10 @@ func (s *SpanContext) DecodeSW8(header string) error {
 // EncodeSW6 converts SpanContext to string header
 func (s *SpanContext) EncodeSW8() string {
 	return strings.Join([]string{
-		fmt.Sprint(s.Sample),
+		strconv.Itoa(int(s.Sample)),
 		encodeBase64(s.TraceID),
 		encodeBase64(s.ParentSegmentID),
-		fmt.Sprint(s.ParentSpanID),
+		strconv.Itoa(int(s.ParentSpanID)),
 		encodeBase64(s.ParentService),
 		encodeBase64(s.ParentServiceInstance),
 		encodeBase64(s.ParentEndpoint),
