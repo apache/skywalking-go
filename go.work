@@ -6,8 +6,8 @@ use (
 
 	./test/plugins/runner-helper
 
-	./test/performance/provider
-	./test/performance/consumer
+	./test/benchmark-codebase/provider
+	./test/benchmark-codebase/consumer
 
 	// define the plugins
 	./plugins/core

@@ -7,13 +7,13 @@ Performance testing is used to verify the impact on application performance when
 By launching both the **agent** and **non-agent** compiled applications, we subject them to the same **QPS** under stress testing, 
 evaluating the CPU, memory, and network latency of the machine during the testing period.
 
-The application has been saved and submitted to the [test/performance](../../../test/performance) directory, with the following topology:
+The application has been saved and submitted to the [test/benchmark-codebase](../../../test/benchmark-codebase) directory, with the following topology:
 
 ```
-pressure -> consumer -> provider
+traffic generator -> consumer -> provider
 ```
 
-The stress testing service (pressure) uses multithreading to send HTTP requests to the consumer service. 
+The payload(traffic) generator uses multithreading to send HTTP requests to the consumer service. 
 When the consumer receives a request, it sends three requests to the provider service to obtain return data results. 
 Based on these network requests, when using SkyWalking Go, the consumer service generates four Spans (1 Entry Span, 3 Exit Spans).
 
@@ -31,9 +31,9 @@ It is based on the Go language and uses goroutines to provide a more efficient s
 
 ## Test Environment
 
-A total of 4 GCP machines are launched, all instances are 4C8G.
+A total of 4 GCP machines are launched, all instances are running on tbe 4C8G VM.
 
-1. **pressure**: Used for deploying traffic to the consumer machine.
+1. **traffic generator**: Used for deploying traffic to the consumer machine.
 2. **consumer**: Used for deploying the consumer service.
 3. **provider**: Used for deploying the provider service.
 4. **skywalking**: Used for deploying the SkyWalking backend cluster, providing a standalone OAP node (in-memory H2 storage) and a UI interface.
@@ -45,7 +45,8 @@ Each service is deployed on a separate machine to ensure there is no interferenc
 ### Preparation Phase
 The preparation phase is used to ensure that all machines and test case preparations are completed.
 
-#### Pressure
+#### Traffic Generator
+
 Install the [Vegeta service](https://github.com/tsenart/vegeta#install) on the stress testing instance and create the following file(`request.txt`) to simulate traffic usage.
 
 ```
