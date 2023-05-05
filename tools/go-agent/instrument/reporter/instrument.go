@@ -44,7 +44,7 @@ func NewGRPCInstrument() *GRPCInstrument {
 
 func (i *GRPCInstrument) CouldHandle(opts *api.CompileOptions) bool {
 	i.compileOpts = opts
-	return opts.Package == "github.com/apache/skywalking-go/reporter"
+	return opts.Package == "github.com/apache/skywalking-go/agent/reporter"
 }
 
 func (i *GRPCInstrument) FilterAndEdit(path string, cursor *dstutil.Cursor, allFiles []*dst.File) bool {
@@ -60,15 +60,32 @@ func (i *GRPCInstrument) AfterEnhanceFile(fromPath, newPath string) error {
 }
 
 func (i *GRPCInstrument) WriteExtraFiles(dir string) ([]string, error) {
-	// copy gRPC reporter enhance files
+	// copy reporter api files
 	results := make([]string, 0)
-	copiedFiles, err := tools.CopyGoFiles(core.FS, "reporter", dir, func(entry fs.DirEntry) (*tools.DebugInfo, error) {
+	copiedFiles, err := tools.CopyGoFiles(core.FS, "reporter", dir, func(entry fs.DirEntry, f *dst.File) (*tools.DebugInfo, error) {
 		if i.compileOpts.DebugDir == "" {
 			return nil, nil
 		}
-		debugPath := filepath.Join(i.compileOpts.DebugDir, "reporter", entry.Name())
+		debugPath := filepath.Join(i.compileOpts.DebugDir, "plugins", "core", "reporter", entry.Name())
 		return tools.BuildDSTDebugInfo(debugPath, nil)
 	}, func(file *dst.File) {
+	})
+	if err != nil {
+		return nil, err
+	}
+	results = append(results, copiedFiles...)
+
+	// copy reporter implementations
+	reporterDirName := filepath.Join("reporter", "grpc")
+	copiedFiles, err = tools.CopyGoFiles(core.FS, reporterDirName, dir, func(entry fs.DirEntry, f *dst.File) (*tools.DebugInfo, error) {
+		if i.compileOpts.DebugDir == "" {
+			return nil, nil
+		}
+		debugPath := filepath.Join(i.compileOpts.DebugDir, "plugins", "core", reporterDirName, entry.Name())
+		return tools.BuildDSTDebugInfo(debugPath, f)
+	}, func(file *dst.File) {
+		file.Name = dst.NewIdent("reporter")
+		tools.DeletePackageImports(file, "github.com/apache/skywalking-go/plugins/core/reporter")
 	})
 	if err != nil {
 		return nil, err

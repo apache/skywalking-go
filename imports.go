@@ -26,4 +26,5 @@ import (
 	_ "github.com/apache/skywalking-go/agent/core"
 	_ "github.com/apache/skywalking-go/agent/core/operator"
 	_ "github.com/apache/skywalking-go/agent/core/tracing"
+	_ "github.com/apache/skywalking-go/agent/reporter"
 )

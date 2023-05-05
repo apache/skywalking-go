@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package reporter
+package grpc
 
 import (
 	"time"
@@ -28,36 +28,40 @@ import (
 
 var authKey = "Authentication"
 
+// ReporterOption allows for functional options to adjust behavior
+// of a gRPC reporter to be created by NewGRPCReporter
+type ReporterOption func(r *gRPCReporter)
+
 // WithCheckInterval setup service and endpoint registry check interval
-func WithCheckInterval(interval time.Duration) GRPCReporterOption {
+func WithCheckInterval(interval time.Duration) ReporterOption {
 	return func(r *gRPCReporter) {
 		r.checkInterval = interval
 	}
 }
 
 // WithMaxSendQueueSize setup send span queue buffer length
-func WithMaxSendQueueSize(maxSendQueueSize int) GRPCReporterOption {
+func WithMaxSendQueueSize(maxSendQueueSize int) ReporterOption {
 	return func(r *gRPCReporter) {
 		r.sendCh = make(chan *agentv3.SegmentObject, maxSendQueueSize)
 	}
 }
 
 // WithTransportCredentials setup transport layer security
-func WithTransportCredentials(creds credentials.TransportCredentials) GRPCReporterOption {
+func WithTransportCredentials(creds credentials.TransportCredentials) ReporterOption {
 	return func(r *gRPCReporter) {
 		r.creds = creds
 	}
 }
 
 // WithAuthentication used Authentication for gRPC
-func WithAuthentication(auth string) GRPCReporterOption {
+func WithAuthentication(auth string) ReporterOption {
 	return func(r *gRPCReporter) {
 		r.md = metadata.New(map[string]string{authKey: auth})
 	}
 }
 
 // WithCDS setup Configuration Discovery Service to dynamic config
-func WithCDS(interval time.Duration) GRPCReporterOption {
+func WithCDS(interval time.Duration) ReporterOption {
 	return func(r *gRPCReporter) {
 		r.cdsInterval = interval
 	}

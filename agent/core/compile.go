@@ -37,8 +37,8 @@ import (
 	//go:nolint
 	_ "github.com/apache/skywalking-go/agent/core/operator"
 	_ "github.com/apache/skywalking-go/agent/core/tracing"
+	_ "github.com/apache/skywalking-go/agent/reporter"
 	_ "github.com/apache/skywalking-go/log"
-	_ "github.com/apache/skywalking-go/reporter"
 
 	//go:nolint
 	_ "github.com/google/uuid"

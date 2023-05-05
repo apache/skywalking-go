@@ -20,7 +20,6 @@ package rewrite
 import (
 	"fmt"
 	"go/parser"
-	"go/token"
 	"path/filepath"
 
 	"github.com/apache/skywalking-go/tools/go-agent/tools"
@@ -103,13 +102,5 @@ func (c *Context) processSingleFile(file *dst.File, fromPackage string) {
 	})
 
 	// remove the import decl if empty
-	dstutil.Apply(file, func(cursor *dstutil.Cursor) bool {
-		if decl, ok := cursor.Node().(*dst.GenDecl); ok && decl.Tok == token.IMPORT && len(decl.Specs) == 0 {
-			cursor.Delete()
-			return false
-		}
-		return true
-	}, func(cursor *dstutil.Cursor) bool {
-		return true
-	})
+	tools.RemoveImportDefineIfNoPackage(file)
 }

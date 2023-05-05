@@ -36,8 +36,11 @@ import (
 )
 
 var (
-	EnhanceBasePackage     = "github.com/apache/skywalking-go/agent/core"
-	EnhanceFromBasePackage = "github.com/apache/skywalking-go/plugins/core"
+	ProjectBasePackage      = "github.com/apache/skywalking-go/"
+	EnhanceBasePackage      = ProjectBasePackage + "agent/core"
+	EnhanceFromBasePackage  = ProjectBasePackage + "plugins/core"
+	ReporterFromBasePackage = "reporter"
+	ReporterBasePackage     = "agent/reporter"
 
 	CopiedBasePackage = `skywalking-go(@[\d\w\.\-]+)?\/agent\/core`
 	CopiedSubPackages = []string{"", "tracing", "operator"}
@@ -91,6 +94,7 @@ func (i *Instrument) WriteExtraFiles(dir string) ([]string, error) {
 	for _, p := range CopiedSubPackages {
 		pkgUpdates[filepath.Join(EnhanceFromBasePackage, p)] = filepath.Join(EnhanceBasePackage, p)
 	}
+	pkgUpdates[filepath.Join(EnhanceFromBasePackage, ReporterFromBasePackage)] = filepath.Join(ProjectBasePackage, ReporterBasePackage)
 	copiedFiles, err := tools.CopyGoFiles(core.FS, sub, dir, i.buildDSTDebugInfo, func(file *dst.File) {
 		tools.ChangePackageImportPath(file, pkgUpdates)
 	})
@@ -117,7 +121,7 @@ func (i *Instrument) WriteExtraFiles(dir string) ([]string, error) {
 	return results, nil
 }
 
-func (i *Instrument) buildDSTDebugInfo(entry fs.DirEntry) (*tools.DebugInfo, error) {
+func (i *Instrument) buildDSTDebugInfo(entry fs.DirEntry, _ *dst.File) (*tools.DebugInfo, error) {
 	if i.compileOpts.DebugDir == "" {
 		return nil, nil
 	}
@@ -129,7 +133,7 @@ func (i *Instrument) writeTracerInitLink(dir string) (string, error) {
 	return tools.WriteFile(dir, "tracer_init.go", html.UnescapeString(tools.ExecuteTemplate(`package core
 
 import (
-	"github.com/apache/skywalking-go/reporter"
+	"github.com/apache/skywalking-go/agent/reporter"
 	"fmt"
 	"os"
 	"strconv"
