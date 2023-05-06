@@ -1,7 +1,7 @@
 Apache SkyWalking Go
 ==========
 
-<img src="http://skywalking.apache.org/assets/logo.svg" alt="Sky Walking logo" height="90px" align="right" />
+<img src="http://skywalking.apache.org/images/skywalking-go.png" alt="SkyWalking Go logo" height="180px" align="right" />
 
 **SkyWalking Go**: The Golang auto-instrument Agent for Apache SkyWalking, which provides the native tracing abilities for Golang projects.
 
