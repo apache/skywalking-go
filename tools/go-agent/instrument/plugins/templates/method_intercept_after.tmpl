@@ -2,8 +2,8 @@ defer func() {
 	if r := recover(); r != nil {
 		// log error
 		// fmt.Printf("error: %v", r)
-		log.Errorf("execute interceptor after invoke error, instrument name: %s, interceptor name: %s, function ID: %s, error: %v",
-		    "{{.InstrumentName}}", "{{.InterceptorDefineName}}", "{{.FuncID}}", r)
+		log.Errorf("execute interceptor after invoke error, instrument name: %s, interceptor name: %s, function ID: %s, error: %v, stack: %s",
+		    "{{.InstrumentName}}", "{{.InterceptorDefineName}}", "{{.FuncID}}", r, tracing.DebugStack())
 	}
 }()
 

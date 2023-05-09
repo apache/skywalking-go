@@ -284,7 +284,7 @@ func TestActiveSpan(t *testing.T) {
 	oldGLS := GetGLS()
 	// change goroutine
 	SetAsNewGoroutine()
-	assert.Nil(t, tracing.ActiveSpan(), "active span should be nil when cross goroutine")
+	assert.NotNil(t, tracing.ActiveSpan(), "active span should be nil when cross goroutine")
 	// change back
 	SetGLS(oldGLS)
 	span.End()

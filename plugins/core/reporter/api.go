@@ -68,6 +68,14 @@ type Entity struct {
 	Props               []*commonv3.KeyStringValuePair
 }
 
+func (e *Entity) GetServiceName() string {
+	return e.ServiceName
+}
+
+func (e *Entity) GetInstanceName() string {
+	return e.ServiceInstanceName
+}
+
 type Reporter interface {
 	Boot(entity *Entity, cdsWatchers []AgentConfigChangeWatcher)
 	Send(spans []ReportedSpan)

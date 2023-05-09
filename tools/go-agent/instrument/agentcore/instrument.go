@@ -27,8 +27,7 @@ import (
 	"github.com/apache/skywalking-go/plugins/core"
 	"github.com/apache/skywalking-go/tools/go-agent/config"
 	"github.com/apache/skywalking-go/tools/go-agent/instrument/api"
-	"github.com/apache/skywalking-go/tools/go-agent/instrument/reporter"
-	"github.com/apache/skywalking-go/tools/go-agent/instrument/runtime"
+	"github.com/apache/skywalking-go/tools/go-agent/instrument/consts"
 	"github.com/apache/skywalking-go/tools/go-agent/tools"
 
 	"github.com/dave/dst"
@@ -61,7 +60,7 @@ func (i *Instrument) CouldHandle(opts *api.CompileOptions) bool {
 	return strings.HasPrefix(opts.Package, EnhanceBasePackage)
 }
 
-func (i *Instrument) FilterAndEdit(path string, cursor *dstutil.Cursor, allFiles []*dst.File) bool {
+func (i *Instrument) FilterAndEdit(path string, curFile *dst.File, cursor *dstutil.Cursor, allFiles []*dst.File) bool {
 	if i.hasCopyPath {
 		return false
 	}
@@ -154,7 +153,7 @@ func (t *Tracer) InitTracer(extend map[string]interface{}) {
 		GRPCReporterFuncName string
 		Config               *config.Config
 	}{
-		GRPCReporterFuncName: reporter.GRPCInitFuncName,
+		GRPCReporterFuncName: consts.GRPCInitFuncName,
 		Config:               config.GetConfig(),
 	})))
 }
@@ -195,9 +194,9 @@ func init() {
 		SetGlobalOperatorLinkMethod string
 		GetGlobalOperatorLinkMethod string
 	}{
-		TLSGetLinkMethod:            runtime.TLSGetMethodName,
-		TLSSetLinkMethod:            runtime.TLSSetMethodName,
-		SetGlobalOperatorLinkMethod: runtime.GlobalTracerSetMethodName,
-		GetGlobalOperatorLinkMethod: runtime.GlobalTracerGetMethodName,
+		TLSGetLinkMethod:            consts.TLSGetMethodName,
+		TLSSetLinkMethod:            consts.TLSSetMethodName,
+		SetGlobalOperatorLinkMethod: consts.GlobalTracerSetMethodName,
+		GetGlobalOperatorLinkMethod: consts.GlobalTracerGetMethodName,
 	}))
 }

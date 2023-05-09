@@ -19,6 +19,9 @@ package tracing
 
 // AdaptSpan for adapt with agent core
 type AdaptSpan interface {
+	GetTraceID() string
+	GetSegmentID() string
+	GetSpanID() int32
 	SetOperationName(string)
 	SetPeer(string)
 	SetSpanLayer(int32)
@@ -35,6 +38,18 @@ type SpanWrapper struct {
 
 func newSpanAdapter(s AdaptSpan) Span {
 	return &SpanWrapper{Span: s}
+}
+
+func (s *SpanWrapper) TraceID() string {
+	return s.Span.GetTraceID()
+}
+
+func (s *SpanWrapper) TraceSegmentID() string {
+	return s.Span.GetSegmentID()
+}
+
+func (s *SpanWrapper) SpanID() int32 {
+	return s.Span.GetSpanID()
 }
 
 func (s *SpanWrapper) Tag(k Tag, v string) {

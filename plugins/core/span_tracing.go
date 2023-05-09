@@ -87,6 +87,7 @@ type SegmentSpan interface {
 	GetSegmentContext() SegmentContext
 	tracer() *Tracer
 	segmentRegister() bool
+	GetDefaultSpan() *DefaultSpan
 }
 
 type SegmentSpanImpl struct {
@@ -105,8 +106,8 @@ func (s *SegmentSpanImpl) End() {
 	}()
 }
 
-func (s *SegmentSpanImpl) GetDefaultSpan() DefaultSpan {
-	return s.DefaultSpan
+func (s *SegmentSpanImpl) GetDefaultSpan() *DefaultSpan {
+	return &s.DefaultSpan
 }
 
 // For Reported TracingSpan
@@ -240,6 +241,10 @@ func (rs *RootSegmentSpan) createRootSegmentContext(_ SegmentSpan) (err error) {
 type SnapshotSpan struct {
 	DefaultSpan
 	SegmentContext
+}
+
+func (s *SnapshotSpan) GetDefaultSpan() *DefaultSpan {
+	return &s.DefaultSpan
 }
 
 func (s *SnapshotSpan) End() {

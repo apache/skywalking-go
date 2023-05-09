@@ -32,6 +32,7 @@ import (
 	"github.com/apache/skywalking-go/tools/go-agent/instrument/agentcore"
 	"github.com/apache/skywalking-go/tools/go-agent/instrument/api"
 	"github.com/apache/skywalking-go/tools/go-agent/instrument/entry"
+	"github.com/apache/skywalking-go/tools/go-agent/instrument/logger"
 	"github.com/apache/skywalking-go/tools/go-agent/instrument/plugins"
 	"github.com/apache/skywalking-go/tools/go-agent/instrument/reporter"
 	"github.com/apache/skywalking-go/tools/go-agent/instrument/runtime"
@@ -43,6 +44,7 @@ var instruments = []api.Instrument{
 	agentcore.NewInstrument(),
 	reporter.NewGRPCInstrument(),
 	entry.NewInstrument(),
+	logger.NewInstrument(),
 	plugins.NewInstrument(),
 }
 
@@ -112,7 +114,7 @@ func instrumentFiles(buildDir string, inst api.Instrument, args []string) error 
 	for path, info := range parsedFiles {
 		hasInstruted := false
 		dstutil.Apply(info.dstFile, func(cursor *dstutil.Cursor) bool {
-			if inst.FilterAndEdit(path, cursor, allFiles) {
+			if inst.FilterAndEdit(path, info.dstFile, cursor, allFiles) {
 				hasInstruted = true
 			}
 			return true

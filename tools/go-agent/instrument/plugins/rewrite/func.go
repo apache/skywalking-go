@@ -29,8 +29,6 @@ import (
 var (
 	GlobalOperatorRealSetMethodName = VarPrefix + "OperatorSetOperator"
 	GlobalOperatorRealGetMethodName = VarPrefix + "OperatorGetOperator"
-	GlobalOperatorLinkSetMethodName = "_skywalking_set_global_operator"
-	GlobalOperatorLinkGetMethodName = "_skywalking_get_global_operator"
 
 	GlobalOperatorTypeName = TypePrefix + "OperatorOperator"
 )

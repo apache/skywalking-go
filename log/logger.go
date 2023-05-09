@@ -18,6 +18,7 @@
 package log
 
 type Logger interface {
+	WithField(key string, value interface{}) Logger
 	// Info logs to the INFO log.
 	Info(args ...interface{})
 	// Infof logs to the INFO log.

@@ -3,7 +3,6 @@ module github.com/apache/skywalking-go/plugins/core
 go 1.18
 
 require (
-	github.com/apache/skywalking-go v0.0.0-20230426040646-191ee520f376
 	github.com/dave/dst v0.27.2
 	github.com/google/uuid v1.3.0
 	github.com/pkg/errors v0.9.1

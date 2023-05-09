@@ -31,3 +31,20 @@ reporter:
     backend_service: ${SW_AGENT_REPORTER_GRPC_BACKEND_SERVICE:127.0.0.1:11800}
     # The maximum count of segment for reporting tracing data.
     max_send_queue: ${SW_AGENT_REPORTER_GRPC_MAX_SEND_QUEUE:5000}
+
+log:
+  # The type determines which logging type is currently used by the system.
+  # The Go agent wourld use this log type to generate custom logs. It supports: "auto", "logrus", or "zap".
+  # auto: Automatically identifies the source of the log.
+  #       If logrus is present in the project, it wourld automatically use logrus.
+  #       If zap has been initialized in the project, it would use the zap framework.
+  #       By default, it would use std errors to output log content.
+  # logrus: Specifies that the Agent should use the logrus framework.
+  # zap: Specifies that the Agent should use the zap framework.
+  # The system must have already been initialized through methods such as "zap.New", "zap.NewProduction", etc.
+  type: ${SW_AGENT_LOG_TYPE:auto}
+  tracing:
+    # Whether to automatically integrate Tracing information into the logs.
+    enable: ${SW_AGENT_LOG_TRACING_ENABLE:true}
+    # If tracing information is enabled, the tracing information would be stored in the current Key in each log.
+    key: ${SW_AGENT_LOG_TRACING_KEY:SW_CTX}

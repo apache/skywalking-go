@@ -26,6 +26,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/dave/dst"
@@ -157,18 +158,122 @@ func WriteDSTFile(path string, file *dst.File, debug *DebugInfo) error {
 	}
 	defer output.Close()
 
-	fset, af, err := decorator.RestoreFile(file)
+	content, err := GenerateDSTFileContent(file, debug)
 	if err != nil {
 		return err
 	}
 
-	if debug != nil {
-		return writeDSTFileWithDebug(fset, af, debug, output)
+	if _, err = output.WriteString(content); err != nil {
+		return err
 	}
-	return printer.Fprint(output, fset, af)
+	return nil
 }
 
-func writeDSTFileWithDebug(fset *token.FileSet, file *ast.File, debug *DebugInfo, output *os.File) error {
+func GenerateDSTFileContent(file *dst.File, debug *DebugInfo) (string, error) {
+	var buf bytes.Buffer
+	writer := io.Writer(&buf)
+
+	fset, af, err := decorator.RestoreFile(file)
+	if err != nil {
+		return "", err
+	}
+
+	if debug != nil {
+		if err1 := writeDSTFileWithDebug(fset, af, debug, writer); err1 != nil {
+			return "", err1
+		}
+		return buf.String(), nil
+	}
+
+	if err := printer.Fprint(writer, fset, af); err != nil {
+		return "", err
+	}
+	return buf.String(), nil
+}
+
+func BuildFuncIdentity(pkgPath string, node *dst.FuncDecl) string {
+	var receiver string
+	if node.Recv != nil {
+		expr, ok := node.Recv.List[0].Type.(*dst.StarExpr)
+		if !ok {
+			return ""
+		}
+		ident, ok := expr.X.(*dst.Ident)
+		if !ok {
+			return ""
+		}
+		receiver = ident.Name
+	}
+	return fmt.Sprintf("%s_%s%s",
+		regexp.MustCompile(`[/.\-@]`).ReplaceAllString(pkgPath, "_"), receiver, node.Name)
+}
+
+type ImportAnalyzer struct {
+	imports     map[string]*dst.ImportSpec
+	usedImports map[string]*dst.ImportSpec
+}
+
+func CreateImportAnalyzer(f dst.Node) *ImportAnalyzer {
+	imports := make(map[string]*dst.ImportSpec)
+	dstutil.Apply(f, func(cursor *dstutil.Cursor) bool {
+		importSpec, ok := cursor.Node().(*dst.ImportSpec)
+		if !ok {
+			return true
+		}
+		var pkgName = filepath.Base(importSpec.Path.Value)
+		if importSpec.Name != nil {
+			pkgName = importSpec.Name.Name
+		}
+		imports[strings.Trim(pkgName, "\"")] = importSpec
+		return false
+	}, func(cursor *dstutil.Cursor) bool {
+		return true
+	})
+	return &ImportAnalyzer{imports: imports, usedImports: make(map[string]*dst.ImportSpec)}
+}
+
+func (i *ImportAnalyzer) AnalyzeNeedsImports(fields *dst.FieldList) {
+	if fields == nil || len(fields.List) == 0 {
+		return
+	}
+
+	for _, f := range fields.List {
+		switch n := f.Type.(type) {
+		case *dst.Ident:
+			continue
+		case *dst.SelectorExpr:
+			pkgRefName, ok := n.X.(*dst.Ident)
+			if !ok {
+				continue
+			}
+			spec := i.imports[pkgRefName.Name]
+			if spec == nil {
+				continue
+			}
+			i.usedImports[pkgRefName.Name] = spec
+		}
+	}
+}
+
+func (i *ImportAnalyzer) AppendUsedImports(decl *dst.GenDecl) {
+	if decl.Tok != token.IMPORT {
+		return
+	}
+	for _, spec := range i.usedImports {
+		found := false
+		for _, existingSpec := range decl.Specs {
+			if existingSpec.(*dst.ImportSpec).Path == spec.Path {
+				found = true
+				break
+			}
+		}
+		if !found {
+			decl.Specs = append(decl.Specs, spec)
+		}
+	}
+}
+
+func writeDSTFileWithDebug(fset *token.FileSet, file *ast.File, debug *DebugInfo, output io.Writer) error {
 	var changeInfo *dstFilePathChangeInfo
 	if !debug.CheckOldLine {
 		changeInfo = &dstFilePathChangeInfo{
@@ -176,7 +281,7 @@ func writeDSTFileWithDebug(fset *token.FileSet, file *ast.File, debug *DebugInfo
 			oldDebugLine: 1,
 			newDebugLine: 1,
 		}
-		if _, err := output.WriteString(fmt.Sprintf("//line %s:%d\n", debug.FilePath, debug.Line)); err != nil {
+		if _, err := fmt.Fprintf(output, "//line %s:%d\n", debug.FilePath, debug.Line); err != nil {
 			return err
 		}
 		if err := printer.Fprint(output, fset, file); err != nil {

@@ -114,6 +114,15 @@ func SetRuntimeContextValue(key string, val interface{}) {
 	}
 }
 
+// DebugStack returns the stack of the current goroutine, for getting details when plugin broken.
+func DebugStack() []byte {
+	op := operator.GetOperator()
+	if op == nil {
+		return nil
+	}
+	return op.DebugStack()
+}
+
 func copyOptsAsInterface(opts []SpanOption) []interface{} {
 	optsVal := make([]interface{}, len(opts))
 	for i := range opts {
@@ -146,7 +155,21 @@ func injectorWrapper(injector Injector) *injectorWrapperImpl {
 	return &injectorWrapperImpl{injector: injector}
 }
 
+var noopSpanTraceOrSegmentID = "N/A"
+
 type NoopSpan struct {
+}
+
+func (n *NoopSpan) TraceID() string {
+	return noopSpanTraceOrSegmentID
+}
+
+func (n *NoopSpan) TraceSegmentID() string {
+	return noopSpanTraceOrSegmentID
+}
+
+func (n *NoopSpan) SpanID() int32 {
+	return -1
 }
 
 func (n *NoopSpan) SetOperationName(string) {

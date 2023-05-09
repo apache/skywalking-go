@@ -20,7 +20,6 @@ package plugins
 import (
 	"fmt"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"github.com/apache/skywalking-go/plugins/core/instrument"
@@ -33,9 +32,6 @@ import (
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
-
-var GenerateMethodPrefix = "_skywalking_enhance_"
-var GenerateVarPrefix = "_skywalking_var_"
 
 var methodEnhanceAdapterFiles = make(map[string]bool)
 
@@ -79,7 +75,7 @@ func NewMethodEnhance(inst instrument.Instrument, matcher *instrument.Point, f *
 		enhance.Recvs = tools.EnhanceParameterNamesWithPackagePrefix(pkgName, f.Recv, false)
 	}
 
-	enhance.FuncID = buildFrameworkFuncID(filepath.Join(inst.BasePackage(), matcher.PackagePath), f)
+	enhance.FuncID = tools.BuildFuncIdentity(filepath.Join(inst.BasePackage(), matcher.PackagePath), f)
 	enhance.AdapterPreFuncName = fmt.Sprintf("%s%s", rewrite.GenerateMethodPrefix, enhance.FuncID)
 	enhance.AdapterPostFuncName = fmt.Sprintf("%s%s_ret", rewrite.GenerateMethodPrefix, enhance.FuncID)
 
@@ -109,10 +105,11 @@ func (m *MethodEnhance) BuildForDelegator() []dst.Decl {
 		// append the import for logger, one file only need import once
 		result = append(result, tools.GoStringToDecls(fmt.Sprintf(`import (
 	"%s/log"
+	"%s/tracing"
 	"%s/operator"
 
 	%s "%s"	 // current enhancing package path, for rewrite phase in next step
-)`, agentcore.EnhanceFromBasePackage, agentcore.EnhanceFromBasePackage, m.packageName, m.fullPackage))...)
+)`, agentcore.EnhanceFromBasePackage, agentcore.EnhanceFromBasePackage, agentcore.EnhanceFromBasePackage, m.packageName, m.fullPackage))...)
 		methodEnhanceAdapterFiles[m.path] = true
 	}
 
@@ -212,21 +209,4 @@ func (m *MethodEnhance) ReplaceFileContent(path, content string) string {
 		return strings.Replace(content, m.replacementKey, m.replacementValue, 1)
 	}
 	return content
-}
-
-func buildFrameworkFuncID(pkgPath string, node *dst.FuncDecl) string {
-	var receiver string
-	if node.Recv != nil {
-		expr, ok := node.Recv.List[0].Type.(*dst.StarExpr)
-		if !ok {
-			return ""
-		}
-		ident, ok := expr.X.(*dst.Ident)
-		if !ok {
-			return ""
-		}
-		receiver = ident.Name
-	}
-	return fmt.Sprintf("%s_%s%s",
-		regexp.MustCompile(`[/.\-@]`).ReplaceAllString(pkgPath, "_"), receiver, node.Name)
 }

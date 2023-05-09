@@ -32,6 +32,7 @@ import (
 type FileInfo struct {
 	// the original file path, for debugging
 	OriginalFilePath string
+	DebugBaseDir     string
 
 	PackageName string
 	FileName    string
@@ -46,9 +47,13 @@ func NewFile(packageName, fileName, data string) *FileInfo {
 	return &FileInfo{PackageName: packageName, FileName: fileName, FileData: data}
 }
 
+func NewFileWithDebug(packageName, fileName, data, debugBaseDir string) *FileInfo {
+	return &FileInfo{PackageName: packageName, FileName: fileName, FileData: data, DebugBaseDir: debugBaseDir}
+}
+
 // MultipleFilesWithWritten for rewrite all operator/interceptor files
 func (c *Context) MultipleFilesWithWritten(writeFileNamePrefix, targetDir, fromPackage string,
-	originalFiles []*FileInfo, debugBaseDir string) ([]string, error) {
+	originalFiles []*FileInfo) ([]string, error) {
 	result := make([]string, 0)
 
 	for _, f := range originalFiles {
@@ -57,8 +62,8 @@ func (c *Context) MultipleFilesWithWritten(writeFileNamePrefix, targetDir, fromP
 			return nil, err
 		}
 		var debugInfo *tools.DebugInfo
-		if debugBaseDir != "" {
-			debugInfo, err = tools.BuildDSTDebugInfo(filepath.Join(debugBaseDir, f.FileName), parseFile)
+		if f.DebugBaseDir != "" {
+			debugInfo, err = tools.BuildDSTDebugInfo(filepath.Join(f.DebugBaseDir, f.FileName), parseFile)
 			if err != nil {
 				return nil, err
 			}

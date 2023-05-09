@@ -24,14 +24,14 @@ import (
 
 	"github.com/apache/skywalking-go/plugins/core"
 	"github.com/apache/skywalking-go/tools/go-agent/config"
+	"github.com/apache/skywalking-go/tools/go-agent/instrument/agentcore"
 	"github.com/apache/skywalking-go/tools/go-agent/instrument/api"
+	"github.com/apache/skywalking-go/tools/go-agent/instrument/consts"
 	"github.com/apache/skywalking-go/tools/go-agent/tools"
 
 	"github.com/dave/dst"
 	"github.com/dave/dst/dstutil"
 )
-
-var GRPCInitFuncName = "GRPCReporterInit"
 
 type GRPCInstrument struct {
 	hasToEnhance bool
@@ -47,7 +47,7 @@ func (i *GRPCInstrument) CouldHandle(opts *api.CompileOptions) bool {
 	return opts.Package == "github.com/apache/skywalking-go/agent/reporter"
 }
 
-func (i *GRPCInstrument) FilterAndEdit(path string, cursor *dstutil.Cursor, allFiles []*dst.File) bool {
+func (i *GRPCInstrument) FilterAndEdit(path string, curFile *dst.File, cursor *dstutil.Cursor, allFiles []*dst.File) bool {
 	if i.hasToEnhance {
 		return false
 	}
@@ -85,6 +85,11 @@ func (i *GRPCInstrument) WriteExtraFiles(dir string) ([]string, error) {
 		return tools.BuildDSTDebugInfo(debugPath, f)
 	}, func(file *dst.File) {
 		file.Name = dst.NewIdent("reporter")
+		pkgUpdates := make(map[string]string)
+		for _, p := range agentcore.CopiedSubPackages {
+			pkgUpdates[filepath.Join(agentcore.EnhanceFromBasePackage, p)] = filepath.Join(agentcore.EnhanceBasePackage, p)
+		}
+		tools.ChangePackageImportPath(file, pkgUpdates)
 		tools.DeletePackageImports(file, "github.com/apache/skywalking-go/plugins/core/reporter")
 	})
 	if err != nil {
@@ -106,13 +111,13 @@ func (i *GRPCInstrument) generateReporterInitFile(dir string) (string, error) {
 	return tools.WriteFile(dir, "grpc_init.go", html.UnescapeString(tools.ExecuteTemplate(`package reporter
 
 import (
-	"github.com/apache/skywalking-go/log"
+	"github.com/apache/skywalking-go/agent/core/operator"
 	"fmt"
 	"strconv"
 	"os"
 )
 
-func {{.InitFuncName}}(logger log.Logger) (Reporter, error) {
+func {{.InitFuncName}}(logger operator.LogOperator) (Reporter, error) {
 	return NewGRPCReporter(logger, {{.Config.Reporter.GRPC.BackendService.ToGoStringValue}},
 		WithMaxSendQueueSize({{.Config.Reporter.GRPC.MaxSendQueue.ToGoIntValue "the GRPC reporter max queue size must be number"}}))
 }
@@ -120,7 +125,7 @@ func {{.InitFuncName}}(logger log.Logger) (Reporter, error) {
 		InitFuncName string
 		Config       *config.Config
 	}{
-		InitFuncName: GRPCInitFuncName,
+		InitFuncName: consts.GRPCInitFuncName,
 		Config:       config.GetConfig(),
 	})))
 }

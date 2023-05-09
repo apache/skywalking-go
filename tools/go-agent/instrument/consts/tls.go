@@ -15,15 +15,10 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package operator
+package consts
 
-// LogOperator should be same with the log.Logger from the API of the library
-type LogOperator interface {
-	WithField(key string, value interface{}) interface{}
-	Info(args ...interface{})
-	Infof(format string, args ...interface{})
-	Warn(args ...interface{})
-	Warnf(format string, args ...interface{})
-	Error(args ...interface{})
-	Errorf(format string, args ...interface{})
-}
+const (
+	TLSFieldName     = "skywalking_tls"
+	TLSGetMethodName = "_skywalking_get_gls"
+	TLSSetMethodName = "_skywalking_set_gls"
+)
