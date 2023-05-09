@@ -19,8 +19,8 @@
 set -ex
 
 project_name=$(echo "{{.Context.ScenarioName}}" |sed -e "s/\.//g" |awk '{print tolower($0)}')
-service_container_name="${project_name}_service_1"
-validator_container_name="${project_name}_validator_1"
+service_container_name="${project_name}-service-1"
+validator_container_name="${project_name}-validator-1"
 docker-compose -p "${project_name}" -f "{{.DockerComposeFilePath}}" up -d --build
 
 sleep 3
