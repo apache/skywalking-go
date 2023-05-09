@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"github.com/apache/skywalking-go/plugins/core"
+	"github.com/apache/skywalking-go/plugins/core/reporter"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -32,6 +33,9 @@ func init() {
 }
 
 func TestGetLogContext(t *testing.T) {
+	serviceName := "test-service"
+	serviceInstanceName := "test-instance"
+	core.Tracing.ServiceEntity = &reporter.Entity{ServiceName: serviceName, ServiceInstanceName: serviceInstanceName}
 	s, err := core.Tracing.CreateLocalSpan("/test")
 	assert.Nil(t, err, "err should be nil")
 	assert.NotNil(t, s, "span cannot be nil")
@@ -39,6 +43,8 @@ func TestGetLogContext(t *testing.T) {
 	assert.NotNil(t, context, "context cannot be nil")
 	rootSpan, ok := s.(*core.RootSegmentSpan)
 	assert.True(t, ok, "span should be root span")
+	assert.Equal(t, serviceName, context.ServiceName, "service name should be equal")
+	assert.Equal(t, serviceInstanceName, serviceInstanceName, "service instance name should be equal")
 	assert.Equal(t, rootSpan.Context().GetTraceID(), context.TraceID, "trace id should be equal")
 	assert.Equal(t, rootSpan.Context().GetSegmentID(), context.TraceSegmentID, "trace segment id should be equal")
 	assert.Equal(t, rootSpan.Context().GetSpanID(), context.SpanID, "span id should be equal")

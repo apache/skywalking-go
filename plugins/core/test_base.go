@@ -40,7 +40,8 @@ func init() {
 
 func ResetTracingContext() {
 	SetGLS(nil)
-	Tracing = &Tracer{initFlag: 1, Sampler: NewConstSampler(true), Reporter: &StoreReporter{}}
+	Tracing = &Tracer{initFlag: 1, Sampler: NewConstSampler(true), Reporter: &StoreReporter{},
+		ServiceEntity: NewEntity("test", "test-instance")}
 	SetAsNewGoroutine()
 }
 

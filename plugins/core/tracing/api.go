@@ -155,19 +155,21 @@ func injectorWrapper(injector Injector) *injectorWrapperImpl {
 	return &injectorWrapperImpl{injector: injector}
 }
 
+var noopSpanTraceOrSegmentID = "N/A"
+
 type NoopSpan struct {
 }
 
 func (n *NoopSpan) TraceID() string {
-	return "Noop"
+	return noopSpanTraceOrSegmentID
 }
 
 func (n *NoopSpan) TraceSegmentID() string {
-	return ""
+	return noopSpanTraceOrSegmentID
 }
 
 func (n *NoopSpan) SpanID() int32 {
-	return 0
+	return -1
 }
 
 func (n *NoopSpan) SetOperationName(string) {

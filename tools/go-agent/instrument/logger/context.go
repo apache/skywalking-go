@@ -22,11 +22,12 @@ import "fmt"
 var GetOperator = func() Operator { return nil }
 var ChangeLogger = func(v interface{}) {}
 
-const noopContextValue = "Noop"
+const noopContextValue = "N/A"
 
 type Operator interface {
 	Tracing() interface{}
 	ChangeLogger(logger interface{})
+	Entity() interface{}
 }
 
 type TracingOperator interface {
@@ -37,6 +38,11 @@ type TracingSpan interface {
 	GetTraceID() string
 	GetSegmentID() string
 	GetSpanID() int32
+}
+
+type Entity interface {
+	GetServiceName() string
+	GetInstanceName() string
 }
 
 type NoopSpan struct {
@@ -51,10 +57,12 @@ func (span *NoopSpan) GetSegmentID() string {
 }
 
 func (span *NoopSpan) GetSpanID() int32 {
-	return 0
+	return -1
 }
 
 type SkyWalkingLogContext struct {
+	ServiceName    string
+	InstanceName   string
 	TraceID        string
 	TraceSegmentID string
 	SpanID         int32
@@ -65,13 +73,22 @@ var noopContext = &NoopSpan{}
 func GetLogContext() *SkyWalkingLogContext {
 	operator := GetOperator()
 	var activeSpan TracingSpan = noopContext
+	var serviceName, instanceName string
 	if operator != nil {
 		tracingOperator := operator.Tracing().(TracingOperator)
 		if s, ok := tracingOperator.ActiveSpan().(TracingSpan); ok {
 			activeSpan = s
 		}
+		entity := operator.Entity()
+		if entity != nil {
+			if e, ok := entity.(Entity); ok {
+				serviceName, instanceName = e.GetServiceName(), e.GetInstanceName()
+			}
+		}
 	}
 	return &SkyWalkingLogContext{
+		ServiceName:    serviceName,
+		InstanceName:   instanceName,
 		TraceID:        activeSpan.GetTraceID(),
 		TraceSegmentID: activeSpan.GetSegmentID(),
 		SpanID:         activeSpan.GetSpanID(),
@@ -83,5 +100,6 @@ func GetLogContextString() string {
 }
 
 func (context *SkyWalkingLogContext) String() string {
-	return fmt.Sprintf("[%s,%s,%d]", context.TraceID, context.TraceSegmentID, context.SpanID)
+	return fmt.Sprintf("[%s,%s,%s,%s,%d]", context.ServiceName, context.InstanceName,
+		context.TraceID, context.TraceSegmentID, context.SpanID)
 }

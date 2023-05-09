@@ -21,7 +21,7 @@ import (
 	agentv3 "skywalking.apache.org/repo/goapi/collect/language/agent/v3"
 )
 
-const noopContextValue = "Noop"
+const noopContextValue = "N/A"
 
 type NoopSpan struct {
 }
@@ -35,7 +35,7 @@ func (*NoopSpan) GetSegmentID() string {
 }
 
 func (*NoopSpan) GetSpanID() int32 {
-	return 0
+	return -1
 }
 
 func (*NoopSpan) SetOperationName(string) {

@@ -94,8 +94,8 @@ func (t *Tracer) CreateExitSpan(operationName, peer string, injector interface{}
 	spanContext.TraceID = reportedSpan.GetSegmentContext().TraceID
 	spanContext.ParentSegmentID = reportedSpan.GetSegmentContext().SegmentID
 	spanContext.ParentSpanID = reportedSpan.GetSegmentContext().SpanID
-	spanContext.ParentService = t.Service
-	spanContext.ParentServiceInstance = t.Instance
+	spanContext.ParentService = t.ServiceEntity.ServiceName
+	spanContext.ParentServiceInstance = t.ServiceEntity.ServiceInstanceName
 	spanContext.ParentEndpoint = firstSpan.GetOperationName()
 	spanContext.AddressUsedAtClient = peer
 	spanContext.CorrelationContext = reportedSpan.GetSegmentContext().CorrelationContext

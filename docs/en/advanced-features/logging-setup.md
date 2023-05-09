@@ -7,7 +7,7 @@ You can learn about the configuration details through the "log" configuration it
 
 ## Agent with Logging system
 
-The integration of the Agent with logs can be divided into the following:
+The integration of the Agent with logs includes the two parts as following.
 
 1. **Integrating Agent logs into the Service**: Integrating the logs from the Agent into the framework used by the service.
 2. **Integrating Tracing information into the Service**: Integrating the information from Tracing into the service logs.
@@ -29,14 +29,16 @@ This helps users to quickly locate the link based on the Tracing data.
 
 The Tracing includes the following information:
 
-1. **TraceID**: The current Trace ID. If there is no link, it outputs `Noop`.
-2. **SegmentID**: The Segment ID in the current Trace. If there is no link, it outputs `Noop`.
-3. **SpanID**: The Span ID currently being operated on. If there is no link, it outputs `0`.
+1. **ServiceName**: Current service name. 
+2. **ServiceInstanceName**: Current service instance name. 
+3. **TraceID**: The current Trace ID. If there is no link, it outputs `N/A`.
+4. **SegmentID**: The Segment ID in the current Trace. If there is no link, it outputs `N/A`.
+5. **SpanID**: The Span ID currently being operated on. If there is no link, it outputs `-1`.
 
-The output format is as follows: `[${TraceID},${SegmentID},${SpanID}]`.
+The output format is as follows: `[${ServiceName},${ServiceInstanceName},${TraceID},${SegmentID},${SpanID}]`.
 
 The following is an example of a log output when using `Zap.NewProduction`:
 
 ```
-{"level":"info","ts":1683635924.717511,"caller":"gin/main.go:45","msg":"test log","SW_CTX":"[6fbe5844ee6611ed8e30acde48001122,6fbe5902ee6611ed8e30acde48001122,0]"}
+{"level":"info","ts":1683641507.052247,"caller":"gin/main.go:45","msg":"test log","SW_CTX":"[Your_ApplicationName,681e4178ee7311ed864facde48001122@192.168.50.193,6f13069eee7311ed864facde48001122,6f13070cee7311ed864facde48001122,0]"}
 ```

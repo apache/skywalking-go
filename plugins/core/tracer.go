@@ -36,9 +36,8 @@ type CorrelationConfig struct {
 }
 
 type Tracer struct {
-	Service  string
-	Instance string
-	Reporter reporter.Reporter
+	ServiceEntity *reporter.Entity
+	Reporter      reporter.Reporter
 	// 0 not init 1 init
 	initFlag int32
 	Sampler  Sampler
@@ -48,8 +47,7 @@ type Tracer struct {
 }
 
 func (t *Tracer) Init(entity *reporter.Entity, rep reporter.Reporter, samp Sampler, logger operator.LogOperator) error {
-	t.Service = entity.ServiceName
-	t.Instance = entity.ServiceInstanceName
+	t.ServiceEntity = entity
 	t.Reporter = rep
 	t.Sampler = samp
 	if logger != nil && !reflect.ValueOf(logger).IsZero() {
@@ -58,6 +56,10 @@ func (t *Tracer) Init(entity *reporter.Entity, rep reporter.Reporter, samp Sampl
 	t.Reporter.Boot(entity, t.cdsWatchers)
 	t.initFlag = 1
 	return nil
+}
+
+func (t *Tracer) Entity() interface{} {
+	return t.ServiceEntity
 }
 
 func NewEntity(service, instanceEnvName string) *reporter.Entity {
