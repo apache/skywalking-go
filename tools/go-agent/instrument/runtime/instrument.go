@@ -22,18 +22,8 @@ import (
 	"github.com/dave/dst/dstutil"
 
 	"github.com/apache/skywalking-go/tools/go-agent/instrument/api"
+	"github.com/apache/skywalking-go/tools/go-agent/instrument/consts"
 	"github.com/apache/skywalking-go/tools/go-agent/tools"
-)
-
-var (
-	TLSFieldName     = "skywalking_tls"
-	TLSGetMethodName = "_skywalking_get_gls"
-	TLSSetMethodName = "_skywalking_set_gls"
-
-	GlobalTracerFieldName         = "globalSkyWalkingOperator"
-	GlobalTracerSnapshotInterface = "skywalkingGoroutineSnapshotCreator"
-	GlobalTracerSetMethodName     = "_skywalking_set_global_operator"
-	GlobalTracerGetMethodName     = "_skywalking_get_global_operator"
 )
 
 type Instrument struct {
@@ -47,7 +37,7 @@ func (r *Instrument) CouldHandle(opts *api.CompileOptions) bool {
 	return opts.Package == "runtime"
 }
 
-func (r *Instrument) FilterAndEdit(path string, cursor *dstutil.Cursor, allFiles []*dst.File) bool {
+func (r *Instrument) FilterAndEdit(path string, curFile *dst.File, cursor *dstutil.Cursor, allFiles []*dst.File) bool {
 	switch n := cursor.Node().(type) {
 	case *dst.TypeSpec:
 		if n.Name != nil && n.Name.Name != "g" {
@@ -59,9 +49,9 @@ func (r *Instrument) FilterAndEdit(path string, cursor *dstutil.Cursor, allFiles
 		}
 		// append the tls field
 		st.Fields.List = append(st.Fields.List, &dst.Field{
-			Names: []*dst.Ident{dst.NewIdent(TLSFieldName)},
+			Names: []*dst.Ident{dst.NewIdent(consts.TLSFieldName)},
 			Type:  dst.NewIdent("interface{}")})
-		tools.LogWithStructEnhance("runtime", "g", TLSFieldName, "tls field")
+		tools.LogWithStructEnhance("runtime", "g", consts.TLSFieldName, "tls field")
 		return true
 	case *dst.FuncDecl:
 		if n.Name.Name != "newproc1" {
@@ -88,9 +78,9 @@ func (r *Instrument) FilterAndEdit(path string, cursor *dstutil.Cursor, allFiles
 		}{
 			Parameters:        parameters,
 			Results:           results,
-			TLSField:          TLSFieldName,
-			OperatorField:     GlobalTracerFieldName,
-			SnapshotInterface: GlobalTracerSnapshotInterface,
+			TLSField:          consts.TLSFieldName,
+			OperatorField:     consts.GlobalTracerFieldName,
+			SnapshotInterface: consts.GlobalTracerSnapshotInterface,
 		})
 		tools.LogWithMethodEnhance("runtime", "", "newproc1", "support cross goroutine context propagating")
 		return true
@@ -112,6 +102,8 @@ import (
 
 var {{.GlobalTracerFieldName}} interface{}
 
+var {{.GlobalLoggerFieldName}} interface{}
+
 //go:linkname {{.TLSGetMethod}} {{.TLSGetMethod}}
 var {{.TLSGetMethod}} = _skywalking_tls_get_impl
 
@@ -123,6 +115,12 @@ var {{.GlobalOperatorSetMethodName}} = _skywalking_global_operator_set_impl
 
 //go:linkname {{.GlobalOperatorGetMethodName}} {{.GlobalOperatorGetMethodName}}
 var {{.GlobalOperatorGetMethodName}} = _skywalking_global_operator_get_impl
+
+//go:linkname {{.GlobalLoggerSetMethodName}} {{.GlobalLoggerSetMethodName}}
+var {{.GlobalLoggerSetMethodName}} = _skywalking_global_logger_set_impl
+
+//go:linkname {{.GlobalLoggerGetMethodName}} {{.GlobalLoggerGetMethodName}}
+var {{.GlobalLoggerGetMethodName}} = _skywalking_global_logger_get_impl
 
 //go:nosplit
 func _skywalking_tls_get_impl() interface{} {
@@ -136,12 +134,22 @@ func _skywalking_tls_set_impl(v interface{}) {
 
 //go:nosplit
 func _skywalking_global_operator_set_impl(v interface{}) {
-	globalSkyWalkingOperator = v
+	{{.GlobalTracerFieldName}} = v
 } 
 
 //go:nosplit
 func _skywalking_global_operator_get_impl() interface{} {
-	return globalSkyWalkingOperator
+	return {{.GlobalTracerFieldName}}
+} 
+
+//go:nosplit
+func _skywalking_global_logger_set_impl(v interface{}) {
+	{{.GlobalLoggerFieldName}} = v
+} 
+
+//go:nosplit
+func _skywalking_global_logger_get_impl() interface{} {
+	return {{.GlobalLoggerFieldName}}
 } 
 
 type ContextSnapshoter interface {
@@ -165,14 +173,20 @@ func goroutineChange(tls interface{}) interface{} {
 			GlobalTracerSnapshotInterface string
 			GlobalOperatorSetMethodName   string
 			GlobalOperatorGetMethodName   string
+			GlobalLoggerFieldName         string
+			GlobalLoggerSetMethodName     string
+			GlobalLoggerGetMethodName     string
 		}{
-			TLSFiledName:                  TLSFieldName,
-			TLSGetMethod:                  TLSGetMethodName,
-			TLSSetMethod:                  TLSSetMethodName,
-			GlobalTracerFieldName:         GlobalTracerFieldName,
-			GlobalTracerSnapshotInterface: GlobalTracerSnapshotInterface,
-			GlobalOperatorSetMethodName:   GlobalTracerSetMethodName,
-			GlobalOperatorGetMethodName:   GlobalTracerGetMethodName,
+			TLSFiledName:                  consts.TLSFieldName,
+			TLSGetMethod:                  consts.TLSGetMethodName,
+			TLSSetMethod:                  consts.TLSSetMethodName,
+			GlobalTracerFieldName:         consts.GlobalTracerFieldName,
+			GlobalTracerSnapshotInterface: consts.GlobalTracerSnapshotInterface,
+			GlobalOperatorSetMethodName:   consts.GlobalTracerSetMethodName,
+			GlobalOperatorGetMethodName:   consts.GlobalTracerGetMethodName,
+			GlobalLoggerFieldName:         consts.GlobalLoggerFieldName,
+			GlobalLoggerSetMethodName:     consts.GlobalLoggerSetMethodName,
+			GlobalLoggerGetMethodName:     consts.GlobalLoggerGetMethodName,
 		}),
 	})
 }

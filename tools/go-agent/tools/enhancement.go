@@ -111,7 +111,7 @@ func newParameterInfo(name string, tp dst.Expr) *ParameterInfo {
 	result := &ParameterInfo{
 		Name:     name,
 		Type:     tp,
-		TypeName: generateTypeNameByExp(tp),
+		TypeName: GenerateTypeNameByExp(tp),
 	}
 	var defaultNil = "nil"
 	switch n := tp.(type) {
@@ -135,22 +135,26 @@ func (p *PackagedParameterInfo) PackagedType() dst.Expr {
 }
 
 func (p *PackagedParameterInfo) PackagedTypeName() string {
-	return generateTypeNameByExp(p.PackagedType())
+	return GenerateTypeNameByExp(p.PackagedType())
 }
 
-func generateTypeNameByExp(exp dst.Expr) string {
+func GenerateTypeNameByExp(exp dst.Expr) string {
 	var data string
 	switch n := exp.(type) {
 	case *dst.StarExpr:
-		data = "*" + generateTypeNameByExp(n.X)
+		data = "*" + GenerateTypeNameByExp(n.X)
 	case *dst.TypeAssertExpr:
-		data = generateTypeNameByExp(n.X)
+		data = GenerateTypeNameByExp(n.X)
 	case *dst.InterfaceType:
 		data = interfaceName
 	case *dst.Ident:
 		data = n.Name
 	case *dst.SelectorExpr:
-		data = generateTypeNameByExp(n.X) + "." + generateTypeNameByExp(n.Sel)
+		data = GenerateTypeNameByExp(n.X) + "." + GenerateTypeNameByExp(n.Sel)
+	case *dst.Ellipsis:
+		data = "..." + GenerateTypeNameByExp(n.Elt)
+	case *dst.ArrayType:
+		data = "[]" + GenerateTypeNameByExp(n.Elt)
 	default:
 		return ""
 	}
@@ -171,6 +175,10 @@ func addPackagePrefixForArgsAndClone(pkg string, tp dst.Expr) dst.Expr {
 	case *dst.StarExpr:
 		expr := dst.Clone(tp).(*dst.StarExpr)
 		expr.X = addPackagePrefixForArgsAndClone(pkg, t.X)
+		return expr
+	case *dst.Ellipsis:
+		expr := dst.Clone(tp).(*dst.Ellipsis)
+		expr.Elt = addPackagePrefixForArgsAndClone(pkg, t.Elt)
 		return expr
 	default:
 		return dst.Clone(tp).(dst.Expr)

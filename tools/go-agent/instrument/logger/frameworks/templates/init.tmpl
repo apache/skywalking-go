@@ -1,0 +1,52 @@
+package {{.PackageName}}
+
+import (
+	_ "unsafe"
+	"os"
+	"strings"
+)
+
+//go:linkname {{.GetGlobalOperatorLinkMethod}} {{.GetGlobalOperatorLinkMethod}}
+var {{.GetGlobalOperatorLinkMethod}} func() interface{}
+
+//go:linkname {{.SetGlobalLoggerLinkMethod}} {{.SetGlobalLoggerLinkMethod}}
+var {{.SetGlobalLoggerLinkMethod}} func(v interface{})
+
+var {{.LogTracingEnableFuncName}} = {{.LogTypeInConfig.Tracing.Enabled.ToGoBoolFunction}}
+var {{.LogTracingContextKeyFuncName}} = {{.LogTypeInConfig.Tracing.Key.ToGoStringFunction}}
+
+func init() {
+	// for context.go getting operator
+	if {{.GetGlobalOperatorLinkMethod}} != nil {
+		// for operator delegator
+		{{.GetOperatorMethodName}} = func() {{.OperatorTypeName}} {
+			op := {{.GetGlobalOperatorLinkMethod}}()
+			if res, ok := op.({{.OperatorTypeName}}); ok {
+				return res
+			}
+			return nil
+		}
+	}
+
+	// for context.go change logger
+	if {{.SetGlobalLoggerLinkMethod}} != nil {
+		logType := {{.LogTypeInConfig.Type.ToGoStringValue}}
+		supportLogChange := false
+		if logType == "{{.ConfigTypeAutomaticValue}}" || logType == "{{.CurrentLogTypeName}}" {
+			supportLogChange = true
+		}
+		{{.ChangeLoggerMethodName}} = func(logger interface{}) {
+			if !supportLogChange {
+				return
+			}
+			// trying to change the logger if agent core existing
+			operator := {{.GetOperatorMethodName}}()
+			if operator != nil {
+				operator.ChangeLogger(logger)
+				return
+			}
+			// otherwise, change the global logger
+			{{.SetGlobalLoggerLinkMethod}}(logger)
+		}
+	}
+}

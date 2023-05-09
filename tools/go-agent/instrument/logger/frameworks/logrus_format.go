@@ -15,15 +15,32 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package operator
+package frameworks
 
-// LogOperator should be same with the log.Logger from the API of the library
-type LogOperator interface {
-	WithField(key string, value interface{}) interface{}
-	Info(args ...interface{})
-	Infof(format string, args ...interface{})
-	Warn(args ...interface{})
-	Warnf(format string, args ...interface{})
-	Error(args ...interface{})
-	Errorf(format string, args ...interface{})
+import (
+	"github.com/sirupsen/logrus"
+)
+
+// WrapFormat is wrap format to transmit trace context when logging
+type WrapFormat struct {
+	Base            logrus.Formatter
+	traceContextKey string
+}
+
+// Wrap original format
+// nolint
+func Wrap(base logrus.Formatter, contextKey string) *WrapFormat {
+	if contextKey == "" {
+		contextKey = "SW_CTX"
+	}
+
+	return &WrapFormat{base, contextKey}
+}
+
+// Format logging with trace context
+func (format *WrapFormat) Format(entry *logrus.Entry) ([]byte, error) {
+	// append trace context
+	entry.Data[format.traceContextKey] = GetLogContextString()
+
+	return format.Base.Format(entry)
 }

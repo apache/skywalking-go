@@ -20,7 +20,7 @@ package entry
 import (
 	"github.com/apache/skywalking-go/tools/go-agent/config"
 	"github.com/apache/skywalking-go/tools/go-agent/instrument/api"
-	"github.com/apache/skywalking-go/tools/go-agent/instrument/plugins/rewrite"
+	"github.com/apache/skywalking-go/tools/go-agent/instrument/consts"
 	"github.com/apache/skywalking-go/tools/go-agent/tools"
 
 	"github.com/dave/dst"
@@ -39,7 +39,7 @@ func (i *Instrument) CouldHandle(opts *api.CompileOptions) bool {
 	return opts.Package == "main"
 }
 
-func (i *Instrument) FilterAndEdit(path string, cursor *dstutil.Cursor, allFiles []*dst.File) bool {
+func (i *Instrument) FilterAndEdit(path string, curFile *dst.File, cursor *dstutil.Cursor, allFiles []*dst.File) bool {
 	if i.hasFound {
 		return false
 	}
@@ -82,7 +82,7 @@ func init() {
 		GetGlobalOperatorLinkMethod string
 		Config                      *config.Config
 	}{
-		GetGlobalOperatorLinkMethod: rewrite.GlobalOperatorLinkGetMethodName,
+		GetGlobalOperatorLinkMethod: consts.GlobalTracerGetMethodName,
 		Config:                      config.GetConfig(),
 	}))
 	if err != nil {

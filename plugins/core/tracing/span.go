@@ -104,6 +104,13 @@ type InjectorWrapper interface {
 
 // Span for plugin API
 type Span interface {
+	// TraceID of span
+	TraceID() string
+	// TraceSegmentID current segment ID of span
+	TraceSegmentID() string
+	// SpanID of span
+	SpanID() int32
+
 	// Tag set the Tag of the Span
 	Tag(Tag, string)
 	// SetSpanLayer set the SpanLayer of the Span

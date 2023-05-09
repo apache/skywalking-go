@@ -23,7 +23,6 @@ import (
 	"os"
 	"reflect"
 
-	"github.com/apache/skywalking-go/log"
 	"github.com/apache/skywalking-go/plugins/core/operator"
 	"github.com/apache/skywalking-go/plugins/core/reporter"
 )
@@ -48,7 +47,7 @@ type Tracer struct {
 	cdsWatchers []reporter.AgentConfigChangeWatcher
 }
 
-func (t *Tracer) Init(entity *reporter.Entity, rep reporter.Reporter, samp Sampler, logger log.Logger) error {
+func (t *Tracer) Init(entity *reporter.Entity, rep reporter.Reporter, samp Sampler, logger operator.LogOperator) error {
 	t.Service = entity.ServiceName
 	t.Instance = entity.ServiceInstanceName
 	t.Reporter = rep
@@ -94,6 +93,10 @@ func (t *Tracer) InitSuccess() bool {
 	return t.initFlag == 1
 }
 
+func (t *Tracer) ChangeLogger(logger interface{}) {
+	t.Log.ChangeLogger(logger.(operator.LogOperator))
+}
+
 // nolint
 type emptyReporter struct{}
 
@@ -115,6 +118,10 @@ type LogWrapper struct {
 
 func (l *LogWrapper) ChangeLogger(logger operator.LogOperator) {
 	l.Logger = logger
+}
+
+func (l *LogWrapper) WithField(key string, value interface{}) interface{} {
+	return l.Logger.WithField(key, value)
 }
 
 func (l *LogWrapper) Info(args ...interface{}) {
@@ -151,6 +158,10 @@ func newDefaultLogger() *defaultLogger {
 	return &defaultLogger{
 		log: defLog.New(os.Stderr, defaultLogPrefix, defLog.LstdFlags),
 	}
+}
+
+func (d *defaultLogger) WithField(key string, value interface{}) interface{} {
+	return d
 }
 
 // nolint

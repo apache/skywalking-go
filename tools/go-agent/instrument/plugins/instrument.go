@@ -29,6 +29,7 @@ import (
 	"github.com/apache/skywalking-go/plugins/core"
 	"github.com/apache/skywalking-go/plugins/core/instrument"
 	"github.com/apache/skywalking-go/tools/go-agent/instrument/api"
+	"github.com/apache/skywalking-go/tools/go-agent/instrument/consts"
 	"github.com/apache/skywalking-go/tools/go-agent/instrument/plugins/rewrite"
 	"github.com/apache/skywalking-go/tools/go-agent/tools"
 
@@ -91,7 +92,7 @@ func (i *Instrument) CouldHandle(opts *api.CompileOptions) bool {
 	return false
 }
 
-func (i *Instrument) FilterAndEdit(path string, cursor *dstutil.Cursor, allFiles []*dst.File) bool {
+func (i *Instrument) FilterAndEdit(path string, curFile *dst.File, cursor *dstutil.Cursor, allFiles []*dst.File) bool {
 	switch n := cursor.Node().(type) {
 	case *dst.TypeSpec:
 		for _, filter := range i.structFilters {
@@ -221,10 +222,10 @@ func (i *Instrument) copyFrameworkFS(context *rewrite.Context, compilePkgFullPat
 			continue
 		}
 
-		files = append(files, rewrite.NewFile(packageName, entry.Name(), string(readFile)))
+		files = append(files, rewrite.NewFileWithDebug(packageName, entry.Name(), string(readFile), debugBaseDir))
 	}
 
-	rewrited, err := context.MultipleFilesWithWritten("skywalking_enhance_", baseDir, packageName, files, debugBaseDir)
+	rewrited, err := context.MultipleFilesWithWritten("skywalking_enhance_", baseDir, packageName, files)
 	if err != nil {
 		return nil, err
 	}
@@ -240,6 +241,10 @@ func (i *Instrument) copyOperatorsFS(context *rewrite.Context, baseDir, packageN
 			return nil, err
 		}
 		files := make([]*rewrite.FileInfo, 0)
+		if i.compileOpts.DebugDir != "" {
+			debugBaseDir = filepath.Join(i.compileOpts.DebugDir, "plugins", "core", dir)
+		}
+
 		for _, entry := range entries {
 			if strings.HasSuffix(entry.Name(), "_test.go") {
 				continue
@@ -248,13 +253,17 @@ func (i *Instrument) copyOperatorsFS(context *rewrite.Context, baseDir, packageN
 			if err1 != nil {
 				return nil, err1
 			}
-			files = append(files, rewrite.NewFile(dir, entry.Name(), string(file)))
-		}
-		if i.compileOpts.DebugDir != "" {
-			debugBaseDir = filepath.Join(i.compileOpts.DebugDir, "plugins", "core", dir)
+
+			var rewriteFile *rewrite.FileInfo
+			if debugBaseDir != "" {
+				rewriteFile = rewrite.NewFileWithDebug(dir, entry.Name(), string(file), debugBaseDir)
+			} else {
+				rewriteFile = rewrite.NewFile(dir, entry.Name(), string(file))
+			}
+			files = append(files, rewriteFile)
 		}
 
-		rewrited, err := context.MultipleFilesWithWritten("skywalking_agent_core_", baseDir, filepath.Base(dir), files, debugBaseDir)
+		rewrited, err := context.MultipleFilesWithWritten("skywalking_agent_core_", baseDir, filepath.Base(dir), files)
 		if err != nil {
 			return nil, err
 		}
@@ -293,7 +302,7 @@ func init() {
 			OperatorTypeName      string
 		}{
 			PackageName:           packageName,
-			OperatorGetLinkMethod: rewrite.GlobalOperatorLinkGetMethodName,
+			OperatorGetLinkMethod: consts.GlobalTracerGetMethodName,
 			OperatorGetRealMethod: rewrite.GlobalOperatorRealGetMethodName,
 			OperatorTypeName:      rewrite.GlobalOperatorTypeName,
 		}),

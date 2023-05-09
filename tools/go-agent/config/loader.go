@@ -35,9 +35,12 @@ var config *Config
 
 var EnvRegularRegex = regexp.MustCompile(`\${(?P<ENV>[_A-Z0-9]+):(?P<DEF>.*)}`)
 
+var ConfigTypeAutomatic = "auto"
+
 type Config struct {
 	Agent    Agent    `yaml:"agent"`
 	Reporter Reporter `yaml:"reporter"`
+	Log      Log      `yaml:"log"`
 }
 
 type Agent struct {
@@ -48,6 +51,16 @@ type Agent struct {
 
 type Reporter struct {
 	GRPC GRPCReporter `yaml:"grpc"`
+}
+
+type Log struct {
+	Type    StringValue `yaml:"type"`
+	Tracing LogTracing  `yaml:"tracing"`
+}
+
+type LogTracing struct {
+	Enabled StringValue `yaml:"enable"`
+	Key     StringValue `yaml:"key"`
 }
 
 type GRPCReporter struct {
@@ -117,6 +130,10 @@ func (s *StringValue) ToGoStringValue() string {
 }()`, s.EnvKey, s.Default, s.EnvKey, s.Default), "\n", ";")
 }
 
+func (s *StringValue) ToGoStringFunction() string {
+	return fmt.Sprintf("func() string { return %s }", s.ToGoStringValue())
+}
+
 func (s *StringValue) ToGoIntValue(errorMessage string) string {
 	return strings.ReplaceAll(fmt.Sprintf(`func() int {
 	if "%s" == "" {return %s}
@@ -129,6 +146,10 @@ func (s *StringValue) ToGoIntValue(errorMessage string) string {
 		s.EnvKey, s.Default, s.EnvKey, s.Default, errorMessage), "\n", ";")
 }
 
+func (s *StringValue) ToGoIntFunction(errorMessage string) string {
+	return fmt.Sprintf("func() int { return %s }", s.ToGoIntValue(errorMessage))
+}
+
 func (s *StringValue) ToGoFloatValue(errorMessage string) string {
 	return strings.ReplaceAll(fmt.Sprintf(`func() float64 {
 	if "%s" == "" {return %s}
@@ -139,6 +160,24 @@ func (s *StringValue) ToGoFloatValue(errorMessage string) string {
 	return res
 }()`,
 		s.EnvKey, s.Default, s.EnvKey, s.Default, errorMessage), "\n", ";")
+}
+
+func (s *StringValue) ToGoFloatFunction(errorMessage string) string {
+	return fmt.Sprintf("func() float64 { return %s }", s.ToGoFloatValue(errorMessage))
+}
+
+func (s *StringValue) ToGoBoolValue() string {
+	return strings.ReplaceAll(fmt.Sprintf(`func() bool {
+	if "%s" == "" {return %s}
+	tmpValue := os.Getenv("%s")
+	if tmpValue == "" {return %s}
+	return strings.EqualFold(tmpValue, "true")
+}()`,
+		s.EnvKey, s.Default, s.EnvKey, s.Default), "\n", ";")
+}
+
+func (s *StringValue) ToGoBoolFunction() string {
+	return fmt.Sprintf("func() bool { return %s }", s.ToGoBoolValue())
 }
 
 func (s *StringValue) overwriteFrom(other StringValue) {

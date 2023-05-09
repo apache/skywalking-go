@@ -19,7 +19,7 @@ package tools
 
 import (
 	"bytes"
-	"html/template"
+	"text/template"
 )
 
 func ExecuteTemplate(tmpl string, data interface{}) string {

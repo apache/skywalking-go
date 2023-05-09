@@ -28,6 +28,7 @@ import (
 	_ "os"
 	_ "reflect"
 	_ "runtime"
+	_ "runtime/debug"
 	_ "strconv"
 	_ "strings"
 	_ "sync"

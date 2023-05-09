@@ -21,7 +21,21 @@ import (
 	agentv3 "skywalking.apache.org/repo/goapi/collect/language/agent/v3"
 )
 
+const noopContextValue = "Noop"
+
 type NoopSpan struct {
+}
+
+func (*NoopSpan) GetTraceID() string {
+	return noopContextValue
+}
+
+func (*NoopSpan) GetSegmentID() string {
+	return noopContextValue
+}
+
+func (*NoopSpan) GetSpanID() int32 {
+	return 0
 }
 
 func (*NoopSpan) SetOperationName(string) {

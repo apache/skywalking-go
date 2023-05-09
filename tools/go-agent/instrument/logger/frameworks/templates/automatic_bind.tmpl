@@ -1,0 +1,7 @@
+defer {{.AutomaticBindFuncName}}({{ range $index, $value := .Recvs -}}
+&{{$value.Name -}},
+{{- end -}}{{ range $index, $value := .Parameters -}}
+&{{$value.Name -}},
+{{- end -}}{{ range $index, $value := .Results -}}
+{{ if ne $index 0}},{{ end }}&{{$value.Name -}}
+{{- end -}});

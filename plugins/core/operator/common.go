@@ -22,6 +22,7 @@ var GetOperator = func() Operator { return nil }
 type Operator interface {
 	Tracing() interface{} // to TracingOperator
 	Logger() interface{}  // to LogOperator
+	DebugStack() []byte   // Getting the stack of the current goroutine, for getting details when plugin broken.
 }
 
 // OperateError reduce the "fmt" package import
