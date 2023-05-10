@@ -4,9 +4,10 @@ When you want to build and use the Agent from source code, please follow these s
 
 ## Install SkyWalking Go
 
-Use `go get` to import the latest version of `skywalking-go` program.
+Use `go get` to import the `skywalking-go` program.
 
 ```shell
+// latest or any commit ID
 go get github.com/apache/skywalking-go@latest
 ```
 
@@ -22,6 +23,7 @@ When building the project, you need to clone the project and build it.
 
 ```shell
 git clone https://github.com/apache/skywalking-go.git
+// make sure same commit ID with go get
 cd skywalking-go && make build
 ```
 
