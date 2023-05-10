@@ -45,10 +45,11 @@ const (
 // NewGRPCReporter create a new reporter to send data to gRPC oap server. Only one backend address is allowed.
 func NewGRPCReporter(logger operator.LogOperator, serverAddr string, opts ...ReporterOption) (reporter.Reporter, error) {
 	r := &gRPCReporter{
-		logger:        logger,
-		sendCh:        make(chan *agentv3.SegmentObject, maxSendQueueSize),
-		checkInterval: defaultCheckInterval,
-		cdsInterval:   defaultCDSInterval, // cds default on
+		logger:           logger,
+		sendCh:           make(chan *agentv3.SegmentObject, maxSendQueueSize),
+		checkInterval:    defaultCheckInterval,
+		cdsInterval:      defaultCDSInterval, // cds default on
+		connectionStatus: reporter.ConnectionStatusConnected,
 	}
 	for _, o := range opts {
 		o(r)
@@ -92,7 +93,8 @@ type gRPCReporter struct {
 	creds credentials.TransportCredentials
 
 	// bootFlag is set if Boot be executed
-	bootFlag bool
+	bootFlag         bool
+	connectionStatus reporter.ConnectionStatus
 }
 
 func (r *gRPCReporter) Boot(entity *reporter.Entity, cdsWatchers []reporter.AgentConfigChangeWatcher) {
@@ -101,6 +103,10 @@ func (r *gRPCReporter) Boot(entity *reporter.Entity, cdsWatchers []reporter.Agen
 	r.check()
 	r.initCDS(cdsWatchers)
 	r.bootFlag = true
+}
+
+func (r *gRPCReporter) ConnectionStatus() reporter.ConnectionStatus {
+	return r.connectionStatus
 }
 
 func (r *gRPCReporter) Send(spans []reporter.ReportedSpan) {
@@ -276,8 +282,14 @@ func (r *gRPCReporter) check() {
 	go func() {
 		instancePropertiesSubmitted := false
 		for {
-			if r.conn.GetState() == connectivity.Shutdown {
+			state := r.conn.GetState()
+			if state == connectivity.Shutdown {
 				break
+			}
+			if state == connectivity.TransientFailure {
+				r.connectionStatus = reporter.ConnectionStatusDisconnect
+			} else {
+				r.connectionStatus = reporter.ConnectionStatusConnected
 			}
 
 			if !instancePropertiesSubmitted {

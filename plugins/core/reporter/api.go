@@ -76,8 +76,16 @@ func (e *Entity) GetInstanceName() string {
 	return e.ServiceInstanceName
 }
 
+type ConnectionStatus int32
+
+var (
+	ConnectionStatusConnected  ConnectionStatus = 1
+	ConnectionStatusDisconnect ConnectionStatus = 2
+)
+
 type Reporter interface {
 	Boot(entity *Entity, cdsWatchers []AgentConfigChangeWatcher)
 	Send(spans []ReportedSpan)
+	ConnectionStatus() ConnectionStatus
 	Close()
 }

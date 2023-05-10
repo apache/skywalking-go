@@ -110,6 +110,10 @@ func (e *emptyReporter) Boot(entity *reporter.Entity, cdsWatchers []reporter.Age
 func (e *emptyReporter) Send(spans []reporter.ReportedSpan) {
 }
 
+func (e *emptyReporter) ConnectionStatus() reporter.ConnectionStatus {
+	return reporter.ConnectionStatusDisconnect
+}
+
 // nolint
 func (e *emptyReporter) Close() {
 }

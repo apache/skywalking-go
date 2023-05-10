@@ -134,7 +134,7 @@ func (t *Tracer) SetRuntimeContextValue(key string, value interface{}) {
 }
 
 func (t *Tracer) createNoop() (*TracingContext, TracingSpan, bool) {
-	if !t.InitSuccess() {
+	if !t.InitSuccess() || t.Reporter.ConnectionStatus() == reporter.ConnectionStatusDisconnect {
 		return nil, &NoopSpan{}, true
 	}
 	ctx := getTracingContext()
