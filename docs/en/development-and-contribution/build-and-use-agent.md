@@ -22,8 +22,8 @@ import _ "github.com/apache/skywalking-go"
 When building the project, you need to clone the project and build it.
 
 ```shell
+// git clone the same version(tag or commit ID) as your dependency version.
 git clone https://github.com/apache/skywalking-go.git
-// make sure same commit ID with go get
 cd skywalking-go && make build
 ```
 
