@@ -24,6 +24,7 @@ import (
 
 var tlsData interface{}
 var Tracing *Tracer
+var ReportConnectionStatus = reporter.ConnectionStatusConnected
 
 func init() {
 	SetGLS = func(i interface{}) {
@@ -43,6 +44,7 @@ func ResetTracingContext() {
 	Tracing = &Tracer{initFlag: 1, Sampler: NewConstSampler(true), Reporter: &StoreReporter{},
 		ServiceEntity: NewEntity("test", "test-instance")}
 	SetAsNewGoroutine()
+	ReportConnectionStatus = reporter.ConnectionStatusConnected
 }
 
 func SetAsNewGoroutine() {
@@ -72,6 +74,10 @@ func (r *StoreReporter) Boot(entity *reporter.Entity, cdsWatchers []reporter.Age
 
 func (r *StoreReporter) Send(spans []reporter.ReportedSpan) {
 	r.Spans = append(r.Spans, spans...)
+}
+
+func (r *StoreReporter) ConnectionStatus() reporter.ConnectionStatus {
+	return ReportConnectionStatus
 }
 
 func (r *StoreReporter) Close() {
