@@ -43,3 +43,5 @@ catalog:
           path: /en/development-and-contribution/write-plugin-testing
         - name: Running And Debugging
           path: /en/development-and-contribution/running-and-debugging
+        - name: Build and Use Agent from source codes
+          path: /en/development-and-contribution/build-and-use-agent
