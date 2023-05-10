@@ -10,20 +10,20 @@ Use `go get` to import the `skywalking-go` program.
 go get github.com/apache/skywalking-go
 ```
 
-Also, import the module to your main package: 
+Also, import the module to your `main` package: 
 
 ```go
 import _ "github.com/apache/skywalking-go"
 ```
 
-## Build the project
-When building the project, you need to download the Golang enhancement program first:
+## Download Agent
 
-```shell
-go install github.com/apache/skywalking-go/tools/go-agent
-```
+Download the Agent from the [official website](https://skywalking.apache.org/downloads/#GoAgent). 
 
-When using go build, add the following parameters:
+**NOTICE**: Please ensure that the version of the Agent you downloaded is consistent with the version installed via `go get` in the previous section, 
+to prevent errors such as missing package references during compilation.
+
+Next, add the following parameters in `go build`:
 
 ```shell
 -toolexec="/path/to/go-agent" -a
@@ -36,5 +36,5 @@ If you want to customize the configuration information for the current service, 
 [read more please refer the settings override documentation](../advanced-features/settings-override.md)):
 
 ```shell
--toolexec="/path/to/skywalking-enhance -config /path/to/config.yaml" -a
+-toolexec="/path/to/go-agent -config /path/to/config.yaml" -a
 ```
