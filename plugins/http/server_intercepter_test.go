@@ -15,9 +15,10 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package ginv2
+package http
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 	"time"
@@ -25,24 +26,16 @@ import (
 	"github.com/apache/skywalking-go/plugins/core"
 	"github.com/apache/skywalking-go/plugins/core/operator"
 
-	"github.com/gin-gonic/gin"
-
 	"github.com/stretchr/testify/assert"
 )
 
-func init() {
-	core.ResetTracingContext()
-}
-
-func TestInvoke(t *testing.T) {
+func TestServerInvoke(t *testing.T) {
 	defer core.ResetTracingContext()
-	interceptor := &HTTPInterceptor{}
+	interceptor := &ServerInterceptor{}
 	request, err := http.NewRequest("GET", "http://localhost/", http.NoBody)
 	assert.Nil(t, err, "new request error should be nil")
-	invocation := operator.NewInvocation(nil, &gin.Context{
-		Request: request,
-		Writer:  &testWriter{},
-	})
+	responseWriter := &testResponseWriter{}
+	invocation := operator.NewInvocation(nil, responseWriter, request)
 	err = interceptor.BeforeInvoke(invocation)
 	assert.Nil(t, err, "before invoke error should be nil")
 	assert.NotNil(t, invocation.GetContext(), "context should not be nil")
@@ -54,6 +47,9 @@ func TestInvoke(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 	spans := core.GetReportedSpans()
+	for _, s := range spans {
+		fmt.Printf("---%v", s)
+	}
 	assert.NotNil(t, spans, "spans should not be nil")
 	assert.Equal(t, 1, len(spans), "spans length should be 1")
 	assert.Equal(t, "GET:/", spans[0].OperationName(), "operation name should be GET:/")
@@ -61,10 +57,6 @@ func TestInvoke(t *testing.T) {
 	assert.Greater(t, spans[0].EndTime(), spans[0].StartTime(), "end time should be greater than start time")
 }
 
-type testWriter struct {
-	gin.ResponseWriter
-}
-
-func (i *testWriter) Status() int {
-	return 200
+type testResponseWriter struct {
+	http.ResponseWriter
 }

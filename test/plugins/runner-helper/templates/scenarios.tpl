@@ -32,7 +32,10 @@ fi
 project_name=$(echo "{{.Context.ScenarioName}}" |sed -e "s/\.//g" |awk '{print tolower($0)}')
 service_container_name="${project_name}${separator}service${separator}1"
 validator_container_name="${project_name}${separator}validator${separator}1"
+set +ex
 docker-compose -p "${project_name}" -f "{{.DockerComposeFilePath}}" up -d --build
+[[ $? -ne 0 ]] && docker logs ${service_container_name} > {{.Context.WorkSpaceDir}}/logs/service.log && exit 1
+set -ex
 
 sleep 3
 

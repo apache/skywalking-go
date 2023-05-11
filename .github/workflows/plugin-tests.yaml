@@ -57,6 +57,7 @@ jobs:
       matrix:
         case:
           - gin
+          - http
     steps:
       - uses: actions/checkout@v2
         with:

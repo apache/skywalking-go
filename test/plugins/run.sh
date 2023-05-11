@@ -119,7 +119,7 @@ while [ $index -lt $support_version_count ]; do
   go_version=$(yq e ".support-version[$index].go" $configuration)
   framework_count=$(yq e ".support-version[$index].framework | length" $configuration)
 
-  if [ -z "$go_version" ] || [ "$framework_count" -eq 0 ]; then
+  if [ -z "$go_version" ] || ([[ "$framework_name" != "go" ]] && [ "$framework_count" -eq 0 ]); then
     exitWithMessage "Missing go or framework in list entry $index."
   fi
 
@@ -140,6 +140,9 @@ fi
 
 yq e '.support-version[].go' $configuration | while read -r go_version; do
 frameworks=$(yq e ".support-version[] | select(.go == \"$go_version\") | .framework[]" $configuration)
+if [[ "$framework_name" == "go" ]]; then
+  frameworks=("native")
+fi
 for framework_version in $frameworks; do
   echo "ready to run test case: ${scenario_name} with go version: ${go_version} and framework version: ${framework_version}"
   case_name="go${go_version}-${framework_version}"
@@ -154,13 +157,17 @@ for framework_version in $frameworks; do
 
   # replace go version
   sed -i "s/^go [0-9]*\.[0-9]*/go ${go_version}/" go.mod
+  # append the module name
+  sed -i "/^module /s/$/\/${case_name}/" go.mod
 
   # ajust the plugin replace path
   sed -i -E '/^replace/ s#(\.\./)#\1../#' go.mod
 
   # replace framework version
-  go get "$framework_name@$framework_version"
-  go mod tidy
+  if [[ "$framework_version" != "native" ]]; then
+    go get "$framework_name@$framework_version"
+    go mod tidy
+  fi
 
   # run runner helper for prepare running docker-compose
   ${plugin_runner_helper} \

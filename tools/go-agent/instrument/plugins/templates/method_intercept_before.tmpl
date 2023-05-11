@@ -5,14 +5,25 @@ defer func() {
 		    "{{.InstrumentName}}", "{{.InterceptorDefineName}}", "{{.FuncID}}", err, tracing.DebugStack())
 	}
 }()
-invocation := &operator.Invocation{}
+invocation := &operator.realInvocation{}
 {{if .Recvs -}}
-invocation.CallerInstance = *recv_0	// for caller if exist
+invocation.callerInstance = *recv_0	// for caller if exist
 {{- end}}
-invocation.Args = make([]interface{}, {{len .Parameters}})
+invocation.args = make([]interface{}, {{len .Parameters}})
 {{- range $index, $value := .Parameters}}
-invocation.Args[{{$index}}] = *param_{{$index}}
+invocation.args[{{$index}}] = *param_{{$index}}
 {{- end}}
+invocation.changeArgCallback = func(index int, value interface{}) {
+    {{range $index, $value := .Parameters -}}
+    {{ if ne $index 0}} else {{end}}if index == {{$index}} {
+        res := value.({{$value.PackagedTypeName}})
+        *param_{{$index}} = res
+        invocation.args[{{$index}}] = res
+        return
+    }
+    {{- end}}
+    panic("cannot found the argument index")
+}
 
 // real invoke
 if err := {{.InterceptorVarName}}.BeforeInvoke(invocation); err != nil {
@@ -21,13 +32,13 @@ if err := {{.InterceptorVarName}}.BeforeInvoke(invocation); err != nil {
     		    "{{.InstrumentName}}", "{{.InterceptorDefineName}}", "{{.FuncID}}", err)
 	return {{ range $index, $value := .Results -}}
 {{$value.DefaultValueAsString}},
-{{- end}}invocation, true
-}
-if (invocation.Continue) {
-	return {{ range $index, $value := .Results -}}
-    (invocation.Return[{{$index}}]).({{$value.PackagedTypeName}}),
 {{- end}}invocation, false
+}
+if (invocation.isContinue) {
+	return {{ range $index, $value := .Results -}}
+    (invocation.returnValues[{{$index}}]).({{$value.PackagedTypeName}}),
+{{- end}}invocation, true
 }
 return {{ range $index, $value := .Results -}}
 {{- if ne $index 0}}, {{end}}{{$value.DefaultValueAsString }}
-{{- end}}{{if .Results}}, {{- end}}invocation, true
+{{- end}}{{if .Results}}, {{- end}}invocation, false

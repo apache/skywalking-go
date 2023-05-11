@@ -246,7 +246,7 @@ func (i *Instrument) copyOperatorsFS(context *rewrite.Context, baseDir, packageN
 		}
 
 		for _, entry := range entries {
-			if strings.HasSuffix(entry.Name(), "_test.go") {
+			if strings.HasSuffix(entry.Name(), "_test.go") || strings.HasSuffix(entry.Name(), "_test_base.go") {
 				continue
 			}
 			file, err1 := fs.ReadFile(core.FS, filepath.Join(dir, entry.Name()))

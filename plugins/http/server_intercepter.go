@@ -25,36 +25,45 @@ import (
 	"github.com/apache/skywalking-go/plugins/core/tracing"
 )
 
-type Interceptor struct {
+type ServerInterceptor struct {
 }
 
-func (h *Interceptor) BeforeInvoke(invocation *operator.Invocation) error {
-	request := invocation.Args[0].(*http.Request)
-	s, err := tracing.CreateExitSpan(fmt.Sprintf("%s:%s", request.Method, request.URL.Path), request.Host, func(headerKey, headerValue string) error {
-		request.Header.Add(headerKey, headerValue)
-		return nil
+func (h *ServerInterceptor) BeforeInvoke(invocation operator.Invocation) error {
+	request := invocation.Args()[1].(*http.Request)
+	s, err := tracing.CreateEntrySpan(fmt.Sprintf("%s:%s", request.Method, request.URL.Path), func(headerKey string) (string, error) {
+		return request.Header.Get(headerKey), nil
 	}, tracing.WithLayer(tracing.SpanLayerHTTP),
 		tracing.WithTag(tracing.TagHTTPMethod, request.Method),
 		tracing.WithTag(tracing.TagURL, request.Host+request.URL.Path),
-		tracing.WithComponent(5005))
+		tracing.WithComponent(5004))
 	if err != nil {
 		return err
 	}
-	invocation.Context = s
+	writer := invocation.Args()[0].(http.ResponseWriter)
+	invocation.ChangeArg(0, &writerWrapper{ResponseWriter: writer, statusCode: http.StatusOK})
+	invocation.SetContext(s)
 	return nil
 }
 
-func (h *Interceptor) AfterInvoke(invocation *operator.Invocation, result ...interface{}) error {
-	if invocation.Context == nil {
+func (h *ServerInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {
+	if invocation.GetContext() == nil {
 		return nil
 	}
-	span := invocation.Context.(tracing.Span)
-	if resp, ok := result[0].(*http.Response); ok && resp != nil {
-		span.Tag(tracing.TagStatusCode, fmt.Sprintf("%d", resp.StatusCode))
-	}
-	if err, ok := result[1].(error); ok && err != nil {
-		span.Error(err.Error())
+	span := invocation.GetContext().(tracing.Span)
+	if wrapped, ok := invocation.Args()[0].(*writerWrapper); ok {
+		span.Tag(tracing.TagStatusCode, fmt.Sprintf("%d", wrapped.statusCode))
 	}
 	span.End()
 	return nil
+}
+
+type writerWrapper struct {
+	http.ResponseWriter
+	statusCode int
+}
+
+func (w *writerWrapper) WriteHeader(statusCode int) {
+	// cache the status code
+	w.statusCode = statusCode
+	w.ResponseWriter.WriteHeader(statusCode)
 }

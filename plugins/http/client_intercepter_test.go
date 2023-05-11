@@ -32,16 +32,15 @@ func init() {
 	core.ResetTracingContext()
 }
 
-func TestInvoke(t *testing.T) {
-	interceptor := &Interceptor{}
+func TestClientInvoke(t *testing.T) {
+	defer core.ResetTracingContext()
+	interceptor := &ClientInterceptor{}
 	request, err := http.NewRequest("GET", "http://localhost/", http.NoBody)
 	assert.Nil(t, err, "new request error should be nil")
-	invocation := &operator.Invocation{
-		Args: []interface{}{request},
-	}
+	invocation := operator.NewInvocation(nil, request)
 	err = interceptor.BeforeInvoke(invocation)
 	assert.Nil(t, err, "before invoke error should be nil")
-	assert.NotNil(t, invocation.Context, "context should not be nil")
+	assert.NotNil(t, invocation.GetContext(), "context should not be nil")
 
 	time.Sleep(100 * time.Millisecond)
 

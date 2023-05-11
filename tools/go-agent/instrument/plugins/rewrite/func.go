@@ -24,6 +24,8 @@ import (
 
 	"github.com/dave/dst"
 	"github.com/dave/dst/dstutil"
+
+	"github.com/apache/skywalking-go/tools/go-agent/tools"
 )
 
 var (
@@ -93,8 +95,8 @@ func (c *Context) enhanceFuncStmt(stmt dst.Stmt) {
 				}
 			}
 		case *dst.BinaryExpr:
-			c.rewriteVarIfExistingMapping(n.X)
-			c.rewriteVarIfExistingMapping(n.Y)
+			c.rewriteVarIfExistingMapping(n.X, n)
+			c.rewriteVarIfExistingMapping(n.Y, n)
 		case *dst.CallExpr:
 			c.enhanceTypeNameWhenRewrite(n.Fun, n, -1)
 			for inx, arg := range n.Args {
@@ -119,6 +121,9 @@ func (c *Context) enhanceFuncStmt(stmt dst.Stmt) {
 				for _, stmt := range n.Body.List {
 					c.enhanceFuncStmt(stmt)
 				}
+			}
+			if n.Else != nil {
+				c.enhanceFuncStmt(n.Else)
 			}
 		case *dst.RangeStmt:
 			c.enhanceTypeNameWhenRewrite(n.X, n, -1)
@@ -152,7 +157,7 @@ func (c *Context) enhanceFuncStmt(stmt dst.Stmt) {
 	})
 }
 
-func (c *Context) rewriteVarIfExistingMapping(exp dst.Expr) bool {
+func (c *Context) rewriteVarIfExistingMapping(exp, parent dst.Expr) bool {
 	switch n := exp.(type) {
 	case *dst.Ident:
 		if v := c.rewriteMapping.findVarMappingName(n.Name); v != "" {
@@ -160,24 +165,30 @@ func (c *Context) rewriteVarIfExistingMapping(exp dst.Expr) bool {
 			return true
 		}
 	case *dst.SelectorExpr:
-		return c.rewriteVarIfExistingMapping(n.X)
+		if pkg, ok := n.X.(*dst.Ident); ok {
+			if imp := c.packageImport[pkg.Name]; imp != nil {
+				tools.RemovePackageRef(parent, n)
+				return true
+			}
+		}
+		return c.rewriteVarIfExistingMapping(n.X, n)
 	case *dst.CompositeLit:
 		c.enhanceTypeNameWhenRewrite(n.Type, n, -1)
 		for _, elt := range n.Elts {
 			// for struct data, ex: "&xxx{k: v}"
 			if kv, ok := elt.(*dst.KeyValueExpr); ok {
-				c.rewriteVarIfExistingMapping(kv.Value)
+				c.rewriteVarIfExistingMapping(kv.Value, elt)
 			}
 		}
 	case *dst.UnaryExpr:
 		c.enhanceTypeNameWhenRewrite(n.X, n, -1)
 	case *dst.IndexExpr:
-		c.rewriteVarIfExistingMapping(n.Index)
-		c.rewriteVarIfExistingMapping(n.X)
+		c.rewriteVarIfExistingMapping(n.Index, n)
+		c.rewriteVarIfExistingMapping(n.X, n)
 	case *dst.CallExpr:
 		c.enhanceTypeNameWhenRewrite(n.Fun, n, -1)
 		for _, arg := range n.Args {
-			c.rewriteVarIfExistingMapping(arg)
+			c.rewriteVarIfExistingMapping(arg, n)
 		}
 	case *dst.StarExpr:
 		c.enhanceTypeNameWhenRewrite(n.X, n, -1)
