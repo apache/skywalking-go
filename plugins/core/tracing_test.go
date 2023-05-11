@@ -25,6 +25,7 @@ import (
 
 	agentv3 "skywalking.apache.org/repo/goapi/collect/language/agent/v3"
 
+	"github.com/apache/skywalking-go/plugins/core/reporter"
 	"github.com/apache/skywalking-go/plugins/core/tracing"
 )
 
@@ -222,6 +223,20 @@ func TestSpanContextReading(t *testing.T) {
 	assert.Equal(t, parentService, refCtx.GetParentService(), "ref service not correct")
 	assert.Equal(t, parentServiceInstance, refCtx.GetParentServiceInstance(), "ref service instance not correct")
 	assert.Equal(t, parentEndpoint, refCtx.GetParentEndpoint(), "ref endpoint not correct")
+}
+
+func TestReporterDisconnect(t *testing.T) {
+	defer ResetTracingContext()
+	ReportConnectionStatus = reporter.ConnectionStatusDisconnect
+	s, err := tracing.CreateEntrySpan("/entry", func(key string) (string, error) {
+		return "", nil
+	})
+	assert.NoError(t, err)
+	assert.NotNil(t, s, "span should not be nil")
+	s.End()
+	time.Sleep(time.Millisecond * 50)
+	spans := GetReportedSpans()
+	assert.Equal(t, 0, len(spans), "should no span been collected")
 }
 
 func TestSpanOperation(t *testing.T) {
