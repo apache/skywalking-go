@@ -18,9 +18,20 @@
 
 set -ex
 
+compose_version=$(docker-compose version --short)
+
+if [[ $compose_version =~ ^(v)?1 ]]; then
+    separator="_"
+elif [[ $compose_version =~ ^(v)?2 ]]; then
+    separator="-"
+else
+    echo "Unsupported Docker Compose version: $compose_version"
+    exit 1
+fi
+
 project_name=$(echo "{{.Context.ScenarioName}}" |sed -e "s/\.//g" |awk '{print tolower($0)}')
-service_container_name="${project_name}_service_1"
-validator_container_name="${project_name}_validator_1"
+service_container_name="${project_name}${separator}service${separator}1"
+validator_container_name="${project_name}${separator}validator${separator}1"
 docker-compose -p "${project_name}" -f "{{.DockerComposeFilePath}}" up -d --build
 
 sleep 3
