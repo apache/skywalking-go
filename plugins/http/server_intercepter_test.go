@@ -18,7 +18,6 @@
 package http
 
 import (
-	"fmt"
 	"net/http"
 	"testing"
 	"time"
@@ -47,9 +46,6 @@ func TestServerInvoke(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 	spans := core.GetReportedSpans()
-	for _, s := range spans {
-		fmt.Printf("---%v", s)
-	}
 	assert.NotNil(t, spans, "spans should not be nil")
 	assert.Equal(t, 1, len(spans), "spans length should be 1")
 	assert.Equal(t, "GET:/", spans[0].OperationName(), "operation name should be GET:/")
