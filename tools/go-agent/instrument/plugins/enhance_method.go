@@ -141,7 +141,7 @@ func (m *MethodEnhance) BuildForDelegator() []dst.Decl {
 	}
 	preFunc.Type.Results.List = append(preFunc.Type.Results.List, &dst.Field{
 		Names: []*dst.Ident{dst.NewIdent("inv")},
-		Type:  &dst.SelectorExpr{X: dst.NewIdent("operator"), Sel: dst.NewIdent("Invocation")},
+		Type:  &dst.StarExpr{X: &dst.SelectorExpr{X: dst.NewIdent("operator"), Sel: dst.NewIdent("realInvocation")}},
 	}, &dst.Field{
 		Names: []*dst.Ident{dst.NewIdent("skip")},
 		Type:  dst.NewIdent("bool"),
@@ -165,7 +165,7 @@ func (m *MethodEnhance) BuildForDelegator() []dst.Decl {
 	}
 	postFunc.Type.Params.List = append(postFunc.Type.Params.List, &dst.Field{
 		Names: []*dst.Ident{dst.NewIdent("invocation")},
-		Type:  &dst.SelectorExpr{X: dst.NewIdent("operator"), Sel: dst.NewIdent("Invocation")},
+		Type:  &dst.StarExpr{X: &dst.SelectorExpr{X: dst.NewIdent("operator"), Sel: dst.NewIdent("realInvocation")}},
 	})
 	for inx, f := range m.Results {
 		postFunc.Type.Params.List = append(postFunc.Type.Params.List, &dst.Field{
