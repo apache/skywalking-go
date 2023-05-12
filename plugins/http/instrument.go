@@ -50,13 +50,13 @@ func (i *Instrument) Points() []*instrument.Point {
 	return []*instrument.Point{
 		{
 			PackagePath: "",
-			At: instrument.NewMethodEnhance("Transport", "RoundTrip",
+			At: instrument.NewMethodEnhance("*Transport", "RoundTrip",
 				instrument.WithArgsCount(1), instrument.WithArgType(0, "*Request")),
 			Interceptor: "ClientInterceptor",
 		},
 		{
 			PackagePath: "",
-			At: instrument.NewMethodEnhance("ServeMux", "ServeHTTP",
+			At: instrument.NewMethodEnhance("*ServeMux", "ServeHTTP",
 				instrument.WithArgsCount(2), instrument.WithArgType(0, "ResponseWriter"),
 				instrument.WithArgType(1, "*Request")),
 			Interceptor: "ServerInterceptor",

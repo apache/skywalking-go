@@ -46,7 +46,7 @@ deps: tools
 	$(GO_GET) -v -t -d ./...
 
 .PHONY: build
-build: deps linux darwin windows
+build: linux darwin windows
 
 .PHONY: $(PLATFORMS)
 $(PLATFORMS):

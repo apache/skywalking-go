@@ -108,7 +108,8 @@ func (i *Instrument) addAutomaticBindFunc(path string, curFile dst.Node, fun *ds
 	funcID := tools.BuildFuncIdentity(i.compileOpts.Package, fun)
 	var generateFuncName = fmt.Sprintf("%sautomaticLoggerBind%s", rewrite.GenerateMethodPrefix, funcID)
 	var replaceName = fmt.Sprintf("//goagent:bind_%s\n", funcID)
-	importAnalyzer := tools.CreateImportAnalyzer(curFile)
+	importAnalyzer := tools.CreateImportAnalyzer()
+	importAnalyzer.AnalyzeFileImports(path, curFile)
 	funcInvoker := tools.ExecuteTemplate(string(automaticBind), struct {
 		AutomaticBindFuncName string
 		Recvs                 []*tools.ParameterInfo
@@ -120,9 +121,9 @@ func (i *Instrument) addAutomaticBindFunc(path string, curFile dst.Node, fun *ds
 		Parameters:            tools.EnhanceParameterNames(fun.Type.Params, false),
 		Results:               tools.EnhanceParameterNames(fun.Type.Results, true),
 	})
-	importAnalyzer.AnalyzeNeedsImports(fun.Recv)
-	importAnalyzer.AnalyzeNeedsImports(fun.Type.Params)
-	importAnalyzer.AnalyzeNeedsImports(fun.Type.Results)
+	importAnalyzer.AnalyzeNeedsImports(path, fun.Recv)
+	importAnalyzer.AnalyzeNeedsImports(path, fun.Type.Params)
+	importAnalyzer.AnalyzeNeedsImports(path, fun.Type.Results)
 	i.automaticFunc = append(i.automaticFunc, &AutomaticFunctionInfo{
 		Path:           path,
 		Func:           fun,

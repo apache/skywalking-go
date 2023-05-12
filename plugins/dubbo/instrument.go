@@ -15,11 +15,10 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package ginv2
+package dubbo
 
 import (
 	"embed"
-	"strings"
 
 	"github.com/apache/skywalking-go/plugins/core/instrument"
 )
@@ -36,24 +35,42 @@ func NewInstrument() *Instrument {
 }
 
 func (i *Instrument) Name() string {
-	return "ginv2"
+	return "dubbo"
 }
 
 func (i *Instrument) BasePackage() string {
-	return "github.com/gin-gonic/gin"
+	return "dubbo.apache.org/dubbo-go/v3"
 }
 
 func (i *Instrument) VersionChecker(version string) bool {
-	return strings.HasPrefix(version, "v1.")
+	return true
 }
 
 func (i *Instrument) Points() []*instrument.Point {
 	return []*instrument.Point{
 		{
-			PackagePath: "",
-			At: instrument.NewMethodEnhance("*Engine", "handleHTTPRequest",
-				instrument.WithArgsCount(1), instrument.WithArgType(0, "*Context")),
-			Interceptor: "HTTPInterceptor",
+			PackagePath: "filter/graceful_shutdown",
+			At: instrument.NewMethodEnhance("*consumerGracefulShutdownFilter", "Invoke",
+				instrument.WithArgsCount(3),
+				instrument.WithArgType(0, "context.Context"),
+				instrument.WithArgType(1, "protocol.Invoker"),
+				instrument.WithArgType(2, "protocol.Invocation"),
+				instrument.WithResultCount(1),
+				instrument.WithResultType(0, "protocol.Result"),
+			),
+			Interceptor: "ClientInterceptor",
+		},
+		{
+			PackagePath: "filter/graceful_shutdown",
+			At: instrument.NewMethodEnhance("*providerGracefulShutdownFilter", "Invoke",
+				instrument.WithArgsCount(3),
+				instrument.WithArgType(0, "context.Context"),
+				instrument.WithArgType(1, "protocol.Invoker"),
+				instrument.WithArgType(2, "protocol.Invocation"),
+				instrument.WithResultCount(1),
+				instrument.WithResultType(0, "protocol.Result"),
+			),
+			Interceptor: "ServerInterceptor",
 		},
 	}
 }

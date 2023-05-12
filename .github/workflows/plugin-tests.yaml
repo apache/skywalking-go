@@ -58,6 +58,7 @@ jobs:
         case:
           - gin
           - http
+          - dubbo
     steps:
       - uses: actions/checkout@v2
         with:

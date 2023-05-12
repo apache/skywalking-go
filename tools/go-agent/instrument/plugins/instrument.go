@@ -51,10 +51,14 @@ type Instrument struct {
 
 	enhancements    []Enhance
 	extraFilesWrote bool
+
+	importAnalyzer *tools.ImportAnalyzer
 }
 
 func NewInstrument() *Instrument {
-	return &Instrument{}
+	return &Instrument{
+		importAnalyzer: tools.CreateImportAnalyzer(),
+	}
 }
 
 type Enhance interface {
@@ -108,10 +112,11 @@ func (i *Instrument) FilterAndEdit(path string, curFile *dst.File, cursor *dstut
 			if !(i.verifyPackageIsMatch(path, filter) && i.validateMethodInsMatch(filter.At, n, allFiles)) {
 				continue
 			}
+			i.importAnalyzer.AnalyzeFileImports(path, curFile)
 			i.enhanceMethod(i.realInst, filter, n, path)
 			var receiver string
 			if n.Recv != nil && len(n.Recv.List) > 0 {
-				receiver = i.buildReceiverName(n.Recv.List[0].Type)
+				receiver = tools.GenerateTypeNameByExp(n.Recv.List[0].Type)
 			}
 			tools.LogWithMethodEnhance(i.compileOpts.Package, receiver, n.Name.Name, "adding enhanced method")
 			return true
@@ -127,7 +132,7 @@ func (i *Instrument) enhanceStruct(_ instrument.Instrument, _ *instrument.Point,
 }
 
 func (i *Instrument) enhanceMethod(inst instrument.Instrument, matcher *instrument.Point, funcDecl *dst.FuncDecl, path string) {
-	enhance := NewMethodEnhance(inst, matcher, funcDecl, path)
+	enhance := NewMethodEnhance(inst, matcher, funcDecl, path, i.importAnalyzer)
 	enhance.BuildForInvoker()
 	i.enhancements = append(i.enhancements, enhance)
 }
@@ -194,6 +199,8 @@ func (i *Instrument) copyFrameworkFS(context *rewrite.Context, compilePkgFullPat
 	subPkgPath := strings.TrimPrefix(compilePkgFullPath, i.realInst.BasePackage())
 	if subPkgPath == "" {
 		subPkgPath = "."
+	} else {
+		subPkgPath = subPkgPath[1:]
 	}
 
 	var debugBaseDir string
@@ -219,6 +226,13 @@ func (i *Instrument) copyFrameworkFS(context *rewrite.Context, compilePkgFullPat
 		}
 		// ignore nocopy files
 		if bytes.Contains(readFile, []byte("//skywalking:nocopy")) {
+			continue
+		}
+		// if the file contains native structures, then added for ignore rewrite
+		if bytes.Contains(readFile, []byte("//skywalking:native")) {
+			if e := context.IncludeNativeFiles(string(readFile)); e != nil {
+				return nil, e
+			}
 			continue
 		}
 
@@ -355,7 +369,7 @@ func (i *Instrument) validateMethodInsMatch(matcher *instrument.EnhanceMatcher, 
 		if node.Recv == nil || len(node.Recv.List) == 0 {
 			return false
 		}
-		var name = i.buildReceiverName(node.Recv.List[0].Type)
+		var name = tools.GenerateTypeNameByExp(node.Recv.List[0].Type)
 		return name == matcher.Receiver
 	}
 	for _, filter := range matcher.MethodFilters {
@@ -364,24 +378,6 @@ func (i *Instrument) validateMethodInsMatch(matcher *instrument.EnhanceMatcher, 
 		}
 	}
 	return true
-}
-
-func (i *Instrument) buildReceiverName(receiver dst.Expr) string {
-	var data dst.Expr
-	switch t := receiver.(type) {
-	case *dst.StarExpr:
-		data = t.X
-	case *dst.TypeAssertExpr:
-		data = t.X
-	default:
-		return ""
-	}
-
-	id, ok := data.(*dst.Ident)
-	if !ok {
-		return ""
-	}
-	return id.Name
 }
 
 func (i *Instrument) tryToFindThePluginVersion(opts *api.CompileOptions, ins instrument.Instrument) (string, error) {

@@ -19,10 +19,13 @@ package rewrite
 
 import (
 	"fmt"
+	"go/parser"
 	"strconv"
 	"strings"
 
 	"github.com/dave/dst"
+	"github.com/dave/dst/decorator"
+	"github.com/dave/dst/dstutil"
 
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
@@ -64,6 +67,23 @@ type rewriteImportInfo struct {
 	pkgName     string
 	isAgentCore bool
 	ctx         *Context
+}
+
+func (c *Context) IncludeNativeFiles(content string) error {
+	parseFile, err := decorator.ParseFile(nil, "native.go", content, parser.ParseComments)
+	if err != nil {
+		return err
+	}
+
+	dstutil.Apply(parseFile, func(cursor *dstutil.Cursor) bool {
+		if tp, ok := cursor.Node().(*dst.TypeSpec); ok {
+			c.rewriteMapping.addTypeMapping(tp.Name.Name, tp.Name.Name)
+		}
+		return true
+	}, func(cursor *dstutil.Cursor) bool {
+		return true
+	})
+	return nil
 }
 
 func (c *Context) enhanceVarNameWhenRewrite(fieldType dst.Expr) (oldName, replacedName string) {

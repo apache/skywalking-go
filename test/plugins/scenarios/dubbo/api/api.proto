@@ -15,24 +15,28 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package plugins
+// EDIT IT, change to your package, service and message
+syntax = "proto3";
+package api;
 
-import (
-	"github.com/apache/skywalking-go/plugins/core/instrument"
-	"github.com/apache/skywalking-go/plugins/dubbo"
-	"github.com/apache/skywalking-go/plugins/ginv2"
-	"github.com/apache/skywalking-go/plugins/http"
-)
+option go_package = "./;api";
 
-var instruments = make([]instrument.Instrument, 0)
-
-func init() {
-	// register the plugins instrument
-	registerFramework(ginv2.NewInstrument())
-	registerFramework(http.NewInstrument())
-	registerFramework(dubbo.NewInstrument())
+// The greeting service definition.
+service Greeter {
+  // Sends a greeting
+  rpc SayHello (HelloRequest) returns (User) {}
+  // Sends a greeting via stream
+  rpc SayHelloStream (stream HelloRequest) returns (stream User) {}
 }
 
-func registerFramework(ins instrument.Instrument) {
-	instruments = append(instruments, ins)
+// The request message containing the user's name.
+message HelloRequest {
+  string name = 1;
+}
+
+// The response message containing the greetings
+message User {
+  string name = 1;
+  string id = 2;
+  int32 age = 3;
 }
