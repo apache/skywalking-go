@@ -15,3 +15,9 @@ if err := {{.InterceptorVarName}}.AfterInvoke(invocation{{ range $index, $value 
 	log.Warnf("execute interceptor after invoke error, instrument name: %s, interceptor name: %s, function ID: %s, error: %v",
         "{{.InstrumentName}}", "{{.InterceptorDefineName}}", "{{.FuncID}}", err)
 }
+
+if (invocation.isContinue) {
+	{{ range $index, $value := .Results -}}
+    *ret_{{$index}} = (invocation.returnValues[{{$index}}]).({{$value.PackagedTypeName}})
+    {{ end -}}
+}

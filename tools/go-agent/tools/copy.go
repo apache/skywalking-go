@@ -39,7 +39,7 @@ func CopyGoFiles(fromFS fs.ReadDirFS, fromDir, targetDir string,
 		if !strings.HasSuffix(f.Name(), ".go") {
 			continue
 		}
-		if strings.HasSuffix(f.Name(), "_test.go") {
+		if strings.HasSuffix(f.Name(), "_test.go") || strings.HasSuffix(f.Name(), "_test_base.go") {
 			continue
 		}
 

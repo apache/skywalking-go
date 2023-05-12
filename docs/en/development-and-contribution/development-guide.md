@@ -172,29 +172,33 @@ The interceptor definition is as follows, you need to create a new structure and
 ```go
 type Interceptor interface {
     // BeforeInvoke would be called before the target method invocation.
-    BeforeInvoke(invocation *Invocation) error
+    BeforeInvoke(invocation Invocation) error
     // AfterInvoke would be called after the target method invocation.
-    AfterInvoke(invocation *Invocation, result ...interface{}) error
+    AfterInvoke(invocation Invocation, result ...interface{}) error
 }
 ```
 
-Within the interface, you can see the `Invocation` struct, which defines the context of an interception. The specific definition is as follows:
+Within the interface, you can see the `Invocation` interface, which defines the context of an interception. The specific definition is as follows:
 
 ```go
-type Invocation struct {
-	// CallerInstance is the instance of the caller, nil if the method is static method.
-	CallerInstance interface{}
-	// Args is the arguments data of the method, please cast to the specific type to get more inforamtion.
-	Args           []interface{}
+type Invocation interface {
+    // CallerInstance is the instance of the caller, nil if the method is static method.
+    CallerInstance() interface{}
+    // Args is get the arguments of the method, please cast to the specific type to get more information.
+    Args() []interface{}
 
-	// Continue is the flag to control the method invocation, if it is false, the target method would not be invoked.
-	Continue bool
-	// Return is the return data of the method, the result must be provided when continue the target method invoke.
-	// and the result size must be the same as the method return value size.
-	Return   []interface{}
+    // ChangeArg is change the argument value of the method
+    ChangeArg(int, interface{})
 
-	// Context is the customized context of the method invocation, it should be propagated the tracing span.
-	Context interface{}
+    // IsContinue is the flag to control the method invocation, if it is true, the target method would not be invoked.
+    IsContinue() bool
+    // DefineReturnValues are defined the return value of the method, and continue the method invoked
+    DefineReturnValues(...interface{})
+
+    // SetContext is the customized context of the method invocation, it should be propagated the tracing span.
+    SetContext(interface{})
+    // GetContext is get the customized context of the method invocation
+    GetContext() interface{}
 }
 ```
 

@@ -16,4 +16,5 @@ use (
 
 	// define the plugin test scenarios
 	./test/plugins/scenarios/gin
+	./test/plugins/scenarios/http
 )

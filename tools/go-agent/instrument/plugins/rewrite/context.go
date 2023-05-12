@@ -83,7 +83,7 @@ func (c *Context) enhanceVarNameWhenRewrite(fieldType dst.Expr) (oldName, replac
 	case *dst.SelectorExpr:
 		return c.enhanceVarNameWhenRewrite(t.X)
 	case *dst.IndexExpr:
-		c.rewriteVarIfExistingMapping(t.Index)
+		c.rewriteVarIfExistingMapping(t.Index, t)
 		return c.enhanceVarNameWhenRewrite(t.X)
 	}
 	return "", ""
@@ -125,7 +125,7 @@ func (c *Context) enhanceTypeNameWhenRewrite(fieldType dst.Expr, parent dst.Node
 			if pkgRefName.Name == refImportName {
 				switch p := parent.(type) {
 				case *dst.CallExpr:
-					if c.rewriteVarIfExistingMapping(t.Sel) {
+					if c.rewriteVarIfExistingMapping(t.Sel, p) {
 						if argIndex >= 0 {
 							p.Args[argIndex] = t.Sel
 						} else {
@@ -163,7 +163,7 @@ func (c *Context) enhanceTypeNameWhenRewrite(fieldType dst.Expr, parent dst.Node
 		for _, elt := range t.Elts {
 			// for struct data, ex: "&xxx{k: v}"
 			if kv, ok := elt.(*dst.KeyValueExpr); ok {
-				c.rewriteVarIfExistingMapping(kv.Value)
+				c.rewriteVarIfExistingMapping(kv.Value, elt)
 			}
 		}
 		return c.enhanceTypeNameWhenRewrite(t.Type, t, -1)
@@ -186,7 +186,7 @@ func (c *Context) enhanceTypeNameWhenRewrite(fieldType dst.Expr, parent dst.Node
 		c.enhanceFuncParameter(t.Params)
 		c.enhanceFuncParameter(t.Results)
 	case *dst.IndexExpr:
-		c.rewriteVarIfExistingMapping(t.Index)
+		c.rewriteVarIfExistingMapping(t.Index, t)
 		return c.enhanceTypeNameWhenRewrite(t.X, t, -1)
 	case *dst.TypeAssertExpr:
 		c.enhanceTypeNameWhenRewrite(t.Type, t, -1)
@@ -200,7 +200,7 @@ func (c *Context) enhanceTypeNameWhenRewrite(fieldType dst.Expr, parent dst.Node
 		c.enhanceTypeNameWhenRewrite(t.X, t, -1)
 		c.enhanceTypeNameWhenRewrite(t.Y, t, -1)
 	case *dst.ParenExpr:
-		c.rewriteVarIfExistingMapping(t.X)
+		c.rewriteVarIfExistingMapping(t.X, t)
 	case *dst.MapType:
 		c.enhanceTypeNameWhenRewrite(t.Key, t, -1)
 		c.enhanceTypeNameWhenRewrite(t.Value, t, -1)
@@ -211,7 +211,7 @@ func (c *Context) enhanceTypeNameWhenRewrite(fieldType dst.Expr, parent dst.Node
 
 func (c *Context) typeIsBasicTypeValueOrEnhanceName(name string) bool {
 	if strings.HasPrefix(name, OperatePrefix) || strings.HasPrefix(name, GenerateMethodPrefix) || tools.IsBasicDataType(name) ||
-		name == "nil" || name == "true" || name == "false" || name == "append" {
+		name == "nil" || name == "true" || name == "false" || name == "append" || name == "panic" {
 		return true
 	}
 	if _, valErr := strconv.ParseFloat(name, 64); valErr == nil {

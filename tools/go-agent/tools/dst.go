@@ -75,7 +75,7 @@ func DeletePackageImports(file dst.Node, imports ...string) {
 				return true
 			}
 			if _, ok := deletedPackages[pkgRefName.Name]; ok {
-				removePackageRef(cursor.Parent(), n)
+				RemovePackageRef(cursor.Parent(), n)
 			}
 		}
 		return true
@@ -88,7 +88,7 @@ func DeletePackageImports(file dst.Node, imports ...string) {
 	}
 }
 
-func removePackageRef(parent dst.Node, current *dst.SelectorExpr) {
+func RemovePackageRef(parent dst.Node, current *dst.SelectorExpr) {
 	switch p := parent.(type) {
 	case *dst.Field:
 		p.Type = dst.NewIdent(current.Sel.Name)

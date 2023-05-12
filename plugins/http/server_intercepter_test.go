@@ -28,26 +28,20 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func init() {
-	core.ResetTracingContext()
-}
-
-func TestInvoke(t *testing.T) {
-	interceptor := &Interceptor{}
+func TestServerInvoke(t *testing.T) {
+	defer core.ResetTracingContext()
+	interceptor := &ServerInterceptor{}
 	request, err := http.NewRequest("GET", "http://localhost/", http.NoBody)
 	assert.Nil(t, err, "new request error should be nil")
-	invocation := &operator.Invocation{
-		Args: []interface{}{request},
-	}
+	responseWriter := &testResponseWriter{}
+	invocation := operator.NewInvocation(nil, responseWriter, request)
 	err = interceptor.BeforeInvoke(invocation)
 	assert.Nil(t, err, "before invoke error should be nil")
-	assert.NotNil(t, invocation.Context, "context should not be nil")
+	assert.NotNil(t, invocation.GetContext(), "context should not be nil")
 
 	time.Sleep(100 * time.Millisecond)
 
-	err = interceptor.AfterInvoke(invocation, &http.Response{
-		StatusCode: 200,
-	}, nil)
+	err = interceptor.AfterInvoke(invocation)
 	assert.Nil(t, err, "after invoke error should be nil")
 
 	time.Sleep(100 * time.Millisecond)
@@ -57,4 +51,8 @@ func TestInvoke(t *testing.T) {
 	assert.Equal(t, "GET:/", spans[0].OperationName(), "operation name should be GET:/")
 	assert.Nil(t, spans[0].Refs(), "refs should be nil")
 	assert.Greater(t, spans[0].EndTime(), spans[0].StartTime(), "end time should be greater than start time")
+}
+
+type testResponseWriter struct {
+	http.ResponseWriter
 }
