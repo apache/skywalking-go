@@ -192,7 +192,7 @@ type Invocation interface {
 
     // IsContinue is the flag to control the method invocation, if it is true, the target method would not be invoked.
     IsContinue() bool
-    // DefineReturnValues is defined the return value of method, and continue the method invoked
+    // DefineReturnValues are defined the return value of the method, and continue the method invoked
     DefineReturnValues(...interface{})
 
     // SetContext is the customized context of the method invocation, it should be propagated the tracing span.
