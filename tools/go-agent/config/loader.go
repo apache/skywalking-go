@@ -41,6 +41,7 @@ type Config struct {
 	Agent    Agent    `yaml:"agent"`
 	Reporter Reporter `yaml:"reporter"`
 	Log      Log      `yaml:"log"`
+	Plugin   Plugin   `yaml:"plugin"`
 }
 
 type Agent struct {
@@ -66,6 +67,10 @@ type LogTracing struct {
 type GRPCReporter struct {
 	BackendService StringValue `yaml:"backend_service"`
 	MaxSendQueue   StringValue `yaml:"max_send_queue"`
+}
+
+type Plugin struct {
+	Excludes StringValue `yaml:"excludes"`
 }
 
 func LoadConfig(path string) error {
@@ -178,6 +183,19 @@ func (s *StringValue) ToGoBoolValue() string {
 
 func (s *StringValue) ToGoBoolFunction() string {
 	return fmt.Sprintf("func() bool { return %s }", s.ToGoBoolValue())
+}
+
+func (s *StringValue) GetListStringResult() []string {
+	val := s.Default
+	if s.EnvKey != "" {
+		if envValue := os.Getenv(s.EnvKey); envValue != "" {
+			val = envValue
+		}
+	}
+	if val == "" {
+		return nil
+	}
+	return strings.Split(val, ",")
 }
 
 func (s *StringValue) overwriteFrom(other StringValue) {

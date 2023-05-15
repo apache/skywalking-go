@@ -28,6 +28,7 @@ import (
 
 	"github.com/apache/skywalking-go/plugins/core"
 	"github.com/apache/skywalking-go/plugins/core/instrument"
+	"github.com/apache/skywalking-go/tools/go-agent/config"
 	"github.com/apache/skywalking-go/tools/go-agent/instrument/api"
 	"github.com/apache/skywalking-go/tools/go-agent/instrument/consts"
 	"github.com/apache/skywalking-go/tools/go-agent/instrument/plugins/rewrite"
@@ -67,7 +68,17 @@ type Enhance interface {
 }
 
 func (i *Instrument) CouldHandle(opts *api.CompileOptions) bool {
+	excludePlugins := config.GetConfig().Plugin.Excludes.GetListStringResult()
+	excludePluginMap := make(map[string]bool, len(excludePlugins))
+	for _, v := range excludePlugins {
+		excludePluginMap[v] = true
+	}
 	for _, ins := range instruments {
+		// exclude the plugin at the compile phase if it's ignored
+		if excludePluginMap[ins.Name()] {
+			logrus.Infof("plugin is exclude: %s", ins.Name())
+			continue
+		}
 		// must have the same base package prefix
 		if !strings.HasPrefix(opts.Package, ins.BasePackage()) {
 			continue

@@ -1,4 +1,4 @@
-module github.com/apache/skywalking-go/plugins/ginv2
+module github.com/apache/skywalking-go/plugins/gin
 
 go 1.18
 

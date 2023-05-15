@@ -6,7 +6,7 @@ use (
 	// define the plugins
 	./plugins/core
 	./plugins/dubbo
-	./plugins/ginv2
+	./plugins/gin
 	./plugins/http
 
 	./test/benchmark-codebase/consumer

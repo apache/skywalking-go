@@ -20,7 +20,7 @@ package plugins
 import (
 	"github.com/apache/skywalking-go/plugins/core/instrument"
 	"github.com/apache/skywalking-go/plugins/dubbo"
-	"github.com/apache/skywalking-go/plugins/ginv2"
+	"github.com/apache/skywalking-go/plugins/gin"
 	"github.com/apache/skywalking-go/plugins/http"
 )
 
@@ -28,7 +28,7 @@ var instruments = make([]instrument.Instrument, 0)
 
 func init() {
 	// register the plugins instrument
-	registerFramework(ginv2.NewInstrument())
+	registerFramework(gin.NewInstrument())
 	registerFramework(http.NewInstrument())
 	registerFramework(dubbo.NewInstrument())
 }

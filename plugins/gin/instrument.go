@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package ginv2
+package gin
 
 import (
 	"embed"
@@ -36,7 +36,7 @@ func NewInstrument() *Instrument {
 }
 
 func (i *Instrument) Name() string {
-	return "ginv2"
+	return "gin"
 }
 
 func (i *Instrument) BasePackage() string {

@@ -48,3 +48,8 @@ log:
     enable: ${SW_AGENT_LOG_TRACING_ENABLE:true}
     # If tracing information is enabled, the tracing information would be stored in the current Key in each log.
     key: ${SW_AGENT_LOG_TRACING_KEY:SW_CTX}
+
+plugin:
+  # Specify which plugins would not be executed, multiple plugin names split by ","
+  # NOTE: this parameter only takes effect during the compilation phase.
+  excludes: ${SW_AGENT_PLUGIN_EXCLUDES:}
