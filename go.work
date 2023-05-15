@@ -19,5 +19,7 @@ use (
 	./test/plugins/scenarios/gin
 	./test/plugins/scenarios/http
 
+	./test/plugins/scenarios/plugin_exclusion
+
 	./tools/go-agent
 )
