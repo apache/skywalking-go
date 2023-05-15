@@ -50,6 +50,6 @@ log:
     key: ${SW_AGENT_LOG_TRACING_KEY:SW_CTX}
 
 plugin:
-  # Specify which plugins would not be executed, multiple plugin names split by ","
-  # NOTE: this parameter only takes effect during the compilation phase.
+  # List the names of excluded plugins, multiple plugin names should be splitted by ","
+  # NOTE: This parameter only takes effect during the compilation phase.
   excludes: ${SW_AGENT_PLUGIN_EXCLUDES:}

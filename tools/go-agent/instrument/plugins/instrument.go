@@ -68,7 +68,7 @@ type Enhance interface {
 }
 
 func (i *Instrument) CouldHandle(opts *api.CompileOptions) bool {
-	excludePlugins := config.GetConfig().Plugin.Excludes.GetListStringResult()
+	excludePlugins := config.GetConfig().Plugin.Excluded.GetListStringResult()
 	excludePluginMap := make(map[string]bool, len(excludePlugins))
 	for _, v := range excludePlugins {
 		excludePluginMap[v] = true

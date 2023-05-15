@@ -70,7 +70,7 @@ type GRPCReporter struct {
 }
 
 type Plugin struct {
-	Excludes StringValue `yaml:"excludes"`
+	Excluded StringValue `yaml:"excluded"`
 }
 
 func LoadConfig(path string) error {
