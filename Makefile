@@ -27,6 +27,7 @@ GO_TEST = $(GO) test
 GO_TEST_LDFLAGS =
 
 REPODIR := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))/
+LINT_FILE_PATH = $(REPODIR).golangci.yml
 
 SHELL = /bin/bash
 
@@ -40,6 +41,9 @@ linter:
 test:
 	echo "mode: atomic" > ${REPODIR}/coverage.txt;
 	@for dir in $$(find . -name go.mod -exec dirname {} \; ); do \
+  		if [[ $$dir == "./test/plugins/scenarios/"* ]]; then \
+			continue; \
+		fi; \
 		cd $$dir; \
 		echo "Testing $$dir"; \
 		go test -v -coverprofile=module_coverage.txt -covermode=atomic ./...; \
@@ -58,8 +62,11 @@ test:
 .PHONY: lint
 lint: linter
 	@for dir in $$(find . -name go.mod -exec dirname {} \; ); do \
+  		if [[ $$dir == "./test/plugins/scenarios/"* ]]; then \
+			continue; \
+		fi; \
 		echo "Linting $$dir"; \
-		(cd $$dir && $(GO_LINT) run -v --timeout 5m ./...); \
+		(cd $$dir && $(GO_LINT) run -v --timeout 5m --config $(LINT_FILE_PATH) ./...); \
 		if [ $$? -ne 0 ]; then \
 			exit 1; \
 		fi; \
@@ -68,10 +75,7 @@ lint: linter
 
 .PHONY: check
 check:
-	@for dir in $$(find . -name go.mod -exec dirname {} \; ); do \
-		echo "Tidy $$dir"; \
-		(cd $$dir && go mod tidy); \
-	done
+	go mod tidy
 	@if [ ! -z "`git status -s`" ]; then \
 		echo "Following files are not consistent with CI:"; \
 		git status -s; \

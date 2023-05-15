@@ -2,19 +2,22 @@ go 1.18
 
 use (
 	.
-	./tools/go-agent
-
-	./test/plugins/runner-helper
-
-	./test/benchmark-codebase/provider
-	./test/benchmark-codebase/consumer
 
 	// define the plugins
 	./plugins/core
+	./plugins/dubbo
 	./plugins/ginv2
 	./plugins/http
 
+	./test/benchmark-codebase/consumer
+	./test/benchmark-codebase/provider
+
+	./test/plugins/runner-helper
+
 	// define the plugin test scenarios
+	./test/plugins/scenarios/dubbo
 	./test/plugins/scenarios/gin
 	./test/plugins/scenarios/http
+
+	./tools/go-agent
 )

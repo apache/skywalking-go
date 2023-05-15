@@ -56,9 +56,12 @@ type MethodEnhance struct {
 
 	replacementKey   string
 	replacementValue string
+
+	importAnalyzer *tools.ImportAnalyzer
 }
 
-func NewMethodEnhance(inst instrument.Instrument, matcher *instrument.Point, f *dst.FuncDecl, path string) *MethodEnhance {
+func NewMethodEnhance(inst instrument.Instrument, matcher *instrument.Point, f *dst.FuncDecl, path string,
+	importAnalyzer *tools.ImportAnalyzer) *MethodEnhance {
 	fullPackage := filepath.Join(inst.BasePackage(), matcher.PackagePath)
 	pkgName := filepath.Base(fullPackage)
 	enhance := &MethodEnhance{
@@ -74,6 +77,10 @@ func NewMethodEnhance(inst instrument.Instrument, matcher *instrument.Point, f *
 	if f.Recv != nil {
 		enhance.Recvs = tools.EnhanceParameterNamesWithPackagePrefix(pkgName, f.Recv, false)
 	}
+
+	importAnalyzer.AnalyzeNeedsImports(path, f.Type.Params)
+	importAnalyzer.AnalyzeNeedsImports(path, f.Type.Results)
+	enhance.importAnalyzer = importAnalyzer
 
 	enhance.FuncID = tools.BuildFuncIdentity(filepath.Join(inst.BasePackage(), matcher.PackagePath), f)
 	enhance.AdapterPreFuncName = fmt.Sprintf("%s%s", rewrite.GenerateMethodPrefix, enhance.FuncID)
@@ -101,7 +108,8 @@ func (m *MethodEnhance) BuildForInvoker() {
 
 func (m *MethodEnhance) BuildForDelegator() []dst.Decl {
 	result := make([]dst.Decl, 0)
-	if !methodEnhanceAdapterFiles[m.path] {
+	path := filepath.Dir(m.path)
+	if !methodEnhanceAdapterFiles[path] {
 		// append the import for logger, one file only need import once
 		result = append(result, tools.GoStringToDecls(fmt.Sprintf(`import (
 	"%s/log"
@@ -110,7 +118,8 @@ func (m *MethodEnhance) BuildForDelegator() []dst.Decl {
 
 	%s "%s"	 // current enhancing package path, for rewrite phase in next step
 )`, agentcore.EnhanceFromBasePackage, agentcore.EnhanceFromBasePackage, agentcore.EnhanceFromBasePackage, m.packageName, m.fullPackage))...)
-		methodEnhanceAdapterFiles[m.path] = true
+		methodEnhanceAdapterFiles[path] = true
+		m.importAnalyzer.AppendUsedImports(result[0].(*dst.GenDecl))
 	}
 
 	result = append(result, tools.GoStringToDecls(fmt.Sprintf(`var %s = &%s{}`, m.InterceptorVarName, m.InterceptorGeneratedName))...)

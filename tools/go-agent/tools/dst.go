@@ -213,12 +213,19 @@ func BuildFuncIdentity(pkgPath string, node *dst.FuncDecl) string {
 }
 
 type ImportAnalyzer struct {
-	imports     map[string]*dst.ImportSpec
+	imports     map[string]map[string]*dst.ImportSpec
 	usedImports map[string]*dst.ImportSpec
 }
 
-func CreateImportAnalyzer(f dst.Node) *ImportAnalyzer {
+func CreateImportAnalyzer() *ImportAnalyzer {
+	return &ImportAnalyzer{
+		imports:     make(map[string]map[string]*dst.ImportSpec),
+		usedImports: make(map[string]*dst.ImportSpec)}
+}
+
+func (i *ImportAnalyzer) AnalyzeFileImports(filePath string, f dst.Node) {
 	imports := make(map[string]*dst.ImportSpec)
+	i.imports[filePath] = imports
 	dstutil.Apply(f, func(cursor *dstutil.Cursor) bool {
 		importSpec, ok := cursor.Node().(*dst.ImportSpec)
 		if !ok {
@@ -233,10 +240,9 @@ func CreateImportAnalyzer(f dst.Node) *ImportAnalyzer {
 	}, func(cursor *dstutil.Cursor) bool {
 		return true
 	})
-	return &ImportAnalyzer{imports: imports, usedImports: make(map[string]*dst.ImportSpec)}
 }
 
-func (i *ImportAnalyzer) AnalyzeNeedsImports(fields *dst.FieldList) {
+func (i *ImportAnalyzer) AnalyzeNeedsImports(filePath string, fields *dst.FieldList) {
 	if fields == nil || len(fields.List) == 0 {
 		return
 	}
@@ -250,7 +256,11 @@ func (i *ImportAnalyzer) AnalyzeNeedsImports(fields *dst.FieldList) {
 			if !ok {
 				continue
 			}
-			spec := i.imports[pkgRefName.Name]
+			imports := i.imports[filePath]
+			if imports == nil {
+				continue
+			}
+			spec := imports[pkgRefName.Name]
 			if spec == nil {
 				continue
 			}
@@ -272,7 +282,7 @@ func (i *ImportAnalyzer) AppendUsedImports(decl *dst.GenDecl) {
 			}
 		}
 		if !found {
-			decl.Specs = append(decl.Specs, spec)
+			decl.Specs = append(decl.Specs, dst.Clone(spec).(*dst.ImportSpec))
 		}
 	}
 }

@@ -51,7 +51,7 @@ func (i *Instrument) Points() []*instrument.Point {
 	return []*instrument.Point{
 		{
 			PackagePath: "",
-			At: instrument.NewMethodEnhance("Engine", "handleHTTPRequest",
+			At: instrument.NewMethodEnhance("*Engine", "handleHTTPRequest",
 				instrument.WithArgsCount(1), instrument.WithArgType(0, "*Context")),
 			Interceptor: "HTTPInterceptor",
 		},
