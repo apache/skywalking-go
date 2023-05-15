@@ -81,3 +81,17 @@ jobs:
         with:
           path: test/plugins/workspace
           name: test-plugins-workspace-${{ matrix.case }}
+
+  required:
+    if: always()
+    name: Plugin Tests
+    needs:
+      - test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Merge Requirement
+        run: |
+          if [[ ${{ needs.test.result }} != 'success' ]]; then
+            exit -1
+          fi
