@@ -1,7 +1,7 @@
 # Plugin Exclusion
 
-The plugin exclusion is used during the **compilation phase** to prevent certain plugins, as specified by their names, 
-from being included in the compilation. Consequently, these excluded plugins will not generate corresponding data when the program is running, such as **Tracing**.
+The plugin exclusion is used during the **compilation phase** to exclude specific plugins, through their names.
+Consequently, the codes of these excluded plugins will not be weaved in, then, no relative tracing and metrics.
 
 ## Configuration
 
