@@ -4,9 +4,7 @@ go 1.18
 
 require (
 	dubbo.apache.org/dubbo-go/v3 v3.0.1
-	github.com/dubbogo/grpc-go v1.42.9
-	github.com/dubbogo/triple v1.1.8
-	google.golang.org/protobuf v1.29.0
+	github.com/apache/skywalking-go v0.0.0-20230512024341-5f1b9f09c4dd
 )
 
 require (
@@ -29,6 +27,8 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dubbogo/go-zookeeper v1.0.4-0.20211212162352-f9d2183d89d5 // indirect
 	github.com/dubbogo/gost v1.11.22 // indirect
+	github.com/dubbogo/grpc-go v1.42.9 // indirect
+	github.com/dubbogo/triple v1.1.8 // indirect
 	github.com/emicklei/go-restful/v3 v3.7.3 // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
@@ -117,6 +117,7 @@ require (
 	golang.org/x/text v0.8.0 // indirect
 	google.golang.org/genproto v0.0.0-20230110181048-76db0878b65f // indirect
 	google.golang.org/grpc v1.54.0 // indirect
+	google.golang.org/protobuf v1.29.1 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.51.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
