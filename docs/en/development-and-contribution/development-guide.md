@@ -306,6 +306,11 @@ func WithComponent(componentID int32)
 func WithTag(key Tag, value string)
 ```
 
+##### Span Component
+
+The Component ID in Span is used to identify the current component, with its data [defined in SkyWalking OAP](https://github.com/apache/skywalking/blob/master/oap-server/server-starter/src/main/resources/component-libraries.yml). 
+If the framework you are writing does not exist in this file, please submit a PR in the SkyWalking project to add the definition of this plugin.
+
 #### Span Operation
 
 After creating a Span, you can perform additional operations on it.
