@@ -31,6 +31,8 @@ catalog:
           path: /en/advanced-features/settings-override
         - name: Logging Setup
           path: /en/advanced-features/logging-setup
+        - name: Plugin Exclusion
+          path: /en/advanced-features/plugin-exclusion
     - name: Supported Libraries
       path: /en/agent/support-plugins
     - name: Performance Test

@@ -59,6 +59,7 @@ jobs:
           - gin
           - http
           - dubbo
+          - plugin_exclusion
     steps:
       - uses: actions/checkout@v2
         with:

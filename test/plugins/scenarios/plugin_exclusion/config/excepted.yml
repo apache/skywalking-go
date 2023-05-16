@@ -15,7 +15,7 @@
 # limitations under the License.
 
 segmentItems:
-  - serviceName: http
+  - serviceName: plugin_exclusion
     segmentSize: ge 3
     segments:
       - segmentId: not null
@@ -26,7 +26,7 @@ segmentItems:
             spanLayer: Http
             startTime: nq 0
             endTime: nq 0
-            componentId: 5004
+            componentId: 5006
             isError: false
             spanType: Entry
             peer: ''
@@ -35,34 +35,16 @@ segmentItems:
               - {key: http.method, value: GET}
               - {key: url, value: 'localhost:8080/provider'}
               - {key: status_code, value: '200'}
-            refs:
-              - {parentEndpoint: 'GET:/consumer', networkAddress: 'localhost:8080', refType: CrossProcess,
-                 parentSpanId: 1, parentTraceSegmentId: not null, parentServiceInstance: not null,
-                 parentService: http, traceId: not null}
+            refs: null
       - segmentId: not null
         spans:
-          - operationName: GET:/provider
-            parentSpanId: 0
-            spanId: 1
-            spanLayer: Http
-            startTime: gt 0
-            endTime: gt 0
-            componentId: 5005
-            isError: false
-            spanType: Exit
-            peer: localhost:8080
-            skipAnalysis: false
-            tags:
-              - {key: http.method, value: GET}
-              - {key: url, value: 'localhost:8080/provider'}
-              - {key: status_code, value: '200'}
           - operationName: GET:/consumer
             parentSpanId: -1
             spanId: 0
             spanLayer: Http
-            startTime: gt 0
-            endTime: gt 0
-            componentId: 5004
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 5006
             isError: false
             spanType: Entry
             peer: ''
@@ -71,5 +53,6 @@ segmentItems:
               - {key: http.method, value: GET}
               - {key: url, value: 'service:8080/consumer'}
               - {key: status_code, value: '200'}
+            refs: null
 meterItems: []
 logItems: []
