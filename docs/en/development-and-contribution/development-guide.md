@@ -41,6 +41,8 @@ Instrument points are used to declare that which methods and structs in the curr
 
 1. **Package path**: If the interception point that needs to be intercepted is not in the root directory of the current package, you need to fill in the relative path to the package. 
 For example, if this interception point wants to instrument content in the `github.com/gin-gonic/gin/render` directory, you need to fill in `render` here.
+2. **Package Name**(optional): Define the package name of the current package. If the package name is not defined, the package name of the current package would be used by default.
+It's used when the package path and package name are not same, such as the name of `github.com/emicklei/go-restful/v3` is `restful`.
 2. **Matcher(At)**: Specify which eligible content in the current package path needs to be enhanced.
 3. **Interceptor**: If the current method is being intercepted (whether it's a static method or an instance method), the name of the interceptor must be specified.
 

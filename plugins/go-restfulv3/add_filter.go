@@ -15,26 +15,18 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package plugins
+package restfulv3
 
-import (
-	"github.com/apache/skywalking-go/plugins/core/instrument"
-	"github.com/apache/skywalking-go/plugins/dubbo"
-	"github.com/apache/skywalking-go/plugins/gin"
-	"github.com/apache/skywalking-go/plugins/go-restfulv3"
-	"github.com/apache/skywalking-go/plugins/http"
-)
+import "github.com/apache/skywalking-go/plugins/core/operator"
 
-var instruments = make([]instrument.Instrument, 0)
-
-func init() {
-	// register the plugins instrument
-	registerFramework(gin.NewInstrument())
-	registerFramework(http.NewInstrument())
-	registerFramework(dubbo.NewInstrument())
-	registerFramework(restfulv3.NewInstrument())
+type AddFilterInterceptor struct {
 }
 
-func registerFramework(ins instrument.Instrument) {
-	instruments = append(instruments, ins)
+func (a *AddFilterInterceptor) BeforeInvoke(invocation operator.Invocation) error {
+	addFilterToContainer(invocation.CallerInstance())
+	return nil
+}
+
+func (a *AddFilterInterceptor) AfterInvoke(invocation operator.Invocation, results ...interface{}) error {
+	return nil
 }

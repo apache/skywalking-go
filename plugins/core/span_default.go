@@ -86,6 +86,12 @@ func (ds *DefaultSpan) GetComponent() int32 {
 }
 
 func (ds *DefaultSpan) Tag(key, value string) {
+	for _, tag := range ds.Tags {
+		if tag.Key == key {
+			tag.Value = value
+			return
+		}
+	}
 	ds.Tags = append(ds.Tags, &commonv3.KeyStringValuePair{Key: key, Value: value})
 }
 
