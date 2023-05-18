@@ -198,7 +198,7 @@ func (s *StringValue) GetListStringResult() []string {
 	return strings.Split(val, ",")
 }
 
-func (s *StringValue) overwriteFrom(other StringValue) {
+func (s *StringValue) overwriteFrom(other *StringValue) {
 	if other.EnvKey != "" {
 		s.EnvKey = other.EnvKey
 	}
@@ -208,8 +208,8 @@ func (s *StringValue) overwriteFrom(other StringValue) {
 }
 
 func (c *Config) overwriteFrom(other *Config) {
-	c1Value := reflect.ValueOf(&c).Elem()
-	c2Value := reflect.ValueOf(&other).Elem()
+	c1Value := reflect.ValueOf(c).Elem()
+	c2Value := reflect.ValueOf(other).Elem()
 	combineConfigFields(c1Value, c2Value)
 }
 
@@ -219,8 +219,8 @@ func combineConfigFields(field1, field2 reflect.Value) {
 	}
 
 	if field1.Kind() == reflect.Struct {
-		if s, ok := field1.Addr().Interface().(StringValue); ok {
-			s2 := field2.Addr().Interface().(StringValue)
+		if s, ok := field1.Addr().Interface().(*StringValue); ok {
+			s2 := field2.Addr().Interface().(*StringValue)
 			s.overwriteFrom(s2)
 		} else {
 			for i := 0; i < field1.NumField(); i++ {

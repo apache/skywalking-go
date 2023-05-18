@@ -1,0 +1,3 @@
+agent:
+  service_name: test-service
+  sampler: 0.1
