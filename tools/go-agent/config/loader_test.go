@@ -11,6 +11,8 @@ func TestLoadConfig(t *testing.T) {
 	assert.NoError(t, err)
 	conf := GetConfig()
 	assert.NotNil(t, conf)
-	expected := StringValue{EnvKey: "SW_AGENT_SAMPLE", Default: "0.1"}
+	expected := StringValue{EnvKey: "SW_AGENT_NAME", Default: "test-service"}
+	assert.Equal(t, expected, conf.Agent.ServiceName)
+	expected = StringValue{EnvKey: "SW_AGENT_SAMPLE", Default: "0.1"}
 	assert.Equal(t, expected, conf.Agent.Sampler)
 }
