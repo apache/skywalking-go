@@ -28,11 +28,6 @@ import (
 )
 
 func NewSegmentSpan(defaultSpan *DefaultSpan, parentSpan SegmentSpan) (s SegmentSpan, err error) {
-	// if current and parent span are both entry span, then use parent span as segment span
-	if defaultSpan.SpanType == SpanTypeEntry && parentSpan != nil && parentSpan.IsEntry() {
-		parentSpan.SetOperationName(defaultSpan.OperationName)
-		return parentSpan, nil
-	}
 	ssi := &SegmentSpanImpl{
 		DefaultSpan: *defaultSpan,
 	}
