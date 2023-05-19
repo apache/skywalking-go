@@ -31,4 +31,6 @@ type Point struct {
 	PackagePath string
 	At          *EnhanceMatcher
 	Interceptor string
+
+	PackageName string // optional: for package path dir name is not same with package name
 }

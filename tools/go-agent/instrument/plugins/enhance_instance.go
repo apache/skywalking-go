@@ -19,7 +19,9 @@ package plugins
 
 import (
 	"fmt"
+	"path/filepath"
 
+	"github.com/apache/skywalking-go/plugins/core/instrument"
 	"github.com/apache/skywalking-go/tools/go-agent/tools"
 
 	"github.com/dave/dst"
@@ -28,11 +30,23 @@ import (
 var EnhanceInstanceField = "skywalkingDynamicField"
 
 type InstanceEnhance struct {
-	typeSpec *dst.TypeSpec
+	packageName string
+	typeSpec    *dst.TypeSpec
 }
 
-func NewInstanceEnhance(typeSpec *dst.TypeSpec) *InstanceEnhance {
-	return &InstanceEnhance{typeSpec: typeSpec}
+func NewInstanceEnhance(typeSpec *dst.TypeSpec, basePackage string, p *instrument.Point) *InstanceEnhance {
+	pkgName := filepath.Base(filepath.Join(basePackage, p.PackagePath))
+	if p.PackageName != "" {
+		pkgName = p.PackageName
+	}
+	return &InstanceEnhance{
+		packageName: pkgName,
+		typeSpec:    typeSpec,
+	}
+}
+
+func (i *InstanceEnhance) PackageName() string {
+	return i.packageName
 }
 
 func (i *InstanceEnhance) EnhanceField() {
@@ -43,6 +57,9 @@ func (i *InstanceEnhance) EnhanceField() {
 	})
 }
 
+func (i *InstanceEnhance) BuildImports(decl *dst.GenDecl) {
+}
+
 func (i *InstanceEnhance) BuildForDelegator() []dst.Decl {
 	return []dst.Decl{
 		&dst.FuncDecl{
@@ -51,7 +68,7 @@ func (i *InstanceEnhance) BuildForDelegator() []dst.Decl {
 				List: []*dst.Field{
 					{
 						Names: []*dst.Ident{dst.NewIdent("receiver")},
-						Type:  &dst.StarExpr{X: dst.NewIdent(i.typeSpec.Name.Name)},
+						Type:  &dst.StarExpr{X: &dst.SelectorExpr{X: dst.NewIdent(i.packageName), Sel: dst.NewIdent(i.typeSpec.Name.Name)}},
 					},
 				},
 			},
@@ -73,7 +90,7 @@ func (i *InstanceEnhance) BuildForDelegator() []dst.Decl {
 				List: []*dst.Field{
 					{
 						Names: []*dst.Ident{dst.NewIdent("receiver")},
-						Type:  &dst.StarExpr{X: dst.NewIdent(i.typeSpec.Name.Name)},
+						Type:  &dst.StarExpr{X: &dst.SelectorExpr{X: dst.NewIdent(i.packageName), Sel: dst.NewIdent(i.typeSpec.Name.Name)}},
 					},
 				},
 			},

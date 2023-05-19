@@ -54,13 +54,20 @@ type Context struct {
 }
 
 func NewContext(compilePkgFullPath, targetPackage string) *Context {
-	return &Context{
+	c := &Context{
 		pkgFullPath:    compilePkgFullPath,
 		titleCase:      cases.Title(language.English),
 		targetPackage:  targetPackage,
 		packageImport:  make(map[string]*rewriteImportInfo),
 		rewriteMapping: newRewriteFuncMapping(make(map[string]string), make(map[string]string)),
 	}
+	// adding self package
+	c.packageImport[targetPackage] = &rewriteImportInfo{
+		pkgName:     targetPackage,
+		isAgentCore: false,
+		ctx:         c,
+	}
+	return c
 }
 
 type rewriteImportInfo struct {

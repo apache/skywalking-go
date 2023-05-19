@@ -21,6 +21,7 @@ import (
 	"bytes"
 	"embed"
 	"fmt"
+	"go/token"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -63,6 +64,8 @@ func NewInstrument() *Instrument {
 }
 
 type Enhance interface {
+	PackageName() string
+	BuildImports(decl *dst.GenDecl)
 	BuildForDelegator() []dst.Decl
 	ReplaceFileContent(path, content string) string
 }
@@ -136,8 +139,8 @@ func (i *Instrument) FilterAndEdit(path string, curFile *dst.File, cursor *dstut
 	return false
 }
 
-func (i *Instrument) enhanceStruct(_ instrument.Instrument, _ *instrument.Point, typeSpec *dst.TypeSpec, _ string) {
-	enhance := NewInstanceEnhance(typeSpec)
+func (i *Instrument) enhanceStruct(_ instrument.Instrument, p *instrument.Point, typeSpec *dst.TypeSpec, _ string) {
+	enhance := NewInstanceEnhance(typeSpec, i.compileOpts.Package, p)
 	enhance.EnhanceField()
 	i.enhancements = append(i.enhancements, enhance)
 }
@@ -180,7 +183,7 @@ func (i *Instrument) WriteExtraFiles(basePath string) ([]string, error) {
 	}
 	i.extraFilesWrote = true
 
-	packageName := filepath.Base(i.compileOpts.Package)
+	packageName := i.enhancements[0].PackageName()
 	context := rewrite.NewContext(i.compileOpts.Package, packageName)
 
 	var results = make([]string, 0)
@@ -344,6 +347,14 @@ func (i *Instrument) writeDelegatorFile(ctx *rewrite.Context, basePath string) (
 		Name: dst.NewIdent("delegator"), // write to adapter temporary, it will be rewritten later
 	}
 
+	// append header
+	importsHeader := &dst.GenDecl{Tok: token.IMPORT}
+	for _, e := range i.enhancements {
+		e.BuildImports(importsHeader)
+	}
+	file.Decls = append(file.Decls, importsHeader)
+
+	// append other decls
 	for _, enhance := range i.enhancements {
 		file.Decls = append(file.Decls, enhance.BuildForDelegator()...)
 	}

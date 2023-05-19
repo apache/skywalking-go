@@ -276,7 +276,7 @@ func (i *ImportAnalyzer) AppendUsedImports(decl *dst.GenDecl) {
 	for _, spec := range i.usedImports {
 		found := false
 		for _, existingSpec := range decl.Specs {
-			if existingSpec.(*dst.ImportSpec).Path == spec.Path {
+			if existingSpec.(*dst.ImportSpec).Path.Value == spec.Path.Value {
 				found = true
 				break
 			}
