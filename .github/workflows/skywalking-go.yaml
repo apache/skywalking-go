@@ -20,8 +20,8 @@ on:
   pull_request:
 
 jobs:
-  build:
-    name: Build and Test
+  tests:
+    name: Tests
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -35,12 +35,33 @@ jobs:
           submodules: true
       - name: Check License
         uses: apache/skywalking-eyes@9bd5feb86b5817aa6072b008f9866a2c3bbc8587
-      - name: Get dependencies
-        run: make deps
       - name: Test
         run: make test
       - name: Lint
         run: make lint
+
+  build:
+    name: Build on ${{ matrix.os }} with Go ${{ matrix.go-version }}
+    needs:
+      - tests
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ ubuntu, macos, windows ]
+        go-version: [ 1.18, 1.19 ]
+    runs-on: ${{ matrix.os }}-latest
+    timeout-minutes: 60
+    steps:
+      - name: Set up Go ${{ matrix.go-version }}
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go-version }}
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: Get dependencies
+        run: make deps
       - name: Build
         run: make build
 
