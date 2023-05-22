@@ -35,6 +35,14 @@ The basic information includes the following methods, corresponding to the [Inst
 Note: Please declare `//skywalking:nocopy` at any position in this file to indicate that the file would not be copied. This file is only used for guidance during hybrid compilation. 
 Also, this file involves the use of the `embed` package, and if the target framework does not import the package `embed`, a compilation error may occur.
 
+### Multiple framework enhancement
+
+If you wish to monitor **multiple different packages within your framework**, 
+declare multiple instrument objects within the plugin, differentiating them through distinct directories. 
+Additionally, provide the following methods:
+
+1. **Sub Home Path**: This method informs the plugin system about the directory of the current instrument object within the plugin.
+
 ### Instrument Point
 
 Instrument points are used to declare that which methods and structs in the current package should be instrumented. They mainly include the following information:

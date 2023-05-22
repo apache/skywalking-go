@@ -15,28 +15,10 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package instrument
+package entry
 
-import "embed"
-
-type Instrument interface {
-	Name() string
-	BasePackage() string
-	VersionChecker(version string) bool
-	Points() []*Point
-	FS() *embed.FS
-}
-
-type SubInstrument interface {
-	Instrument
-	// SubHomePath the relative home path to the base plugin path
-	SubHomePath() string
-}
-
-type Point struct {
-	PackagePath string
-	At          *EnhanceMatcher
-	Interceptor string
-
-	PackageName string // optional: for package path dir name is not same with package name
+type DatabaseInfo interface {
+	Type() string
+	ComponentID() int32
+	Peer() string
 }

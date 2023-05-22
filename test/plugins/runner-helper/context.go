@@ -76,12 +76,30 @@ type Context struct {
 }
 
 type Config struct {
-	EntryService   string           `yaml:"entry-service"`
-	HealthChecker  string           `yaml:"health-checker"`
-	StartScript    string           `yaml:"start-script"`
-	FrameworkName  string           `yaml:"framework"`
-	ExportPort     int              `yaml:"export-port"`
-	SupportVersion []SupportVersion `yaml:"support-version"`
+	EntryService   string                              `yaml:"entry-service"`
+	HealthChecker  string                              `yaml:"health-checker"`
+	StartScript    string                              `yaml:"start-script"`
+	FrameworkName  string                              `yaml:"framework"`
+	ExportPort     int                                 `yaml:"export-port"`
+	SupportVersion []SupportVersion                    `yaml:"support-version"`
+	Dependencies   map[string]*DockerDependencyService `yaml:"dependencies"`
+}
+
+type DockerDependencyService struct {
+	Image       string              `yaml:"image"`
+	Hostname    string              `yaml:"hostname"`
+	Ports       []string            `yaml:"ports"`
+	Exports     []string            `yaml:"expose"`
+	Env         map[string]string   `yaml:"environment"`
+	Command     []string            `yaml:"command"`
+	HealthCheck *ServiceHealthCheck `yaml:"healthcheck"`
+}
+
+type ServiceHealthCheck struct {
+	Test     []string `yaml:"test"`
+	Interval string   `yaml:"interval"`
+	Timeout  string   `yaml:"timeout"`
+	Retries  int      `yaml:"retries"`
 }
 
 type SupportVersion struct {

@@ -8,3 +8,6 @@
   * `http`: [Native HTTP](https://pkg.go.dev/net/http)
 * RPC Frameworks
   * `dubbo`: [Dubbo](https://github.com/apache/dubbo-go)
+* Database Client
+  * `gorm`: [GORM](https://github.com/go-gorm/gorm)
+    * [MySQL Driver](https://github.com/go-gorm/mysql)

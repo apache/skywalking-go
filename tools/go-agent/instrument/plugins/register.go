@@ -22,6 +22,8 @@ import (
 	"github.com/apache/skywalking-go/plugins/dubbo"
 	"github.com/apache/skywalking-go/plugins/gin"
 	"github.com/apache/skywalking-go/plugins/go-restfulv3"
+	gorm_entry "github.com/apache/skywalking-go/plugins/gorm/entry"
+	gorm_mysql "github.com/apache/skywalking-go/plugins/gorm/mysql"
 	"github.com/apache/skywalking-go/plugins/http"
 )
 
@@ -33,6 +35,10 @@ func init() {
 	registerFramework(http.NewInstrument())
 	registerFramework(dubbo.NewInstrument())
 	registerFramework(restfulv3.NewInstrument())
+
+	// gorm related instruments
+	registerFramework(gorm_entry.NewInstrument())
+	registerFramework(gorm_mysql.NewInstrument())
 }
 
 func registerFramework(ins instrument.Instrument) {

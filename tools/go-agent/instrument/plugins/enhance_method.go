@@ -160,7 +160,7 @@ func (m *MethodEnhance) BuildForDelegator() []dst.Decl {
 	for i, parameter := range m.Parameters {
 		preFunc.Type.Params.List = append(preFunc.Type.Params.List, &dst.Field{
 			Names: []*dst.Ident{dst.NewIdent(fmt.Sprintf("param_%d", i))},
-			Type:  &dst.StarExpr{X: parameter.PackagedType()},
+			Type:  &dst.StarExpr{X: m.changeTypeIfNeeds(parameter.PackagedType())},
 		})
 	}
 	for i, result := range m.Results {
@@ -212,6 +212,14 @@ func (m *MethodEnhance) BuildForDelegator() []dst.Decl {
 	}
 	result = append(result, postFunc)
 	return result
+}
+
+func (m *MethodEnhance) changeTypeIfNeeds(tp dst.Expr) dst.Expr {
+	// change "...XXX" to "[]XXX" for reference type
+	if el, ok := tp.(*dst.Ellipsis); ok {
+		return &dst.ArrayType{Elt: el.Elt}
+	}
+	return tp
 }
 
 func (m *MethodEnhance) addPackagePrefixForArgsAndClone(pkg string, tp dst.Expr) dst.Expr {

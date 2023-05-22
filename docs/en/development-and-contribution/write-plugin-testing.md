@@ -24,6 +24,16 @@ It includes the following information:
 6. **support-version**: The version information supported by the current plugin.
    1. **go**: The supported Golang language version for the current plugin.
    2. **framework**: A list of plugin version information. It would be used to switch between multiple framework versions.
+7. **dependencies**: If your program relies on certain containers, please declare them here. The syntax is largely similar to the services in `docker-compose`.
+   1. **image**: The image name of service.
+   2. **hostname**: The hostname of the container which deployed. 
+   3. **port**: The port list of the container which deployed.
+   4. **expose**: The export port list of the container which deployed.
+   5. **environment**: The environment variables of the container which deployed.
+   6. **command**: The start command of the container.
+   7. **healthcheck**: The health check command of the container. If the service defines a healthcheck, 
+   then the service being tested would depend on the current service's `service_healthy` status. 
+   Otherwise, it depends on the `service_started` status.
 
 ### URL Access
 

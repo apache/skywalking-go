@@ -39,6 +39,12 @@ services:
     depends_on:
       oap:
         condition: service_healthy
+      {{- if .Context.Config.Dependencies }}
+      {{- range $name, $service := .Context.Config.Dependencies }}
+      {{$name}}:
+        condition: {{ if $service.HealthCheck -}} service_healthy {{- else -}} service_started {{- end}}
+      {{- end }}
+      {{- end }}
     ports:
       - {{.Context.Config.ExportPort}}
     {{ if .Context.DebugMode -}}
@@ -64,3 +70,44 @@ services:
     volumes:
       - {{.Context.WorkSpaceDir}}:/workspace
     command: ["/bin/bash", "/workspace/validator.sh"]
+  {{- range $name, $service := .Context.Config.Dependencies }}
+  {{$name}}:
+    image: {{$service.Image}}
+    {{- if $service.Hostname }}
+    hostname: {{$service.Hostname}}
+    {{- end }}
+    {{- if $service.Ports }}
+    ports:
+      {{- range $service.Ports }}
+      - "{{.}}"
+      {{- end }}
+    {{- end }}
+    {{- if $service.Exports }}
+    expose:
+      {{- range $service.Exports }}
+      - "{{.}}"
+      {{- end }}
+    {{- end }}
+    {{- if $service.Env }}
+    environment:
+      {{- range $key, $value := $service.Env }}
+      {{$key}}: {{$value}}
+      {{- end }}
+    {{- end }}
+    {{- if $service.Command }}
+    command:
+      {{- range $service.Command }}
+      - "{{.}}"
+      {{- end }}
+    {{- end }}
+    {{- if $service.HealthCheck }}
+    healthcheck:
+      test:
+        {{- range $service.HealthCheck.Test }}
+        - "{{.}}"
+        {{- end }}
+      interval: {{$service.HealthCheck.Interval}}
+      timeout: {{$service.HealthCheck.Timeout}}
+      retries: {{$service.HealthCheck.Retries}}
+    {{- end }}
+  {{- end }}
