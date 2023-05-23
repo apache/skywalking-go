@@ -27,9 +27,8 @@ type Instrument interface {
 	FS() *embed.FS
 }
 
-type SubInstrument interface {
-	Instrument
-	// PluginSourceCodePath the relative home path to the base plugin path
+type SourceCodeDetector interface {
+	// PluginSourceCodePath the relative path to the base plugin path
 	PluginSourceCodePath() string
 }
 

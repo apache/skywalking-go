@@ -35,13 +35,12 @@ The basic information includes the following methods, corresponding to the [Inst
 Note: Please declare `//skywalking:nocopy` at any position in this file to indicate that the file would not be copied. This file is only used for guidance during hybrid compilation. 
 Also, this file involves the use of the `embed` package, and if the target framework does not import the package `embed`, a compilation error may occur.
 
-### Multiple framework enhancement
+### Manage Instrument and Interceptor codes in hierarchy structure
 
-If you wish to monitor **multiple different packages within your framework**, 
-declare multiple instrument objects within the plugin, differentiating them through distinct directories. 
-Additionally, provide the following methods:
+Instrument and interceptor codes are placed in root by default. 
+In complex instrumentation scenarios, there could be dozens of interceptors, we provide `PluginSourceCodePath` to build a hierarchy folder structure to manage those codes.
 
-1. **Plugin Source Code Path**: This method informs the plugin system about the directory of the current instrument object within the plugin.
+Notice: The instrumentation still works without proper setting of this, but the debug tool would lose the location of the source codes.
 
 #### Demo
 
@@ -61,7 +60,7 @@ For example, the framework needs to enhance two packages, as shown in the follow
 ```
 
 In the above directory structure, the **test** framework needs to provide multiple different enhancement objects. 
-In this case, a **Plugin Source Code Path** method needs to be added for each enhancement object, the values of this method should be `package1` and `package2`.
+In this case, a `PluginSourceCodePath` Source Code Path** method needs to be added for each enhancement object, the values of this method should be `package1` and `package2`.
 
 ### Instrument Point
 
