@@ -42,7 +42,7 @@ In complex instrumentation scenarios, there could be dozens of interceptors, we 
 
 Notice: The instrumentation still works without proper setting of this, but the debug tool would lose the location of the source codes.
 
-#### Demo
+#### Example
 
 For example, the framework needs to enhance two packages, as shown in the following directory structure:
 
