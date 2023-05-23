@@ -35,6 +35,33 @@ The basic information includes the following methods, corresponding to the [Inst
 Note: Please declare `//skywalking:nocopy` at any position in this file to indicate that the file would not be copied. This file is only used for guidance during hybrid compilation. 
 Also, this file involves the use of the `embed` package, and if the target framework does not import the package `embed`, a compilation error may occur.
 
+### Manage Instrument and Interceptor codes in hierarchy structure
+
+Instrument and interceptor codes are placed in root by default. 
+In complex instrumentation scenarios, there could be dozens of interceptors, we provide `PluginSourceCodePath` to build a hierarchy folder structure to manage those codes.
+
+Notice: The instrumentation still works without proper setting of this, but the debug tool would lose the location of the source codes.
+
+#### Example
+
+For example, the framework needs to enhance two packages, as shown in the following directory structure:
+
+```
+- plugins
+  - test
+    - go.mod
+    - package1
+      - instrument.go
+      - interceptor.go
+    - package2
+      - instrument.go
+      - interceptor.go
+    ...
+```
+
+In the above directory structure, the **test** framework needs to provide multiple different enhancement objects. 
+In this case, a `PluginSourceCodePath` Source Code Path** method needs to be added for each enhancement object, the values of this method should be `package1` and `package2`.
+
 ### Instrument Point
 
 Instrument points are used to declare that which methods and structs in the current package should be instrumented. They mainly include the following information:

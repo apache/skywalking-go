@@ -60,6 +60,7 @@ jobs:
           - http
           - dubbo
           - go-restfulv3
+          - gorm
           - plugin_exclusion
     steps:
       - uses: actions/checkout@v2

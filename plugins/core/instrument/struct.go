@@ -37,7 +37,9 @@ func WithFiledType(filedName, filedType string) StructFilterOption {
 	return func(structType *dst.TypeSpec, files []*dst.File) bool {
 		st := structType.Type.(*dst.StructType)
 		for _, field := range st.Fields.List {
-			if field.Names[0].Name == filedName {
+			if filedName == "" && (len(field.Names) == 0 || field.Names[0].Name == filedName) {
+				return verifyTypeName(field.Type, filedType)
+			} else if field.Names[0].Name == filedName {
 				return verifyTypeName(field.Type, filedType)
 			}
 		}

@@ -152,7 +152,7 @@ func GenerateTypeNameByExp(exp dst.Expr) string {
 	case *dst.SelectorExpr:
 		data = GenerateTypeNameByExp(n.X) + "." + GenerateTypeNameByExp(n.Sel)
 	case *dst.Ellipsis:
-		data = "..." + GenerateTypeNameByExp(n.Elt)
+		data = "[]" + GenerateTypeNameByExp(n.Elt)
 	case *dst.ArrayType:
 		data = "[]" + GenerateTypeNameByExp(n.Elt)
 	default:

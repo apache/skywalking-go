@@ -15,27 +15,23 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package instrument
+package mysql
 
-import "embed"
+import (
+	"testing"
 
-type Instrument interface {
-	Name() string
-	BasePackage() string
-	VersionChecker(version string) bool
-	Points() []*Point
-	FS() *embed.FS
-}
+	"github.com/stretchr/testify/assert"
 
-type SourceCodeDetector interface {
-	// PluginSourceCodePath the relative path to the base plugin path
-	PluginSourceCodePath() string
-}
+	"gorm.io/driver/mysql"
+)
 
-type Point struct {
-	PackagePath string
-	At          *EnhanceMatcher
-	Interceptor string
+func TestMysqlDatabaseInfo(t *testing.T) {
+	interceptor := &InstanceInterceptor{}
+	open := mysql.Open("root:root@tcp(mysql-server:3306)/test")
 
-	PackageName string // optional: for package path dir name is not same with package name
+	info := interceptor.buildDBInfo(open.(*mysql.Dialector))
+	assert.NotNil(t, info, "info is not nil")
+	assert.Equal(t, "mysql", info.Type(), "type is mysql")
+	assert.Equal(t, "mysql-server:3306", info.Peer(), "peer is mysql-server:3306")
+	assert.Equal(t, int32(5012), info.ComponentID(), "component id is 5012")
 }
