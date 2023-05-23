@@ -221,7 +221,7 @@ func (i *Instrument) copyFrameworkFS(context *rewrite.Context, compilePkgFullPat
 	if i.compileOpts.DebugDir != "" {
 		pathBuilder := filepath.Join(i.compileOpts.DebugDir, "plugins", i.realInst.Name())
 		if subIns, ok := i.realInst.(instrument.SubInstrument); ok {
-			pathBuilder = filepath.Join(pathBuilder, subIns.SubHomePath())
+			pathBuilder = filepath.Join(pathBuilder, subIns.PluginSourceCodePath())
 		}
 		debugBaseDir = filepath.Join(pathBuilder, subPkgPath)
 	}

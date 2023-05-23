@@ -29,8 +29,8 @@ type Instrument interface {
 
 type SubInstrument interface {
 	Instrument
-	// SubHomePath the relative home path to the base plugin path
-	SubHomePath() string
+	// PluginSourceCodePath the relative home path to the base plugin path
+	PluginSourceCodePath() string
 }
 
 type Point struct {

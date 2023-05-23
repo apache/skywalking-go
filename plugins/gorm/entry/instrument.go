@@ -60,7 +60,7 @@ func (i *Instrument) Points() []*instrument.Point {
 	}
 }
 
-func (i *Instrument) SubHomePath() string {
+func (i *Instrument) PluginSourceCodePath() string {
 	return "entry"
 }
 

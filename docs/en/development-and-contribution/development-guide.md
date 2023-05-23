@@ -41,7 +41,7 @@ If you wish to monitor **multiple different packages within your framework**,
 declare multiple instrument objects within the plugin, differentiating them through distinct directories. 
 Additionally, provide the following methods:
 
-1. **Sub Home Path**: This method informs the plugin system about the directory of the current instrument object within the plugin.
+1. **Plugin Source Code Path**: This method informs the plugin system about the directory of the current instrument object within the plugin.
 
 #### Demo
 
@@ -61,7 +61,7 @@ For example, the framework needs to enhance two packages, as shown in the follow
 ```
 
 In the above directory structure, the **test** framework needs to provide multiple different enhancement objects. 
-In this case, a **Sub Home Path** method needs to be added for each enhancement object, the values of this method should be `package1` and `package2`.
+In this case, a **Plugin Source Code Path** method needs to be added for each enhancement object, the values of this method should be `package1` and `package2`.
 
 ### Instrument Point
 
