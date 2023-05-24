@@ -60,7 +60,7 @@ func (t *Tracer) CreateEntrySpan(operationName string, extractor interface{}, op
 		ref = nil
 	}
 
-	return t.createSpan0(tracingSpan, opts, withRef(ref), withSpanType(SpanTypeEntry), withOperationName(operationName))
+	return t.createSpan0(ctx, tracingSpan, opts, withRef(ref), withSpanType(SpanTypeEntry), withOperationName(operationName))
 }
 
 func (t *Tracer) CreateLocalSpan(operationName string, opts ...interface{}) (s interface{}, err error) {
@@ -72,7 +72,7 @@ func (t *Tracer) CreateLocalSpan(operationName string, opts ...interface{}) (s i
 		saveSpanToActiveIfNotError(ctx, s, err)
 	}()
 
-	return t.createSpan0(tracingSpan, opts, withSpanType(SpanTypeLocal), withOperationName(operationName))
+	return t.createSpan0(ctx, tracingSpan, opts, withSpanType(SpanTypeLocal), withOperationName(operationName))
 }
 
 func (t *Tracer) CreateExitSpan(operationName, peer string, injector interface{}, opts ...interface{}) (s interface{}, err error) {
@@ -88,7 +88,7 @@ func (t *Tracer) CreateExitSpan(operationName, peer string, injector interface{}
 	if tracingSpan != nil && tracingSpan.IsExit() {
 		return tracingSpan, nil
 	}
-	span, err := t.createSpan0(tracingSpan, opts, withSpanType(SpanTypeExit), withOperationName(operationName), withPeer(peer))
+	span, err := t.createSpan0(ctx, tracingSpan, opts, withSpanType(SpanTypeExit), withOperationName(operationName), withPeer(peer))
 	if err != nil {
 		return nil, err
 	}
@@ -152,10 +152,11 @@ func (t *Tracer) createNoop() (*TracingContext, TracingSpan, bool) {
 		_, ok := span.(*NoopSpan)
 		return ctx, span, ok
 	}
-	return nil, nil, false
+	ctx = NewTracingContext()
+	return ctx, nil, false
 }
 
-func (t *Tracer) createSpan0(parent TracingSpan, pluginOpts []interface{}, coreOpts ...interface{}) (s TracingSpan, err error) {
+func (t *Tracer) createSpan0(ctx *TracingContext, parent TracingSpan, pluginOpts []interface{}, coreOpts ...interface{}) (s TracingSpan, err error) {
 	ds := NewDefaultSpan(t, parent)
 	var parentSpan SegmentSpan
 	if parent != nil {
@@ -179,7 +180,7 @@ func (t *Tracer) createSpan0(parent TracingSpan, pluginOpts []interface{}, coreO
 	for _, opt := range coreOpts {
 		opt.(tracing.SpanOption).Apply(ds)
 	}
-	s, err = NewSegmentSpan(ds, parentSpan)
+	s, err = NewSegmentSpan(ctx, ds, parentSpan)
 	if err != nil {
 		return nil, err
 	}
@@ -246,9 +247,6 @@ func getTracingContext() *TracingContext {
 func saveSpanToActiveIfNotError(ctx *TracingContext, span interface{}, err error) {
 	if err != nil || span == nil {
 		return
-	}
-	if ctx == nil {
-		ctx = NewTracingContext()
 	}
 	ctx.SaveActiveSpan(span.(TracingSpan))
 	SetGLS(ctx)

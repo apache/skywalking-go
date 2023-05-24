@@ -27,17 +27,17 @@ import (
 	agentv3 "skywalking.apache.org/repo/goapi/collect/language/agent/v3"
 )
 
-func NewSegmentSpan(defaultSpan *DefaultSpan, parentSpan SegmentSpan) (s SegmentSpan, err error) {
+func NewSegmentSpan(ctx *TracingContext, defaultSpan *DefaultSpan, parentSpan SegmentSpan) (s SegmentSpan, err error) {
 	ssi := &SegmentSpanImpl{
 		DefaultSpan: *defaultSpan,
 	}
-	err = ssi.createSegmentContext(parentSpan)
+	err = ssi.createSegmentContext(ctx, parentSpan)
 	if err != nil {
 		return nil, err
 	}
 	if parentSpan == nil || !parentSpan.segmentRegister() {
 		rs := newSegmentRoot(ssi)
-		err = rs.createRootSegmentContext(parentSpan)
+		err = rs.createRootSegmentContext(ctx, parentSpan)
 		if err != nil {
 			return nil, err
 		}
@@ -180,14 +180,14 @@ func (s *SegmentSpanImpl) segmentRegister() bool {
 	}
 }
 
-func (s *SegmentSpanImpl) createSegmentContext(parent SegmentSpan) (err error) {
+func (s *SegmentSpanImpl) createSegmentContext(ctx *TracingContext, parent SegmentSpan) (err error) {
 	if parent == nil {
 		s.SegmentContext = SegmentContext{}
 		if len(s.DefaultSpan.Refs) > 0 {
 			s.TraceID = s.DefaultSpan.Refs[0].GetTraceID()
 			s.CorrelationContext = s.DefaultSpan.Refs[0].(*SpanContext).CorrelationContext
 		} else {
-			s.TraceID, err = GenerateGlobalID()
+			s.TraceID, err = GenerateGlobalID(ctx)
 			if err != nil {
 				return err
 			}
@@ -226,8 +226,8 @@ func (rs *RootSegmentSpan) End() {
 	}()
 }
 
-func (rs *RootSegmentSpan) createRootSegmentContext(_ SegmentSpan) (err error) {
-	rs.SegmentID, err = GenerateGlobalID()
+func (rs *RootSegmentSpan) createRootSegmentContext(ctx *TracingContext, _ SegmentSpan) (err error) {
+	rs.SegmentID, err = GenerateGlobalID(ctx)
 	if err != nil {
 		return err
 	}

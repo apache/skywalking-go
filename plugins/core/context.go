@@ -33,6 +33,7 @@ type ContextSnapshoter interface {
 type TracingContext struct {
 	activeSpan TracingSpan
 	Runtime    *RuntimeContext
+	ID         *IDContext
 }
 
 func (t *TracingContext) TakeSnapShot(val interface{}) interface{} {
@@ -40,6 +41,7 @@ func (t *TracingContext) TakeSnapShot(val interface{}) interface{} {
 	return &TracingContext{
 		activeSpan: snapshot,
 		Runtime:    t.Runtime.clone(),
+		ID:         NewIDContext(false),
 	}
 }
 
@@ -67,6 +69,7 @@ func NewTracingContext() *TracingContext {
 		Runtime: &RuntimeContext{
 			data: make(map[string]interface{}),
 		},
+		ID: NewIDContext(true),
 	}
 }
 
