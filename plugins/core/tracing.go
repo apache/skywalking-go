@@ -84,6 +84,10 @@ func (t *Tracer) CreateExitSpan(operationName, peer string, injector interface{}
 		saveSpanToActiveIfNotError(ctx, s, err)
 	}()
 
+	// if parent span is exit span, then use parent span as result
+	if tracingSpan != nil && tracingSpan.IsExit() {
+		return tracingSpan, nil
+	}
 	span, err := t.createSpan0(tracingSpan, opts, withSpanType(SpanTypeExit), withOperationName(operationName), withPeer(peer))
 	if err != nil {
 		return nil, err

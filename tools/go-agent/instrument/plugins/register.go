@@ -25,6 +25,7 @@ import (
 	gorm_entry "github.com/apache/skywalking-go/plugins/gorm/entry"
 	gorm_mysql "github.com/apache/skywalking-go/plugins/gorm/mysql"
 	"github.com/apache/skywalking-go/plugins/http"
+	"github.com/apache/skywalking-go/plugins/kratosv2"
 )
 
 var instruments = make([]instrument.Instrument, 0)
@@ -35,6 +36,7 @@ func init() {
 	registerFramework(http.NewInstrument())
 	registerFramework(dubbo.NewInstrument())
 	registerFramework(restfulv3.NewInstrument())
+	registerFramework(kratosv2.NewInstrument())
 
 	// gorm related instruments
 	registerFramework(gorm_entry.NewInstrument())

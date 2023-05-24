@@ -10,6 +10,7 @@ use (
 	./plugins/http
 	./plugins/go-restfulv3
 	./plugins/gorm
+	./plugins/kratosv2
 
 	./test/benchmark-codebase/consumer
 	./test/benchmark-codebase/provider
@@ -22,6 +23,7 @@ use (
 	./test/plugins/scenarios/http
 	./test/plugins/scenarios/go-restfulv3
 	./test/plugins/scenarios/gorm
+	./test/plugins/scenarios/kratosv2
 
 	./test/plugins/scenarios/plugin_exclusion
 

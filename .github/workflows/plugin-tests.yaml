@@ -61,6 +61,7 @@ jobs:
           - dubbo
           - go-restfulv3
           - gorm
+          - kratosv2
           - plugin_exclusion
     steps:
       - uses: actions/checkout@v2

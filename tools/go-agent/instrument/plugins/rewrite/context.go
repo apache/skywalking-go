@@ -20,6 +20,7 @@ package rewrite
 import (
 	"fmt"
 	"go/parser"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -33,11 +34,13 @@ import (
 	"github.com/apache/skywalking-go/tools/go-agent/tools"
 )
 
-var GenerateMethodPrefix = "_skywalking_enhance_"
-var GenerateVarPrefix = "_skywalking_var_"
+var GenerateCommonPrefix = "_skywalking_"
+
+var GenerateMethodPrefix = GenerateCommonPrefix + "enhance_"
+var GenerateVarPrefix = GenerateCommonPrefix + "var_"
 var OperatorDirs = []string{"operator", "log", "tracing"}
 
-var OperatePrefix = "skywalkingOperator"
+var OperatePrefix = GenerateCommonPrefix + "operator"
 var TypePrefix = OperatePrefix + "Type"
 var VarPrefix = OperatePrefix + "Var"
 var StaticMethodPrefix = OperatePrefix + "StaticMethod"
@@ -83,14 +86,39 @@ func (c *Context) IncludeNativeFiles(content string) error {
 	}
 
 	dstutil.Apply(parseFile, func(cursor *dstutil.Cursor) bool {
-		if tp, ok := cursor.Node().(*dst.TypeSpec); ok {
-			c.rewriteMapping.addTypeMapping(tp.Name.Name, tp.Name.Name)
+		switch n := cursor.Node().(type) {
+		case *dst.TypeSpec:
+			c.analyzeNativeFields(cursor.Parent().Decorations(), n.Name.Name)
+		case *dst.FuncDecl:
+			c.analyzeNativeFields(n.Decorations(), n.Name.Name)
 		}
 		return true
 	}, func(cursor *dstutil.Cursor) bool {
 		return true
 	})
 	return nil
+}
+
+func (c *Context) analyzeNativeFields(decorations *dst.NodeDecs, currentDeclareName string) {
+	allComments := decorations.Start.All()
+	for _, comment := range allComments {
+		name, typeName, nativeDirective := c.analyzeNativeTypeDirective(comment)
+		if nativeDirective {
+			c.rewriteMapping.addNativeTypeMapping(currentDeclareName, name, typeName)
+			break
+		}
+	}
+}
+
+func (c *Context) analyzeNativeTypeDirective(comment string) (packageName, typeName string, isNativeDirective bool) {
+	if !strings.HasPrefix(comment, "//skywalking:native") {
+		return "", "", false
+	}
+	info := strings.SplitN(comment, " ", 3)
+	if len(info) != 3 {
+		panic(fmt.Sprintf("failure to parse the skywalking:native directive: %s", comment))
+	}
+	return info[1], info[2], true
 }
 
 func (c *Context) enhanceVarNameWhenRewrite(fieldType dst.Expr) (oldName, replacedName string) {
@@ -135,6 +163,14 @@ func (c *Context) enhanceTypeNameWhenRewrite(fieldType dst.Expr, parent dst.Node
 			t.Name = mappingName
 			return "", ""
 		}
+		if native := c.rewriteMapping.findNativeTypeMapping(name); native != nil {
+			// change to the selector expr(package.type) and enhance
+			c.enhanceTypeNameWhenRewrite(&dst.SelectorExpr{
+				X:   dst.NewIdent(filepath.Base(native.packageName)),
+				Sel: dst.NewIdent(native.typeName),
+			}, parent, argIndex)
+			return "", ""
+		}
 		// if parent is function call, then the name should be method name
 		if _, ok := parent.(*dst.CallExpr); ok {
 			t.Name = fmt.Sprintf("%s%s%s", StaticMethodPrefix, c.currentPackageTitle, name)
@@ -173,12 +209,18 @@ func (c *Context) enhanceTypeNameWhenRewrite(fieldType dst.Expr, parent dst.Node
 					p.Type = pkgInfo.generateType(t.Sel.Name)
 				case *dst.ArrayType:
 					p.Elt = pkgInfo.generateType(t.Sel.Name)
+				case *dst.ValueSpec:
+					p.Type = pkgInfo.generateType(t.Sel.Name)
 				}
 			}
 		}
 		// if the method call
 		if v := c.rewriteMapping.findVarMappingName(pkgRefName.Name); v != "" {
 			t.X = dst.NewIdent(v)
+		}
+		// is the other package reference
+		if strings.HasPrefix(pkgRefName.Name, tools.OtherPackageRefPrefix) {
+			t.X = dst.NewIdent(pkgRefName.Name[len(tools.OtherPackageRefPrefix):])
 		}
 	case *dst.StarExpr:
 		return c.enhanceTypeNameWhenRewrite(t.X, t, -1)
@@ -273,12 +315,19 @@ type rewriteMapping struct {
 	// push or pop the names when the block statement is called
 	rewriteVarNames  []map[string]string
 	rewriteTypeNames []map[string]string
+	nativeTypes      map[string]*nativeType
+}
+
+type nativeType struct {
+	packageName string
+	typeName    string
 }
 
 func newRewriteFuncMapping(varNames, typeNames map[string]string) *rewriteMapping {
 	return &rewriteMapping{
 		rewriteVarNames:  []map[string]string{varNames},
 		rewriteTypeNames: []map[string]string{typeNames},
+		nativeTypes:      map[string]*nativeType{},
 	}
 }
 
@@ -288,6 +337,13 @@ func (m *rewriteMapping) addVarMapping(key, value string) {
 
 func (m *rewriteMapping) addTypeMapping(key, value string) {
 	m.rewriteTypeNames[len(m.rewriteTypeNames)-1][key] = value
+}
+
+func (m *rewriteMapping) addNativeTypeMapping(key, packageName, typeName string) {
+	m.nativeTypes[key] = &nativeType{
+		packageName: packageName,
+		typeName:    typeName,
+	}
 }
 
 func (m *rewriteMapping) pushBlockStack() {
@@ -316,4 +372,8 @@ func (m *rewriteMapping) findTypeMappingName(name string) string {
 		}
 	}
 	return ""
+}
+
+func (m *rewriteMapping) findNativeTypeMapping(name string) *nativeType {
+	return m.nativeTypes[name]
 }
