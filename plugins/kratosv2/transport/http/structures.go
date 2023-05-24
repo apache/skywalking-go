@@ -15,28 +15,24 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package rewrite
+package http
 
-import (
-	"fmt"
-	"strings"
+//skywalking:native github.com/go-kratos/kratos/v2/transport/http ClientOption
+type nativeClientOption func(*nativeClientOpts)
 
-	"github.com/dave/dst"
-)
+//skywalking:native github.com/go-kratos/kratos/v2/transport/http ClientOption
+type nativeClientOptionWithInterface func(interface{})
 
-func (c *Context) Var(val *dst.ValueSpec, onlyName bool) {
-	if len(val.Names) == 1 {
-		oldName := val.Names[0].Name
-		if !strings.HasPrefix(oldName, GenerateCommonPrefix) {
-			val.Names[0] = dst.NewIdent(fmt.Sprintf("%s%s%s", VarPrefix, c.currentPackageTitle, oldName))
-			c.rewriteMapping.addVarMapping(oldName, val.Names[0].Name)
-		}
-	}
-	if onlyName {
-		return
-	}
-	c.enhanceTypeNameWhenRewrite(val.Type, val, -1)
-	for _, subVal := range val.Values {
-		c.enhanceTypeNameWhenRewrite(subVal, val, -1)
-	}
+//skywalking:native github.com/go-kratos/kratos/v2/transport/http clientOptions
+type nativeClientOpts struct {
+}
+
+//skywalking:native github.com/go-kratos/kratos/v2/transport/http Client
+type nativeClient struct {
+	opts nativeClientOpts
+}
+
+//skywalking:native github.com/go-kratos/kratos/v2/transport/http WithMiddleware
+func nativeClientWithMiddleware(interface{}) nativeClientOptionWithInterface {
+	return nil
 }

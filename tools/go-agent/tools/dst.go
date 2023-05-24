@@ -248,24 +248,32 @@ func (i *ImportAnalyzer) AnalyzeNeedsImports(filePath string, fields *dst.FieldL
 	}
 
 	for _, f := range fields.List {
-		switch n := f.Type.(type) {
-		case *dst.Ident:
-			continue
-		case *dst.SelectorExpr:
-			pkgRefName, ok := n.X.(*dst.Ident)
-			if !ok {
-				continue
-			}
-			imports := i.imports[filePath]
-			if imports == nil {
-				continue
-			}
-			spec := imports[pkgRefName.Name]
-			if spec == nil {
-				continue
-			}
-			i.usedImports[pkgRefName.Name] = spec
+		i.analyzeFieldImport(filePath, f.Type)
+	}
+}
+
+func (i *ImportAnalyzer) analyzeFieldImport(filePath string, exp dst.Expr) {
+	switch n := exp.(type) {
+	case *dst.Ident:
+		return
+	case *dst.SelectorExpr:
+		pkgRefName, ok := n.X.(*dst.Ident)
+		if !ok {
+			return
 		}
+		imports := i.imports[filePath]
+		if imports == nil {
+			return
+		}
+		spec := imports[pkgRefName.Name]
+		if spec == nil {
+			return
+		}
+		i.usedImports[pkgRefName.Name] = spec
+	case *dst.Ellipsis:
+		i.analyzeFieldImport(filePath, n.Elt)
+	case *dst.ArrayType:
+		i.analyzeFieldImport(filePath, n.Elt)
 	}
 }
 

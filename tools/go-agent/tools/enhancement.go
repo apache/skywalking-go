@@ -26,6 +26,7 @@ import (
 )
 
 const interfaceName = "interface{}"
+const OtherPackageRefPrefix = "swref_"
 
 type ParameterInfo struct {
 	Name                 string
@@ -180,6 +181,15 @@ func addPackagePrefixForArgsAndClone(pkg string, tp dst.Expr) dst.Expr {
 		expr := dst.Clone(tp).(*dst.Ellipsis)
 		expr.Elt = addPackagePrefixForArgsAndClone(pkg, t.Elt)
 		return expr
+	case *dst.SelectorExpr:
+		exp := dst.Clone(tp).(*dst.SelectorExpr)
+		// if also contains a package prefix, then it could be reffed a package with same name
+		// Such as current package name is "grpc", and ref another package named "grpc"
+		// Usually it's used on a wrapper plugin
+		if sel, ok := t.X.(*dst.Ident); ok && sel.Name == pkg {
+			exp.X = dst.NewIdent(OtherPackageRefPrefix + pkg)
+		}
+		return exp
 	default:
 		return dst.Clone(tp).(dst.Expr)
 	}

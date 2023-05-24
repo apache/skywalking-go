@@ -200,7 +200,7 @@ func (m *MethodEnhance) BuildForDelegator() []dst.Decl {
 	for inx, f := range m.Results {
 		postFunc.Type.Params.List = append(postFunc.Type.Params.List, &dst.Field{
 			Names: []*dst.Ident{dst.NewIdent(fmt.Sprintf("ret_%d", inx))},
-			Type:  &dst.StarExpr{X: m.addPackagePrefixForArgsAndClone(m.packageName, f.Type)},
+			Type:  &dst.StarExpr{X: f.PackagedType()},
 		})
 	}
 	afterFile, err := templatesFS.ReadFile("templates/method_intercept_after.tmpl")
@@ -220,26 +220,6 @@ func (m *MethodEnhance) changeTypeIfNeeds(tp dst.Expr) dst.Expr {
 		return &dst.ArrayType{Elt: el.Elt}
 	}
 	return tp
-}
-
-func (m *MethodEnhance) addPackagePrefixForArgsAndClone(pkg string, tp dst.Expr) dst.Expr {
-	switch t := tp.(type) {
-	case *dst.Ident:
-		if tools.IsBasicDataType(t.Name) {
-			return dst.Clone(tp).(dst.Expr)
-		}
-		// otherwise, add the package prefix
-		return &dst.SelectorExpr{
-			X:   dst.NewIdent(pkg),
-			Sel: dst.NewIdent(t.Name),
-		}
-	case *dst.StarExpr:
-		expr := dst.Clone(tp).(*dst.StarExpr)
-		expr.X = m.addPackagePrefixForArgsAndClone(pkg, t.X)
-		return expr
-	default:
-		return dst.Clone(tp).(dst.Expr)
-	}
 }
 
 func (m *MethodEnhance) ReplaceFileContent(path, content string) string {

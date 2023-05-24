@@ -20,6 +20,7 @@ package rewrite
 import (
 	"fmt"
 	"go/parser"
+	"go/token"
 	"path/filepath"
 
 	"github.com/apache/skywalking-go/tools/go-agent/tools"
@@ -55,12 +56,23 @@ func NewFileWithDebug(packageName, fileName, data, debugBaseDir string) *FileInf
 func (c *Context) MultipleFilesWithWritten(writeFileNamePrefix, targetDir, fromPackage string,
 	originalFiles []*FileInfo) ([]string, error) {
 	result := make([]string, 0)
+	c.currentPackageTitle = c.titleCase.String(fromPackage)
 
+	// parse all files
+	files := make(map[*FileInfo]*dst.File)
 	for _, f := range originalFiles {
 		parseFile, err := decorator.ParseFile(nil, f.FileName, f.FileData, parser.ParseComments)
 		if err != nil {
 			return nil, err
 		}
+		files[f] = parseFile
+	}
+
+	// register all top level vars, encase it cannot be found
+	c.rewriteTopLevelVarFirst(files)
+
+	var err error
+	for f, parseFile := range files {
 		var debugInfo *tools.DebugInfo
 		if f.DebugBaseDir != "" {
 			debugInfo, err = tools.BuildDSTDebugInfo(filepath.Join(f.DebugBaseDir, f.FileName), parseFile)
@@ -97,7 +109,7 @@ func (c *Context) processSingleFile(file *dst.File, fromPackage string) {
 		case *dst.TypeSpec:
 			c.Type(n)
 		case *dst.ValueSpec:
-			c.Var(n)
+			c.Var(n, false)
 		default:
 			return true
 		}
@@ -108,4 +120,29 @@ func (c *Context) processSingleFile(file *dst.File, fromPackage string) {
 
 	// remove the import decl if empty
 	tools.RemoveImportDefineIfNoPackage(file)
+}
+
+func (c *Context) rewriteTopLevelVarFirst(files map[*FileInfo]*dst.File) {
+	for _, f := range files {
+		dstutil.Apply(f, func(cursor *dstutil.Cursor) bool {
+			switch n := cursor.Node().(type) {
+			case *dst.FuncDecl:
+			case *dst.ImportSpec:
+			case *dst.TypeSpec:
+			case *dst.GenDecl:
+				if n.Tok == token.VAR && cursor.Parent() == f {
+					for _, spec := range n.Specs {
+						if valueSpec, ok := spec.(*dst.ValueSpec); ok {
+							c.Var(valueSpec, true)
+						}
+					}
+				}
+			default:
+				return true
+			}
+			return false
+		}, func(cursor *dstutil.Cursor) bool {
+			return true
+		})
+	}
 }

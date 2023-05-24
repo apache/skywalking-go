@@ -139,7 +139,7 @@ func (c *Context) enhanceFuncStmt(stmt dst.Stmt) {
 				}
 			}
 		case *dst.ValueSpec:
-			c.Var(n)
+			c.Var(n, false)
 		default:
 			return true
 		}
