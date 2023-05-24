@@ -205,12 +205,12 @@ func goroutineChange(tls interface{}) interface{} {
 			GlobalLoggerSetMethodName:     consts.GlobalLoggerSetMethodName,
 			GlobalLoggerGetMethodName:     consts.GlobalLoggerGetMethodName,
 			GoroutineIDGetterMethodName:   consts.CurrentGoroutineIDGetMethodName,
-			GoroutineIDCaster:             r.generateCastGoId("getg().m.curg.goid"),
+			GoroutineIDCaster:             r.generateCastGoID("getg().m.curg.goid"),
 		}),
 	})
 }
 
-func (r *Instrument) generateCastGoId(val string) string {
+func (r *Instrument) generateCastGoID(val string) string {
 	switch r.goIDType {
 	case "int64":
 		return val
