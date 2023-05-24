@@ -27,6 +27,7 @@ import (
 )
 
 type Instrument struct {
+	goIDType string
 }
 
 func NewInstrument() *Instrument {
@@ -46,6 +47,11 @@ func (r *Instrument) FilterAndEdit(path string, curFile *dst.File, cursor *dstut
 		st, ok := n.Type.(*dst.StructType)
 		if !ok {
 			return false
+		}
+		for _, f := range st.Fields.List {
+			if len(f.Names) > 0 && f.Names[0].Name == "goid" {
+				r.goIDType = f.Type.(*dst.Ident).Name
+			}
 		}
 		// append the tls field
 		st.Fields.List = append(st.Fields.List, &dst.Field{
@@ -128,7 +134,7 @@ var {{.GoroutineIDGetterMethodName}} = _skywalking_get_goid_impl
 
 //go:nosplit
 func _skywalking_get_goid_impl() int64 {
-	return getg().m.curg.goid
+	return {{.GoroutineIDCaster}}
 }
 
 //go:nosplit
@@ -186,6 +192,7 @@ func goroutineChange(tls interface{}) interface{} {
 			GlobalLoggerSetMethodName     string
 			GlobalLoggerGetMethodName     string
 			GoroutineIDGetterMethodName   string
+			GoroutineIDCaster             string
 		}{
 			TLSFiledName:                  consts.TLSFieldName,
 			TLSGetMethod:                  consts.TLSGetMethodName,
@@ -198,6 +205,22 @@ func goroutineChange(tls interface{}) interface{} {
 			GlobalLoggerSetMethodName:     consts.GlobalLoggerSetMethodName,
 			GlobalLoggerGetMethodName:     consts.GlobalLoggerGetMethodName,
 			GoroutineIDGetterMethodName:   consts.CurrentGoroutineIDGetMethodName,
+			GoroutineIDCaster:             r.generateCastGoId("getg().m.curg.goid"),
 		}),
 	})
+}
+
+func (r *Instrument) generateCastGoId(val string) string {
+	switch r.goIDType {
+	case "int64":
+		return val
+	case "uint64":
+	case "int32":
+	case "uint32":
+	case "int":
+	case "uint":
+	default:
+		panic("cannot find goid type in the g struct or the type is not supported: " + r.goIDType)
+	}
+	return "int64(" + val + ")"
 }
