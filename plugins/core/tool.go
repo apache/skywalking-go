@@ -44,11 +44,6 @@ func UUID() (string, error) {
 	return strings.ReplaceAll(id.String(), "-", ""), nil
 }
 
-// GenerateGlobalID generates global unique id
-func GenerateGlobalID() (globalID string, err error) {
-	return UUID()
-}
-
 func ProcessNo() string {
 	if os.Getpid() > 0 {
 		return strconv.Itoa(os.Getpid())

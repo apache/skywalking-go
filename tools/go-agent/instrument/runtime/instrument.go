@@ -92,6 +92,7 @@ func (r *Instrument) AfterEnhanceFile(fromPath, newPath string) error {
 	return nil
 }
 
+// nolint
 func (r *Instrument) WriteExtraFiles(dir string) ([]string, error) {
 	return tools.WriteMultipleFile(dir, map[string]string{
 		"skywalking_tls_operator.go": tools.ExecuteTemplate(`package runtime
@@ -121,6 +122,14 @@ var {{.GlobalLoggerSetMethodName}} = _skywalking_global_logger_set_impl
 
 //go:linkname {{.GlobalLoggerGetMethodName}} {{.GlobalLoggerGetMethodName}}
 var {{.GlobalLoggerGetMethodName}} = _skywalking_global_logger_get_impl
+
+//go:linkname {{.GoroutineIDGetterMethodName}} {{.GoroutineIDGetterMethodName}}
+var {{.GoroutineIDGetterMethodName}} = _skywalking_get_goid_impl
+
+//go:nosplit
+func _skywalking_get_goid_impl() int64 {
+	return getg().m.curg.goid
+}
 
 //go:nosplit
 func _skywalking_tls_get_impl() interface{} {
@@ -176,6 +185,7 @@ func goroutineChange(tls interface{}) interface{} {
 			GlobalLoggerFieldName         string
 			GlobalLoggerSetMethodName     string
 			GlobalLoggerGetMethodName     string
+			GoroutineIDGetterMethodName   string
 		}{
 			TLSFiledName:                  consts.TLSFieldName,
 			TLSGetMethod:                  consts.TLSGetMethodName,
@@ -187,6 +197,7 @@ func goroutineChange(tls interface{}) interface{} {
 			GlobalLoggerFieldName:         consts.GlobalLoggerFieldName,
 			GlobalLoggerSetMethodName:     consts.GlobalLoggerSetMethodName,
 			GlobalLoggerGetMethodName:     consts.GlobalLoggerGetMethodName,
+			GoroutineIDGetterMethodName:   consts.CurrentGoroutineIDGetMethodName,
 		}),
 	})
 }

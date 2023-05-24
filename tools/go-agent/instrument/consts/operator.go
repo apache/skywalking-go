@@ -27,4 +27,6 @@ const (
 	GlobalTracerGetMethodName = "_skywalking_get_global_operator"
 	GlobalLoggerSetMethodName = "_skywalking_set_global_logger"
 	GlobalLoggerGetMethodName = "_skywalking_get_global_logger"
+
+	CurrentGoroutineIDGetMethodName = "_skywalking_get_goid"
 )
