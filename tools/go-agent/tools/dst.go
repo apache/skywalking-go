@@ -34,6 +34,8 @@ import (
 	"github.com/dave/dst/dstutil"
 )
 
+var packageImportExp = regexp.MustCompile(`^(\S+\s+)?"(.+)"$`)
+
 func ChangePackageImportPath(file dst.Node, pkgChanges map[string]string) {
 	dstutil.Apply(file, func(cursor *dstutil.Cursor) bool {
 		if n, ok := cursor.Node().(*dst.ImportSpec); ok {
@@ -367,13 +369,13 @@ func findFirstNoImportLocation(fset *token.FileSet, file *ast.File, fileContent 
 		}
 		break
 	}
-	if pos == 0 {
-		if len(file.Decls) > 0 {
-			return fset.Position(file.Decls[0].Pos()).Line, nil
-		}
-		return 1, nil
-	}
 	importEndLine := fset.Position(pos).Line
+	if pos == 0 {
+		if len(file.Decls) == 0 {
+			return 1, nil
+		}
+		importEndLine = fset.Position(file.Decls[0].Pos()).Line
+	}
 	lineNumber := 0
 	for {
 		line, err := fileContent.ReadBytes('\n')
@@ -385,7 +387,9 @@ func findFirstNoImportLocation(fset *token.FileSet, file *ast.File, fileContent 
 			continue
 		}
 		trimed := strings.TrimSpace(string(line))
-		if trimed == "" || trimed == ")" {
+		if trimed == "" || trimed == ")" ||
+			(strings.HasPrefix(trimed, "import ")) ||
+			(packageImportExp.MatchString(trimed)) {
 			continue
 		}
 		return lineNumber, nil

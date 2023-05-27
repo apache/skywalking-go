@@ -242,15 +242,9 @@ func (i *Instrument) copyFrameworkFS(context *rewrite.Context, compilePkgFullPat
 		if err1 != nil {
 			return nil, err1
 		}
-		// ignore nocopy files
-		if bytes.Contains(readFile, []byte("//skywalking:nocopy")) {
-			continue
-		}
-		// if the file contains native structures, then added for ignore rewrite
-		if bytes.Contains(readFile, []byte("//skywalking:native")) {
-			if e := context.IncludeNativeFiles(string(readFile)); e != nil {
-				return nil, e
-			}
+		if shouldContinue, err1 := i.fileShouldBeIgnore(context, readFile); err1 != nil {
+			return nil, err1
+		} else if shouldContinue {
 			continue
 		}
 
@@ -262,6 +256,22 @@ func (i *Instrument) copyFrameworkFS(context *rewrite.Context, compilePkgFullPat
 		return nil, err
 	}
 	return rewrited, nil
+}
+
+func (i *Instrument) fileShouldBeIgnore(ctx *rewrite.Context, fileContent []byte) (bool, error) {
+	// ignore nocopy files
+	if bytes.Contains(fileContent, []byte(consts.DirecitveNoCopy)) {
+		return true, nil
+	}
+	// if the file contains native structures or reference to generate types, then added for ignore rewrite
+	if bytes.Contains(fileContent, []byte(consts.DirectiveNative)) ||
+		bytes.Contains(fileContent, []byte(consts.DirectiveReferenceGenerate)) {
+		if e := ctx.IncludeNativeOrReferenceGenerateFiles(string(fileContent)); e != nil {
+			return true, e
+		}
+		return true, nil
+	}
+	return false, nil
 }
 
 func (i *Instrument) copyOperatorsFS(context *rewrite.Context, baseDir, packageName string) ([]string, error) {

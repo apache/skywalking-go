@@ -62,6 +62,7 @@ jobs:
           - go-restfulv3
           - gorm
           - kratosv2
+          - microv4
           - plugin_exclusion
     steps:
       - uses: actions/checkout@v2

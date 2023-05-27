@@ -18,6 +18,8 @@
 package http
 
 import (
+	"bufio"
+	"net"
 	"net/http"
 	"testing"
 	"time"
@@ -53,6 +55,60 @@ func TestServerInvoke(t *testing.T) {
 	assert.Greater(t, spans[0].EndTime(), spans[0].StartTime(), "end time should be greater than start time")
 }
 
+func TestServerInvokeWithHijack(t *testing.T) {
+	defer core.ResetTracingContext()
+
+	interceptor := &ServerInterceptor{}
+	request, err := http.NewRequest("GET", "http://localhost/", http.NoBody)
+	assert.Nil(t, err, "new request error should be nil")
+	responseWriter := &testResponseWriter{}
+	invocation := operator.NewInvocation(nil, responseWriter, request)
+	err = interceptor.BeforeInvoke(invocation)
+	assert.Nil(t, err, "before invoke error should be nil")
+	assert.NotNil(t, invocation.GetContext(), "context should not be nil")
+
+	// hijack
+	time.Sleep(100 * time.Millisecond)
+	assert.NotNil(t, invocation.GetContext(), "context should not be nil")
+	// it should be wrapped by interceptor
+	changedResponseWriter := invocation.GetContext().(*writerWrapper)
+	conn, _, err := changedResponseWriter.Hijack()
+	assert.Nil(t, err, "hijack error should be nil")
+	assert.NotNil(t, conn, "conn should not be nil")
+	assert.Equal(t, true, changedResponseWriter.hijacked, "hijacked should be true")
+	assert.NotNil(t, changedResponseWriter.span, "span should not be nil")
+
+	err = interceptor.AfterInvoke(invocation)
+	assert.Nil(t, err, "after invoke error should be nil")
+	spans := core.GetReportedSpans()
+	assert.Equal(t, 0, len(spans), "spans length should be 1")
+
+	err = conn.Close()
+	assert.Nil(t, err, "close error should be nil")
+
+	time.Sleep(100 * time.Millisecond)
+
+	spans = core.GetReportedSpans()
+	assert.NotNil(t, spans, "spans should not be nil")
+	assert.Equal(t, 1, len(spans), "spans length should be 1")
+	assert.Equal(t, "GET:/", spans[0].OperationName(), "operation name should be GET:/")
+	assert.Nil(t, spans[0].Refs(), "refs should be nil")
+	assert.Greater(t, spans[0].EndTime(), spans[0].StartTime(), "end time should be greater than start time")
+}
+
 type testResponseWriter struct {
 	http.ResponseWriter
+}
+
+func (t *testResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	listen, err := net.Listen("tcp", ":0")
+	if err != nil {
+		return nil, nil, err
+	}
+	defer listen.Close()
+	dial, err := net.Dial(listen.Addr().Network(), listen.Addr().String())
+	if err != nil {
+		return nil, nil, err
+	}
+	return dial, nil, nil
 }

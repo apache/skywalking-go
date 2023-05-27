@@ -1,0 +1,85 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+segmentItems:
+  - serviceName: micro-server
+    segmentSize: ge 1
+    segments:
+      - segmentId: not null
+        spans:
+          - operationName: go.micro.srv.greeter.Say.Hello
+            parentSpanId: 0
+            spanId: 1
+            spanLayer: RPCFramework
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 5009
+            isError: false
+            spanType: Local
+            peer: ''
+            skipAnalysis: false
+          - operationName: POST:/
+            parentSpanId: -1
+            spanId: 0
+            spanLayer: Http
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 5004
+            isError: false
+            spanType: Entry
+            peer: ''
+            skipAnalysis: false
+            tags:
+              - {key: http.method, value: POST}
+              - {key: url, value: '127.0.0.1:8888/'}
+              - {key: status_code, value: '200'}
+            refs:
+              - {parentEndpoint: 'GET:/consumer', networkAddress: not null, refType: CrossProcess,
+                 parentSpanId: 1, parentTraceSegmentId: not null, parentServiceInstance: not null,
+                 parentService: micro-client, traceId: not null}
+  - serviceName: micro-client
+    segmentSize: ge 1
+    segments:
+      - segmentId: not null
+        spans:
+          - operationName: go.micro.srv.greeter.Say.Hello
+            parentSpanId: 0
+            spanId: 1
+            spanLayer: RPCFramework
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 5008
+            isError: false
+            spanType: Exit
+            peer: '127.0.0.1:8888'
+            skipAnalysis: false
+          - operationName: GET:/consumer
+            parentSpanId: -1
+            spanId: 0
+            spanLayer: Http
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 5004
+            isError: false
+            spanType: Entry
+            peer: ''
+            skipAnalysis: false
+            tags:
+              - {key: http.method, value: GET}
+              - {key: url, value: 'service:8080/consumer'}
+              - {key: status_code, value: '200'}
+meterItems: []
+logItems: []

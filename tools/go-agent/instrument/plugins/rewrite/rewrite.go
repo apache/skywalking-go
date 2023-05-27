@@ -73,6 +73,10 @@ func (c *Context) MultipleFilesWithWritten(writeFileNamePrefix, targetDir, fromP
 
 	var err error
 	for f, parseFile := range files {
+		c.processSingleFile(parseFile, fromPackage)
+		targetPath := filepath.Join(targetDir,
+			fmt.Sprintf("%s%s_%s", writeFileNamePrefix, f.PackageName, filepath.Base(f.FileName)))
+
 		var debugInfo *tools.DebugInfo
 		if f.DebugBaseDir != "" {
 			debugInfo, err = tools.BuildDSTDebugInfo(filepath.Join(f.DebugBaseDir, f.FileName), parseFile)
@@ -80,10 +84,6 @@ func (c *Context) MultipleFilesWithWritten(writeFileNamePrefix, targetDir, fromP
 				return nil, err
 			}
 		}
-
-		c.processSingleFile(parseFile, fromPackage)
-		targetPath := filepath.Join(targetDir,
-			fmt.Sprintf("%s%s_%s", writeFileNamePrefix, f.PackageName, filepath.Base(f.FileName)))
 		if err := tools.WriteDSTFile(targetPath, parseFile, debugInfo); err != nil {
 			return nil, err
 		}
@@ -98,6 +98,7 @@ func (c *Context) SingleFile(file *dst.File) {
 }
 
 func (c *Context) processSingleFile(file *dst.File, fromPackage string) {
+	c.currentProcessingFile = file
 	c.currentPackageTitle = c.titleCase.String(fromPackage)
 	file.Name.Name = c.targetPackage
 	dstutil.Apply(file, func(cursor *dstutil.Cursor) bool {
