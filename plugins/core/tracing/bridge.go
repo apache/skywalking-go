@@ -17,8 +17,17 @@
 
 package tracing
 
+type AsyncSpan interface {
+	// PrepareAsync the span finished at current tracing context, but current span is still alive until AsyncFinish called
+	PrepareAsync()
+	// AsyncFinish to finished current async span
+	AsyncFinish()
+}
+
 // AdaptSpan for adapt with agent core
 type AdaptSpan interface {
+	AsyncSpan
+
 	GetTraceID() string
 	GetSegmentID() string
 	GetSpanID() int32
@@ -78,4 +87,12 @@ func (s *SpanWrapper) Error(v ...string) {
 
 func (s *SpanWrapper) End() {
 	s.Span.End()
+}
+
+func (s *SpanWrapper) PrepareAsync() {
+	s.Span.PrepareAsync()
+}
+
+func (s *SpanWrapper) AsyncFinish() {
+	s.Span.AsyncFinish()
 }

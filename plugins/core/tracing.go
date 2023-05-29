@@ -27,6 +27,8 @@ import (
 	"github.com/apache/skywalking-go/plugins/core/tracing"
 )
 
+var snapshotType = reflect.TypeOf(&SnapshotSpan{})
+
 func (t *Tracer) Tracing() interface{} {
 	return t
 }
@@ -48,7 +50,7 @@ func (t *Tracer) CreateEntrySpan(operationName string, extractor interface{}, op
 		saveSpanToActiveIfNotError(ctx, s, err)
 	}()
 	// if parent span is entry span, then use parent span as result
-	if tracingSpan != nil && tracingSpan.IsEntry() {
+	if tracingSpan != nil && tracingSpan.IsEntry() && reflect.ValueOf(tracingSpan).Type() != snapshotType {
 		tracingSpan.SetOperationName(operationName)
 		return tracingSpan, nil
 	}
@@ -85,7 +87,7 @@ func (t *Tracer) CreateExitSpan(operationName, peer string, injector interface{}
 	}()
 
 	// if parent span is exit span, then use parent span as result
-	if tracingSpan != nil && tracingSpan.IsExit() {
+	if tracingSpan != nil && tracingSpan.IsExit() && reflect.ValueOf(tracingSpan).Type() != snapshotType {
 		return tracingSpan, nil
 	}
 	span, err := t.createSpan0(ctx, tracingSpan, opts, withSpanType(SpanTypeExit), withOperationName(operationName), withPeer(peer))

@@ -100,12 +100,23 @@ func (s *SegmentSpanImpl) End() {
 	if !s.IsValid() {
 		return
 	}
-	s.DefaultSpan.End()
-	go func() {
-		s.SegmentContext.collect <- s
-	}()
+	s.DefaultSpan.End(true)
+	s.end0()
 }
 
+func (s *SegmentSpanImpl) AsyncFinish() {
+	s.DefaultSpan.AsyncFinish()
+	s.DefaultSpan.End(false)
+	s.end0()
+}
+
+func (s *SegmentSpanImpl) end0() {
+	if !s.DefaultSpan.InAsyncMode || s.DefaultSpan.AsyncModeFinished {
+		go func() {
+			s.SegmentContext.collect <- s
+		}()
+	}
+}
 func (s *SegmentSpanImpl) GetDefaultSpan() *DefaultSpan {
 	return &s.DefaultSpan
 }
@@ -220,10 +231,22 @@ func (rs *RootSegmentSpan) End() {
 	if !rs.IsValid() {
 		return
 	}
-	rs.DefaultSpan.End()
-	go func() {
-		rs.doneCh <- atomic.SwapInt32(rs.SegmentContext.refNum, -1)
-	}()
+	rs.DefaultSpan.End(true)
+	rs.end0()
+}
+
+func (rs *RootSegmentSpan) AsyncFinish() {
+	rs.DefaultSpan.AsyncFinish()
+	rs.DefaultSpan.End(false)
+	rs.end0()
+}
+
+func (rs *RootSegmentSpan) end0() {
+	if !rs.InAsyncMode || rs.AsyncModeFinished {
+		go func() {
+			rs.doneCh <- atomic.SwapInt32(rs.SegmentContext.refNum, -1)
+		}()
+	}
 }
 
 func (rs *RootSegmentSpan) createRootSegmentContext(ctx *TracingContext, _ SegmentSpan) (err error) {
@@ -293,6 +316,14 @@ func (s *SnapshotSpan) segmentRegister() bool {
 			return true
 		}
 	}
+}
+
+func (s *SnapshotSpan) PrepareAsync() {
+	panic("please use the PrepareAsync on right goroutine")
+}
+
+func (s *SnapshotSpan) AsyncFinish() {
+	panic("please use the AsyncFinish on right goroutine")
 }
 
 func newSegmentRoot(segmentSpan *SegmentSpanImpl) *RootSegmentSpan {

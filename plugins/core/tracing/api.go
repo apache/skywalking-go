@@ -188,3 +188,7 @@ func (n *NoopSpan) Error(...string) {
 }
 func (n *NoopSpan) End() {
 }
+func (n *NoopSpan) PrepareAsync() {
+}
+func (n *NoopSpan) AsyncFinish() {
+}
