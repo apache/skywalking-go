@@ -93,3 +93,9 @@ func (*NoopSpan) IsValid() bool {
 func (n *NoopSpan) ParentSpan() TracingSpan {
 	return nil
 }
+
+func (n *NoopSpan) PrepareAsync() {
+}
+
+func (n *NoopSpan) AsyncFinish() {
+}

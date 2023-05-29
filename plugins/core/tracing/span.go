@@ -104,6 +104,9 @@ type InjectorWrapper interface {
 
 // Span for plugin API
 type Span interface {
+	// AsyncSpan Async API
+	AsyncSpan
+
 	// TraceID of span
 	TraceID() string
 	// TraceSegmentID current segment ID of span
