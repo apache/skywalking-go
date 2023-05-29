@@ -31,13 +31,13 @@ func (c *Context) Type(tp *dst.TypeSpec) {
 	// define interface type, ex: "type xxx interface {}"
 	if inter, ok := tp.Type.(*dst.InterfaceType); ok {
 		for _, method := range inter.Methods.List {
-			funcType, ok := method.Type.(*dst.FuncType)
-			if !ok {
-				continue
+			switch t := method.Type.(type) {
+			case *dst.Ident:
+				c.enhanceTypeNameWhenRewrite(t, tp.Type, -1)
+			case *dst.FuncType:
+				c.enhanceFuncParameter(t.Params)
+				c.enhanceFuncParameter(t.Results)
 			}
-
-			c.enhanceFuncParameter(funcType.Params)
-			c.enhanceFuncParameter(funcType.Results)
 		}
 	}
 

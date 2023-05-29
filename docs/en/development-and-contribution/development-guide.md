@@ -347,6 +347,8 @@ After creating a Span, you can perform additional operations on it.
 ```go
 // Span for plugin API
 type Span interface {
+	// AsyncSpan for the async API
+	AsyncSpan
 	// Tag set the Tag of the Span
 	Tag(Tag, string)
 	// SetSpanLayer set the SpanLayer of the Span
@@ -363,6 +365,28 @@ type Span interface {
 	End()
 }
 ```
+
+#### Async Span
+
+There is a set of advanced APIs in Span which is specifically designed for async use cases.
+When setting name, tags, logs, and other operations (including end span) of the span in another goroutine, you should use these APIs.
+
+```go
+type AsyncSpan interface {
+    // PrepareAsync the span finished at current tracing context, but current span is still alive until AsyncFinish called
+    PrepareAsync()
+    // AsyncFinish to finished current async span
+    AsyncFinish()
+}
+```
+
+Following the previous API define, you should following these steps to use the async API:
+1. Call `span.PrepareAsync()` to prepare the span to do any operation in another goroutine.
+2. Use `Span.End()` in the original goroutine when your job in the current goroutine is complete.
+3. Propagate the span to any other goroutine in your plugin.
+4. Once the above steps are all set, call `span.AsyncFinish()` in any goroutine.
+5. When the `span.AsyncFinish()` is complete for all spans, the all spans would be finished and report to the backend.
+
 
 ## Import Plugin
 
