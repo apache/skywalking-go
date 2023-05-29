@@ -368,8 +368,8 @@ type Span interface {
 
 #### Async Span
 
-There is a set of advanced APIs in Span which is specifically designed for async use cases. 
-When set operation name, add tags, add logs, and set attributes (including end span) of the span need to be set in another goroutine, you should use these APIs.
+There is a set of advanced APIs in Span which is specifically designed for async use cases.
+When setting name, tags, logs, and other operations (including end span) of the span in another goroutine, you should use these APIs.
 
 ```go
 type AsyncSpan interface {
