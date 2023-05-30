@@ -377,6 +377,8 @@ type AsyncSpan interface {
     PrepareAsync()
     // AsyncFinish to finished current async span
     AsyncFinish()
+	// ContinueContext continue the current span to the tracing context
+	ContinueContext()
 }
 ```
 
@@ -387,6 +389,8 @@ Following the previous API define, you should following these steps to use the a
 4. Once the above steps are all set, call `span.AsyncFinish()` in any goroutine.
 5. When the `span.AsyncFinish()` is complete for all spans, the all spans would be finished and report to the backend.
 
+When a Span has already executed `PrepareAsync` and has finished in the goroutine, 
+if you want to continue the async Span to the Tracing Context within an asynchronous goroutine, please execute the `ContinueContext` method.
 
 ## Import Plugin
 

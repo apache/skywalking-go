@@ -15,24 +15,36 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package microv4
+package socket
 
 import (
 	"github.com/apache/skywalking-go/plugins/core/operator"
-
-	"go-micro.dev/v4"
+	"github.com/apache/skywalking-go/plugins/core/tracing"
 )
 
-type NewServiceInterceptor struct {
+type AcceptInterceptor struct {
 }
 
-func (n *NewServiceInterceptor) BeforeInvoke(invocation operator.Invocation) error {
-	options := invocation.Args()[0].([]micro.Option)
-	options = append(options, micro.WrapClient(NewClientWrapper))
-	invocation.ChangeArg(0, options)
+func (n *AcceptInterceptor) BeforeInvoke(invocation operator.Invocation) error {
 	return nil
 }
 
-func (n *NewServiceInterceptor) AfterInvoke(invocation operator.Invocation, results ...interface{}) error {
+func (n *AcceptInterceptor) AfterInvoke(invocation operator.Invocation, results ...interface{}) error {
+	// error != nil then ignore
+	if results[0] != nil {
+		return nil
+	}
+	span := tracing.ActiveSpan()
+	if span == nil {
+		return nil
+	}
+	instance := invocation.CallerInstance().(operator.EnhancedInstance)
+	if _, existingSpan := instance.GetSkyWalkingDynamicField().(tracing.Span); existingSpan {
+		return nil
+	}
+
+	span.PrepareAsync()
+	span.End()
+	instance.SetSkyWalkingDynamicField(span)
 	return nil
 }

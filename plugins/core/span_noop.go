@@ -99,3 +99,6 @@ func (n *NoopSpan) PrepareAsync() {
 
 func (n *NoopSpan) AsyncFinish() {
 }
+
+func (n *NoopSpan) ContinueContext() {
+}

@@ -190,5 +190,4 @@ func (ds *DefaultSpan) AsyncFinish() {
 		panic("already finished async")
 	}
 	ds.AsyncModeFinished = true
-	ds.AsyncOpLocker = nil
 }

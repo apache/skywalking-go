@@ -22,6 +22,8 @@ type AsyncSpan interface {
 	PrepareAsync()
 	// AsyncFinish to finished current async span
 	AsyncFinish()
+	// ContinueContext continue the current span to the tracing context
+	ContinueContext()
 }
 
 // AdaptSpan for adapt with agent core
@@ -61,12 +63,12 @@ func (s *SpanWrapper) SpanID() int32 {
 	return s.Span.GetSpanID()
 }
 
-func (s *SpanWrapper) Tag(k Tag, v string) {
-	s.Span.Tag(string(k), v)
+func (s *SpanWrapper) Tag(k, v string) {
+	s.Span.Tag(k, v)
 }
 
-func (s *SpanWrapper) SetSpanLayer(l SpanLayer) {
-	s.Span.SetSpanLayer(int32(l))
+func (s *SpanWrapper) SetSpanLayer(l int32) {
+	s.Span.SetSpanLayer(l)
 }
 
 func (s *SpanWrapper) SetOperationName(name string) {
@@ -79,6 +81,10 @@ func (s *SpanWrapper) SetPeer(v string) {
 
 func (s *SpanWrapper) Log(v ...string) {
 	s.Span.Log(v...)
+}
+
+func (s *SpanWrapper) SetComponent(v int32) {
+	s.Span.SetComponent(v)
 }
 
 func (s *SpanWrapper) Error(v ...string) {
@@ -95,4 +101,8 @@ func (s *SpanWrapper) PrepareAsync() {
 
 func (s *SpanWrapper) AsyncFinish() {
 	s.Span.AsyncFinish()
+}
+
+func (s *SpanWrapper) ContinueContext() {
+	s.Span.ContinueContext()
 }

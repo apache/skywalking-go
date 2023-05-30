@@ -21,23 +21,12 @@ segmentItems:
       - segmentId: not null
         spans:
           - operationName: go.micro.srv.greeter.Say.Hello
-            parentSpanId: 0
-            spanId: 1
+            parentSpanId: -1
+            spanId: 0
             spanLayer: RPCFramework
             startTime: nq 0
             endTime: nq 0
             componentId: 5009
-            isError: false
-            spanType: Local
-            peer: ''
-            skipAnalysis: false
-          - operationName: POST:/
-            parentSpanId: -1
-            spanId: 0
-            spanLayer: Http
-            startTime: nq 0
-            endTime: nq 0
-            componentId: 5004
             isError: false
             spanType: Entry
             peer: ''
@@ -45,7 +34,6 @@ segmentItems:
             tags:
               - {key: http.method, value: POST}
               - {key: url, value: '127.0.0.1:8888/'}
-              - {key: status_code, value: '200'}
             refs:
               - {parentEndpoint: 'GET:/consumer', networkAddress: not null, refType: CrossProcess,
                  parentSpanId: 1, parentTraceSegmentId: not null, parentServiceInstance: not null,

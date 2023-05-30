@@ -170,7 +170,7 @@ func (m *MethodEnhance) BuildForDelegator() []dst.Decl {
 		})
 	}
 	preFunc.Type.Results.List = append(preFunc.Type.Results.List, &dst.Field{
-		Names: []*dst.Ident{dst.NewIdent("inv")},
+		Names: []*dst.Ident{dst.NewIdent("invocation")},
 		Type:  &dst.StarExpr{X: &dst.SelectorExpr{X: dst.NewIdent("operator"), Sel: dst.NewIdent("realInvocation")}},
 	}, &dst.Field{
 		Names: []*dst.Ident{dst.NewIdent("skip")},

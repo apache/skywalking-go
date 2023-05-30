@@ -19,7 +19,6 @@ package main
 
 import (
 	"context"
-	"go-micro.dev/v4/client"
 	"log"
 	"net/http"
 
@@ -37,7 +36,7 @@ func main() {
 	cl := hello.NewSayService("go.micro.srv.greeter", service.Client())
 
 	http.HandleFunc("/consumer", func(writer http.ResponseWriter, request *http.Request) {
-		resp, err := cl.Hello(context.Background(), &hello.Request{Name: "John"}, client.WithConnClose())
+		resp, err := cl.Hello(context.Background(), &hello.Request{Name: "John"})
 		if err != nil {
 			_, _ = writer.Write([]byte(err.Error()))
 			return

@@ -20,26 +20,65 @@ package server
 import (
 	"context"
 
-	"go-micro.dev/v4/server"
-
+	"github.com/apache/skywalking-go/plugins/core/operator"
+	"github.com/apache/skywalking-go/plugins/core/tools"
 	"github.com/apache/skywalking-go/plugins/core/tracing"
+
+	"go-micro.dev/v4/metadata"
+	"go-micro.dev/v4/server"
+	"go-micro.dev/v4/transport"
 )
 
-//skywalking:public
-func NewServerWrapper(fn server.HandlerFunc) server.HandlerFunc {
-	return func(ctx context.Context, req server.Request, rsp interface{}) error {
-		// the entry span should be some other frameworks, such as http.
-		span, err := tracing.CreateLocalSpan(req.Service()+"."+req.Endpoint(),
-			tracing.WithComponent(5009),
-			tracing.WithLayer(tracing.SpanLayerRPCFramework))
-		if err != nil {
-			return err
-		}
+var microComponentID int32 = 5009
 
-		defer span.End()
-		if err = fn(ctx, req, rsp); err != nil {
-			span.Error(err.Error())
-		}
+type ServeRequestInterceptor struct {
+}
+
+func (n *ServeRequestInterceptor) BeforeInvoke(invocation operator.Invocation) error {
+	span, err := creatingSpan(invocation.Args()[0].(context.Context), invocation.Args()[1].(server.Request))
+	if err != nil {
 		return err
 	}
+	invocation.SetContext(span)
+	return nil
+}
+
+func (n *ServeRequestInterceptor) AfterInvoke(invocation operator.Invocation, results ...interface{}) error {
+	if invocation.GetContext() == nil {
+		return nil
+	}
+	invocation.GetContext().(tracing.Span).End()
+	return nil
+}
+
+func creatingSpan(ctx context.Context, req server.Request) (tracing.Span, error) {
+	endpoint := req.Service() + "." + req.Endpoint()
+	if s := getExistingSpan(req); s != nil {
+		s.SetOperationName(endpoint)
+		s.SetSpanLayer(tracing.SpanLayerRPCFramework)
+		s.SetComponent(microComponentID)
+		// continue the span to the tracing context
+		s.ContinueContext()
+		return s, nil
+	}
+	return tracing.CreateEntrySpan(endpoint, func(headerKey string) (string, error) {
+		al, _ := metadata.Get(ctx, headerKey)
+		return al, nil
+	}, tracing.WithComponent(microComponentID),
+		tracing.WithLayer(tracing.SpanLayerRPCFramework))
+}
+
+func getExistingSpan(req server.Request) tracing.Span {
+	socketVal := tools.GetInstanceValueByType(req, tools.WithInterfaceType((*transport.Socket)(nil)))
+	if socketVal == nil {
+		return nil
+	}
+	instance, ok := socketVal.(operator.EnhancedInstance)
+	if !ok || instance.GetSkyWalkingDynamicField() == nil {
+		return nil
+	}
+	if ins, ok := instance.GetSkyWalkingDynamicField().(tracing.Span); ok {
+		return ins
+	}
+	return nil
 }

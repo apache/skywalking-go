@@ -5,7 +5,7 @@ defer func() {
 		    "{{.InstrumentName}}", "{{.InterceptorDefineName}}", "{{.FuncID}}", err, tracing.DebugStack())
 	}
 }()
-invocation := &operator.realInvocation{}
+invocation = &operator.realInvocation{}
 {{if .Recvs -}}
 invocation.callerInstance = *recv_0	// for caller if exist
 {{- end}}

@@ -276,6 +276,8 @@ func (i *ImportAnalyzer) analyzeFieldImport(filePath string, exp dst.Expr) {
 		i.analyzeFieldImport(filePath, n.Elt)
 	case *dst.ArrayType:
 		i.analyzeFieldImport(filePath, n.Elt)
+	case *dst.StarExpr:
+		i.analyzeFieldImport(filePath, n.X)
 	}
 }
 

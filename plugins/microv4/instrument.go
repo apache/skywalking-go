@@ -67,7 +67,34 @@ func (i *Instrument) Points() []*instrument.Point {
 		},
 		{
 			PackagePath: "server",
-			At:          instrument.NewStructEnhance("rpcServer"),
+			At: instrument.NewMethodEnhance("*router", "ServeRequest",
+				instrument.WithArgsCount(3),
+				instrument.WithArgType(0, "context.Context"),
+				instrument.WithArgType(1, "Request"), instrument.WithArgType(2, "Response"),
+				instrument.WithResultCount(1),
+				instrument.WithResultType(0, "error")),
+			Interceptor: "ServeRequestInterceptor",
+		},
+		{
+			PackagePath: "util/socket",
+			At:          instrument.NewStructEnhance("Socket"),
+		},
+		{
+			PackagePath: "util/socket",
+			At: instrument.NewMethodEnhance("*Socket", "Accept",
+				instrument.WithArgsCount(1),
+				instrument.WithArgType(0, "*transport.Message"),
+				instrument.WithResultCount(1),
+				instrument.WithResultType(0, "error")),
+			Interceptor: "AcceptInterceptor",
+		},
+		{
+			PackagePath: "util/socket",
+			At: instrument.NewMethodEnhance("*Socket", "Close",
+				instrument.WithArgsCount(0),
+				instrument.WithResultCount(1),
+				instrument.WithResultType(0, "error")),
+			Interceptor: "CloseInterceptor",
 		},
 	}
 }

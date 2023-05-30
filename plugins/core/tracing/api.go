@@ -176,11 +176,11 @@ func (n *NoopSpan) SetOperationName(string) {
 }
 func (n *NoopSpan) SetPeer(string) {
 }
-func (n *NoopSpan) SetSpanLayer(SpanLayer) {
+func (n *NoopSpan) SetSpanLayer(int32) {
 }
 func (n *NoopSpan) SetComponent(int32) {
 }
-func (n *NoopSpan) Tag(Tag, string) {
+func (n *NoopSpan) Tag(string, string) {
 }
 func (n *NoopSpan) Log(...string) {
 }
@@ -191,4 +191,6 @@ func (n *NoopSpan) End() {
 func (n *NoopSpan) PrepareAsync() {
 }
 func (n *NoopSpan) AsyncFinish() {
+}
+func (n *NoopSpan) ContinueContext() {
 }
