@@ -40,7 +40,11 @@ func (c *Context) Func(funcDecl *dst.FuncDecl, cursor *dstutil.Cursor) {
 	if funcDecl.Recv == nil {
 		// if the method name is generated, then ignore to enhance(for adapter)
 		if !strings.HasPrefix(funcDecl.Name.Name, GenerateMethodPrefix) {
-			funcDecl.Name = dst.NewIdent(fmt.Sprintf("%s%s%s", StaticMethodPrefix, c.currentPackageTitle, funcDecl.Name.Name))
+			prefix := StaticMethodPrefix
+			if ContainsPublicDirective(funcDecl.Decorations()) {
+				prefix = c.titleCase.String(GenerateMethodPrefix)
+			}
+			funcDecl.Name = dst.NewIdent(fmt.Sprintf("%s%s%s", prefix, c.currentPackageTitle, funcDecl.Name.Name))
 		}
 	} else if len(funcDecl.Recv.List) == 1 {
 		// if contains the receiver, then enhance the receiver type

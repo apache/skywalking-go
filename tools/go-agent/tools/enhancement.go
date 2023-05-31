@@ -20,6 +20,7 @@ package tools
 import (
 	"fmt"
 	"go/token"
+	"strings"
 
 	"github.com/dave/dst"
 	"github.com/dave/dst/decorator"
@@ -116,17 +117,21 @@ func newParameterInfo(name string, tp dst.Expr) *ParameterInfo {
 	}
 	var defaultNil = "nil"
 	switch n := tp.(type) {
-	case *dst.StarExpr:
-		result.DefaultValueAsString = defaultNil
+	case *dst.Ident:
+		if n.Name == "string" {
+			defaultNil = `""`
+		} else if n.Name == "bool" {
+			defaultNil = "false"
+		} else if strings.HasPrefix(n.Name, "int") || strings.HasPrefix(n.Name, "uint") ||
+			strings.HasPrefix(n.Name, "float") || n.Name == "byte" || n.Name == "rune" {
+			defaultNil = "0"
+		}
 	case *dst.UnaryExpr:
 		if n.Op == token.INT || n.Op == token.FLOAT {
-			result.DefaultValueAsString = "0"
-		} else {
-			result.DefaultValueAsString = defaultNil
+			defaultNil = "0"
 		}
-	default:
-		result.DefaultValueAsString = defaultNil
 	}
+	result.DefaultValueAsString = defaultNil
 
 	return result
 }

@@ -101,7 +101,9 @@ func (s *SegmentSpanImpl) End() {
 		return
 	}
 	s.DefaultSpan.End(true)
-	s.end0()
+	if !s.DefaultSpan.InAsyncMode {
+		s.end0()
+	}
 }
 
 func (s *SegmentSpanImpl) AsyncFinish() {
@@ -111,11 +113,9 @@ func (s *SegmentSpanImpl) AsyncFinish() {
 }
 
 func (s *SegmentSpanImpl) end0() {
-	if !s.DefaultSpan.InAsyncMode || s.DefaultSpan.AsyncModeFinished {
-		go func() {
-			s.SegmentContext.collect <- s
-		}()
-	}
+	go func() {
+		s.SegmentContext.collect <- s
+	}()
 }
 func (s *SegmentSpanImpl) GetDefaultSpan() *DefaultSpan {
 	return &s.DefaultSpan
@@ -232,7 +232,9 @@ func (rs *RootSegmentSpan) End() {
 		return
 	}
 	rs.DefaultSpan.End(true)
-	rs.end0()
+	if !rs.InAsyncMode {
+		rs.end0()
+	}
 }
 
 func (rs *RootSegmentSpan) AsyncFinish() {
@@ -242,11 +244,9 @@ func (rs *RootSegmentSpan) AsyncFinish() {
 }
 
 func (rs *RootSegmentSpan) end0() {
-	if !rs.InAsyncMode || rs.AsyncModeFinished {
-		go func() {
-			rs.doneCh <- atomic.SwapInt32(rs.SegmentContext.refNum, -1)
-		}()
-	}
+	go func() {
+		rs.doneCh <- atomic.SwapInt32(rs.SegmentContext.refNum, -1)
+	}()
 }
 
 func (rs *RootSegmentSpan) createRootSegmentContext(ctx *TracingContext, _ SegmentSpan) (err error) {

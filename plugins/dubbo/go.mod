@@ -5,6 +5,7 @@ go 1.18
 require dubbo.apache.org/dubbo-go/v3 v3.0.5
 
 require (
+	github.com/BurntSushi/toml v1.2.0 // indirect
 	github.com/Workiva/go-datastructures v1.0.52 // indirect
 	github.com/dubbogo/gost v1.13.2 // indirect
 	github.com/google/uuid v1.3.0 // indirect

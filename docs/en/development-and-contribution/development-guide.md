@@ -387,6 +387,26 @@ Following the previous API define, you should following these steps to use the a
 4. Once the above steps are all set, call `span.AsyncFinish()` in any goroutine.
 5. When the `span.AsyncFinish()` is complete for all spans, the all spans would be finished and report to the backend.
 
+#### Tracing Context Operation
+
+In the Go Agent, Trace Context would continue cross goroutines automatically by default.
+However, in some cases, goroutine would be context sharing due to be scheduled by the pool mechanism. Consider these advanced APIs to manipulate context and switch the current context.
+
+```go
+// CaptureContext capture current tracing context in the current goroutine.
+func CaptureContext() ContextSnapshot
+
+// ContinueContext continue the tracing context in the current goroutine.
+func ContinueContext(ctx ContextSnapshot)
+
+// CleanContext clean the tracing context in the current goroutine.
+func CleanContext()
+```
+
+Typically, use APIs as following to control or switch the context:
+1. Use `tracing.CaptureContext()` to get the ContextSnapshot object.
+2. Propagate the snapshot context to any other goroutine in your plugin.
+3. Use `tracing.ContinueContext(snapshot)` to continue the snapshot context in the target goroutine.
 
 ## Import Plugin
 

@@ -34,6 +34,7 @@ import (
 	_ "sync"
 	_ "sync/atomic"
 	_ "time"
+	_ "unsafe"
 
 	//go:nolint
 	_ "github.com/apache/skywalking-go/agent/core/operator"

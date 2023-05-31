@@ -144,6 +144,46 @@ func (t *Tracer) SetRuntimeContextValue(key string, value interface{}) {
 	context.Runtime.Set(key, value)
 }
 
+func (t *Tracer) CaptureContext() interface{} {
+	ctx := getTracingContext()
+	if ctx == nil {
+		return nil
+	}
+	snapshot := &ContextSnapshot{
+		activeSpan: newSnapshotSpan(ctx.ActiveSpan()),
+		runtime:    ctx.Runtime.clone(),
+	}
+	return snapshot
+}
+
+func (t *Tracer) ContinueContext(snapshot interface{}) {
+	if snapshot == nil {
+		return
+	}
+	if snap, ok := snapshot.(*ContextSnapshot); ok {
+		ctx := getTracingContext()
+		if ctx == nil {
+			ctx = NewTracingContext()
+			SetGLS(ctx)
+		}
+		ctx.activeSpan = snap.activeSpan
+		ctx.Runtime = snap.runtime
+	}
+}
+
+func (t *Tracer) CleanContext() {
+	SetGLS(nil)
+}
+
+type ContextSnapshot struct {
+	activeSpan TracingSpan
+	runtime    *RuntimeContext
+}
+
+func (s *ContextSnapshot) IsValid() bool {
+	return s.activeSpan != nil && s.runtime != nil
+}
+
 func (t *Tracer) createNoop() (*TracingContext, TracingSpan, bool) {
 	if !t.InitSuccess() || t.Reporter.ConnectionStatus() == reporter.ConnectionStatusDisconnect {
 		return nil, &NoopSpan{}, true

@@ -44,6 +44,8 @@ type Tracer struct {
 	Log      *LogWrapper
 	// correlation *CorrelationConfig	// temporarily disable, because haven't been implemented yet
 	cdsWatchers []reporter.AgentConfigChangeWatcher
+	// for plugin tools
+	tools *TracerTools
 }
 
 func (t *Tracer) Init(entity *reporter.Entity, rep reporter.Reporter, samp Sampler, logger operator.LogOperator) error {
@@ -60,6 +62,10 @@ func (t *Tracer) Init(entity *reporter.Entity, rep reporter.Reporter, samp Sampl
 
 func (t *Tracer) Entity() interface{} {
 	return t.ServiceEntity
+}
+
+func (t *Tracer) Tools() interface{} {
+	return t.tools
 }
 
 func NewEntity(service, instanceEnvName string) *reporter.Entity {
@@ -88,6 +94,7 @@ func newTracer() *Tracer {
 		Sampler:     NewConstSampler(false),
 		Log:         &LogWrapper{newDefaultLogger()},
 		cdsWatchers: make([]reporter.AgentConfigChangeWatcher, 0),
+		tools:       NewTracerTools(),
 	}
 }
 

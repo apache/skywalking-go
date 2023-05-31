@@ -17,7 +17,11 @@ if err := {{.InterceptorVarName}}.AfterInvoke(invocation{{ range $index, $value 
 }
 
 if (invocation.isContinue) {
-	{{ range $index, $value := .Results -}}
-    *ret_{{$index}} = (invocation.returnValues[{{$index}}]).({{$value.PackagedTypeName}})
-    {{ end -}}
+	{{- range $index, $value := .Results }}
+	if invocation.returnValues[{{$index}}] != nil {
+        *ret_{{$index}} = (invocation.returnValues[{{$index}}]).({{$value.PackagedTypeName}})
+    } else {
+        *ret_{{$index}} = {{$value.DefaultValueAsString}}
+    }
+    {{- end }}
 }

@@ -19,6 +19,7 @@ package rewrite
 
 import (
 	"fmt"
+	"go/token"
 	"path/filepath"
 
 	"github.com/apache/skywalking-go/tools/go-agent/instrument/agentcore"
@@ -54,4 +55,55 @@ func (c *Context) Import(imp *dst.ImportSpec, cursor *dstutil.Cursor) {
 		}
 		cursor.Delete()
 	}
+}
+
+func (c *Context) AddingImportToCurrentFile(name, path string) {
+	// if needs to been added package same with current package, then ignore
+	if c.pkgFullPath == path {
+		return
+	}
+	var latestImport *dst.GenDecl
+	var containsPath bool
+	dstutil.Apply(c.currentProcessingFile, func(cursor *dstutil.Cursor) bool {
+		if gen, ok := cursor.Node().(*dst.GenDecl); ok && gen.Tok == token.IMPORT {
+			latestImport = gen
+			for _, spec := range gen.Specs {
+				if imp, ok := spec.(*dst.ImportSpec); ok && imp.Path.Value == fmt.Sprintf("%q", path) {
+					containsPath = true
+				}
+			}
+			return false
+		}
+		// reduce the looping
+		if cursor.Node() == c.currentProcessingFile {
+			return true
+		}
+		return false
+	}, func(cursor *dstutil.Cursor) bool {
+		return true
+	})
+
+	// if already contains the path, then ignore
+	if containsPath {
+		return
+	}
+
+	// if import not found, then create one and add to the file
+	if latestImport == nil {
+		latestImport = &dst.GenDecl{
+			Tok:   token.IMPORT,
+			Specs: []dst.Spec{},
+		}
+		c.currentProcessingFile.Decls = append([]dst.Decl{latestImport}, c.currentProcessingFile.Decls...)
+	}
+
+	// adding the import
+	imp := &dst.ImportSpec{
+		Path: &dst.BasicLit{
+			Kind:  token.STRING,
+			Value: fmt.Sprintf("%q", path),
+		},
+		Name: dst.NewIdent(name),
+	}
+	latestImport.Specs = append(latestImport.Specs, imp)
 }

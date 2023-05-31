@@ -68,11 +68,15 @@ func (c *Context) MultipleFilesWithWritten(writeFileNamePrefix, targetDir, fromP
 		files[f] = parseFile
 	}
 
-	// register all top level vars, encase it cannot be found
-	c.rewriteTopLevelVarFirst(files)
+	// register all top level vars, types, encase it cannot be found
+	c.rewriteTopLevelNames(files)
 
 	var err error
 	for f, parseFile := range files {
+		c.processSingleFile(parseFile, fromPackage)
+		targetPath := filepath.Join(targetDir,
+			fmt.Sprintf("%s%s_%s", writeFileNamePrefix, f.PackageName, filepath.Base(f.FileName)))
+
 		var debugInfo *tools.DebugInfo
 		if f.DebugBaseDir != "" {
 			debugInfo, err = tools.BuildDSTDebugInfo(filepath.Join(f.DebugBaseDir, f.FileName), parseFile)
@@ -80,10 +84,6 @@ func (c *Context) MultipleFilesWithWritten(writeFileNamePrefix, targetDir, fromP
 				return nil, err
 			}
 		}
-
-		c.processSingleFile(parseFile, fromPackage)
-		targetPath := filepath.Join(targetDir,
-			fmt.Sprintf("%s%s_%s", writeFileNamePrefix, f.PackageName, filepath.Base(f.FileName)))
 		if err := tools.WriteDSTFile(targetPath, parseFile, debugInfo); err != nil {
 			return nil, err
 		}
@@ -98,6 +98,7 @@ func (c *Context) SingleFile(file *dst.File) {
 }
 
 func (c *Context) processSingleFile(file *dst.File, fromPackage string) {
+	c.currentProcessingFile = file
 	c.currentPackageTitle = c.titleCase.String(fromPackage)
 	file.Name.Name = c.targetPackage
 	dstutil.Apply(file, func(cursor *dstutil.Cursor) bool {
@@ -107,7 +108,7 @@ func (c *Context) processSingleFile(file *dst.File, fromPackage string) {
 		case *dst.ImportSpec:
 			c.Import(n, cursor)
 		case *dst.TypeSpec:
-			c.Type(n)
+			c.Type(n, cursor.Parent(), false)
 		case *dst.ValueSpec:
 			c.Var(n, false)
 		default:
@@ -122,7 +123,7 @@ func (c *Context) processSingleFile(file *dst.File, fromPackage string) {
 	tools.RemoveImportDefineIfNoPackage(file)
 }
 
-func (c *Context) rewriteTopLevelVarFirst(files map[*FileInfo]*dst.File) {
+func (c *Context) rewriteTopLevelNames(files map[*FileInfo]*dst.File) {
 	for _, f := range files {
 		dstutil.Apply(f, func(cursor *dstutil.Cursor) bool {
 			switch n := cursor.Node().(type) {
@@ -134,6 +135,12 @@ func (c *Context) rewriteTopLevelVarFirst(files map[*FileInfo]*dst.File) {
 					for _, spec := range n.Specs {
 						if valueSpec, ok := spec.(*dst.ValueSpec); ok {
 							c.Var(valueSpec, true)
+						}
+					}
+				} else if n.Tok == token.TYPE && cursor.Parent() == f {
+					for _, spec := range n.Specs {
+						if typeSpec, ok := spec.(*dst.TypeSpec); ok {
+							c.Type(typeSpec, n, true)
 						}
 					}
 				}

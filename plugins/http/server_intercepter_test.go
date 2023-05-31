@@ -18,6 +18,8 @@
 package http
 
 import (
+	"bufio"
+	"net"
 	"net/http"
 	"testing"
 	"time"
@@ -55,4 +57,17 @@ func TestServerInvoke(t *testing.T) {
 
 type testResponseWriter struct {
 	http.ResponseWriter
+}
+
+func (t *testResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	listen, err := net.Listen("tcp", ":0")
+	if err != nil {
+		return nil, nil, err
+	}
+	defer listen.Close()
+	dial, err := net.Dial(listen.Addr().Network(), listen.Addr().String())
+	if err != nil {
+		return nil, nil, err
+	}
+	return dial, nil, nil
 }

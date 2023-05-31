@@ -23,10 +23,15 @@ import (
 	"github.com/dave/dst"
 )
 
-func (c *Context) Type(tp *dst.TypeSpec) {
+func (c *Context) Type(tp *dst.TypeSpec, parent dst.Node, onlyName bool) {
 	oldName := tp.Name.Name
-	tp.Name = dst.NewIdent(fmt.Sprintf("%s%s%s", TypePrefix, c.currentPackageTitle, oldName))
-	c.rewriteMapping.addTypeMapping(oldName, tp.Name.Name)
+	if !c.alreadyGenerated(oldName) {
+		tp.Name = dst.NewIdent(fmt.Sprintf("%s%s%s", c.generateTypePrefix(parent), c.currentPackageTitle, oldName))
+		c.rewriteMapping.addTypeMapping(oldName, tp.Name.Name)
+	}
+	if onlyName {
+		return
+	}
 
 	// define interface type, ex: "type xxx interface {}"
 	if inter, ok := tp.Type.(*dst.InterfaceType); ok {
@@ -53,4 +58,12 @@ func (c *Context) Type(tp *dst.TypeSpec) {
 			c.enhanceTypeNameWhenRewrite(field.Type, field, -1)
 		}
 	}
+}
+
+func (c *Context) generateTypePrefix(parent dst.Node) string {
+	prefix := TypePrefix
+	if parent == nil || !ContainsPublicDirective(parent.Decorations()) {
+		return prefix
+	}
+	return c.titleCase.String(TypePrefix)
 }
