@@ -389,12 +389,12 @@ Following the previous API define, you should following these steps to use the a
 
 #### Tracing Context Operation
 
-In the Go Agent, by default, passes a snapshot of the current Tracing Context when crossing goroutines. 
-However, if you prefer manual management of the Tracing Context across multiple goroutines, please use the following APIs.
+In the Go Agent, Trace Context would continue cross goroutines automatically by default.
+However, in some cases, goroutine would be context sharing due to be scheduled by the pool mechanism. Consider these advanced APIs to manipulate context and switch the current context.
 
 ```go
 // CaptureContext capture current tracing context in the current goroutine.
-func CaptureContext()
+func CaptureContext() ContextSnapshot
 
 // ContinueContext continue the tracing context in the current goroutine.
 func ContinueContext(ctx ContextSnapshot)
