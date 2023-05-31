@@ -47,3 +47,5 @@ catalog:
           path: /en/development-and-contribution/running-and-debugging
         - name: Build and Use Agent from source codes
           path: /en/development-and-contribution/build-and-use-agent
+        - name: How to Release
+          path: /en/development-and-contribution/how-to-release
