@@ -57,8 +57,6 @@ func creatingSpan(ctx context.Context, req server.Request) (tracing.Span, error)
 		s.SetOperationName(endpoint)
 		s.SetSpanLayer(tracing.SpanLayerRPCFramework)
 		s.SetComponent(microComponentID)
-		// continue the span to the tracing context
-		s.ContinueContext()
 		return s, nil
 	}
 	return tracing.CreateEntrySpan(endpoint, func(headerKey string) (string, error) {
@@ -77,8 +75,10 @@ func getExistingSpan(req server.Request) tracing.Span {
 	if !ok || instance.GetSkyWalkingDynamicField() == nil {
 		return nil
 	}
-	if ins, ok := instance.GetSkyWalkingDynamicField().(tracing.Span); ok {
-		return ins
+	injected, ok := instance.GetSkyWalkingDynamicField().(*InjectData)
+	if !ok {
+		return nil
 	}
-	return nil
+	tracing.ContinueContext(injected.Snapshot)
+	return injected.Span
 }

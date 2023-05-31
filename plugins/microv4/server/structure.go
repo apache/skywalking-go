@@ -15,26 +15,12 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package socket
+package server
 
-import (
-	"github.com/apache/skywalking-go/plugins/core/operator"
-)
+import "github.com/apache/skywalking-go/plugins/core/tracing"
 
-type CloseInterceptor struct {
-}
-
-func (n *CloseInterceptor) BeforeInvoke(invocation operator.Invocation) error {
-	return nil
-}
-
-func (n *CloseInterceptor) AfterInvoke(invocation operator.Invocation, results ...interface{}) error {
-	instance := invocation.CallerInstance().(operator.EnhancedInstance)
-	span := instance.GetSkyWalkingDynamicField()
-	if span == nil {
-		return nil
-	}
-	span.(*InjectData).Span.AsyncFinish()
-	instance.SetSkyWalkingDynamicField(nil)
-	return nil
+//skywalking:ref_generate go-micro.dev/v4/util/socket InjectData
+type InjectData struct {
+	Span     tracing.Span
+	Snapshot tracing.ContextSnapshot
 }

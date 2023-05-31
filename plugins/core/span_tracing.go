@@ -179,17 +179,6 @@ func (s *SegmentSpanImpl) tracer() *Tracer {
 	return s.DefaultSpan.tracer
 }
 
-func (s *SegmentSpanImpl) ContinueContext() {
-	if !s.InAsyncMode {
-		panic("not in async mode")
-	}
-	context := getTracingContext()
-	if context == nil {
-		context = NewTracingContext()
-	}
-	saveSpanToActiveIfNotError(context, s, nil)
-}
-
 func (s *SegmentSpanImpl) segmentRegister() bool {
 	for {
 		o := atomic.LoadInt32(s.SegmentContext.refNum)
@@ -252,17 +241,6 @@ func (rs *RootSegmentSpan) AsyncFinish() {
 	rs.DefaultSpan.AsyncFinish()
 	rs.DefaultSpan.End(false)
 	rs.end0()
-}
-
-func (rs *RootSegmentSpan) ContinueContext() {
-	if !rs.InAsyncMode {
-		panic("not in async mode")
-	}
-	context := getTracingContext()
-	if context == nil {
-		context = NewTracingContext()
-	}
-	saveSpanToActiveIfNotError(context, rs, nil)
 }
 
 func (rs *RootSegmentSpan) end0() {
@@ -346,10 +324,6 @@ func (s *SnapshotSpan) PrepareAsync() {
 
 func (s *SnapshotSpan) AsyncFinish() {
 	panic("please use the AsyncFinish on right goroutine")
-}
-
-func (s *SnapshotSpan) ContinueContext() {
-	panic("please use the ContinueContext on right goroutine")
 }
 
 func newSegmentRoot(segmentSpan *SegmentSpanImpl) *RootSegmentSpan {

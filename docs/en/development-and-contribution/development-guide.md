@@ -377,8 +377,6 @@ type AsyncSpan interface {
     PrepareAsync()
     // AsyncFinish to finished current async span
     AsyncFinish()
-	// ContinueContext continue the current span to the tracing context
-	ContinueContext()
 }
 ```
 
@@ -389,8 +387,26 @@ Following the previous API define, you should following these steps to use the a
 4. Once the above steps are all set, call `span.AsyncFinish()` in any goroutine.
 5. When the `span.AsyncFinish()` is complete for all spans, the all spans would be finished and report to the backend.
 
-When a Span has already executed `PrepareAsync` and has finished in the goroutine, 
-if you want to continue the async Span to the Tracing Context within an asynchronous goroutine, please execute the `ContinueContext` method.
+#### Tracing Context Operation
+
+In the Go Agent, by default, passes a snapshot of the current Tracing Context when crossing goroutines. 
+However, if you prefer manual management of the Tracing Context across multiple goroutines, please use the following APIs.
+
+```go
+// CaptureContext capture current tracing context in the current goroutine.
+func CaptureContext()
+
+// ContinueContext continue the tracing context in the current goroutine.
+func ContinueContext(ctx ContextSnapshot)
+
+// CleanContext clean the tracing context in the current goroutine.
+func CleanContext()
+```
+
+Following the previous API define, you should following these steps to use the tracing context API:
+1. Use `tracing.CaptureContext()` to get the ContextSnapshot object.
+2. Propagate the snapshot context to any other goroutine in your plugin.
+3. Use `tracing.ContinueContext(snapshot)` to continue the snapshot context in the target goroutine.
 
 ## Import Plugin
 

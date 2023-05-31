@@ -22,6 +22,12 @@ import (
 	"github.com/apache/skywalking-go/plugins/core/tracing"
 )
 
+//skywalking:public
+type InjectData struct {
+	Span     tracing.Span
+	Snapshot tracing.ContextSnapshot
+}
+
 type AcceptInterceptor struct {
 }
 
@@ -39,12 +45,16 @@ func (n *AcceptInterceptor) AfterInvoke(invocation operator.Invocation, results 
 		return nil
 	}
 	instance := invocation.CallerInstance().(operator.EnhancedInstance)
-	if _, existingSpan := instance.GetSkyWalkingDynamicField().(tracing.Span); existingSpan {
+	if _, existingData := instance.GetSkyWalkingDynamicField().(*InjectData); existingData {
 		return nil
 	}
 
 	span.PrepareAsync()
+	context := tracing.CaptureContext()
 	span.End()
-	instance.SetSkyWalkingDynamicField(span)
+	instance.SetSkyWalkingDynamicField(&InjectData{
+		Span:     span,
+		Snapshot: context,
+	})
 	return nil
 }

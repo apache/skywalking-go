@@ -21,11 +21,12 @@ import (
 	"fmt"
 
 	"github.com/dave/dst"
+	"github.com/dave/dst/dstutil"
 )
 
-func (c *Context) Type(tp *dst.TypeSpec) {
+func (c *Context) Type(tp *dst.TypeSpec, cursor *dstutil.Cursor) {
 	oldName := tp.Name.Name
-	tp.Name = dst.NewIdent(fmt.Sprintf("%s%s%s", TypePrefix, c.currentPackageTitle, oldName))
+	tp.Name = dst.NewIdent(fmt.Sprintf("%s%s%s", c.generateTypePrefix(cursor), c.currentPackageTitle, oldName))
 	c.rewriteMapping.addTypeMapping(oldName, tp.Name.Name)
 
 	// define interface type, ex: "type xxx interface {}"
@@ -53,4 +54,12 @@ func (c *Context) Type(tp *dst.TypeSpec) {
 			c.enhanceTypeNameWhenRewrite(field.Type, field, -1)
 		}
 	}
+}
+
+func (c *Context) generateTypePrefix(cursor *dstutil.Cursor) string {
+	prefix := TypePrefix
+	if cursor == nil || !ContainsPublicDirective(cursor.Parent().Decorations()) {
+		return prefix
+	}
+	return c.titleCase.String(TypePrefix)
 }

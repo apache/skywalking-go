@@ -22,8 +22,6 @@ type AsyncSpan interface {
 	PrepareAsync()
 	// AsyncFinish to finished current async span
 	AsyncFinish()
-	// ContinueContext continue the current span to the tracing context
-	ContinueContext()
 }
 
 // AdaptSpan for adapt with agent core
@@ -101,8 +99,4 @@ func (s *SpanWrapper) PrepareAsync() {
 
 func (s *SpanWrapper) AsyncFinish() {
 	s.Span.AsyncFinish()
-}
-
-func (s *SpanWrapper) ContinueContext() {
-	s.Span.ContinueContext()
 }

@@ -400,6 +400,25 @@ func TestAsyncSpan(t *testing.T) {
 	assert.Greater(t, s.EndTime(), s.StartTime()+150, "span end time should be greater than start time + 150")
 }
 
+func TestContext(t *testing.T) {
+	defer ResetTracingContext()
+	span, err := tracing.CreateEntrySpan("/entry", func(key string) (string, error) { return "", nil })
+	assert.Nil(t, err, "create span error")
+	assert.NotNil(t, span, "span should not be nil")
+
+	snapshot := tracing.CaptureContext()
+	assert.NotNil(t, snapshot, "snapshot should not be nil")
+	assert.True(t, snapshot.IsValid(), "snapshot should be valid")
+
+	SetAsNewGoroutine()
+	tracing.ContinueContext(snapshot)
+	activeSpan := tracing.ActiveSpan()
+	assert.NotNil(t, activeSpan, "active span should not be nil")
+
+	tracing.CleanContext()
+	assert.Nil(t, tracing.ActiveSpan(), "active span should be nil")
+}
+
 func validateSpanOperation(t *testing.T, cases []spanOperationTestCase) {
 	for _, tt := range cases {
 		spans := make([]tracing.Span, 0)

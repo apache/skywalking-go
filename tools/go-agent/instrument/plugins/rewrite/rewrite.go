@@ -108,7 +108,7 @@ func (c *Context) processSingleFile(file *dst.File, fromPackage string) {
 		case *dst.ImportSpec:
 			c.Import(n, cursor)
 		case *dst.TypeSpec:
-			c.Type(n)
+			c.Type(n, cursor)
 		case *dst.ValueSpec:
 			c.Var(n, false)
 		default:

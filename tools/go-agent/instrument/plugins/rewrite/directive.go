@@ -23,8 +23,11 @@ import (
 	"github.com/dave/dst"
 )
 
-func ContainsPublicDirective(exp dst.Decl) bool {
-	for _, s := range exp.Decorations().Start.All() {
+func ContainsPublicDirective(desc *dst.NodeDecs) bool {
+	if desc == nil {
+		return false
+	}
+	for _, s := range desc.Start.All() {
 		if s == consts.DirectivePublic {
 			return true
 		}

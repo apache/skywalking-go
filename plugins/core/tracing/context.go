@@ -15,26 +15,8 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package socket
+package tracing
 
-import (
-	"github.com/apache/skywalking-go/plugins/core/operator"
-)
-
-type CloseInterceptor struct {
-}
-
-func (n *CloseInterceptor) BeforeInvoke(invocation operator.Invocation) error {
-	return nil
-}
-
-func (n *CloseInterceptor) AfterInvoke(invocation operator.Invocation, results ...interface{}) error {
-	instance := invocation.CallerInstance().(operator.EnhancedInstance)
-	span := instance.GetSkyWalkingDynamicField()
-	if span == nil {
-		return nil
-	}
-	span.(*InjectData).Span.AsyncFinish()
-	instance.SetSkyWalkingDynamicField(nil)
-	return nil
+type ContextSnapshot interface {
+	IsValid() bool
 }

@@ -41,7 +41,7 @@ func (c *Context) Func(funcDecl *dst.FuncDecl, cursor *dstutil.Cursor) {
 		// if the method name is generated, then ignore to enhance(for adapter)
 		if !strings.HasPrefix(funcDecl.Name.Name, GenerateMethodPrefix) {
 			prefix := StaticMethodPrefix
-			if ContainsPublicDirective(funcDecl) {
+			if ContainsPublicDirective(funcDecl.Decorations()) {
 				prefix = c.titleCase.String(GenerateMethodPrefix)
 			}
 			funcDecl.Name = dst.NewIdent(fmt.Sprintf("%s%s%s", prefix, c.currentPackageTitle, funcDecl.Name.Name))

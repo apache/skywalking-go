@@ -25,4 +25,8 @@ type TracingOperator interface {
 
 	GetRuntimeContextValue(key string) interface{}
 	SetRuntimeContextValue(key string, value interface{})
+
+	CaptureContext() interface{}
+	ContinueContext(interface{})
+	CleanContext()
 }
