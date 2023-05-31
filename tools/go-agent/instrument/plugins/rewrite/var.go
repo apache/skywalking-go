@@ -19,7 +19,6 @@ package rewrite
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/dave/dst"
 )
@@ -27,7 +26,7 @@ import (
 func (c *Context) Var(val *dst.ValueSpec, onlyName bool) {
 	if len(val.Names) == 1 {
 		oldName := val.Names[0].Name
-		if !strings.HasPrefix(oldName, GenerateCommonPrefix) {
+		if !c.alreadyGenerated(oldName) {
 			val.Names[0] = dst.NewIdent(fmt.Sprintf("%s%s%s", VarPrefix, c.currentPackageTitle, oldName))
 			c.rewriteMapping.addVarMapping(oldName, val.Names[0].Name)
 		}

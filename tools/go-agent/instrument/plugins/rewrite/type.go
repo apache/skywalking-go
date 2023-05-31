@@ -19,16 +19,14 @@ package rewrite
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/dave/dst"
-	"github.com/dave/dst/dstutil"
 )
 
-func (c *Context) Type(tp *dst.TypeSpec, cursor *dstutil.Cursor, onlyName bool) {
+func (c *Context) Type(tp *dst.TypeSpec, parent dst.Node, onlyName bool) {
 	oldName := tp.Name.Name
-	if !strings.HasPrefix(oldName, GenerateCommonPrefix) {
-		tp.Name = dst.NewIdent(fmt.Sprintf("%s%s%s", c.generateTypePrefix(cursor), c.currentPackageTitle, oldName))
+	if !c.alreadyGenerated(oldName) {
+		tp.Name = dst.NewIdent(fmt.Sprintf("%s%s%s", c.generateTypePrefix(parent), c.currentPackageTitle, oldName))
 		c.rewriteMapping.addTypeMapping(oldName, tp.Name.Name)
 	}
 	if onlyName {
@@ -62,9 +60,9 @@ func (c *Context) Type(tp *dst.TypeSpec, cursor *dstutil.Cursor, onlyName bool) 
 	}
 }
 
-func (c *Context) generateTypePrefix(cursor *dstutil.Cursor) string {
+func (c *Context) generateTypePrefix(parent dst.Node) string {
 	prefix := TypePrefix
-	if cursor == nil || !ContainsPublicDirective(cursor.Parent().Decorations()) {
+	if parent == nil || !ContainsPublicDirective(parent.Decorations()) {
 		return prefix
 	}
 	return c.titleCase.String(TypePrefix)

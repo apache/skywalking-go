@@ -338,6 +338,10 @@ func (c *Context) typeIsBasicTypeValueOrEnhanceName(name string) bool {
 	return false
 }
 
+func (c *Context) alreadyGenerated(name string) bool {
+	return strings.HasPrefix(name, GenerateCommonPrefix) || strings.HasPrefix(name, c.titleCase.String(GenerateCommonPrefix))
+}
+
 func (c *Context) callIsBasicNamesOrEnhanceName(name string) bool {
 	return strings.HasPrefix(name, OperatePrefix) || strings.HasPrefix(name, GenerateMethodPrefix) ||
 		name == "make" || name == "recover" || name == "len"
