@@ -403,7 +403,7 @@ func ContinueContext(ctx ContextSnapshot)
 func CleanContext()
 ```
 
-Following the previous API define, you should following these steps to use the tracing context API:
+Typically, use APIs as following to control or switch the context:
 1. Use `tracing.CaptureContext()` to get the ContextSnapshot object.
 2. Propagate the snapshot context to any other goroutine in your plugin.
 3. Use `tracing.ContinueContext(snapshot)` to continue the snapshot context in the target goroutine.
