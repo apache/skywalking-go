@@ -19,15 +19,21 @@ package rewrite
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/dave/dst"
 	"github.com/dave/dst/dstutil"
 )
 
-func (c *Context) Type(tp *dst.TypeSpec, cursor *dstutil.Cursor) {
+func (c *Context) Type(tp *dst.TypeSpec, cursor *dstutil.Cursor, onlyName bool) {
 	oldName := tp.Name.Name
-	tp.Name = dst.NewIdent(fmt.Sprintf("%s%s%s", c.generateTypePrefix(cursor), c.currentPackageTitle, oldName))
-	c.rewriteMapping.addTypeMapping(oldName, tp.Name.Name)
+	if !strings.HasPrefix(oldName, GenerateCommonPrefix) {
+		tp.Name = dst.NewIdent(fmt.Sprintf("%s%s%s", c.generateTypePrefix(cursor), c.currentPackageTitle, oldName))
+		c.rewriteMapping.addTypeMapping(oldName, tp.Name.Name)
+	}
+	if onlyName {
+		return
+	}
 
 	// define interface type, ex: "type xxx interface {}"
 	if inter, ok := tp.Type.(*dst.InterfaceType); ok {

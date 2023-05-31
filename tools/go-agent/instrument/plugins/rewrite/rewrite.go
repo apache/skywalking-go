@@ -108,7 +108,7 @@ func (c *Context) processSingleFile(file *dst.File, fromPackage string) {
 		case *dst.ImportSpec:
 			c.Import(n, cursor)
 		case *dst.TypeSpec:
-			c.Type(n, cursor)
+			c.Type(n, cursor, false)
 		case *dst.ValueSpec:
 			c.Var(n, false)
 		default:
@@ -130,6 +130,7 @@ func (c *Context) rewriteTopLevelVarFirst(files map[*FileInfo]*dst.File) {
 			case *dst.FuncDecl:
 			case *dst.ImportSpec:
 			case *dst.TypeSpec:
+				c.Type(n, cursor, true)
 			case *dst.GenDecl:
 				if n.Tok == token.VAR && cursor.Parent() == f {
 					for _, spec := range n.Specs {
