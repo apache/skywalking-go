@@ -86,3 +86,8 @@ check:
 .PHONY: build
 build:
 	@make -C tools/go-agent build
+
+.PHONE: release
+release:
+	/bin/sh tools/release/create_bin_release.sh
+	/bin/sh tools/release/create_source_release.sh
