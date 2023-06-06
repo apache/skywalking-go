@@ -40,7 +40,7 @@ dependencies:
     expose:
       - "6379"
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-h", "localhost", "ping"]
       interval: 5s
       timeout: 60s
       retries: 120
