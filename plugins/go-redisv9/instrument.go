@@ -50,6 +50,7 @@ func (i *Instrument) VersionChecker(version string) bool {
 func (i *Instrument) Points() []*instrument.Point {
 	return []*instrument.Point{
 		{
+			PackageName: "redis",
 			PackagePath: "",
 			At: instrument.NewStaticMethodEnhance("NewUniversalClient",
 				instrument.WithArgsCount(1),
@@ -59,6 +60,7 @@ func (i *Instrument) Points() []*instrument.Point {
 			Interceptor: "GoRedisInterceptor",
 		},
 		{
+			PackageName: "redis",
 			PackagePath: "",
 			At: instrument.NewStaticMethodEnhance("NewClient",
 				instrument.WithArgsCount(1),
@@ -68,6 +70,7 @@ func (i *Instrument) Points() []*instrument.Point {
 			Interceptor: "GoRedisInterceptor",
 		},
 		{
+			PackageName: "redis",
 			PackagePath: "",
 			At: instrument.NewStaticMethodEnhance("NewFailoverClient",
 				instrument.WithArgsCount(1),
@@ -77,6 +80,7 @@ func (i *Instrument) Points() []*instrument.Point {
 			Interceptor: "GoRedisInterceptor",
 		},
 		{
+			PackageName: "redis",
 			PackagePath: "",
 			At: instrument.NewStaticMethodEnhance("NewClusterClient",
 				instrument.WithArgsCount(1),
@@ -86,6 +90,7 @@ func (i *Instrument) Points() []*instrument.Point {
 			Interceptor: "GoRedisInterceptor",
 		},
 		{
+			PackageName: "redis",
 			PackagePath: "",
 			At: instrument.NewStaticMethodEnhance("NewRing",
 				instrument.WithArgsCount(1),

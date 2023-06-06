@@ -23,20 +23,14 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/redis/go-redis/v9"
+	v9 "github.com/redis/go-redis/v9"
 
 	_ "github.com/apache/skywalking-go"
 )
 
-var rdb *redis.Client
+var rdb *v9.Client
 
 type testFunc func(ctx context.Context) error
-
-type User struct {
-	ID   uint
-	Name string
-	Age  uint8
-}
 
 func executeHandler(w http.ResponseWriter, r *http.Request) {
 	testCases := []struct {
@@ -98,7 +92,7 @@ func TestPipelineSetAndGet(ctx context.Context) error {
 	}
 
 	for _, cmd := range cmds {
-		if _, ok := cmd.(*redis.StringCmd); !ok {
+		if _, ok := cmd.(*v9.StringCmd); !ok {
 			return fmt.Errorf("pipeline GET response not StringCmd type")
 		}
 	}
@@ -106,7 +100,7 @@ func TestPipelineSetAndGet(ctx context.Context) error {
 }
 
 func main() {
-	c := redis.NewClient(&redis.Options{
+	c := v9.NewClient(&v9.Options{
 		Addr:     "redis-server:6379",
 		Password: "",
 	})
