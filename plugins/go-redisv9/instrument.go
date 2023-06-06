@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package go_redisv9
+package goredisv9
 
 import (
 	"embed"
