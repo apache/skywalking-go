@@ -23,6 +23,7 @@ use (
 	./test/plugins/scenarios/dubbo
 	./test/plugins/scenarios/gin
 	./test/plugins/scenarios/http
+	./test/plugins/scenarios/go-redisv9
 	./test/plugins/scenarios/go-restfulv3
 	./test/plugins/scenarios/gorm
 	./test/plugins/scenarios/kratosv2
@@ -31,4 +32,5 @@ use (
 	./test/plugins/scenarios/plugin_exclusion
 
 	./tools/go-agent
+
 )

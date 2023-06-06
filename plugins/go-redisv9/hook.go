@@ -24,7 +24,6 @@ import (
 
 	"github.com/apache/skywalking-go/plugins/core/tracing"
 
-	"github.com/redis/go-redis/extra/rediscmd/v9"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -96,7 +95,6 @@ func (r *redisHook) ProcessHook(next redis.ProcessHook) redis.ProcessHook {
 			tracing.WithComponent(GoRedisComponentID),
 			tracing.WithLayer(tracing.SpanLayerCache),
 			tracing.WithTag(tracing.TagCacheType, GoRedisCacheType),
-			tracing.WithTag(tracing.TagCacheKey, rediscmd.CmdString(cmd)),
 		)
 
 		if err != nil {
@@ -117,7 +115,17 @@ func (r *redisHook) ProcessHook(next redis.ProcessHook) redis.ProcessHook {
 
 func (r *redisHook) ProcessPipelineHook(next redis.ProcessPipelineHook) redis.ProcessPipelineHook {
 	return func(ctx context.Context, cmds []redis.Cmder) error {
-		summary, cmdsString := rediscmd.CmdsString(cmds)
+		summary := ""
+		summaryCmds := cmds
+		if len(summaryCmds) > 10 {
+			summaryCmds = summaryCmds[:10]
+		}
+		for i := range summaryCmds {
+			summary += summaryCmds[i].FullName()
+		}
+		if len(cmds) > 10 {
+			summary += " ..."
+		}
 		s, err := tracing.CreateExitSpan(
 			// operationName
 			"redis.pipeline "+summary,
@@ -134,7 +142,6 @@ func (r *redisHook) ProcessPipelineHook(next redis.ProcessPipelineHook) redis.Pr
 			tracing.WithComponent(GoRedisComponentID),
 			tracing.WithLayer(tracing.SpanLayerCache),
 			tracing.WithTag(tracing.TagCacheType, GoRedisCacheType),
-			tracing.WithTag(tracing.TagCacheKey, cmdsString),
 		)
 		if err != nil {
 			err = fmt.Errorf("go-redis :skyWalking failed to create exit span, got error: %v", err)
