@@ -8,6 +8,7 @@ use (
 	./plugins/dubbo
 	./plugins/gin
 	./plugins/http
+	./plugins/go-redisv9
 	./plugins/go-restfulv3
 	./plugins/gorm
 	./plugins/kratosv2
