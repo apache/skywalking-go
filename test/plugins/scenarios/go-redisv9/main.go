@@ -20,9 +20,10 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/redis/go-redis/v9"
 	"log"
 	"net/http"
+
+	"github.com/redis/go-redis/v9"
 
 	_ "github.com/apache/skywalking-go"
 )
