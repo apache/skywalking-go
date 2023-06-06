@@ -19,7 +19,9 @@ package goredisv9
 
 import (
 	"fmt"
+
 	"github.com/apache/skywalking-go/plugins/core/operator"
+
 	"github.com/redis/go-redis/v9"
 )
 

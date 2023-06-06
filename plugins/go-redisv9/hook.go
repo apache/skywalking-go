@@ -20,10 +20,12 @@ package goredisv9
 import (
 	"context"
 	"fmt"
+	"net"
+
 	"github.com/apache/skywalking-go/plugins/core/tracing"
+
 	"github.com/redis/go-redis/extra/rediscmd/v9"
 	"github.com/redis/go-redis/v9"
-	"net"
 )
 
 const (
