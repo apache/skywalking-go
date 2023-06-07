@@ -18,7 +18,7 @@
 
 set -ex
 
-compose_version=$(docker-compose version --short)
+compose_version=$(docker compose version --short)
 
 if [[ $compose_version =~ ^(v)?1 ]]; then
     separator="_"
@@ -33,7 +33,7 @@ project_name=$(echo "{{.Context.ScenarioName}}" |sed -e "s/\.//g" |awk '{print t
 service_container_name="${project_name}${separator}service${separator}1"
 validator_container_name="${project_name}${separator}validator${separator}1"
 set +ex
-docker-compose -p "${project_name}" -f "{{.DockerComposeFilePath}}" up -d --build
+docker compose -p "${project_name}" -f "{{.DockerComposeFilePath}}" up -d --build
 [[ $? -ne 0 ]] && docker logs ${service_container_name} > {{.Context.WorkSpaceDir}}/logs/service.log && exit 1
 set -ex
 
@@ -50,8 +50,8 @@ else
     [[ $status -ne 0 ]] && docker logs ${validator_container_id} >&2
     docker logs ${service_container_name} > {{.Context.WorkSpaceDir}}/logs/service.log
 
-    docker-compose -p ${project_name} -f {{.DockerComposeFilePath}} kill
-    docker-compose -p ${project_name} -f {{.DockerComposeFilePath}} rm -f
+    docker compose -p ${project_name} -f {{.DockerComposeFilePath}} kill
+    docker compose -p ${project_name} -f {{.DockerComposeFilePath}} rm -f
 fi
 
 exit $status
