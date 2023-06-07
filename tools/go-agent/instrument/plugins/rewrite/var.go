@@ -19,18 +19,20 @@ package rewrite
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/dave/dst"
 )
 
-func (c *Context) Var(val *dst.ValueSpec) {
+func (c *Context) Var(val *dst.ValueSpec, onlyName bool) {
 	if len(val.Names) == 1 {
 		oldName := val.Names[0].Name
-		if !strings.HasPrefix(oldName, GenerateVarPrefix) {
+		if !c.alreadyGenerated(oldName) {
 			val.Names[0] = dst.NewIdent(fmt.Sprintf("%s%s%s", VarPrefix, c.currentPackageTitle, oldName))
 			c.rewriteMapping.addVarMapping(oldName, val.Names[0].Name)
 		}
+	}
+	if onlyName {
+		return
 	}
 	c.enhanceTypeNameWhenRewrite(val.Type, val, -1)
 	for _, subVal := range val.Values {

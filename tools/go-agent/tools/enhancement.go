@@ -20,12 +20,14 @@ package tools
 import (
 	"fmt"
 	"go/token"
+	"strings"
 
 	"github.com/dave/dst"
 	"github.com/dave/dst/decorator"
 )
 
 const interfaceName = "interface{}"
+const OtherPackageRefPrefix = "swref_"
 
 type ParameterInfo struct {
 	Name                 string
@@ -115,17 +117,21 @@ func newParameterInfo(name string, tp dst.Expr) *ParameterInfo {
 	}
 	var defaultNil = "nil"
 	switch n := tp.(type) {
-	case *dst.StarExpr:
-		result.DefaultValueAsString = defaultNil
+	case *dst.Ident:
+		if n.Name == "string" {
+			defaultNil = `""`
+		} else if n.Name == "bool" {
+			defaultNil = "false"
+		} else if strings.HasPrefix(n.Name, "int") || strings.HasPrefix(n.Name, "uint") ||
+			strings.HasPrefix(n.Name, "float") || n.Name == "byte" || n.Name == "rune" {
+			defaultNil = "0"
+		}
 	case *dst.UnaryExpr:
 		if n.Op == token.INT || n.Op == token.FLOAT {
-			result.DefaultValueAsString = "0"
-		} else {
-			result.DefaultValueAsString = defaultNil
+			defaultNil = "0"
 		}
-	default:
-		result.DefaultValueAsString = defaultNil
 	}
+	result.DefaultValueAsString = defaultNil
 
 	return result
 }
@@ -152,7 +158,7 @@ func GenerateTypeNameByExp(exp dst.Expr) string {
 	case *dst.SelectorExpr:
 		data = GenerateTypeNameByExp(n.X) + "." + GenerateTypeNameByExp(n.Sel)
 	case *dst.Ellipsis:
-		data = "..." + GenerateTypeNameByExp(n.Elt)
+		data = "[]" + GenerateTypeNameByExp(n.Elt)
 	case *dst.ArrayType:
 		data = "[]" + GenerateTypeNameByExp(n.Elt)
 	default:
@@ -180,6 +186,15 @@ func addPackagePrefixForArgsAndClone(pkg string, tp dst.Expr) dst.Expr {
 		expr := dst.Clone(tp).(*dst.Ellipsis)
 		expr.Elt = addPackagePrefixForArgsAndClone(pkg, t.Elt)
 		return expr
+	case *dst.SelectorExpr:
+		exp := dst.Clone(tp).(*dst.SelectorExpr)
+		// if also contains a package prefix, then it could be reffed a package with same name
+		// Such as current package name is "grpc", and ref another package named "grpc"
+		// Usually it's used on a wrapper plugin
+		if sel, ok := t.X.(*dst.Ident); ok && sel.Name == pkg {
+			exp.X = dst.NewIdent(OtherPackageRefPrefix + pkg)
+		}
+		return exp
 	default:
 		return dst.Clone(tp).(dst.Expr)
 	}

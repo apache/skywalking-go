@@ -35,12 +35,12 @@ type SpanOption interface {
 type SpanLayer int32
 
 var (
-	SpanLayerDatabase     SpanLayer = 1
-	SpanLayerRPCFramework SpanLayer = 2
-	SpanLayerHTTP         SpanLayer = 3
-	SpanLayerMQ           SpanLayer = 4
-	SpanLayerCache        SpanLayer = 5
-	SpanLayerFAAS         SpanLayer = 6
+	SpanLayerDatabase     int32 = 1
+	SpanLayerRPCFramework int32 = 2
+	SpanLayerHTTP         int32 = 3
+	SpanLayerMQ           int32 = 4
+	SpanLayerCache        int32 = 5
+	SpanLayerFAAS         int32 = 6
 )
 
 // Tag are supported by sky-walking engine.
@@ -49,22 +49,22 @@ var (
 type Tag string
 
 const (
-	TagURL             Tag = "url"
-	TagStatusCode      Tag = "status_code"
-	TagHTTPMethod      Tag = "http.method"
-	TagDBType          Tag = "db.type"
-	TagDBInstance      Tag = "db.instance"
-	TagDBStatement     Tag = "db.statement"
-	TagDBSqlParameters Tag = "db.sql.parameters"
-	TagMQQueue         Tag = "mq.queue"
-	TagMQBroker        Tag = "mq.broker"
-	TagMQTopic         Tag = "mq.topic"
+	TagURL             = "url"
+	TagStatusCode      = "status_code"
+	TagHTTPMethod      = "http.method"
+	TagDBType          = "db.type"
+	TagDBInstance      = "db.instance"
+	TagDBStatement     = "db.statement"
+	TagDBSqlParameters = "db.sql.parameters"
+	TagMQQueue         = "mq.queue"
+	TagMQBroker        = "mq.broker"
+	TagMQTopic         = "mq.topic"
 )
 
 // WithLayer set the SpanLayer of the Span
-func WithLayer(layer SpanLayer) SpanOption {
+func WithLayer(layer int32) SpanOption {
 	return buildSpanOption(func(s AdaptSpan) {
-		s.SetSpanLayer(int32(layer))
+		s.SetSpanLayer(layer)
 	})
 }
 
@@ -104,6 +104,9 @@ type InjectorWrapper interface {
 
 // Span for plugin API
 type Span interface {
+	// AsyncSpan Async API
+	AsyncSpan
+
 	// TraceID of span
 	TraceID() string
 	// TraceSegmentID current segment ID of span
@@ -112,13 +115,15 @@ type Span interface {
 	SpanID() int32
 
 	// Tag set the Tag of the Span
-	Tag(Tag, string)
+	Tag(string, string)
 	// SetSpanLayer set the SpanLayer of the Span
-	SetSpanLayer(SpanLayer)
+	SetSpanLayer(int32)
 	// SetOperationName re-set the operation name of the Span
 	SetOperationName(string)
 	// SetPeer re-set the peer address of the Span
 	SetPeer(string)
+	// SetComponent re-set the component id of the Span
+	SetComponent(int32)
 	// Log add log to the Span
 	Log(...string)
 	// Error add error log to the Span

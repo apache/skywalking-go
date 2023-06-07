@@ -180,6 +180,61 @@ func TestCreateSpanInDifferenceGoroutine(t *testing.T) {
 	})
 }
 
+func TestOverlapSpanOperation(t *testing.T) {
+	defer ResetTracingContext()
+	validateSpanOperation(t, []spanOperationTestCase{
+		{
+			operations: []func(existingSpans []tracing.Span) (tracing.Span, error){
+				func(existingSpans []tracing.Span) (tracing.Span, error) {
+					return tracing.CreateEntrySpan("/entry1", func(key string) (string, error) { return "", nil })
+				},
+				func(existingSpans []tracing.Span) (tracing.Span, error) {
+					// the operation name of exit span overlap should follow the last exit span operation name
+					return tracing.CreateEntrySpan("/entry1-update", func(key string) (string, error) { return "", nil })
+				},
+				func(existingSpans []tracing.Span) (tracing.Span, error) { // new goroutine
+					SetAsNewGoroutine()
+					return nil, nil
+				},
+				func(existingSpans []tracing.Span) (tracing.Span, error) {
+					return tracing.CreateEntrySpan("/entry2", func(key string) (string, error) { return "", nil })
+				},
+				func(existingSpans []tracing.Span) (tracing.Span, error) {
+					return tracing.CreateExitSpan("/exit1", "localhost:8080", func(key, value string) error { return nil })
+				},
+				func(existingSpans []tracing.Span) (tracing.Span, error) {
+					// the operation name of exit span overlap should follow the first exit span operation name
+					return tracing.CreateExitSpan("/exit1-update", "localhost:8080", func(key, value string) error { return nil })
+				},
+				func(existingSpans []tracing.Span) (tracing.Span, error) { // new goroutine
+					SetAsNewGoroutine()
+					return nil, nil
+				},
+				func(existingSpans []tracing.Span) (tracing.Span, error) {
+					return tracing.CreateExitSpan("/exit2", "localhost:8080", func(key, value string) error { return nil })
+				},
+				func(existingSpans []tracing.Span) (tracing.Span, error) {
+					for _, s := range existingSpans {
+						s.End()
+					}
+					return nil, nil
+				},
+			},
+			exceptedSpans: []struct {
+				spanType         SpanType
+				operationName    string
+				parentSpanOpName string
+				peer             string
+			}{
+				{SpanTypeEntry, "/entry1-update", "", ""},
+				{SpanTypeEntry, "/entry2", "/entry1-update", ""},
+				{SpanTypeExit, "/exit1", "/entry2", "localhost:8080"},
+				{SpanTypeExit, "/exit2", "/exit1", "localhost:8080"},
+			},
+		},
+	})
+}
+
 func TestSpanContextWriting(t *testing.T) {
 	defer ResetTracingContext()
 	s, err := tracing.CreateEntrySpan("/entry", func(key string) (string, error) { return "", nil })
@@ -323,6 +378,47 @@ func TestRuntimeContext(t *testing.T) {
 	assert.Nilf(t, tracing.GetRuntimeContextValue("test1"), "runtime context data should be nil")
 }
 
+func TestAsyncSpan(t *testing.T) {
+	defer ResetTracingContext()
+	span, err := tracing.CreateEntrySpan("/entry", func(key string) (string, error) { return "", nil })
+	assert.Nil(t, err, "create span error")
+	assert.NotNil(t, span, "span should not be nil")
+	span.PrepareAsync()
+	span.End()
+	time.Sleep(100 * time.Millisecond)
+	assert.Equal(t, 0, len(GetReportedSpans()), "span should not be reported")
+
+	// add times for async finish(make sure the end time of span should be updated)
+	time.Sleep(100 * time.Millisecond)
+	span.AsyncFinish()
+	time.Sleep(100 * time.Millisecond)
+	assert.Equal(t, 1, len(GetReportedSpans()), "span should not be reported")
+	s := GetReportedSpans()[0]
+	assert.Equal(t, "/entry", s.OperationName(), "span operation name should be \"/entry\"")
+	assert.Equal(t, agentv3.SpanType_Entry, s.SpanType(), "span type should be entry")
+	assert.Equal(t, 0, len(s.Refs()), "span refs should be empty")
+	assert.Greater(t, s.EndTime(), s.StartTime()+150, "span end time should be greater than start time + 150")
+}
+
+func TestContext(t *testing.T) {
+	defer ResetTracingContext()
+	span, err := tracing.CreateEntrySpan("/entry", func(key string) (string, error) { return "", nil })
+	assert.Nil(t, err, "create span error")
+	assert.NotNil(t, span, "span should not be nil")
+
+	snapshot := tracing.CaptureContext()
+	assert.NotNil(t, snapshot, "snapshot should not be nil")
+	assert.True(t, snapshot.IsValid(), "snapshot should be valid")
+
+	SetAsNewGoroutine()
+	tracing.ContinueContext(snapshot)
+	activeSpan := tracing.ActiveSpan()
+	assert.NotNil(t, activeSpan, "active span should not be nil")
+
+	tracing.CleanContext()
+	assert.Nil(t, tracing.ActiveSpan(), "active span should be nil")
+}
+
 func validateSpanOperation(t *testing.T, cases []spanOperationTestCase) {
 	for _, tt := range cases {
 		spans := make([]tracing.Span, 0)
@@ -336,16 +432,17 @@ func validateSpanOperation(t *testing.T, cases []spanOperationTestCase) {
 		}
 
 		time.Sleep(time.Millisecond * 100)
-		assert.Equal(t, len(tt.exceptedSpans), len(GetReportedSpans()), "span count not equal")
+		reportedSpans := GetReportedSpans()
+		assert.Equal(t, len(tt.exceptedSpans), len(reportedSpans), "span count not equal")
 		for i, exceptedSpan := range tt.exceptedSpans {
 			var span DefaultSpan
 			if i == 0 {
-				tmp, ok := GetReportedSpans()[len(GetReportedSpans())-1-i].(*RootSegmentSpan)
+				tmp, ok := reportedSpans[len(reportedSpans)-1-i].(*RootSegmentSpan)
 				assert.True(t, ok, "first span is not root segment span")
 				span = tmp.DefaultSpan
 			} else {
 				found := false
-				for _, s := range GetReportedSpans() {
+				for _, s := range reportedSpans {
 					if s.OperationName() != exceptedSpan.operationName {
 						continue
 					}

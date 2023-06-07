@@ -34,6 +34,9 @@ import (
 )
 
 var methodEnhanceAdapterFiles = make(map[string]bool)
+var methodImportAgentCorePackages = []string{
+	"log", "tracing", "operator",
+}
 
 type MethodEnhance struct {
 	funcDecl    *dst.FuncDecl
@@ -64,6 +67,9 @@ func NewMethodEnhance(inst instrument.Instrument, matcher *instrument.Point, f *
 	importAnalyzer *tools.ImportAnalyzer) *MethodEnhance {
 	fullPackage := filepath.Join(inst.BasePackage(), matcher.PackagePath)
 	pkgName := filepath.Base(fullPackage)
+	if matcher.PackageName != "" {
+		pkgName = matcher.PackageName
+	}
 	enhance := &MethodEnhance{
 		funcDecl:              f,
 		path:                  path,
@@ -88,10 +94,14 @@ func NewMethodEnhance(inst instrument.Instrument, matcher *instrument.Point, f *
 
 	// the interceptor name needs to add the function id ensure there no conflict in the framework package
 	titleCase := cases.Title(language.English)
-	packageTitle := filepath.Base(titleCase.String(filepath.Join(inst.BasePackage(), matcher.PackagePath)))
+	packageTitle := filepath.Base(titleCase.String(filepath.Join(inst.BasePackage(), pkgName)))
 	enhance.InterceptorGeneratedName = fmt.Sprintf("%s%s%s", rewrite.TypePrefix, packageTitle, enhance.InterceptorDefineName)
 	enhance.InterceptorVarName = fmt.Sprintf("%sinterceptor_%s", rewrite.GenerateVarPrefix, enhance.FuncID)
 	return enhance
+}
+
+func (m *MethodEnhance) PackageName() string {
+	return m.packageName
 }
 
 func (m *MethodEnhance) BuildForInvoker() {
@@ -106,21 +116,32 @@ func (m *MethodEnhance) BuildForInvoker() {
 	m.funcDecl.Body.Decs.Lbrace.Prepend("\n", m.replacementKey)
 }
 
+func (m *MethodEnhance) BuildImports(decl *dst.GenDecl) {
+	if !methodEnhanceAdapterFiles[filepath.Dir(m.path)] {
+		for _, n := range methodImportAgentCorePackages {
+			m.appendImport(decl, "", fmt.Sprintf("%s/%s", agentcore.EnhanceFromBasePackage, n))
+		}
+		m.appendImport(decl, m.packageName, m.fullPackage)
+		methodEnhanceAdapterFiles[filepath.Dir(m.path)] = true
+	}
+
+	m.importAnalyzer.AppendUsedImports(decl)
+}
+
+func (m *MethodEnhance) appendImport(decl *dst.GenDecl, name, path string) {
+	imp := &dst.ImportSpec{
+		Path: &dst.BasicLit{
+			Value: fmt.Sprintf("%q", path),
+		},
+	}
+	if name != "" {
+		imp.Name = dst.NewIdent(name)
+	}
+	decl.Specs = append(decl.Specs, imp)
+}
+
 func (m *MethodEnhance) BuildForDelegator() []dst.Decl {
 	result := make([]dst.Decl, 0)
-	path := filepath.Dir(m.path)
-	if !methodEnhanceAdapterFiles[path] {
-		// append the import for logger, one file only need import once
-		result = append(result, tools.GoStringToDecls(fmt.Sprintf(`import (
-	"%s/log"
-	"%s/tracing"
-	"%s/operator"
-
-	%s "%s"	 // current enhancing package path, for rewrite phase in next step
-)`, agentcore.EnhanceFromBasePackage, agentcore.EnhanceFromBasePackage, agentcore.EnhanceFromBasePackage, m.packageName, m.fullPackage))...)
-		methodEnhanceAdapterFiles[path] = true
-		m.importAnalyzer.AppendUsedImports(result[0].(*dst.GenDecl))
-	}
 
 	result = append(result, tools.GoStringToDecls(fmt.Sprintf(`var %s = &%s{}`, m.InterceptorVarName, m.InterceptorGeneratedName))...)
 	preFunc := &dst.FuncDecl{
@@ -139,7 +160,7 @@ func (m *MethodEnhance) BuildForDelegator() []dst.Decl {
 	for i, parameter := range m.Parameters {
 		preFunc.Type.Params.List = append(preFunc.Type.Params.List, &dst.Field{
 			Names: []*dst.Ident{dst.NewIdent(fmt.Sprintf("param_%d", i))},
-			Type:  &dst.StarExpr{X: parameter.PackagedType()},
+			Type:  &dst.StarExpr{X: m.changeTypeIfNeeds(parameter.PackagedType())},
 		})
 	}
 	for i, result := range m.Results {
@@ -149,7 +170,7 @@ func (m *MethodEnhance) BuildForDelegator() []dst.Decl {
 		})
 	}
 	preFunc.Type.Results.List = append(preFunc.Type.Results.List, &dst.Field{
-		Names: []*dst.Ident{dst.NewIdent("inv")},
+		Names: []*dst.Ident{dst.NewIdent("invocation")},
 		Type:  &dst.StarExpr{X: &dst.SelectorExpr{X: dst.NewIdent("operator"), Sel: dst.NewIdent("realInvocation")}},
 	}, &dst.Field{
 		Names: []*dst.Ident{dst.NewIdent("skip")},
@@ -179,7 +200,7 @@ func (m *MethodEnhance) BuildForDelegator() []dst.Decl {
 	for inx, f := range m.Results {
 		postFunc.Type.Params.List = append(postFunc.Type.Params.List, &dst.Field{
 			Names: []*dst.Ident{dst.NewIdent(fmt.Sprintf("ret_%d", inx))},
-			Type:  &dst.StarExpr{X: m.addPackagePrefixForArgsAndClone(m.packageName, f.Type)},
+			Type:  &dst.StarExpr{X: f.PackagedType()},
 		})
 	}
 	afterFile, err := templatesFS.ReadFile("templates/method_intercept_after.tmpl")
@@ -193,24 +214,12 @@ func (m *MethodEnhance) BuildForDelegator() []dst.Decl {
 	return result
 }
 
-func (m *MethodEnhance) addPackagePrefixForArgsAndClone(pkg string, tp dst.Expr) dst.Expr {
-	switch t := tp.(type) {
-	case *dst.Ident:
-		if tools.IsBasicDataType(t.Name) {
-			return dst.Clone(tp).(dst.Expr)
-		}
-		// otherwise, add the package prefix
-		return &dst.SelectorExpr{
-			X:   dst.NewIdent(pkg),
-			Sel: dst.NewIdent(t.Name),
-		}
-	case *dst.StarExpr:
-		expr := dst.Clone(tp).(*dst.StarExpr)
-		expr.X = m.addPackagePrefixForArgsAndClone(pkg, t.X)
-		return expr
-	default:
-		return dst.Clone(tp).(dst.Expr)
+func (m *MethodEnhance) changeTypeIfNeeds(tp dst.Expr) dst.Expr {
+	// change "...XXX" to "[]XXX" for reference type
+	if el, ok := tp.(*dst.Ellipsis); ok {
+		return &dst.ArrayType{Elt: el.Elt}
 	}
+	return tp
 }
 
 func (m *MethodEnhance) ReplaceFileContent(path, content string) string {

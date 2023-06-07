@@ -34,6 +34,8 @@ import (
 	"github.com/dave/dst/dstutil"
 )
 
+var packageImportExp = regexp.MustCompile(`^(\S+\s+)?"(.+)"$`)
+
 func ChangePackageImportPath(file dst.Node, pkgChanges map[string]string) {
 	dstutil.Apply(file, func(cursor *dstutil.Cursor) bool {
 		if n, ok := cursor.Node().(*dst.ImportSpec); ok {
@@ -248,24 +250,34 @@ func (i *ImportAnalyzer) AnalyzeNeedsImports(filePath string, fields *dst.FieldL
 	}
 
 	for _, f := range fields.List {
-		switch n := f.Type.(type) {
-		case *dst.Ident:
-			continue
-		case *dst.SelectorExpr:
-			pkgRefName, ok := n.X.(*dst.Ident)
-			if !ok {
-				continue
-			}
-			imports := i.imports[filePath]
-			if imports == nil {
-				continue
-			}
-			spec := imports[pkgRefName.Name]
-			if spec == nil {
-				continue
-			}
-			i.usedImports[pkgRefName.Name] = spec
+		i.analyzeFieldImport(filePath, f.Type)
+	}
+}
+
+func (i *ImportAnalyzer) analyzeFieldImport(filePath string, exp dst.Expr) {
+	switch n := exp.(type) {
+	case *dst.Ident:
+		return
+	case *dst.SelectorExpr:
+		pkgRefName, ok := n.X.(*dst.Ident)
+		if !ok {
+			return
 		}
+		imports := i.imports[filePath]
+		if imports == nil {
+			return
+		}
+		spec := imports[pkgRefName.Name]
+		if spec == nil {
+			return
+		}
+		i.usedImports[pkgRefName.Name] = spec
+	case *dst.Ellipsis:
+		i.analyzeFieldImport(filePath, n.Elt)
+	case *dst.ArrayType:
+		i.analyzeFieldImport(filePath, n.Elt)
+	case *dst.StarExpr:
+		i.analyzeFieldImport(filePath, n.X)
 	}
 }
 
@@ -276,7 +288,7 @@ func (i *ImportAnalyzer) AppendUsedImports(decl *dst.GenDecl) {
 	for _, spec := range i.usedImports {
 		found := false
 		for _, existingSpec := range decl.Specs {
-			if existingSpec.(*dst.ImportSpec).Path == spec.Path {
+			if existingSpec.(*dst.ImportSpec).Path.Value == spec.Path.Value {
 				found = true
 				break
 			}
@@ -359,13 +371,13 @@ func findFirstNoImportLocation(fset *token.FileSet, file *ast.File, fileContent 
 		}
 		break
 	}
-	if pos == 0 {
-		if len(file.Decls) > 0 {
-			return fset.Position(file.Decls[0].Pos()).Line, nil
-		}
-		return 1, nil
-	}
 	importEndLine := fset.Position(pos).Line
+	if pos == 0 {
+		if len(file.Decls) == 0 {
+			return 1, nil
+		}
+		importEndLine = fset.Position(file.Decls[0].Pos()).Line
+	}
 	lineNumber := 0
 	for {
 		line, err := fileContent.ReadBytes('\n')
@@ -377,7 +389,9 @@ func findFirstNoImportLocation(fset *token.FileSet, file *ast.File, fileContent 
 			continue
 		}
 		trimed := strings.TrimSpace(string(line))
-		if trimed == "" || trimed == ")" {
+		if trimed == "" || trimed == ")" ||
+			(strings.HasPrefix(trimed, "import ")) ||
+			(packageImportExp.MatchString(trimed)) {
 			continue
 		}
 		return lineNumber, nil

@@ -21,6 +21,7 @@ import (
 	"bytes"
 	"embed"
 	"fmt"
+	"go/token"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -63,6 +64,8 @@ func NewInstrument() *Instrument {
 }
 
 type Enhance interface {
+	PackageName() string
+	BuildImports(decl *dst.GenDecl)
 	BuildForDelegator() []dst.Decl
 	ReplaceFileContent(path, content string) string
 }
@@ -136,8 +139,8 @@ func (i *Instrument) FilterAndEdit(path string, curFile *dst.File, cursor *dstut
 	return false
 }
 
-func (i *Instrument) enhanceStruct(_ instrument.Instrument, _ *instrument.Point, typeSpec *dst.TypeSpec, _ string) {
-	enhance := NewInstanceEnhance(typeSpec)
+func (i *Instrument) enhanceStruct(_ instrument.Instrument, p *instrument.Point, typeSpec *dst.TypeSpec, _ string) {
+	enhance := NewInstanceEnhance(typeSpec, i.compileOpts.Package, p)
 	enhance.EnhanceField()
 	i.enhancements = append(i.enhancements, enhance)
 }
@@ -180,7 +183,7 @@ func (i *Instrument) WriteExtraFiles(basePath string) ([]string, error) {
 	}
 	i.extraFilesWrote = true
 
-	packageName := filepath.Base(i.compileOpts.Package)
+	packageName := i.enhancements[0].PackageName()
 	context := rewrite.NewContext(i.compileOpts.Package, packageName)
 
 	var results = make([]string, 0)
@@ -216,7 +219,11 @@ func (i *Instrument) copyFrameworkFS(context *rewrite.Context, compilePkgFullPat
 
 	var debugBaseDir string
 	if i.compileOpts.DebugDir != "" {
-		debugBaseDir = filepath.Join(i.compileOpts.DebugDir, "plugins", i.realInst.Name(), subPkgPath)
+		pathBuilder := filepath.Join(i.compileOpts.DebugDir, "plugins", i.realInst.Name())
+		if subIns, ok := i.realInst.(instrument.SourceCodeDetector); ok {
+			pathBuilder = filepath.Join(pathBuilder, subIns.PluginSourceCodePath())
+		}
+		debugBaseDir = filepath.Join(pathBuilder, subPkgPath)
 	}
 	pkgCopiedEntries, err := i.realInst.FS().ReadDir(subPkgPath)
 	if err != nil {
@@ -235,15 +242,9 @@ func (i *Instrument) copyFrameworkFS(context *rewrite.Context, compilePkgFullPat
 		if err1 != nil {
 			return nil, err1
 		}
-		// ignore nocopy files
-		if bytes.Contains(readFile, []byte("//skywalking:nocopy")) {
-			continue
-		}
-		// if the file contains native structures, then added for ignore rewrite
-		if bytes.Contains(readFile, []byte("//skywalking:native")) {
-			if e := context.IncludeNativeFiles(string(readFile)); e != nil {
-				return nil, e
-			}
+		if shouldContinue, err1 := i.fileShouldBeIgnore(context, readFile); err1 != nil {
+			return nil, err1
+		} else if shouldContinue {
 			continue
 		}
 
@@ -255,6 +256,22 @@ func (i *Instrument) copyFrameworkFS(context *rewrite.Context, compilePkgFullPat
 		return nil, err
 	}
 	return rewrited, nil
+}
+
+func (i *Instrument) fileShouldBeIgnore(ctx *rewrite.Context, fileContent []byte) (bool, error) {
+	// ignore nocopy files
+	if bytes.Contains(fileContent, []byte(consts.DirecitveNoCopy)) {
+		return true, nil
+	}
+	// if the file contains native structures or reference to generate types, then added for ignore rewrite
+	if bytes.Contains(fileContent, []byte(consts.DirectiveNative)) ||
+		bytes.Contains(fileContent, []byte(consts.DirectiveReferenceGenerate)) {
+		if e := ctx.IncludeNativeOrReferenceGenerateFiles(string(fileContent)); e != nil {
+			return true, e
+		}
+		return true, nil
+	}
+	return false, nil
 }
 
 func (i *Instrument) copyOperatorsFS(context *rewrite.Context, baseDir, packageName string) ([]string, error) {
@@ -344,6 +361,14 @@ func (i *Instrument) writeDelegatorFile(ctx *rewrite.Context, basePath string) (
 		Name: dst.NewIdent("delegator"), // write to adapter temporary, it will be rewritten later
 	}
 
+	// append header
+	importsHeader := &dst.GenDecl{Tok: token.IMPORT}
+	for _, e := range i.enhancements {
+		e.BuildImports(importsHeader)
+	}
+	file.Decls = append(file.Decls, importsHeader)
+
+	// append other decls
 	for _, enhance := range i.enhancements {
 		file.Decls = append(file.Decls, enhance.BuildForDelegator()...)
 	}

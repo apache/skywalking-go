@@ -19,6 +19,7 @@ package core
 
 import (
 	"math"
+	"sync"
 	"time"
 
 	"github.com/apache/skywalking-go/plugins/core/reporter"
@@ -41,6 +42,10 @@ type DefaultSpan struct {
 	IsError       bool
 	SpanType      SpanType
 	Parent        TracingSpan
+
+	InAsyncMode       bool
+	AsyncModeFinished bool
+	AsyncOpLocker     *sync.Mutex
 }
 
 func NewDefaultSpan(tracer *Tracer, parent TracingSpan) *DefaultSpan {
@@ -54,6 +59,10 @@ func NewDefaultSpan(tracer *Tracer, parent TracingSpan) *DefaultSpan {
 
 // For TracingSpan
 func (ds *DefaultSpan) SetOperationName(name string) {
+	if ds.InAsyncMode {
+		ds.AsyncOpLocker.Lock()
+		defer ds.AsyncOpLocker.Unlock()
+	}
 	ds.OperationName = name
 }
 
@@ -62,6 +71,10 @@ func (ds *DefaultSpan) GetOperationName() string {
 }
 
 func (ds *DefaultSpan) SetPeer(peer string) {
+	if ds.InAsyncMode {
+		ds.AsyncOpLocker.Lock()
+		defer ds.AsyncOpLocker.Unlock()
+	}
 	ds.Peer = peer
 }
 
@@ -70,6 +83,10 @@ func (ds *DefaultSpan) GetPeer() string {
 }
 
 func (ds *DefaultSpan) SetSpanLayer(layer int32) {
+	if ds.InAsyncMode {
+		ds.AsyncOpLocker.Lock()
+		defer ds.AsyncOpLocker.Unlock()
+	}
 	ds.Layer = agentv3.SpanLayer(layer)
 }
 
@@ -78,6 +95,10 @@ func (ds *DefaultSpan) GetSpanLayer() agentv3.SpanLayer {
 }
 
 func (ds *DefaultSpan) SetComponent(componentID int32) {
+	if ds.InAsyncMode {
+		ds.AsyncOpLocker.Lock()
+		defer ds.AsyncOpLocker.Unlock()
+	}
 	ds.ComponentID = componentID
 }
 
@@ -86,10 +107,24 @@ func (ds *DefaultSpan) GetComponent() int32 {
 }
 
 func (ds *DefaultSpan) Tag(key, value string) {
+	if ds.InAsyncMode {
+		ds.AsyncOpLocker.Lock()
+		defer ds.AsyncOpLocker.Unlock()
+	}
+	for _, tag := range ds.Tags {
+		if tag.Key == key {
+			tag.Value = value
+			return
+		}
+	}
 	ds.Tags = append(ds.Tags, &commonv3.KeyStringValuePair{Key: key, Value: value})
 }
 
 func (ds *DefaultSpan) Log(ll ...string) {
+	if ds.InAsyncMode {
+		ds.AsyncOpLocker.Lock()
+		defer ds.AsyncOpLocker.Unlock()
+	}
 	data := make([]*commonv3.KeyStringValuePair, 0, int32(math.Ceil(float64(len(ll))/2.0)))
 	var kvp *commonv3.KeyStringValuePair
 	for i, l := range ll {
@@ -105,14 +140,20 @@ func (ds *DefaultSpan) Log(ll ...string) {
 }
 
 func (ds *DefaultSpan) Error(ll ...string) {
+	if ds.InAsyncMode {
+		ds.AsyncOpLocker.Lock()
+		defer ds.AsyncOpLocker.Unlock()
+	}
 	ds.IsError = true
 	ds.Log(ll...)
 }
 
-func (ds *DefaultSpan) End() {
+func (ds *DefaultSpan) End(changeParent bool) {
 	ds.EndTime = time.Now()
-	if ctx := getTracingContext(); ctx != nil {
-		ctx.SaveActiveSpan(ds.Parent)
+	if changeParent {
+		if ctx := getTracingContext(); ctx != nil {
+			ctx.SaveActiveSpan(ds.Parent)
+		}
 	}
 }
 
@@ -130,4 +171,23 @@ func (ds *DefaultSpan) IsValid() bool {
 
 func (ds *DefaultSpan) ParentSpan() TracingSpan {
 	return ds.Parent
+}
+
+func (ds *DefaultSpan) PrepareAsync() {
+	if ds.InAsyncMode {
+		panic("already in async mode")
+	}
+	ds.InAsyncMode = true
+	ds.AsyncModeFinished = false
+	ds.AsyncOpLocker = &sync.Mutex{}
+}
+
+func (ds *DefaultSpan) AsyncFinish() {
+	if !ds.InAsyncMode {
+		panic("not in async mode")
+	}
+	if ds.AsyncModeFinished {
+		panic("already finished async")
+	}
+	ds.AsyncModeFinished = true
 }

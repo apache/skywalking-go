@@ -20,6 +20,7 @@ package rewrite
 import (
 	"fmt"
 	"go/parser"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -30,14 +31,17 @@ import (
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 
+	"github.com/apache/skywalking-go/tools/go-agent/instrument/consts"
 	"github.com/apache/skywalking-go/tools/go-agent/tools"
 )
 
-var GenerateMethodPrefix = "_skywalking_enhance_"
-var GenerateVarPrefix = "_skywalking_var_"
-var OperatorDirs = []string{"operator", "log", "tracing"}
+var GenerateCommonPrefix = "skywalking_"
 
-var OperatePrefix = "skywalkingOperator"
+var GenerateMethodPrefix = GenerateCommonPrefix + "enhance_"
+var GenerateVarPrefix = GenerateCommonPrefix + "var_"
+var OperatorDirs = []string{"operator", "log", "tracing", "tools"}
+
+var OperatePrefix = GenerateCommonPrefix + "operator"
 var TypePrefix = OperatePrefix + "Type"
 var VarPrefix = OperatePrefix + "Var"
 var StaticMethodPrefix = OperatePrefix + "StaticMethod"
@@ -49,18 +53,27 @@ type Context struct {
 
 	currentPackageTitle string
 
+	currentProcessingFile *dst.File
+
 	packageImport  map[string]*rewriteImportInfo
 	rewriteMapping *rewriteMapping
 }
 
 func NewContext(compilePkgFullPath, targetPackage string) *Context {
-	return &Context{
+	c := &Context{
 		pkgFullPath:    compilePkgFullPath,
 		titleCase:      cases.Title(language.English),
 		targetPackage:  targetPackage,
 		packageImport:  make(map[string]*rewriteImportInfo),
 		rewriteMapping: newRewriteFuncMapping(make(map[string]string), make(map[string]string)),
 	}
+	// adding self package
+	c.packageImport[targetPackage] = &rewriteImportInfo{
+		pkgName:     targetPackage,
+		isAgentCore: false,
+		ctx:         c,
+	}
+	return c
 }
 
 type rewriteImportInfo struct {
@@ -69,21 +82,60 @@ type rewriteImportInfo struct {
 	ctx         *Context
 }
 
-func (c *Context) IncludeNativeFiles(content string) error {
-	parseFile, err := decorator.ParseFile(nil, "native.go", content, parser.ParseComments)
+func (c *Context) IncludeNativeOrReferenceGenerateFiles(content string) error {
+	parseFile, err := decorator.ParseFile(nil, "ref.go", content, parser.ParseComments)
 	if err != nil {
 		return err
 	}
 
 	dstutil.Apply(parseFile, func(cursor *dstutil.Cursor) bool {
-		if tp, ok := cursor.Node().(*dst.TypeSpec); ok {
-			c.rewriteMapping.addTypeMapping(tp.Name.Name, tp.Name.Name)
+		switch n := cursor.Node().(type) {
+		case *dst.TypeSpec:
+			c.analyzeNativeOrReferenceFields(cursor.Node(), cursor.Parent().Decorations(), n.Name.Name)
+		case *dst.FuncDecl:
+			c.analyzeNativeOrReferenceFields(cursor.Node(), n.Decorations(), n.Name.Name)
 		}
 		return true
 	}, func(cursor *dstutil.Cursor) bool {
 		return true
 	})
 	return nil
+}
+
+func (c *Context) analyzeNativeOrReferenceFields(node dst.Node, decorations *dst.NodeDecs, currentDeclareName string) {
+	allComments := decorations.Start.All()
+	for _, comment := range allComments {
+		if name, typeName, nativeDirective := c.analyzeNativeTypeDirective(comment); nativeDirective {
+			c.rewriteMapping.addNativeTypeMapping(currentDeclareName, name, typeName)
+			break
+		}
+		if name, typeName, referenceGenerate := c.analyzeReferenceGenerateDirective(comment); referenceGenerate {
+			c.rewriteMapping.addReferenceGenerateMapping(node, currentDeclareName, name, typeName)
+			break
+		}
+	}
+}
+
+func (c *Context) analyzeNativeTypeDirective(comment string) (packageName, typeName string, isNativeDirective bool) {
+	if !strings.HasPrefix(comment, consts.DirectiveNative) {
+		return "", "", false
+	}
+	info := strings.SplitN(comment, " ", 3)
+	if len(info) != 3 {
+		panic(fmt.Sprintf("failure to parse the skywalking:native directive: %s", comment))
+	}
+	return info[1], info[2], true
+}
+
+func (c *Context) analyzeReferenceGenerateDirective(comment string) (packageName, typeName string, isNativeDirective bool) {
+	if !strings.HasPrefix(comment, consts.DirectiveReferenceGenerate) {
+		return "", "", false
+	}
+	info := strings.SplitN(comment, " ", 3)
+	if len(info) != 3 {
+		panic(fmt.Sprintf("failure to parse the skywalking:native directive: %s", comment))
+	}
+	return info[1], info[2], true
 }
 
 func (c *Context) enhanceVarNameWhenRewrite(fieldType dst.Expr) (oldName, replacedName string) {
@@ -128,6 +180,17 @@ func (c *Context) enhanceTypeNameWhenRewrite(fieldType dst.Expr, parent dst.Node
 			t.Name = mappingName
 			return "", ""
 		}
+		if native := c.rewriteMapping.findNativeTypeMapping(name); native != nil {
+			// change to the selector expr(package.type) and enhance
+			pkgBase := filepath.Base(native.packageName)
+			// check the package have been import or not
+			c.AddingImportToCurrentFile(pkgBase, native.packageName)
+			c.enhanceTypeNameWhenRewrite(&dst.SelectorExpr{
+				X:   dst.NewIdent(pkgBase),
+				Sel: dst.NewIdent(native.typeName),
+			}, parent, argIndex)
+			return "", ""
+		}
 		// if parent is function call, then the name should be method name
 		if _, ok := parent.(*dst.CallExpr); ok {
 			t.Name = fmt.Sprintf("%s%s%s", StaticMethodPrefix, c.currentPackageTitle, name)
@@ -141,37 +204,72 @@ func (c *Context) enhanceTypeNameWhenRewrite(fieldType dst.Expr, parent dst.Node
 			return c.enhanceTypeNameWhenRewrite(t.X, parent, -1)
 		}
 		// reference by package name
+		var foundPackage *rewriteImportInfo
 		for refImportName, pkgInfo := range c.packageImport {
 			if pkgRefName.Name == refImportName {
-				switch p := parent.(type) {
-				case *dst.CallExpr:
-					if c.rewriteVarIfExistingMapping(t.Sel, p) {
-						if argIndex >= 0 {
-							p.Args[argIndex] = t.Sel
-						} else {
-							p.Fun = dst.NewIdent(t.Sel.Name)
-						}
-					} else {
-						p.Fun = pkgInfo.generateStaticMethod(t.Sel.Name)
-					}
-				case *dst.Field:
-					p.Type = pkgInfo.generateType(t.Sel.Name)
-				case *dst.Ellipsis:
-					p.Elt = pkgInfo.generateType(t.Sel.Name)
-				case *dst.StarExpr:
-					p.X = pkgInfo.generateType(t.Sel.Name)
-				case *dst.TypeAssertExpr:
-					p.Type = pkgInfo.generateType(t.Sel.Name)
-				case *dst.CompositeLit:
-					p.Type = pkgInfo.generateType(t.Sel.Name)
-				case *dst.ArrayType:
-					p.Elt = pkgInfo.generateType(t.Sel.Name)
-				}
+				foundPackage = pkgInfo
+				break
 			}
 		}
 		// if the method call
 		if v := c.rewriteMapping.findVarMappingName(pkgRefName.Name); v != "" {
 			t.X = dst.NewIdent(v)
+			return "", ""
+		}
+		// is the other package reference
+		if strings.HasPrefix(pkgRefName.Name, tools.OtherPackageRefPrefix) {
+			t.X = dst.NewIdent(pkgRefName.Name[len(tools.OtherPackageRefPrefix):])
+			return "", ""
+		}
+
+		var generateExpr func() dst.Expr
+		var generateCallExpr func(parent *dst.CallExpr)
+		if foundPackage != nil {
+			generateCallExpr = func(parent *dst.CallExpr) {
+				if c.rewriteVarIfExistingMapping(t.Sel, parent) {
+					if argIndex >= 0 {
+						parent.Args[argIndex] = t.Sel
+					} else {
+						parent.Fun = dst.NewIdent(t.Sel.Name)
+					}
+				} else {
+					parent.Fun = foundPackage.generateStaticMethod(t.Sel.Name)
+				}
+			}
+			generateExpr = func() dst.Expr {
+				return foundPackage.generateType(t.Sel.Name)
+			}
+		} else {
+			// if it cannot found the package, then it just keep the data
+			generateCallExpr = func(parent *dst.CallExpr) {
+				if argIndex >= 0 {
+					parent.Args[argIndex] = fieldType
+				} else {
+					parent.Fun = fieldType
+				}
+			}
+			generateExpr = func() dst.Expr {
+				return fieldType
+			}
+		}
+
+		switch p := parent.(type) {
+		case *dst.CallExpr:
+			generateCallExpr(p)
+		case *dst.Field:
+			p.Type = generateExpr()
+		case *dst.Ellipsis:
+			p.Elt = generateExpr()
+		case *dst.StarExpr:
+			p.X = generateExpr()
+		case *dst.TypeAssertExpr:
+			p.Type = generateExpr()
+		case *dst.CompositeLit:
+			p.Type = generateExpr()
+		case *dst.ArrayType:
+			p.Elt = generateExpr()
+		case *dst.ValueSpec:
+			p.Type = generateExpr()
 		}
 	case *dst.StarExpr:
 		return c.enhanceTypeNameWhenRewrite(t.X, t, -1)
@@ -240,6 +338,10 @@ func (c *Context) typeIsBasicTypeValueOrEnhanceName(name string) bool {
 	return false
 }
 
+func (c *Context) alreadyGenerated(name string) bool {
+	return strings.HasPrefix(name, GenerateCommonPrefix) || strings.HasPrefix(name, c.titleCase.String(GenerateCommonPrefix))
+}
+
 func (c *Context) callIsBasicNamesOrEnhanceName(name string) bool {
 	return strings.HasPrefix(name, OperatePrefix) || strings.HasPrefix(name, GenerateMethodPrefix) ||
 		name == "make" || name == "recover" || name == "len"
@@ -266,12 +368,19 @@ type rewriteMapping struct {
 	// push or pop the names when the block statement is called
 	rewriteVarNames  []map[string]string
 	rewriteTypeNames []map[string]string
+	nativeTypes      map[string]*nativeType
+}
+
+type nativeType struct {
+	packageName string
+	typeName    string
 }
 
 func newRewriteFuncMapping(varNames, typeNames map[string]string) *rewriteMapping {
 	return &rewriteMapping{
 		rewriteVarNames:  []map[string]string{varNames},
 		rewriteTypeNames: []map[string]string{typeNames},
+		nativeTypes:      map[string]*nativeType{},
 	}
 }
 
@@ -281,6 +390,26 @@ func (m *rewriteMapping) addVarMapping(key, value string) {
 
 func (m *rewriteMapping) addTypeMapping(key, value string) {
 	m.rewriteTypeNames[len(m.rewriteTypeNames)-1][key] = value
+}
+
+func (m *rewriteMapping) addNativeTypeMapping(key, packageName, typeName string) {
+	m.nativeTypes[key] = &nativeType{
+		packageName: packageName,
+		typeName:    typeName,
+	}
+}
+
+func (m *rewriteMapping) addReferenceGenerateMapping(node dst.Node, key, packageName, typeName string) {
+	titleCase := cases.Title(language.English)
+	packageTitle := titleCase.String(filepath.Base(packageName))
+	switch node.(type) {
+	case *dst.FuncDecl:
+		m.addNativeTypeMapping(key, packageName,
+			fmt.Sprintf("%s%s%s", titleCase.String(GenerateMethodPrefix), packageTitle, typeName))
+	case *dst.TypeSpec:
+		m.addNativeTypeMapping(key, packageName,
+			fmt.Sprintf("%s%s%s", titleCase.String(TypePrefix), packageTitle, typeName))
+	}
 }
 
 func (m *rewriteMapping) pushBlockStack() {
@@ -309,4 +438,8 @@ func (m *rewriteMapping) findTypeMappingName(name string) string {
 		}
 	}
 	return ""
+}
+
+func (m *rewriteMapping) findNativeTypeMapping(name string) *nativeType {
+	return m.nativeTypes[name]
 }

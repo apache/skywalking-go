@@ -18,7 +18,9 @@
 package http
 
 import (
+	"bufio"
 	"fmt"
+	"net"
 	"net/http"
 
 	"github.com/apache/skywalking-go/plugins/core/operator"
@@ -66,4 +68,11 @@ func (w *writerWrapper) WriteHeader(statusCode int) {
 	// cache the status code
 	w.statusCode = statusCode
 	w.ResponseWriter.WriteHeader(statusCode)
+}
+
+func (w *writerWrapper) Hijack() (rwc net.Conn, buf *bufio.ReadWriter, err error) {
+	if h, ok := w.ResponseWriter.(http.Hijacker); ok {
+		return h.Hijack()
+	}
+	return nil, nil, fmt.Errorf("responseWriter does not implement http.Hijacker")
 }

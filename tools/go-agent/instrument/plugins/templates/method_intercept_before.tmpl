@@ -5,7 +5,7 @@ defer func() {
 		    "{{.InstrumentName}}", "{{.InterceptorDefineName}}", "{{.FuncID}}", err, tracing.DebugStack())
 	}
 }()
-invocation := &operator.realInvocation{}
+invocation = &operator.realInvocation{}
 {{if .Recvs -}}
 invocation.callerInstance = *recv_0	// for caller if exist
 {{- end}}
@@ -35,8 +35,14 @@ if err := {{.InterceptorVarName}}.BeforeInvoke(invocation); err != nil {
 {{- end}}invocation, false
 }
 if (invocation.isContinue) {
+    {{- range $index, $value := .Results }}
+    var def_res_{{$index}} {{$value.PackagedTypeName}}
+    if invocation.returnValues[{{$index}}] != nil {
+        def_res_{{$index}} = (invocation.returnValues[{{$index}}]).({{$value.PackagedTypeName}})
+    }
+    {{- end}}
 	return {{ range $index, $value := .Results -}}
-    (invocation.returnValues[{{$index}}]).({{$value.PackagedTypeName}}),
+    def_res_{{$index}},
 {{- end}}invocation, true
 }
 return {{ range $index, $value := .Results -}}

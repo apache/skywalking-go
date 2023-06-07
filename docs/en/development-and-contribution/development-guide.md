@@ -35,12 +35,41 @@ The basic information includes the following methods, corresponding to the [Inst
 Note: Please declare `//skywalking:nocopy` at any position in this file to indicate that the file would not be copied. This file is only used for guidance during hybrid compilation. 
 Also, this file involves the use of the `embed` package, and if the target framework does not import the package `embed`, a compilation error may occur.
 
+### Manage Instrument and Interceptor codes in hierarchy structure
+
+Instrument and interceptor codes are placed in root by default. 
+In complex instrumentation scenarios, there could be dozens of interceptors, we provide `PluginSourceCodePath` to build a hierarchy folder structure to manage those codes.
+
+Notice: The instrumentation still works without proper setting of this, but the debug tool would lose the location of the source codes.
+
+#### Example
+
+For example, the framework needs to enhance two packages, as shown in the following directory structure:
+
+```
+- plugins
+  - test
+    - go.mod
+    - package1
+      - instrument.go
+      - interceptor.go
+    - package2
+      - instrument.go
+      - interceptor.go
+    ...
+```
+
+In the above directory structure, the **test** framework needs to provide multiple different enhancement objects. 
+In this case, a `PluginSourceCodePath` Source Code Path** method needs to be added for each enhancement object, the values of this method should be `package1` and `package2`.
+
 ### Instrument Point
 
 Instrument points are used to declare that which methods and structs in the current package should be instrumented. They mainly include the following information:
 
 1. **Package path**: If the interception point that needs to be intercepted is not in the root directory of the current package, you need to fill in the relative path to the package. 
 For example, if this interception point wants to instrument content in the `github.com/gin-gonic/gin/render` directory, you need to fill in `render` here.
+2. **Package Name**(optional): Define the package name of the current package. If the package name is not defined, the package name of the current package would be used by default.
+It's used when the package path and package name are not same, such as the name of `github.com/emicklei/go-restful/v3` is `restful`.
 2. **Matcher(At)**: Specify which eligible content in the current package path needs to be enhanced.
 3. **Interceptor**: If the current method is being intercepted (whether it's a static method or an instance method), the name of the interceptor must be specified.
 
@@ -318,6 +347,8 @@ After creating a Span, you can perform additional operations on it.
 ```go
 // Span for plugin API
 type Span interface {
+	// AsyncSpan for the async API
+	AsyncSpan
 	// Tag set the Tag of the Span
 	Tag(Tag, string)
 	// SetSpanLayer set the SpanLayer of the Span
@@ -334,6 +365,48 @@ type Span interface {
 	End()
 }
 ```
+
+#### Async Span
+
+There is a set of advanced APIs in Span which is specifically designed for async use cases.
+When setting name, tags, logs, and other operations (including end span) of the span in another goroutine, you should use these APIs.
+
+```go
+type AsyncSpan interface {
+    // PrepareAsync the span finished at current tracing context, but current span is still alive until AsyncFinish called
+    PrepareAsync()
+    // AsyncFinish to finished current async span
+    AsyncFinish()
+}
+```
+
+Following the previous API define, you should following these steps to use the async API:
+1. Call `span.PrepareAsync()` to prepare the span to do any operation in another goroutine.
+2. Use `Span.End()` in the original goroutine when your job in the current goroutine is complete.
+3. Propagate the span to any other goroutine in your plugin.
+4. Once the above steps are all set, call `span.AsyncFinish()` in any goroutine.
+5. When the `span.AsyncFinish()` is complete for all spans, the all spans would be finished and report to the backend.
+
+#### Tracing Context Operation
+
+In the Go Agent, Trace Context would continue cross goroutines automatically by default.
+However, in some cases, goroutine would be context sharing due to be scheduled by the pool mechanism. Consider these advanced APIs to manipulate context and switch the current context.
+
+```go
+// CaptureContext capture current tracing context in the current goroutine.
+func CaptureContext() ContextSnapshot
+
+// ContinueContext continue the tracing context in the current goroutine.
+func ContinueContext(ctx ContextSnapshot)
+
+// CleanContext clean the tracing context in the current goroutine.
+func CleanContext()
+```
+
+Typically, use APIs as following to control or switch the context:
+1. Use `tracing.CaptureContext()` to get the ContextSnapshot object.
+2. Propagate the snapshot context to any other goroutine in your plugin.
+3. Use `tracing.ContinueContext(snapshot)` to continue the snapshot context in the target goroutine.
 
 ## Import Plugin
 

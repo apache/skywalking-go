@@ -177,10 +177,16 @@ var {{.SetGlobalOperatorLinkMethod}} func(interface{})
 //go:linkname {{.GetGlobalOperatorLinkMethod}} {{.GetGlobalOperatorLinkMethod}}
 var {{.GetGlobalOperatorLinkMethod}} func() interface{}
 
+//go:linkname {{.GetGoroutineIDLinkMethod}} {{.GetGoroutineIDLinkMethod}}
+var {{.GetGoroutineIDLinkMethod}} func() int64
+
 func init() {
 	if {{.TLSGetLinkMethod}} != nil && {{.TLSSetLinkMethod}} != nil {
 		GetGLS = {{.TLSGetLinkMethod}}
 		SetGLS = {{.TLSSetLinkMethod}}
+	}
+	if {{.GetGoroutineIDLinkMethod}} != nil {
+		GetGoID = {{.GetGoroutineIDLinkMethod}}
 	}
 	if {{.SetGlobalOperatorLinkMethod}} != nil && {{.GetGlobalOperatorLinkMethod}} != nil {
 		SetGlobalOperator = {{.SetGlobalOperatorLinkMethod}}
@@ -193,10 +199,12 @@ func init() {
 		TLSSetLinkMethod            string
 		SetGlobalOperatorLinkMethod string
 		GetGlobalOperatorLinkMethod string
+		GetGoroutineIDLinkMethod    string
 	}{
 		TLSGetLinkMethod:            consts.TLSGetMethodName,
 		TLSSetLinkMethod:            consts.TLSSetMethodName,
 		SetGlobalOperatorLinkMethod: consts.GlobalTracerSetMethodName,
 		GetGlobalOperatorLinkMethod: consts.GlobalTracerGetMethodName,
+		GetGoroutineIDLinkMethod:    consts.CurrentGoroutineIDGetMethodName,
 	}))
 }

@@ -27,6 +27,8 @@ import (
 	"github.com/apache/skywalking-go/plugins/core/tracing"
 )
 
+var snapshotType = reflect.TypeOf(&SnapshotSpan{})
+
 func (t *Tracer) Tracing() interface{} {
 	return t
 }
@@ -47,6 +49,11 @@ func (t *Tracer) CreateEntrySpan(operationName string, extractor interface{}, op
 	defer func() {
 		saveSpanToActiveIfNotError(ctx, s, err)
 	}()
+	// if parent span is entry span, then use parent span as result
+	if tracingSpan != nil && tracingSpan.IsEntry() && reflect.ValueOf(tracingSpan).Type() != snapshotType {
+		tracingSpan.SetOperationName(operationName)
+		return tracingSpan, nil
+	}
 	var ref = &SpanContext{}
 	if err := ref.Decode(extractor.(tracing.ExtractorWrapper).Fun()); err != nil {
 		return nil, err
@@ -55,7 +62,7 @@ func (t *Tracer) CreateEntrySpan(operationName string, extractor interface{}, op
 		ref = nil
 	}
 
-	return t.createSpan0(tracingSpan, opts, withRef(ref), withSpanType(SpanTypeEntry), withOperationName(operationName))
+	return t.createSpan0(ctx, tracingSpan, opts, withRef(ref), withSpanType(SpanTypeEntry), withOperationName(operationName))
 }
 
 func (t *Tracer) CreateLocalSpan(operationName string, opts ...interface{}) (s interface{}, err error) {
@@ -67,7 +74,7 @@ func (t *Tracer) CreateLocalSpan(operationName string, opts ...interface{}) (s i
 		saveSpanToActiveIfNotError(ctx, s, err)
 	}()
 
-	return t.createSpan0(tracingSpan, opts, withSpanType(SpanTypeLocal), withOperationName(operationName))
+	return t.createSpan0(ctx, tracingSpan, opts, withSpanType(SpanTypeLocal), withOperationName(operationName))
 }
 
 func (t *Tracer) CreateExitSpan(operationName, peer string, injector interface{}, opts ...interface{}) (s interface{}, err error) {
@@ -79,7 +86,11 @@ func (t *Tracer) CreateExitSpan(operationName, peer string, injector interface{}
 		saveSpanToActiveIfNotError(ctx, s, err)
 	}()
 
-	span, err := t.createSpan0(tracingSpan, opts, withSpanType(SpanTypeExit), withOperationName(operationName), withPeer(peer))
+	// if parent span is exit span, then use parent span as result
+	if tracingSpan != nil && tracingSpan.IsExit() && reflect.ValueOf(tracingSpan).Type() != snapshotType {
+		return tracingSpan, nil
+	}
+	span, err := t.createSpan0(ctx, tracingSpan, opts, withSpanType(SpanTypeExit), withOperationName(operationName), withPeer(peer))
 	if err != nil {
 		return nil, err
 	}
@@ -133,6 +144,46 @@ func (t *Tracer) SetRuntimeContextValue(key string, value interface{}) {
 	context.Runtime.Set(key, value)
 }
 
+func (t *Tracer) CaptureContext() interface{} {
+	ctx := getTracingContext()
+	if ctx == nil {
+		return nil
+	}
+	snapshot := &ContextSnapshot{
+		activeSpan: newSnapshotSpan(ctx.ActiveSpan()),
+		runtime:    ctx.Runtime.clone(),
+	}
+	return snapshot
+}
+
+func (t *Tracer) ContinueContext(snapshot interface{}) {
+	if snapshot == nil {
+		return
+	}
+	if snap, ok := snapshot.(*ContextSnapshot); ok {
+		ctx := getTracingContext()
+		if ctx == nil {
+			ctx = NewTracingContext()
+			SetGLS(ctx)
+		}
+		ctx.activeSpan = snap.activeSpan
+		ctx.Runtime = snap.runtime
+	}
+}
+
+func (t *Tracer) CleanContext() {
+	SetGLS(nil)
+}
+
+type ContextSnapshot struct {
+	activeSpan TracingSpan
+	runtime    *RuntimeContext
+}
+
+func (s *ContextSnapshot) IsValid() bool {
+	return s.activeSpan != nil && s.runtime != nil
+}
+
 func (t *Tracer) createNoop() (*TracingContext, TracingSpan, bool) {
 	if !t.InitSuccess() || t.Reporter.ConnectionStatus() == reporter.ConnectionStatusDisconnect {
 		return nil, &NoopSpan{}, true
@@ -143,10 +194,11 @@ func (t *Tracer) createNoop() (*TracingContext, TracingSpan, bool) {
 		_, ok := span.(*NoopSpan)
 		return ctx, span, ok
 	}
-	return nil, nil, false
+	ctx = NewTracingContext()
+	return ctx, nil, false
 }
 
-func (t *Tracer) createSpan0(parent TracingSpan, pluginOpts []interface{}, coreOpts ...interface{}) (s TracingSpan, err error) {
+func (t *Tracer) createSpan0(ctx *TracingContext, parent TracingSpan, pluginOpts []interface{}, coreOpts ...interface{}) (s TracingSpan, err error) {
 	ds := NewDefaultSpan(t, parent)
 	var parentSpan SegmentSpan
 	if parent != nil {
@@ -170,7 +222,7 @@ func (t *Tracer) createSpan0(parent TracingSpan, pluginOpts []interface{}, coreO
 	for _, opt := range coreOpts {
 		opt.(tracing.SpanOption).Apply(ds)
 	}
-	s, err = NewSegmentSpan(ds, parentSpan)
+	s, err = NewSegmentSpan(ctx, ds, parentSpan)
 	if err != nil {
 		return nil, err
 	}
@@ -237,9 +289,6 @@ func getTracingContext() *TracingContext {
 func saveSpanToActiveIfNotError(ctx *TracingContext, span interface{}, err error) {
 	if err != nil || span == nil {
 		return
-	}
-	if ctx == nil {
-		ctx = NewTracingContext()
 	}
 	ctx.SaveActiveSpan(span.(TracingSpan))
 	SetGLS(ctx)

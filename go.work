@@ -8,6 +8,10 @@ use (
 	./plugins/dubbo
 	./plugins/gin
 	./plugins/http
+	./plugins/go-restfulv3
+	./plugins/gorm
+	./plugins/kratosv2
+	./plugins/microv4
 
 	./test/benchmark-codebase/consumer
 	./test/benchmark-codebase/provider
@@ -18,6 +22,10 @@ use (
 	./test/plugins/scenarios/dubbo
 	./test/plugins/scenarios/gin
 	./test/plugins/scenarios/http
+	./test/plugins/scenarios/go-restfulv3
+	./test/plugins/scenarios/gorm
+	./test/plugins/scenarios/kratosv2
+	./test/plugins/scenarios/microv4
 
 	./test/plugins/scenarios/plugin_exclusion
 

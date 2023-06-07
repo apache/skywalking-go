@@ -27,17 +27,17 @@ import (
 	agentv3 "skywalking.apache.org/repo/goapi/collect/language/agent/v3"
 )
 
-func NewSegmentSpan(defaultSpan *DefaultSpan, parentSpan SegmentSpan) (s SegmentSpan, err error) {
+func NewSegmentSpan(ctx *TracingContext, defaultSpan *DefaultSpan, parentSpan SegmentSpan) (s SegmentSpan, err error) {
 	ssi := &SegmentSpanImpl{
 		DefaultSpan: *defaultSpan,
 	}
-	err = ssi.createSegmentContext(parentSpan)
+	err = ssi.createSegmentContext(ctx, parentSpan)
 	if err != nil {
 		return nil, err
 	}
 	if parentSpan == nil || !parentSpan.segmentRegister() {
 		rs := newSegmentRoot(ssi)
-		err = rs.createRootSegmentContext(parentSpan)
+		err = rs.createRootSegmentContext(ctx, parentSpan)
 		if err != nil {
 			return nil, err
 		}
@@ -100,12 +100,23 @@ func (s *SegmentSpanImpl) End() {
 	if !s.IsValid() {
 		return
 	}
-	s.DefaultSpan.End()
+	s.DefaultSpan.End(true)
+	if !s.DefaultSpan.InAsyncMode {
+		s.end0()
+	}
+}
+
+func (s *SegmentSpanImpl) AsyncFinish() {
+	s.DefaultSpan.AsyncFinish()
+	s.DefaultSpan.End(false)
+	s.end0()
+}
+
+func (s *SegmentSpanImpl) end0() {
 	go func() {
 		s.SegmentContext.collect <- s
 	}()
 }
-
 func (s *SegmentSpanImpl) GetDefaultSpan() *DefaultSpan {
 	return &s.DefaultSpan
 }
@@ -180,14 +191,14 @@ func (s *SegmentSpanImpl) segmentRegister() bool {
 	}
 }
 
-func (s *SegmentSpanImpl) createSegmentContext(parent SegmentSpan) (err error) {
+func (s *SegmentSpanImpl) createSegmentContext(ctx *TracingContext, parent SegmentSpan) (err error) {
 	if parent == nil {
 		s.SegmentContext = SegmentContext{}
 		if len(s.DefaultSpan.Refs) > 0 {
 			s.TraceID = s.DefaultSpan.Refs[0].GetTraceID()
 			s.CorrelationContext = s.DefaultSpan.Refs[0].(*SpanContext).CorrelationContext
 		} else {
-			s.TraceID, err = GenerateGlobalID()
+			s.TraceID, err = GenerateGlobalID(ctx)
 			if err != nil {
 				return err
 			}
@@ -220,14 +231,26 @@ func (rs *RootSegmentSpan) End() {
 	if !rs.IsValid() {
 		return
 	}
-	rs.DefaultSpan.End()
+	rs.DefaultSpan.End(true)
+	if !rs.InAsyncMode {
+		rs.end0()
+	}
+}
+
+func (rs *RootSegmentSpan) AsyncFinish() {
+	rs.DefaultSpan.AsyncFinish()
+	rs.DefaultSpan.End(false)
+	rs.end0()
+}
+
+func (rs *RootSegmentSpan) end0() {
 	go func() {
 		rs.doneCh <- atomic.SwapInt32(rs.SegmentContext.refNum, -1)
 	}()
 }
 
-func (rs *RootSegmentSpan) createRootSegmentContext(_ SegmentSpan) (err error) {
-	rs.SegmentID, err = GenerateGlobalID()
+func (rs *RootSegmentSpan) createRootSegmentContext(ctx *TracingContext, _ SegmentSpan) (err error) {
+	rs.SegmentID, err = GenerateGlobalID(ctx)
 	if err != nil {
 		return err
 	}
@@ -293,6 +316,14 @@ func (s *SnapshotSpan) segmentRegister() bool {
 			return true
 		}
 	}
+}
+
+func (s *SnapshotSpan) PrepareAsync() {
+	panic("please use the PrepareAsync on right goroutine")
+}
+
+func (s *SnapshotSpan) AsyncFinish() {
+	panic("please use the AsyncFinish on right goroutine")
 }
 
 func newSegmentRoot(segmentSpan *SegmentSpanImpl) *RootSegmentSpan {
