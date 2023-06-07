@@ -2,6 +2,19 @@ Changes by Version
 ==================
 Release Notes.
 
+0.2.0
+------------------
+#### Features
+* Enhance the plugin rewrite ability.
+
+#### Plugins
+
+#### Documentation
+
+#### Issues and PR
+- All issues are [here](https://github.com/apache/skywalking/milestone/180?closed=1)
+- All and pull requests are [here](https://github.com/apache/skywalking-go/milestone/2?closed=1)
+
 0.1.0
 ------------------
 
