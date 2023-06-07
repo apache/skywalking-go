@@ -29,6 +29,8 @@ jobs:
         uses: actions/setup-go@v2
         with:
           go-version: 1.18
+      - name: Set up Docker
+        uses: crazy-max/ghaction-setup-docker@v1
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2
         with:
