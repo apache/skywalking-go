@@ -87,11 +87,44 @@ jobs:
           path: test/plugins/workspace
           name: test-plugins-workspace-${{ matrix.case }}
 
+  test-on-macos:
+    if: always()
+    name: gin
+    needs:
+      - build
+    runs-on: macos-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - uses: actions/download-artifact@v2
+        with:
+          name: test-tools
+          path: test/plugins/dist
+      - name: Set up Docker
+        uses: crazy-max/ghaction-setup-docker@v1
+      - name: Setup Tools
+        run: |
+          chmod +x test/plugins/dist/*
+          if ls test/plugins/dist/skywalking-agent-test-validator-1.0.0.tgz; then
+            docker load -i test/plugins/dist/skywalking-agent-test-validator-1.0.0.tgz
+          fi
+      - name: Run Test
+        run: bash test/plugins/run.sh gin
+      - uses: actions/upload-artifact@v2
+        name: Upload Agent
+        if: ${{ failure() }}
+        with:
+          path: test/plugins/workspace
+          name: test-plugins-workspace-gin
+
   required:
     if: always()
     name: Plugin Tests
     needs:
       - test
+      - test-on-macos
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
