@@ -1,0 +1,87 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: Simple Plugin Tests On MacOS
+
+on:
+  pull_request:
+
+jobs:
+  build:
+    name: Build Plugin Test On MacOS
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - name: Set up Go 1.18
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.18
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: Build
+        run: make -C test/plugins build
+      - uses: actions/upload-artifact@v2
+        name: Upload Test Base
+        with:
+          name: test-tools
+          path: |
+            test/plugins/dist
+
+  test:
+    if: always()
+    name: gin
+    needs:
+      - build
+    runs-on: macos-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - uses: actions/download-artifact@v2
+        with:
+          name: test-tools
+          path: test/plugins/dist
+      - name: Setup Tools
+        run: |
+          chmod +x test/plugins/dist/*
+          if ls test/plugins/dist/skywalking-agent-test-validator-1.0.0.tgz; then
+            docker load -i test/plugins/dist/skywalking-agent-test-validator-1.0.0.tgz
+          fi
+      - name: Run Test
+        run: bash test/plugins/run.sh gin
+      - uses: actions/upload-artifact@v2
+        name: Upload Agent
+        if: ${{ failure() }}
+        with:
+          path: test/plugins/workspace
+          name: test-plugins-workspace-gin
+
+  required:
+    if: always()
+    name: Plugin Tests
+    needs:
+      - test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Merge Requirement
+        run: |
+          if [[ ${{ needs.test.result }} != 'success' ]]; then
+            exit -1
+          fi
