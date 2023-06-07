@@ -270,6 +270,14 @@ func (c *Context) enhanceTypeNameWhenRewrite(fieldType dst.Expr, parent dst.Node
 			p.Elt = generateExpr()
 		case *dst.ValueSpec:
 			p.Type = generateExpr()
+		case *dst.BinaryExpr:
+			if argIndex == 0 {
+				p.X = generateExpr()
+			} else if argIndex == 1 {
+				p.Y = generateExpr()
+			} else {
+				panic("binary expr arg index error")
+			}
 		}
 	case *dst.StarExpr:
 		return c.enhanceTypeNameWhenRewrite(t.X, t, -1)
@@ -315,8 +323,8 @@ func (c *Context) enhanceTypeNameWhenRewrite(fieldType dst.Expr, parent dst.Node
 			c.enhanceFuncStmt(stmt)
 		}
 	case *dst.BinaryExpr:
-		c.enhanceTypeNameWhenRewrite(t.X, t, -1)
-		c.enhanceTypeNameWhenRewrite(t.Y, t, -1)
+		c.enhanceTypeNameWhenRewrite(t.X, t, 0)
+		c.enhanceTypeNameWhenRewrite(t.Y, t, 1)
 	case *dst.ParenExpr:
 		c.rewriteVarIfExistingMapping(t.X, t)
 	case *dst.MapType:
