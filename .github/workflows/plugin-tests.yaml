@@ -24,8 +24,8 @@ on:
   pull_request:
 
 jobs:
-  build:
-    name: Build Plugin Test
+  build-linux:
+    name: Build Plugin Test On Ubuntu
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -46,11 +46,42 @@ jobs:
           path: |
             test/plugins/dist
 
+  build-darwin:
+    name: Build Plugin Test On MacOS
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - name: Set up Go 1.18
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.18
+      - name: Setup docker (missing on MacOS)
+        if: runner.os == 'macos'
+        run: |
+          brew install docker
+          colima start
+
+          # For testcontainers to find the Colima socket
+          # https://github.com/abiosoft/colima/blob/main/docs/FAQ.md#cannot-connect-to-the-docker-daemon-at-unixvarrundockersock-is-the-docker-daemon-running
+          sudo ln -sf $HOME/.colima/default/docker.sock /var/run/docker.sock
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: Build
+        run: make -C test/plugins build
+      - uses: actions/upload-artifact@v2
+        name: Upload Test Base
+        with:
+          name: test-tools
+          path: |
+            test/plugins/dist
+
   test:
     if: always()
     name: ${{ matrix.case }}
     needs:
-      - build
+      - build-linux
     runs-on: ubuntu-latest
     timeout-minutes: 90
     strategy:
@@ -89,9 +120,9 @@ jobs:
 
   test-on-macos:
     if: always()
-    name: gin
+    name: gin-macos
     needs:
-      - build
+      - build-darwin
     runs-on: macos-latest
     timeout-minutes: 90
     steps:
