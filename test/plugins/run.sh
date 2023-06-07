@@ -155,16 +155,24 @@ for framework_version in $frameworks; do
   cp -rf ${scenario_home}/* ${case_home}
   cd ${case_home}
 
-  # replace go version
-  sed -i "s/^go [0-9]*\.[0-9]*/go ${go_version}/" go.mod
   # append the module name(for go1.20, module name cannot be same in same workspace)
   mod_case_name=$(echo "${case_name}" | sed 's/\//_/g; s/\./_/g; s/-/_/g')
   mod_name=$(head -n 1 go.mod | cut -d " " -f 2)
-  sed -i "s/^module /module ${mod_case_name}\//" go.mod
-  find . -name "*.go" -type f -exec sed -i "s|${mod_name}|${mod_case_name}/${mod_name}|g" {} \;
-
-  # ajust the plugin replace path
-  sed -i -E '/^replace/ s#(\.\./)#\1../#' go.mod
+  if [ $(uname) = 'Darwin' ]; then
+    # replace go version
+    sed -i '' "s/^go [0-9]*\.[0-9]*/go ${go_version}/" go.mod
+    sed -i '' "s/^module /module ${mod_case_name}\//" go.mod
+    find . -name "*.go" -type f -exec sed -i '' "s|${mod_name}|${mod_case_name}/${mod_name}|g" {} \;
+    # ajust the plugin replace path
+    sed -i '' -E '/^replace/ s#(\.\./)#\1../#' go.mod
+  else
+    # replace go version
+    sed -i "s/^go [0-9]*\.[0-9]*/go ${go_version}/" go.mod
+    sed -i "s/^module /module ${mod_case_name}\//" go.mod
+    find . -name "*.go" -type f -exec sed -i "s|${mod_name}|${mod_case_name}/${mod_name}|g" {} \;
+    # ajust the plugin replace path
+    sed -i -E '/^replace/ s#(\.\./)#\1../#' go.mod
+  fi
 
   # replace framework version
   if [[ "$framework_version" != "native" ]]; then
