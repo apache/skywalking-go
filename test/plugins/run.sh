@@ -28,6 +28,21 @@ num_of_testcases=0
 
 start_stamp=`date +%s`
 
+replace() {
+  if [ $# -lt 2 ]; then
+    echo 1
+    return
+  fi
+
+  cmd=$1
+  file=$2
+  if [ $(uname) = 'Darwin' ]; then
+    sed -i '' -E "$cmd" "$file"
+  else
+    sed -i -E "$cmd" "$file"
+  fi
+}
+
 print_help() {
     echo  "Usage: run.sh [OPTION] SCENARIO_NAME"
     echo -e "\t--clean, \t\t\t remove the related images and directories"
@@ -158,21 +173,12 @@ for framework_version in $frameworks; do
   # append the module name(for go1.20, module name cannot be same in same workspace)
   mod_case_name=$(echo "${case_name}" | sed 's/\//_/g; s/\./_/g; s/-/_/g')
   mod_name=$(head -n 1 go.mod | cut -d " " -f 2)
-  if [ $(uname) = 'Darwin' ]; then
-    # replace go version
-    sed -i '' "s/^go [0-9]*\.[0-9]*/go ${go_version}/" go.mod
-    sed -i '' "s/^module /module ${mod_case_name}\//" go.mod
-    find . -name "*.go" -type f -exec sed -i '' "s|${mod_name}|${mod_case_name}/${mod_name}|g" {} \;
-    # ajust the plugin replace path
-    sed -i '' -E '/^replace/ s#(\.\./)#\1../#' go.mod
-  else
-    # replace go version
-    sed -i "s/^go [0-9]*\.[0-9]*/go ${go_version}/" go.mod
-    sed -i "s/^module /module ${mod_case_name}\//" go.mod
-    find . -name "*.go" -type f -exec sed -i "s|${mod_name}|${mod_case_name}/${mod_name}|g" {} \;
-    # ajust the plugin replace path
-    sed -i -E '/^replace/ s#(\.\./)#\1../#' go.mod
-  fi
+  # replace go version
+  replace "s/^go [0-9]*\.[0-9]*/go ${go_version}/" go.mod
+  replace "s/^module /module ${mod_case_name}\//" go.mod
+  find . -name "*.go" -type f -exec replace "s|${mod_name}|${mod_case_name}/${mod_name}|g" {} \;
+  # ajust the plugin replace path
+  replace '/^replace/ s#(\.\./)#\1../#' go.mod
 
   # replace framework version
   if [[ "$framework_version" != "native" ]]; then
