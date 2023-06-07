@@ -24,31 +24,13 @@ on:
   pull_request:
 
 jobs:
-  build-linux:
-    name: Build Plugin Test On Ubuntu
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    steps:
-      - name: Set up Go 1.18
-        uses: actions/setup-go@v2
-        with:
-          go-version: 1.18
-      - name: Check out code into the Go module directory
-        uses: actions/checkout@v2
-        with:
-          submodules: true
-      - name: Build
-        run: make -C test/plugins build
-      - uses: actions/upload-artifact@v2
-        name: Upload Test Base
-        with:
-          name: test-tools
-          path: |
-            test/plugins/dist
-
-  build-darwin:
-    name: Build Plugin Test On MacOS
-    runs-on: macos-latest
+  build:
+    name: Build Plugin Test On ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ubuntu, macos]
+    runs-on: ${{ matrix.os }}-latest
     timeout-minutes: 60
     steps:
       - name: Set up Go 1.18
@@ -73,7 +55,7 @@ jobs:
       - uses: actions/upload-artifact@v2
         name: Upload Test Base
         with:
-          name: test-tools
+          name: test-tools-${{ matrix.os }}
           path: |
             test/plugins/dist
 
@@ -81,7 +63,7 @@ jobs:
     if: always()
     name: ${{ matrix.case }}
     needs:
-      - build-linux
+      - build
     runs-on: ubuntu-latest
     timeout-minutes: 90
     strategy:
@@ -101,7 +83,7 @@ jobs:
           submodules: true
       - uses: actions/download-artifact@v2
         with:
-          name: test-tools
+          name: test-tools-ubuntu
           path: test/plugins/dist
       - name: Setup Tools
         run: |
@@ -116,13 +98,13 @@ jobs:
         if: ${{ failure() }}
         with:
           path: test/plugins/workspace
-          name: test-plugins-workspace-${{ matrix.case }}
+          name: test-plugins-workspace-${{ matrix.case }}-ubuntu
 
   test-on-macos:
     if: always()
     name: gin-macos
     needs:
-      - build-darwin
+      - build
     runs-on: macos-latest
     timeout-minutes: 90
     steps:
@@ -131,7 +113,7 @@ jobs:
           submodules: true
       - uses: actions/download-artifact@v2
         with:
-          name: test-tools
+          name: test-tools-macos
           path: test/plugins/dist
       - name: Setup docker (missing on MacOS)
         if: runner.os == 'macos'
@@ -155,7 +137,7 @@ jobs:
         if: ${{ failure() }}
         with:
           path: test/plugins/workspace
-          name: test-plugins-workspace-gin
+          name: test-plugins-workspace-gin-macos
 
   required:
     if: always()
