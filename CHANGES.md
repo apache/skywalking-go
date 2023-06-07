@@ -5,7 +5,7 @@ Release Notes.
 0.2.0
 ------------------
 #### Features
-* Enhance the plugin rewrite ability.
+* Enhance the plugin rewrite ability to support `switch` and `if/else` in the plugin codes.
 
 #### Plugins
 
