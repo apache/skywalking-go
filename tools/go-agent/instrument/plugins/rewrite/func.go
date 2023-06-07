@@ -75,6 +75,7 @@ func (c *Context) enhanceFuncStmt(stmt dst.Stmt) {
 	subCallTypes := []reflect.Type{
 		reflect.TypeOf(&dst.IfStmt{}),
 		reflect.TypeOf(&dst.BlockStmt{}),
+		reflect.TypeOf(&dst.TypeSwitchStmt{}),
 	}
 	dstutil.Apply(stmt, func(cursor *dstutil.Cursor) bool {
 		for _, t := range subCallTypes {
@@ -144,6 +145,21 @@ func (c *Context) enhanceFuncStmt(stmt dst.Stmt) {
 			}
 		case *dst.ValueSpec:
 			c.Var(n, false)
+		case *dst.TypeSwitchStmt:
+			c.enhanceFuncStmt(n.Init)
+			c.enhanceFuncStmt(n.Assign)
+			if n.Body != nil {
+				for _, stmt := range n.Body.List {
+					c.enhanceFuncStmt(stmt)
+				}
+			}
+		case *dst.CaseClause:
+			for _, stmt := range n.List {
+				c.enhanceTypeNameWhenRewrite(stmt, n, -1)
+			}
+			for _, stmt := range n.Body {
+				c.enhanceFuncStmt(stmt)
+			}
 		default:
 			return true
 		}
