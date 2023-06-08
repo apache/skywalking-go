@@ -13,3 +13,5 @@
 * Database Client
   * `gorm`: [GORM](https://github.com/go-gorm/gorm)
     * [MySQL Driver](https://github.com/go-gorm/mysql)
+* Cache Client
+  * `go-redisv9`: [go-redis](https://github.com/redis/go-redis)

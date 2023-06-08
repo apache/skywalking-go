@@ -21,6 +21,7 @@ import (
 	"github.com/apache/skywalking-go/plugins/core/instrument"
 	"github.com/apache/skywalking-go/plugins/dubbo"
 	"github.com/apache/skywalking-go/plugins/gin"
+	goredisv9 "github.com/apache/skywalking-go/plugins/go-redisv9"
 	"github.com/apache/skywalking-go/plugins/go-restfulv3"
 	gorm_entry "github.com/apache/skywalking-go/plugins/gorm/entry"
 	gorm_mysql "github.com/apache/skywalking-go/plugins/gorm/mysql"
@@ -39,6 +40,7 @@ func init() {
 	registerFramework(restfulv3.NewInstrument())
 	registerFramework(kratosv2.NewInstrument())
 	registerFramework(microv4.NewInstrument())
+	registerFramework(goredisv9.NewInstrument())
 
 	// gorm related instruments
 	registerFramework(gorm_entry.NewInstrument())

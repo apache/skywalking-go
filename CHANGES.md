@@ -8,6 +8,7 @@ Release Notes.
 * Enhance the plugin rewrite ability to support `switch` and `if/else` in the plugin codes.
 
 #### Plugins
+* Support [go-redis](https://github.com/redis/go-redis) v9 redis client framework.
 
 #### Documentation
 
