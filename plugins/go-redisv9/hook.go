@@ -121,10 +121,10 @@ func (r *redisHook) ProcessPipelineHook(next redis.ProcessPipelineHook) redis.Pr
 			summaryCmds = summaryCmds[:10]
 		}
 		for i := range summaryCmds {
-			summary += summaryCmds[i].FullName()
+			summary += summaryCmds[i].FullName() + " "
 		}
 		if len(cmds) > 10 {
-			summary += " ..."
+			summary += "..."
 		}
 		s, err := tracing.CreateExitSpan(
 			// operationName
