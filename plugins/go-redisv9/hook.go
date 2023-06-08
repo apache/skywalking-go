@@ -47,7 +47,7 @@ func (r *redisHook) DialHook(next redis.DialHook) redis.DialHook {
 	return func(ctx context.Context, network, addr string) (net.Conn, error) {
 		s, err := tracing.CreateExitSpan(
 			// operationName
-			"redis.dial",
+			GoRedisCacheType+"/"+"dial",
 
 			// peer
 			r.Addr,
@@ -82,7 +82,7 @@ func (r *redisHook) ProcessHook(next redis.ProcessHook) redis.ProcessHook {
 	return func(ctx context.Context, cmd redis.Cmder) error {
 		s, err := tracing.CreateExitSpan(
 			// operationName
-			cmd.FullName(),
+			GoRedisCacheType+"/"+cmd.FullName(),
 
 			// peer
 			r.Addr,
@@ -123,7 +123,7 @@ func (r *redisHook) ProcessPipelineHook(next redis.ProcessPipelineHook) redis.Pr
 			summaryCmds = summaryCmds[:10]
 		}
 		for i := range summaryCmds {
-			summary += summaryCmds[i].FullName() + " "
+			summary += summaryCmds[i].FullName() + "/"
 		}
 		if len(cmds) > 10 {
 			summary += "..."
@@ -131,7 +131,7 @@ func (r *redisHook) ProcessPipelineHook(next redis.ProcessPipelineHook) redis.Pr
 
 		s, err := tracing.CreateExitSpan(
 			// operationName
-			"redis.pipeline "+strings.TrimSpace(summary),
+			"redis/pipeline/"+strings.TrimRight(summary, "/"),
 
 			// peer
 			r.Addr,
