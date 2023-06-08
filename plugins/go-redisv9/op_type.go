@@ -24,7 +24,7 @@ const (
 )
 
 // Commands are divided into different type.
-//  Ref: https://github.com/apache/skywalking-java/blob/main/apm-sniffer/apm-sdk-plugin/jedis-plugins/jedis-2.x-3.x-plugin/src/main/java/org/apache/skywalking/apm/plugin/jedis/v3/JedisPluginConfig.java
+// Ref to JedisPluginConfig.java under skywalking-java repo
 
 var writeOperation = map[string]bool{
 	"getset":           true,
@@ -126,7 +126,6 @@ var readOperation = map[string]bool{
 }
 
 // getCacheOp return "read" or "write" or "" based on the cmd.
-// https://github.com/apache/skywalking-java/blob/main/apm-sniffer/optional-plugins/ehcache-2.x-plugin/src/main/java/org/apache/skywalking/apm/plugin/ehcache/v2/EncacheOperationConvertor.java#L29
 func getCacheOp(cmd string) string {
 	if readOperation[cmd] {
 		return opTypeRead
