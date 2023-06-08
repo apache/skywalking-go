@@ -20,9 +20,10 @@ package goredisv9
 import (
 	"context"
 	"fmt"
-	"github.com/apache/skywalking-go/plugins/core/tracing"
 	"net"
 	"strings"
+
+	"github.com/apache/skywalking-go/plugins/core/tracing"
 
 	"github.com/redis/go-redis/v9"
 )
