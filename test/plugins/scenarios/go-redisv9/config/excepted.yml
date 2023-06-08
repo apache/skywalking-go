@@ -20,21 +20,6 @@ segmentItems:
     segments:
       - segmentId: not null
         spans:
-          - operationName: ping
-            parentSpanId: -1
-            spanId: 0
-            spanLayer: Cache
-            startTime: nq 0
-            endTime: nq 0
-            componentId: 5014
-            isError: false
-            spanType: Exit
-            peer: redis-server:6379
-            skipAnalysis: false
-            tags:
-              - {key: cache.type, value: redis}
-      - segmentId: not null
-        spans:
           - operationName: set
             parentSpanId: 0
             spanId: 1
@@ -48,7 +33,7 @@ segmentItems:
             skipAnalysis: false
             tags:
               - {key: cache.type, value: redis}
-              - {key: cache.key, value: key_TestSetAndGet 10}
+              - {key: cache.args, value: not null}
           - operationName: get
             parentSpanId: 0
             spanId: 2
@@ -62,7 +47,7 @@ segmentItems:
             skipAnalysis: false
             tags:
               - {key: cache.type, value: redis}
-              - {key: cache.key, value: key_TestSetAndGet}
+              - { key: cache.args, value: not null}
           - operationName: redis.pipeline set set
             parentSpanId: 0
             spanId: 3
