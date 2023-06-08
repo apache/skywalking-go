@@ -171,11 +171,12 @@ func recordError(span tracing.Span, err error) {
 	}
 }
 
-// getKey Try to transform the first argument into string
+// getKey Try to transform the second argument into string
+// e.g. "GET my_key" -> "my_key"
 func getKey(args []interface{}) string {
 	key := ""
-	if len(args) >= 1 {
-		k := args[0]
+	if len(args) >= 2 {
+		k := args[1]
 		switch v := k.(type) {
 		case string:
 			key = v
