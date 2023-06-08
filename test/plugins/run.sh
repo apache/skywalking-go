@@ -34,14 +34,22 @@ replace() {
     return
   fi
 
+  opt=''
   cmd=$1
   file=$2
+  if [ $# -eq 3 ]; then
+    opt=$1
+    cmd=$2
+    file=$3
+  fi
+
   if [ $(uname) = 'Darwin' ]; then
-    sed -i '' -E "$cmd" "$file"
+    sed -i '' $opt "$cmd" "$file"
   else
-    sed -i -E "$cmd" "$file"
+    sed -i $opt "$cmd" "$file"
   fi
 }
+export -f replace
 
 print_help() {
     echo  "Usage: run.sh [OPTION] SCENARIO_NAME"
@@ -176,9 +184,9 @@ for framework_version in $frameworks; do
   # replace go version
   replace "s/^go [0-9]*\.[0-9]*/go ${go_version}/" go.mod
   replace "s/^module /module ${mod_case_name}\//" go.mod
-  find . -name "*.go" -type f -exec replace "s|${mod_name}|${mod_case_name}/${mod_name}|g" {} \;
+  find . -name "*.go" -type f -exec bash -c "replace \"s|${mod_name}|${mod_case_name}/${mod_name}|g\" \"{}\"" \;
   # ajust the plugin replace path
-  replace '/^replace/ s#(\.\./)#\1../#' go.mod
+  replace -E '/^replace/ s#(\.\./)#\1../#' go.mod
 
   # replace framework version
   if [[ "$framework_version" != "native" ]]; then
