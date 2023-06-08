@@ -54,7 +54,7 @@ segmentItems:
               - { key: cache.cmd, value: get}
               - {key: cache.key, value: key_TestSetAndGet}
               - { key: cache.args, value: not null}
-          - operationName: redis/pipeline/set/set
+          - operationName: redis/pipeline
             parentSpanId: 0
             spanId: 3
             spanLayer: Cache
