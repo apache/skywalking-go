@@ -21,6 +21,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"strings"
 
 	"github.com/apache/skywalking-go/plugins/core/tracing"
 
@@ -126,9 +127,10 @@ func (r *redisHook) ProcessPipelineHook(next redis.ProcessPipelineHook) redis.Pr
 		if len(cmds) > 10 {
 			summary += "..."
 		}
+
 		s, err := tracing.CreateExitSpan(
 			// operationName
-			"redis.pipeline "+summary,
+			"redis.pipeline "+strings.TrimSpace(summary),
 
 			// peer
 			r.Addr,
