@@ -15,89 +15,78 @@
 # limitations under the License.
 
 segmentItems:
-  - serviceName: gorm
+  - serviceName: go-redisv9
     segmentSize: ge 1
     segments:
       - segmentId: not null
         spans:
-          - operationName: /raw
+          - operationName: ping
+            parentSpanId: -1
+            spanId: 0
+            spanLayer: Cache
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 5014
+            isError: false
+            spanType: Exit
+            peer: redis-server:6379
+            skipAnalysis: false
+            tags:
+              - {key: cache.type, value: redis}
+      - segmentId: not null
+        spans:
+          - operationName: set
             parentSpanId: 0
             spanId: 1
-            spanLayer: Database
+            spanLayer: Cache
             startTime: nq 0
             endTime: nq 0
-            componentId: 5012
+            componentId: 5014
             isError: false
             spanType: Exit
-            peer: mysql-server:3306
+            peer: redis-server:6379
             skipAnalysis: false
             tags:
-              - {key: db.type, value: mysql}
-          - operationName: users/create
+              - {key: cache.type, value: redis}
+          - operationName: get
             parentSpanId: 0
             spanId: 2
-            spanLayer: Database
+            spanLayer: Cache
             startTime: nq 0
             endTime: nq 0
-            componentId: 5012
+            componentId: 5014
             isError: false
             spanType: Exit
-            peer: mysql-server:3306
+            peer: redis-server:6379
             skipAnalysis: false
             tags:
-              - {key: db.type, value: mysql}
-          - operationName: users/query
+              - {key: cache.type, value: redis}
+          - operationName: redis.pipeline set set
             parentSpanId: 0
             spanId: 3
-            spanLayer: Database
+            spanLayer: Cache
             startTime: nq 0
             endTime: nq 0
-            componentId: 5012
+            componentId: 5014
             isError: false
             spanType: Exit
-            peer: mysql-server:3306
+            peer: redis-server:6379
             skipAnalysis: false
             tags:
-              - {key: db.type, value: mysql}
-          - operationName: users/row
+              - {key: cache.type, value: redis}
+          - operationName: redis.pipeline get get
             parentSpanId: 0
             spanId: 4
-            spanLayer: Database
+            spanLayer: Cache
             startTime: nq 0
             endTime: nq 0
-            componentId: 5012
+            componentId: 5014
             isError: false
             spanType: Exit
-            peer: mysql-server:3306
+            peer: redis-server:6379
             skipAnalysis: false
             tags:
-              - {key: db.type, value: mysql}
-          - operationName: users/update
-            parentSpanId: 0
-            spanId: 5
-            spanLayer: Database
-            startTime: nq 0
-            endTime: nq 0
-            componentId: 5012
-            isError: false
-            spanType: Exit
-            peer: mysql-server:3306
-            skipAnalysis: false
-            tags:
-              - {key: db.type, value: mysql}
-          - operationName: users/delete
-            parentSpanId: 0
-            spanId: 6
-            spanLayer: Database
-            startTime: nq 0
-            endTime: nq 0
-            componentId: 5012
-            isError: false
-            spanType: Exit
-            peer: mysql-server:3306
-            skipAnalysis: false
-            tags:
-              - {key: db.type, value: mysql}
+              - {key: cache.type, value: redis}
           - operationName: GET:/execute
             parentSpanId: -1
             spanId: 0
