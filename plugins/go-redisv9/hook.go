@@ -96,6 +96,7 @@ func (r *redisHook) ProcessHook(next redis.ProcessHook) redis.ProcessHook {
 			tracing.WithComponent(GoRedisComponentID),
 			tracing.WithLayer(tracing.SpanLayerCache),
 			tracing.WithTag(tracing.TagCacheType, GoRedisCacheType),
+			tracing.WithTag(tracing.TagCacheArgs, cmd.String()),
 		)
 
 		if err != nil {

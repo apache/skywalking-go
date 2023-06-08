@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	v9 "github.com/redis/go-redis/v9"
 
@@ -53,7 +54,7 @@ func executeHandler(w http.ResponseWriter, r *http.Request) {
 func TestSetAndGet(ctx context.Context) error {
 	key := "key_TestSetAndGet"
 	value := "value_TestSetAndGet"
-	if _, err := rdb.Set(ctx, key, value, 0).Result(); err != nil {
+	if _, err := rdb.Set(ctx, key, value, 10*time.Second).Result(); err != nil {
 		return fmt.Errorf("SET error: %s", err.Error())
 	}
 

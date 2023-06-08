@@ -48,6 +48,7 @@ segmentItems:
             skipAnalysis: false
             tags:
               - {key: cache.type, value: redis}
+              - {key: cache.key, value: key_TestSetAndGet 10}
           - operationName: get
             parentSpanId: 0
             spanId: 2
@@ -61,6 +62,7 @@ segmentItems:
             skipAnalysis: false
             tags:
               - {key: cache.type, value: redis}
+              - {key: cache.key, value: key_TestSetAndGet}
           - operationName: redis.pipeline set set
             parentSpanId: 0
             spanId: 3
