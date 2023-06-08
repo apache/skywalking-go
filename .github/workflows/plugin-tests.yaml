@@ -150,6 +150,6 @@ jobs:
     steps:
       - name: Merge Requirement
         run: |
-          if [[ ${{ needs.test.result }} != 'success' ]]; then
+          if [[ ${{ needs.test.result }} != 'success' || ${{ needs.test-on-macos }} != 'success' ]]; then
             exit -1
           fi
