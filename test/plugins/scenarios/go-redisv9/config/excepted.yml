@@ -33,6 +33,8 @@ segmentItems:
             skipAnalysis: false
             tags:
               - {key: cache.type, value: redis}
+              - {key: cache.op, value: write}
+              - {key: cache.cmd, value: set}
               - {key: cache.args, value: not null}
           - operationName: redis/get
             parentSpanId: 0
@@ -47,6 +49,8 @@ segmentItems:
             skipAnalysis: false
             tags:
               - {key: cache.type, value: redis}
+              - { key: cache.op, value: read}
+              - { key: cache.cmd, value: get}
               - { key: cache.args, value: not null}
           - operationName: redis/pipeline/set/set
             parentSpanId: 0
@@ -61,7 +65,8 @@ segmentItems:
             skipAnalysis: false
             tags:
               - {key: cache.type, value: redis}
-          - operationName: redis/pipeline/get/get
+              - {key: cache.cmd, value: 'pipeline:set/set'}
+          - operationName: redis/pipeline
             parentSpanId: 0
             spanId: 4
             spanLayer: Cache
@@ -74,6 +79,7 @@ segmentItems:
             skipAnalysis: false
             tags:
               - {key: cache.type, value: redis}
+              - {key: cache.cmd, value: 'pipeline:get/get'}
           - operationName: GET:/execute
             parentSpanId: -1
             spanId: 0

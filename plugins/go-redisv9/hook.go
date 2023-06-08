@@ -20,10 +20,9 @@ package goredisv9
 import (
 	"context"
 	"fmt"
+	"github.com/apache/skywalking-go/plugins/core/tracing"
 	"net"
 	"strings"
-
-	"github.com/apache/skywalking-go/plugins/core/tracing"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -96,6 +95,8 @@ func (r *redisHook) ProcessHook(next redis.ProcessHook) redis.ProcessHook {
 			tracing.WithComponent(GoRedisComponentID),
 			tracing.WithLayer(tracing.SpanLayerCache),
 			tracing.WithTag(tracing.TagCacheType, GoRedisCacheType),
+			tracing.WithTag(tracing.TagCacheOp, getCacheOp(cmd.FullName())),
+			tracing.WithTag(tracing.TagCacheCmd, cmd.FullName()),
 			tracing.WithTag(tracing.TagCacheArgs, cmd.String()),
 		)
 
@@ -131,7 +132,7 @@ func (r *redisHook) ProcessPipelineHook(next redis.ProcessPipelineHook) redis.Pr
 
 		s, err := tracing.CreateExitSpan(
 			// operationName
-			"redis/pipeline/"+strings.TrimRight(summary, "/"),
+			"redis/pipeline",
 
 			// peer
 			r.Addr,
@@ -145,6 +146,7 @@ func (r *redisHook) ProcessPipelineHook(next redis.ProcessPipelineHook) redis.Pr
 			tracing.WithComponent(GoRedisComponentID),
 			tracing.WithLayer(tracing.SpanLayerCache),
 			tracing.WithTag(tracing.TagCacheType, GoRedisCacheType),
+			tracing.WithTag(tracing.TagCacheCmd, "pipeline:"+strings.TrimRight(summary, "/")),
 		)
 		if err != nil {
 			err = fmt.Errorf("go-redis :skyWalking failed to create exit span, got error: %v", err)
