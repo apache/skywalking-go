@@ -97,6 +97,7 @@ func (r *redisHook) ProcessHook(next redis.ProcessHook) redis.ProcessHook {
 			tracing.WithTag(tracing.TagCacheType, GoRedisCacheType),
 			tracing.WithTag(tracing.TagCacheOp, getCacheOp(cmd.FullName())),
 			tracing.WithTag(tracing.TagCacheCmd, cmd.FullName()),
+			tracing.WithTag(tracing.TagCacheKey, getKey(cmd.Args())),
 			tracing.WithTag(tracing.TagCacheArgs, cmd.String()),
 		)
 
@@ -168,4 +169,19 @@ func recordError(span tracing.Span, err error) {
 	if err != redis.Nil {
 		span.Error(err.Error())
 	}
+}
+
+// getKey Try to transform the first argument into string
+func getKey(args []interface{}) string {
+	key := ""
+	if len(args) >= 1 {
+		k := args[0]
+		switch v := k.(type) {
+		case string:
+			key = v
+		default:
+			break
+		}
+	}
+	return key
 }

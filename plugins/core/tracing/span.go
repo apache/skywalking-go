@@ -62,6 +62,7 @@ const (
 	TagCacheType       = "cache.type"
 	TagCacheOp         = "cache.op"
 	TagCacheCmd        = "cache.cmd"
+	TagCacheKey        = "cache.key"
 	TagCacheArgs       = "cache.args"
 )
 

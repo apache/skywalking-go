@@ -35,6 +35,7 @@ segmentItems:
               - {key: cache.type, value: redis}
               - {key: cache.op, value: write}
               - {key: cache.cmd, value: set}
+              - {key: cache.key, value: key_TestPipelineSetAndGet_1}
               - {key: cache.args, value: not null}
           - operationName: redis/get
             parentSpanId: 0
@@ -51,6 +52,7 @@ segmentItems:
               - {key: cache.type, value: redis}
               - { key: cache.op, value: read}
               - { key: cache.cmd, value: get}
+              - {key: cache.key, value: key_TestPipelineSetAndGet_1}
               - { key: cache.args, value: not null}
           - operationName: redis/pipeline/set/set
             parentSpanId: 0
