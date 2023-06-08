@@ -72,6 +72,7 @@ jobs:
           - gin
           - http
           - dubbo
+          - go-redisv9
           - go-restfulv3
           - gorm
           - kratosv2

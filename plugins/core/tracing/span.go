@@ -59,6 +59,11 @@ const (
 	TagMQQueue         = "mq.queue"
 	TagMQBroker        = "mq.broker"
 	TagMQTopic         = "mq.topic"
+	TagCacheType       = "cache.type"
+	TagCacheOp         = "cache.op"
+	TagCacheCmd        = "cache.cmd"
+	TagCacheKey        = "cache.key"
+	TagCacheArgs       = "cache.args"
 )
 
 // WithLayer set the SpanLayer of the Span
