@@ -39,6 +39,17 @@ func main() {
 	if firstNonOptionIndex, err = tools.ParseFlags(toolFlags, args); err != nil || toolFlags.Help {
 		PrintUsageWithExit()
 	}
+	if toolFlags.Inject != "" {
+		if err1 := InjectProject(toolFlags); err1 != nil {
+			log.Fatal(err1)
+		}
+		return
+	} else if toolFlags.Version {
+		PrintVersion()
+		return
+	} else if firstNonOptionIndex < 0 {
+		PrintUsageWithExit()
+	}
 
 	if toolFlags.Debug != "" {
 		stat, err1 := os.Stat(toolFlags.Debug)
