@@ -2,8 +2,10 @@ package sarama
 
 import (
 	"embed"
-	"github.com/apache/skywalking-go/plugins/core/instrument"
+
 	"github.com/hashicorp/go-version"
+
+	"github.com/apache/skywalking-go/plugins/core/instrument"
 )
 
 //go:embed *

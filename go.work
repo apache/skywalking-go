@@ -29,6 +29,7 @@ use (
 	./test/plugins/scenarios/gorm
 	./test/plugins/scenarios/kratosv2
 	./test/plugins/scenarios/microv4
+	./test/plugins/scenarios/sarama
 
 	./test/plugins/scenarios/plugin_exclusion
 

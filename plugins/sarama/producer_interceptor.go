@@ -1,9 +1,11 @@
 package sarama
 
 import (
-	"github.com/Shopify/sarama"
-	"github.com/apache/skywalking-go/plugins/core/tracing"
 	"strings"
+
+	"github.com/Shopify/sarama"
+
+	"github.com/apache/skywalking-go/plugins/core/tracing"
 )
 
 type producerInterceptor struct {

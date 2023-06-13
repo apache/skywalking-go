@@ -2,7 +2,9 @@ package sarama
 
 import (
 	"fmt"
+
 	"github.com/Shopify/sarama"
+
 	"github.com/apache/skywalking-go/plugins/core/operator"
 	"github.com/apache/skywalking-go/plugins/core/tracing"
 )
