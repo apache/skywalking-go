@@ -22,6 +22,7 @@ import (
 	"embed"
 	"fmt"
 	"go/token"
+	"golang.org/x/mod/module"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -422,10 +423,15 @@ func (i *Instrument) tryToFindThePluginVersion(opts *api.CompileOptions, ins ins
 		if !strings.HasSuffix(arg, ".go") {
 			continue
 		}
+
+		// example: github.com/Shopify/sarama
 		basePkg := ins.BasePackage()
 
-		// example: github.com/gin-gonic/gin@1.1.1/gin.go
-		_, afterPkg, found := strings.Cut(arg, basePkg)
+		// example: github.com/!shopify/sarama
+		escapedBasePkg, _ := module.EscapePath(basePkg)
+
+		// arg example: github.com/!shopify/sarama/@1.34.1/acl.go
+		_, afterPkg, found := strings.Cut(arg, escapedBasePkg)
 		if !found {
 			return "", fmt.Errorf("could not found the go version of the package %s, go file path: %s", basePkg, arg)
 		}
