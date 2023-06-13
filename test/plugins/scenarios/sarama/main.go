@@ -28,7 +28,7 @@ import (
 )
 
 var (
-	producer sarama.AsyncProducer
+	producer sarama.SyncProducer
 	consumer sarama.Consumer
 )
 
@@ -53,17 +53,21 @@ func executeHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func testProduce(ctx context.Context) error {
-	producer.Input() <- &sarama.ProducerMessage{
-		Topic: "sarama_auto_instrument",
-		Key:   nil,
-		Value: sarama.StringEncoder("this is a test msg"),
-	}
-	defer producer.AsyncClose()
-	return nil
+	return producer.SendMessages([]*sarama.ProducerMessage{
+		{
+			Topic: "sarama_auto_instrument",
+			Key:   nil,
+			Value: sarama.StringEncoder("this is a test msg"),
+		},
+	})
 }
 
 func testConsume(ctx context.Context) error {
-	c, _ := consumer.ConsumePartition("sarama_auto_instrument", 3, 0)
+	c, err := consumer.ConsumePartition("sarama_auto_instrument", 0, 0)
+	if err != nil {
+		log.Fatalf("ConsumePartition err: %v", err)
+		return err
+	}
 	for i := int64(0); i < 10; i++ {
 		select {
 		case _ = <-c.Messages():
@@ -77,10 +81,21 @@ func testConsume(ctx context.Context) error {
 }
 
 func main() {
+	var err error
 	conf := sarama.NewConfig()
 	conf.Version = sarama.V2_8_1_0
-	producer, _ = sarama.NewAsyncProducer([]string{"kafka-server:9092"}, conf)
-	consumer, _ = sarama.NewConsumer([]string{"kafka-server:9092"}, conf)
+	conf.Producer.Return.Successes = true
+	conf.Producer.Return.Errors = true
+	producer, err = sarama.NewSyncProducer([]string{"kafka-server:9092"}, conf)
+	if err != nil {
+		log.Fatalf("NewAsyncProducer err: %v", err)
+		return
+	}
+	consumer, err = sarama.NewConsumer([]string{"kafka-server:9092"}, conf)
+	if err != nil {
+		log.Fatalf("NewConsumer err: %v", err)
+		return
+	}
 
 	http.HandleFunc("/execute", executeHandler)
 

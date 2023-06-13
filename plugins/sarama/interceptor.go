@@ -6,15 +6,12 @@ import (
 	"github.com/Shopify/sarama"
 
 	"github.com/apache/skywalking-go/plugins/core/operator"
-	"github.com/apache/skywalking-go/plugins/core/tracing"
 )
 
 type AsyncProducerInterceptor struct {
-	fixedAttrs tracing.SpanOption
 }
 
 type ConsumerInterceptor struct {
-	fixedAttrs tracing.SpanOption
 }
 
 // BeforeInvoke would be called before the target method invocation.
@@ -24,7 +21,13 @@ func (p *AsyncProducerInterceptor) BeforeInvoke(invocation operator.Invocation) 
 		return fmt.Errorf("sarama :skyWalking cannot create producer interceptor for client not match Client interface: %T", client)
 	}
 	conf := client.Config()
-	conf.Producer.Interceptors = append(conf.Producer.Interceptors, &producerInterceptor{})
+	var brokers []string
+	for _, s := range client.Brokers() {
+		brokers = append(brokers, s.Addr())
+	}
+	conf.Producer.Interceptors = append(conf.Producer.Interceptors, &producerInterceptor{
+		brokers: brokers,
+	})
 	err := conf.Validate()
 	if err != nil {
 		return fmt.Errorf("sarama :skyWalking validate producer interceptor config failed: %v", err)
@@ -44,7 +47,13 @@ func (c *ConsumerInterceptor) BeforeInvoke(invocation operator.Invocation) error
 		return fmt.Errorf("sarama :skyWalking cannot create consumer interceptor for client not match Client interface: %T", client)
 	}
 	conf := client.Config()
-	conf.Consumer.Interceptors = append(conf.Consumer.Interceptors, &consumerInterceptor{})
+	var brokers []string
+	for _, s := range client.Brokers() {
+		brokers = append(brokers, s.Addr())
+	}
+	conf.Consumer.Interceptors = append(conf.Consumer.Interceptors, &consumerInterceptor{
+		brokers: brokers,
+	})
 	err := conf.Validate()
 	if err != nil {
 		return fmt.Errorf("sarama :skyWalking validate consumer interceptor config failed: %v", err)

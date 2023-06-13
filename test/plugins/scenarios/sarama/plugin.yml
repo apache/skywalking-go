@@ -43,10 +43,10 @@ dependencies:
     expose:
       - "9092"
     environment:
-      KAFKA_ADVERTISED_HOST_NAME: 127.0.0.1
+      KAFKA_ADVERTISED_HOST_NAME: kafka-server
       KAFKA_ZOOKEEPER_CONNECT: zookeeper-server:2181
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: '"true"'
-      KAFKA_CREATE_TOPICS: "sarama_auto_instrument:3:1"
+      KAFKA_CREATE_TOPICS: "sarama_auto_instrument:1:1"
     healthcheck:
       test: ["CMD", "nc", "-vz", "localhost", "9092"]
       interval: 5s
