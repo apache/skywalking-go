@@ -22,11 +22,9 @@ export-port: 8080
 support-version:
   - go: 1.17
     framework:
-      - v1.27.0
       - v1.38.1
   - go: 1.18
     framework:
-      - v1.27.0
       - v1.38.1
 dependencies:
   zookeeper:
@@ -36,6 +34,9 @@ dependencies:
       - "2181"
     healthcheck:
       test: ["CMD", "echo", "ruok" ,"|", "nc", "localhost", "2181"]
+      interval: 5s
+      timeout: 60s
+      retries: 120
   kafka:
     image: wurstmeister/kafka:2.13-2.8.1
     hostname: kafka-server
@@ -44,7 +45,7 @@ dependencies:
     environment:
       KAFKA_ADVERTISED_HOST_NAME: 127.0.0.1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper-server:2181
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: '"true"'
       KAFKA_CREATE_TOPICS: "sarama_auto_instrument:3:1"
     healthcheck:
       test: ["CMD", "nc", "-vz", "localhost", "9092"]

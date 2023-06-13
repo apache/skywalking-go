@@ -58,12 +58,21 @@ func testProduce(ctx context.Context) error {
 		Key:   nil,
 		Value: sarama.StringEncoder("this is a test msg"),
 	}
+	defer producer.AsyncClose()
 	return nil
 }
 
 func testConsume(ctx context.Context) error {
 	c, _ := consumer.ConsumePartition("sarama_auto_instrument", 3, 0)
-	_ = <-c.Messages()
+	for i := int64(0); i < 10; i++ {
+		select {
+		case _ = <-c.Messages():
+			continue
+		case _ = <-c.Errors():
+			break
+		}
+	}
+
 	return nil
 }
 
