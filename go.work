@@ -13,6 +13,7 @@ use (
 	./plugins/gorm
 	./plugins/kratosv2
 	./plugins/microv4
+	./plugins/sarama
 
 	./test/benchmark-codebase/consumer
 	./test/benchmark-codebase/provider
