@@ -32,6 +32,8 @@ func (p *producerInterceptor) OnSend(msg *sarama.ProducerMessage) {
 		// opts
 		tracing.WithTag(tracing.TagMQBroker, strings.Join(p.brokers, ",")),
 		tracing.WithTag(tracing.TagMQTopic, msg.Topic),
+		tracing.WithLayer(tracing.SpanLayerMQ),
+		tracing.WithComponent(componentId),
 	)
 
 	if err != nil {

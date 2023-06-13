@@ -30,6 +30,8 @@ func (c *consumerInterceptor) OnConsume(msg *sarama.ConsumerMessage) {
 		// opts
 		tracing.WithTag(tracing.TagMQBroker, strings.Join(c.brokers, ",")),
 		tracing.WithTag(tracing.TagMQTopic, msg.Topic),
+		tracing.WithLayer(tracing.SpanLayerMQ),
+		tracing.WithComponent(componentId),
 	)
 
 	if err != nil {

@@ -15,87 +15,45 @@
 # limitations under the License.
 
 segmentItems:
-  - serviceName: go-redisv9
-    segmentSize: ge 1
+  - serviceName: sarama
+    segmentSize: ge 2
     segments:
       - segmentId: not null
         spans:
-          - operationName: redis/set
+          - operationName: Kafka/sarama_auto_instrument/Producer
             parentSpanId: 0
             spanId: 1
-            spanLayer: Cache
+            spanLayer: MQ
             startTime: nq 0
             endTime: nq 0
-            componentId: 5014
+            componentId: 5015
             isError: false
             spanType: Exit
-            peer: redis-server:6379
+            peer: kafka-server:9092
             skipAnalysis: false
             tags:
-              - {key: cache.type, value: redis}
-              - {key: cache.op, value: write}
-              - {key: cache.cmd, value: set}
-              - {key: cache.key, value: key_TestSetAndGet}
-              - {key: cache.args, value: not null}
-          - operationName: redis/get
-            parentSpanId: 0
-            spanId: 2
-            spanLayer: Cache
-            startTime: nq 0
-            endTime: nq 0
-            componentId: 5014
-            isError: false
-            spanType: Exit
-            peer: redis-server:6379
-            skipAnalysis: false
-            tags:
-              - {key: cache.type, value: redis}
-              - { key: cache.op, value: read}
-              - { key: cache.cmd, value: get}
-              - {key: cache.key, value: key_TestSetAndGet}
-              - { key: cache.args, value: not null}
-          - operationName: redis/pipeline
-            parentSpanId: 0
-            spanId: 3
-            spanLayer: Cache
-            startTime: nq 0
-            endTime: nq 0
-            componentId: 5014
-            isError: false
-            spanType: Exit
-            peer: redis-server:6379
-            skipAnalysis: false
-            tags:
-              - {key: cache.type, value: redis}
-              - {key: cache.cmd, value: 'pipeline:set/set'}
-          - operationName: redis/pipeline
-            parentSpanId: 0
-            spanId: 4
-            spanLayer: Cache
-            startTime: nq 0
-            endTime: nq 0
-            componentId: 5014
-            isError: false
-            spanType: Exit
-            peer: redis-server:6379
-            skipAnalysis: false
-            tags:
-              - {key: cache.type, value: redis}
-              - {key: cache.cmd, value: 'pipeline:get/get'}
-          - operationName: GET:/execute
+              - {key: mq.broker, value: 'kafka-server:9092'}
+              - {key: mq.topic, value: sarama_auto_instrument}
+      - segmentId: not null
+        spans:
+          - operationName: Kafka/sarama_auto_instrument/Consumer
             parentSpanId: -1
             spanId: 0
-            spanLayer: Http
+            spanLayer: MQ
             startTime: nq 0
             endTime: nq 0
-            componentId: 5004
+            componentId: 5015
             isError: false
             spanType: Entry
             peer: ''
             skipAnalysis: false
             tags:
-              - {key: http.method, value: GET}
-              - {key: url, value: 'service:8080/execute'}
-              - {key: status_code, value: '200'}
+              - {key: mq.broker, value: 'kafka-server:9092'}
+              - {key: mq.topic, value: sarama_auto_instrument}
+            refs:
+              - {parentEndpoint: Kafka/sarama_auto_instrument/Producer, networkAddress: 'kafka-server:9092',
+                 refType: CrossProcess, parentSpanId: 0, parentTraceSegmentId: not null,
+                 parentServiceInstance: not null, parentService: sarama,
+                 traceId: not null}
 meterItems: []
 logItems: []
