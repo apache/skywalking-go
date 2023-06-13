@@ -111,6 +111,8 @@ var {{.GlobalTracerFieldName}} interface{}
 
 var {{.GlobalLoggerFieldName}} interface{}
 
+var {{.GlobalTracerInitNotifyFieldName}} = make([]func(), 0)
+
 //go:linkname {{.TLSGetMethod}} {{.TLSGetMethod}}
 var {{.TLSGetMethod}} = _skywalking_tls_get_impl
 
@@ -131,6 +133,12 @@ var {{.GlobalLoggerGetMethodName}} = _skywalking_global_logger_get_impl
 
 //go:linkname {{.GoroutineIDGetterMethodName}} {{.GoroutineIDGetterMethodName}}
 var {{.GoroutineIDGetterMethodName}} = _skywalking_get_goid_impl
+
+//go:linkname {{.GlobalTracerInitNotifyMethodName}} {{.GlobalTracerInitNotifyMethodName}}
+var {{.GlobalTracerInitNotifyMethodName}} = _skywalking_global_tracer_init_notify_impl
+
+//go:linkname {{.GlobalTracerInitNotifyGetMethodName}} {{.GlobalTracerInitNotifyGetMethodName}}
+var {{.GlobalTracerInitNotifyGetMethodName}} = _skywalking_global_tracer_init_get_notify_impl
 
 //go:nosplit
 func _skywalking_get_goid_impl() int64 {
@@ -167,6 +175,16 @@ func _skywalking_global_logger_get_impl() interface{} {
 	return {{.GlobalLoggerFieldName}}
 } 
 
+//go:nosplit
+func _skywalking_global_tracer_init_notify_impl(fun func()) {
+	{{.GlobalTracerInitNotifyFieldName}} = append({{.GlobalTracerInitNotifyFieldName}}, fun)
+}
+
+//go:nosplit
+func _skywalking_global_tracer_init_get_notify_impl() []func() {
+	return {{.GlobalTracerInitNotifyFieldName}}
+}
+
 type ContextSnapshoter interface {
 	TakeSnapShot(val interface{}) interface{}
 }
@@ -181,31 +199,37 @@ func goroutineChange(tls interface{}) interface{} {
 	return tls
 }
 `, struct {
-			TLSFiledName                  string
-			TLSGetMethod                  string
-			TLSSetMethod                  string
-			GlobalTracerFieldName         string
-			GlobalTracerSnapshotInterface string
-			GlobalOperatorSetMethodName   string
-			GlobalOperatorGetMethodName   string
-			GlobalLoggerFieldName         string
-			GlobalLoggerSetMethodName     string
-			GlobalLoggerGetMethodName     string
-			GoroutineIDGetterMethodName   string
-			GoroutineIDCaster             string
+			TLSFiledName                        string
+			TLSGetMethod                        string
+			TLSSetMethod                        string
+			GlobalTracerFieldName               string
+			GlobalTracerSnapshotInterface       string
+			GlobalOperatorSetMethodName         string
+			GlobalOperatorGetMethodName         string
+			GlobalLoggerFieldName               string
+			GlobalLoggerSetMethodName           string
+			GlobalLoggerGetMethodName           string
+			GoroutineIDGetterMethodName         string
+			GoroutineIDCaster                   string
+			GlobalTracerInitNotifyFieldName     string
+			GlobalTracerInitNotifyMethodName    string
+			GlobalTracerInitNotifyGetMethodName string
 		}{
-			TLSFiledName:                  consts.TLSFieldName,
-			TLSGetMethod:                  consts.TLSGetMethodName,
-			TLSSetMethod:                  consts.TLSSetMethodName,
-			GlobalTracerFieldName:         consts.GlobalTracerFieldName,
-			GlobalTracerSnapshotInterface: consts.GlobalTracerSnapshotInterface,
-			GlobalOperatorSetMethodName:   consts.GlobalTracerSetMethodName,
-			GlobalOperatorGetMethodName:   consts.GlobalTracerGetMethodName,
-			GlobalLoggerFieldName:         consts.GlobalLoggerFieldName,
-			GlobalLoggerSetMethodName:     consts.GlobalLoggerSetMethodName,
-			GlobalLoggerGetMethodName:     consts.GlobalLoggerGetMethodName,
-			GoroutineIDGetterMethodName:   consts.CurrentGoroutineIDGetMethodName,
-			GoroutineIDCaster:             r.generateCastGoID("getg().m.curg.goid"),
+			TLSFiledName:                        consts.TLSFieldName,
+			TLSGetMethod:                        consts.TLSGetMethodName,
+			TLSSetMethod:                        consts.TLSSetMethodName,
+			GlobalTracerFieldName:               consts.GlobalTracerFieldName,
+			GlobalTracerSnapshotInterface:       consts.GlobalTracerSnapshotInterface,
+			GlobalOperatorSetMethodName:         consts.GlobalTracerSetMethodName,
+			GlobalOperatorGetMethodName:         consts.GlobalTracerGetMethodName,
+			GlobalLoggerFieldName:               consts.GlobalLoggerFieldName,
+			GlobalLoggerSetMethodName:           consts.GlobalLoggerSetMethodName,
+			GlobalLoggerGetMethodName:           consts.GlobalLoggerGetMethodName,
+			GoroutineIDGetterMethodName:         consts.CurrentGoroutineIDGetMethodName,
+			GoroutineIDCaster:                   r.generateCastGoID("getg().m.curg.goid"),
+			GlobalTracerInitNotifyFieldName:     consts.GlobalTracerInitNotifyFieldName,
+			GlobalTracerInitNotifyMethodName:    consts.GlobalTracerInitAppendNotifyMethodName,
+			GlobalTracerInitNotifyGetMethodName: consts.GlobalTracerInitGetNotifyMethodName,
 		}),
 	})
 }

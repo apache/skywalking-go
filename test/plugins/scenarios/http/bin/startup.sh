@@ -19,4 +19,6 @@
 home="$(cd "$(dirname $0)"; pwd)"
 go build ${GO_BUILD_OPTS} -o http
 
+export SW_AGENT_PLUGIN_CONFIG_HTTP_SERVER_COLLECT_PARAMETERS=true
+
 ./http

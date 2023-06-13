@@ -115,3 +115,7 @@ func (i *InstanceEnhance) BuildForDelegator() []dst.Decl {
 func (i *InstanceEnhance) ReplaceFileContent(path, content string) string {
 	return content
 }
+
+func (i *InstanceEnhance) InitFunctions() []*EnhanceInitFunction {
+	return nil
+}

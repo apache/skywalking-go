@@ -180,6 +180,9 @@ var {{.GetGlobalOperatorLinkMethod}} func() interface{}
 //go:linkname {{.GetGoroutineIDLinkMethod}} {{.GetGoroutineIDLinkMethod}}
 var {{.GetGoroutineIDLinkMethod}} func() int64
 
+//go:linkname {{.GetInitNotifyLinkMethod}} {{.GetInitNotifyLinkMethod}}
+var {{.GetInitNotifyLinkMethod}} func() []func()
+
 func init() {
 	if {{.TLSGetLinkMethod}} != nil && {{.TLSSetLinkMethod}} != nil {
 		GetGLS = {{.TLSGetLinkMethod}}
@@ -193,6 +196,9 @@ func init() {
 		GetGlobalOperator = {{.GetGlobalOperatorLinkMethod}}
 		SetGlobalOperator(newTracer())	// setting the global tracer when init the agent core
 	}
+	if {{.GetInitNotifyLinkMethod}} != nil {
+		GetInitNotify = {{.GetInitNotifyLinkMethod}}
+	}
 }
 `, struct {
 		TLSGetLinkMethod            string
@@ -200,11 +206,13 @@ func init() {
 		SetGlobalOperatorLinkMethod string
 		GetGlobalOperatorLinkMethod string
 		GetGoroutineIDLinkMethod    string
+		GetInitNotifyLinkMethod     string
 	}{
 		TLSGetLinkMethod:            consts.TLSGetMethodName,
 		TLSSetLinkMethod:            consts.TLSSetMethodName,
 		SetGlobalOperatorLinkMethod: consts.GlobalTracerSetMethodName,
 		GetGlobalOperatorLinkMethod: consts.GlobalTracerGetMethodName,
 		GetGoroutineIDLinkMethod:    consts.CurrentGoroutineIDGetMethodName,
+		GetInitNotifyLinkMethod:     consts.GlobalTracerInitGetNotifyMethodName,
 	}))
 }

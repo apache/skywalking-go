@@ -91,9 +91,9 @@ func (c *Context) IncludeNativeOrReferenceGenerateFiles(content string) error {
 	dstutil.Apply(parseFile, func(cursor *dstutil.Cursor) bool {
 		switch n := cursor.Node().(type) {
 		case *dst.TypeSpec:
-			c.analyzeNativeOrReferenceFields(cursor.Node(), cursor.Parent().Decorations(), n.Name.Name)
+			c.analyzeNativeOrReferenceFields(cursor.Node(), cursor.Parent(), n.Name.Name)
 		case *dst.FuncDecl:
-			c.analyzeNativeOrReferenceFields(cursor.Node(), n.Decorations(), n.Name.Name)
+			c.analyzeNativeOrReferenceFields(cursor.Node(), cursor.Node(), n.Name.Name)
 		}
 		return true
 	}, func(cursor *dstutil.Cursor) bool {
@@ -102,40 +102,31 @@ func (c *Context) IncludeNativeOrReferenceGenerateFiles(content string) error {
 	return nil
 }
 
-func (c *Context) analyzeNativeOrReferenceFields(node dst.Node, decorations *dst.NodeDecs, currentDeclareName string) {
-	allComments := decorations.Start.All()
-	for _, comment := range allComments {
-		if name, typeName, nativeDirective := c.analyzeNativeTypeDirective(comment); nativeDirective {
-			c.rewriteMapping.addNativeTypeMapping(currentDeclareName, name, typeName)
-			break
-		}
-		if name, typeName, referenceGenerate := c.analyzeReferenceGenerateDirective(comment); referenceGenerate {
-			c.rewriteMapping.addReferenceGenerateMapping(node, currentDeclareName, name, typeName)
-			break
-		}
+func (c *Context) analyzeNativeOrReferenceFields(node, decorationNode dst.Node, currentDeclareName string) {
+	if native := tools.FindDirective(decorationNode, consts.DirectiveNative); native != "" {
+		name, typeName := c.analyzeNativeTypeDirective(native)
+		c.rewriteMapping.addNativeTypeMapping(currentDeclareName, name, typeName)
+	}
+	if reference := tools.FindDirective(decorationNode, consts.DirectiveReferenceGenerate); reference != "" {
+		name, typeName := c.analyzeReferenceGenerateDirective(reference)
+		c.rewriteMapping.addReferenceGenerateMapping(node, currentDeclareName, name, typeName)
 	}
 }
 
-func (c *Context) analyzeNativeTypeDirective(comment string) (packageName, typeName string, isNativeDirective bool) {
-	if !strings.HasPrefix(comment, consts.DirectiveNative) {
-		return "", "", false
-	}
+func (c *Context) analyzeNativeTypeDirective(comment string) (packageName, typeName string) {
 	info := strings.SplitN(comment, " ", 3)
 	if len(info) != 3 {
 		panic(fmt.Sprintf("failure to parse the skywalking:native directive: %s", comment))
 	}
-	return info[1], info[2], true
+	return info[1], info[2]
 }
 
-func (c *Context) analyzeReferenceGenerateDirective(comment string) (packageName, typeName string, isNativeDirective bool) {
-	if !strings.HasPrefix(comment, consts.DirectiveReferenceGenerate) {
-		return "", "", false
-	}
+func (c *Context) analyzeReferenceGenerateDirective(comment string) (packageName, typeName string) {
 	info := strings.SplitN(comment, " ", 3)
 	if len(info) != 3 {
 		panic(fmt.Sprintf("failure to parse the skywalking:native directive: %s", comment))
 	}
-	return info[1], info[2], true
+	return info[1], info[2]
 }
 
 func (c *Context) enhanceVarNameWhenRewrite(fieldType dst.Expr) (oldName, replacedName string) {

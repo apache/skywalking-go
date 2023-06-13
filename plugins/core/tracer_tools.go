@@ -18,7 +18,10 @@
 package core
 
 import (
+	"os"
 	"reflect"
+	"strconv"
+	"strings"
 	"unsafe"
 )
 
@@ -78,6 +81,26 @@ func (t *TracerTools) ReflectGetValue(instance interface{}, filterOpts []interfa
 		}
 	}
 	return nil
+}
+
+func (t *TracerTools) GetEnvValue(key string) string {
+	return os.Getenv(key)
+}
+
+func (t *TracerTools) ParseFloat(val string, bitSize int) (float64, error) {
+	return strconv.ParseFloat(val, bitSize)
+}
+
+func (t *TracerTools) ParseBool(val string) bool {
+	return strings.EqualFold(val, "true")
+}
+
+func (t *TracerTools) ParseInt(val string, base, bitSize int) (int64, error) {
+	return strconv.ParseInt(val, base, bitSize)
+}
+
+func (t *TracerTools) Atoi(val string) (int, error) {
+	return strconv.Atoi(val)
 }
 
 func (t *TracerTools) checkFieldSupport(field reflect.Value, instanceField *reflect.StructField, filter *ReflectFieldFilter) bool {

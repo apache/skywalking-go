@@ -70,7 +70,8 @@ type GRPCReporter struct {
 }
 
 type Plugin struct {
-	Excluded StringValue `yaml:"excluded"`
+	Config   PluginConfig `yaml:"config"`
+	Excluded StringValue  `yaml:"excluded"`
 }
 
 func LoadConfig(path string) error {
@@ -104,6 +105,43 @@ func GetConfig() *Config {
 	return config
 }
 
+type PluginConfig struct {
+	data map[string]interface{}
+}
+
+func (c *PluginConfig) UnmarshalYAML(value *yaml.Node) error {
+	result := make(map[string]interface{})
+	if err := value.Decode(&result); err != nil {
+		return err
+	}
+	c.data = result
+	return nil
+}
+
+func (c *PluginConfig) ParseToStringValue(paths ...string) *StringValue {
+	if len(paths) == 0 {
+		return nil
+	}
+	res := c.data[paths[0]]
+	for i := 1; i < len(paths); i++ {
+		if res == nil {
+			return nil
+		}
+		current, ok := res.(map[string]interface{})
+		if !ok {
+			panic("cannot identity the path: %s" + strings.Join(paths, "."))
+		}
+		res = current[paths[i]]
+	}
+	if res == nil {
+		panic("the value of path is not found: " + strings.Join(paths, "."))
+	}
+
+	v := &StringValue{}
+	v.UnmarshalString(fmt.Sprintf("%v", res))
+	return v
+}
+
 type StringValue struct {
 	EnvKey  string
 	Default string
@@ -114,16 +152,19 @@ func (s *StringValue) UnmarshalYAML(value *yaml.Node) error {
 	if e := value.Decode(&val); e != nil {
 		return e
 	}
+	s.UnmarshalString(val)
+	return nil
+}
 
+func (s *StringValue) UnmarshalString(val string) {
 	groups := EnvRegularRegex.FindStringSubmatch(val)
 	if len(groups) == 0 {
 		s.Default = val
-		return nil
+		return
 	}
 
 	s.EnvKey = groups[1]
 	s.Default = groups[2]
-	return nil
 }
 
 func (s *StringValue) ToGoStringValue() string {

@@ -228,3 +228,7 @@ func (m *MethodEnhance) ReplaceFileContent(path, content string) string {
 	}
 	return content
 }
+
+func (m *MethodEnhance) InitFunctions() []*EnhanceInitFunction {
+	return nil
+}
