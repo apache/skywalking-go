@@ -15,7 +15,7 @@ type consumerInterceptor struct {
 func (c *consumerInterceptor) OnConsume(msg *sarama.ConsumerMessage) {
 	s, err := tracing.CreateEntrySpan(
 		// operationName
-		MQType+"/"+msg.Topic+"/Consumer",
+		"Kafka/"+msg.Topic+"/Consumer",
 
 		// extractor
 		func(k string) (string, error) {
@@ -33,7 +33,6 @@ func (c *consumerInterceptor) OnConsume(msg *sarama.ConsumerMessage) {
 	)
 
 	if err != nil {
-		sarama.Logger.Printf("skyWalking create entry span failed: %v", err)
 		return
 	}
 

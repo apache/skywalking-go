@@ -15,7 +15,7 @@ type producerInterceptor struct {
 func (p *producerInterceptor) OnSend(msg *sarama.ProducerMessage) {
 	s, err := tracing.CreateExitSpan(
 		// operationName
-		MQType+"/"+msg.Topic+"/Producer",
+		"Kafka/"+msg.Topic+"/Producer",
 
 		// peer
 		strings.Join(p.brokers, ","),
@@ -35,7 +35,6 @@ func (p *producerInterceptor) OnSend(msg *sarama.ProducerMessage) {
 	)
 
 	if err != nil {
-		sarama.Logger.Printf("skyWalking create exit span failed: %v", err)
 		return
 	}
 
