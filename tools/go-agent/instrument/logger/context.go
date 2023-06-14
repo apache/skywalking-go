@@ -81,7 +81,7 @@ func GetLogContext() *SkyWalkingLogContext {
 		}
 		entity := operator.Entity()
 		if entity != nil {
-			if e, ok := entity.(Entity); ok {
+			if e, ok := entity.(Entity); ok && e != nil {
 				serviceName, instanceName = e.GetServiceName(), e.GetInstanceName()
 			}
 		}
