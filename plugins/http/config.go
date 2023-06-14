@@ -15,22 +15,9 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package rewrite
+package http
 
-import (
-	"github.com/apache/skywalking-go/tools/go-agent/instrument/consts"
-
-	"github.com/dave/dst"
-)
-
-func ContainsPublicDirective(desc *dst.NodeDecs) bool {
-	if desc == nil {
-		return false
-	}
-	for _, s := range desc.Start.All() {
-		if s == consts.DirectivePublic {
-			return true
-		}
-	}
-	return false
+//skywalking:config http
+var config struct {
+	ServerCollectParameters bool `config:"server_collect_parameters"`
 }

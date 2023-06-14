@@ -15,22 +15,34 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package consts
+package tools
 
-var (
-	// DirectivePublic is the directive for generate the data as public of this package
-	DirectivePublic = "//skywalking:public"
+import (
+	"strings"
 
-	// DirectiveReferenceGenerate is the directive for reference a generated type(corporation with public directive)
-	DirectiveReferenceGenerate = "//skywalking:ref_generate"
-
-	// DirectiveNative is the directive for reference to the native framework type
-	// Usually used for reference the private types in the framework
-	DirectiveNative = "//skywalking:native"
-
-	// DirecitveNoCopy is the directive for define current go file would not copy to the framework
-	DirecitveNoCopy = "//skywalking:nocopy"
-
-	// DirectiveConfig is the directive for define the config variable
-	DirectiveConfig = "//skywalking:config"
+	"github.com/dave/dst"
 )
+
+func ContainsDirective(desc dst.Node, directive string) bool {
+	if desc == nil || desc.Decorations() == nil {
+		return false
+	}
+	for _, s := range desc.Decorations().Start.All() {
+		if strings.HasPrefix(s, directive) {
+			return true
+		}
+	}
+	return false
+}
+
+func FindDirective(desc dst.Node, directive string) string {
+	if desc == nil || desc.Decorations() == nil {
+		return ""
+	}
+	for _, s := range desc.Decorations().Start.All() {
+		if strings.HasPrefix(s, directive) {
+			return s
+		}
+	}
+	return ""
+}

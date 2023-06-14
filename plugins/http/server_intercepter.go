@@ -41,6 +41,11 @@ func (h *ServerInterceptor) BeforeInvoke(invocation operator.Invocation) error {
 	if err != nil {
 		return err
 	}
+
+	if config.ServerCollectParameters && request.URL != nil {
+		s.Tag(tracing.TagHTTPParams, request.URL.RawQuery)
+	}
+
 	writer := invocation.Args()[0].(http.ResponseWriter)
 	invocation.ChangeArg(0, &writerWrapper{ResponseWriter: writer, statusCode: http.StatusOK})
 	invocation.SetContext(s)

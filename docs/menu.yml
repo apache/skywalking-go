@@ -33,6 +33,8 @@ catalog:
           path: /en/advanced-features/logging-setup
         - name: Plugin Exclusion
           path: /en/advanced-features/plugin-exclusion
+        - name: Plugin Configuration
+          path: /en/agent/plugin-configurations
     - name: Supported Libraries
       path: /en/agent/support-plugins
     - name: Performance Test

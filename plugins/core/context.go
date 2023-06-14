@@ -24,6 +24,7 @@ var (
 	SetGLS            = func(interface{}) {}
 	SetGlobalOperator = func(interface{}) {}
 	GetGlobalOperator = func() interface{} { return nil }
+	GetInitNotify     = func() []func() { return nil }
 )
 
 type ContextSnapshoter interface {

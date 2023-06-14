@@ -52,6 +52,7 @@ const (
 	TagURL             = "url"
 	TagStatusCode      = "status_code"
 	TagHTTPMethod      = "http.method"
+	TagHTTPParams      = "http.params"
 	TagDBType          = "db.type"
 	TagDBInstance      = "db.instance"
 	TagDBStatement     = "db.statement"

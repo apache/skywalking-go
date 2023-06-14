@@ -30,7 +30,7 @@ func providerHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func consumerHandler(w http.ResponseWriter, r *http.Request) {
-	resp, err := http.Get("http://localhost:8080/provider")
+	resp, err := http.Get("http://localhost:8080/provider?test=1")
 	if err != nil {
 		log.Printf("request provider error: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)

@@ -57,6 +57,12 @@ func (t *Tracer) Init(entity *reporter.Entity, rep reporter.Reporter, samp Sampl
 	}
 	t.Reporter.Boot(entity, t.cdsWatchers)
 	t.initFlag = 1
+	// notify the tracer been init success
+	if len(GetInitNotify()) > 0 {
+		for _, fun := range GetInitNotify() {
+			fun()
+		}
+	}
 	return nil
 }
 

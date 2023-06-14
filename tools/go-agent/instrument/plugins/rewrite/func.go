@@ -25,6 +25,7 @@ import (
 	"github.com/dave/dst"
 	"github.com/dave/dst/dstutil"
 
+	"github.com/apache/skywalking-go/tools/go-agent/instrument/consts"
 	"github.com/apache/skywalking-go/tools/go-agent/tools"
 )
 
@@ -32,16 +33,24 @@ var (
 	GlobalOperatorRealSetMethodName = VarPrefix + "OperatorSetOperator"
 	GlobalOperatorRealGetMethodName = VarPrefix + "OperatorGetOperator"
 
+	GlobalOperatorRealAppendTracerInitNotify = VarPrefix + "OperatorAppendInitNotify"
+
 	GlobalOperatorTypeName = TypePrefix + "OperatorOperator"
 )
+
+func (c *Context) isInitFunc(funcDecl *dst.FuncDecl) bool {
+	return funcDecl.Name.Name == "init" &&
+		(funcDecl.Type.Params == nil || len(funcDecl.Type.Params.List) == 0) &&
+		(funcDecl.Type.Results == nil || len(funcDecl.Type.Results.List) == 0)
+}
 
 func (c *Context) Func(funcDecl *dst.FuncDecl, cursor *dstutil.Cursor) {
 	// only the static method needs rewrite
 	if funcDecl.Recv == nil {
 		// if the method name is generated, then ignore to enhance(for adapter)
-		if !strings.HasPrefix(funcDecl.Name.Name, GenerateMethodPrefix) {
+		if !strings.HasPrefix(funcDecl.Name.Name, GenerateMethodPrefix) && !c.isInitFunc(funcDecl) {
 			prefix := StaticMethodPrefix
-			if ContainsPublicDirective(funcDecl.Decorations()) {
+			if tools.ContainsDirective(funcDecl, consts.DirectivePublic) {
 				prefix = c.titleCase.String(GenerateMethodPrefix)
 			}
 			funcDecl.Name = dst.NewIdent(fmt.Sprintf("%s%s%s", prefix, c.currentPackageTitle, funcDecl.Name.Name))

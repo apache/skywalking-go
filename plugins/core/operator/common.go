@@ -18,6 +18,7 @@
 package operator
 
 var GetOperator = func() Operator { return nil }
+var AppendInitNotify = func(func()) {}
 
 type Operator interface {
 	Tracing() interface{} // to TracingOperator
