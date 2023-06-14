@@ -15,6 +15,9 @@ Release Notes.
 
 #### Documentation
 
+#### Bug Fixes
+* Fix throw panic when log the tracing context before agent core initialized.
+
 #### Issues and PR
 - All issues are [here](https://github.com/apache/skywalking/milestone/180?closed=1)
 - All and pull requests are [here](https://github.com/apache/skywalking-go/milestone/2?closed=1)
