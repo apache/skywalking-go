@@ -186,6 +186,7 @@ func (c *Context) enhanceFuncStmt(stmt dst.Stmt) {
 	})
 }
 
+// nolint
 func (c *Context) rewriteVarIfExistingMapping(exp, parent dst.Expr) bool {
 	switch n := exp.(type) {
 	case *dst.Ident:
@@ -221,6 +222,16 @@ func (c *Context) rewriteVarIfExistingMapping(exp, parent dst.Expr) bool {
 		}
 	case *dst.StarExpr:
 		c.enhanceTypeNameWhenRewrite(n.X, n, -1)
+	case *dst.FuncLit:
+		c.rewriteMapping.pushBlockStack()
+		c.enhanceFuncParameter(n.Type.Params)
+		c.enhanceFuncParameter(n.Type.Results)
+		if n.Body != nil && len(n.Body.List) > 0 {
+			for _, stmt := range n.Body.List {
+				c.enhanceFuncStmt(stmt)
+			}
+		}
+		c.rewriteMapping.popBlockStack()
 	}
 	return false
 }
