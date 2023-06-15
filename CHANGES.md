@@ -7,11 +7,18 @@ Release Notes.
 #### Features
 * Enhance the plugin rewrite ability to support `switch` and `if/else` in the plugin codes.
 * Support inject the skywalking-go into project through agent.
+* Support add configuration for plugin.
 
 #### Plugins
 * Support [go-redis](https://github.com/redis/go-redis) v9 redis client framework.
+* Support collecting [Native HTTP](https://pkg.go.dev/net/http) URI parameter on server side.
+* Support [Mongo](https://github.com/mongodb/mongo-go-driver) database client framework.
 
 #### Documentation
+
+#### Bug Fixes
+* Fix throw panic when log the tracing context before agent core initialized.
+* Fix plugin version matcher `tryToFindThePluginVersion` to support capital letters in module paths and versions.
 
 #### Issues and PR
 - All issues are [here](https://github.com/apache/skywalking/milestone/180?closed=1)

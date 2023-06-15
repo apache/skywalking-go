@@ -15,22 +15,32 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package rewrite
+package tools
 
-import (
-	"github.com/apache/skywalking-go/tools/go-agent/instrument/consts"
+import "github.com/apache/skywalking-go/plugins/core/operator"
 
-	"github.com/dave/dst"
-)
+type SyncMap interface {
+	Put(key string, value interface{})
+	Get(key string) (interface{}, bool)
+	Remove(key string) (interface{}, bool)
+}
 
-func ContainsPublicDirective(desc *dst.NodeDecs) bool {
-	if desc == nil {
-		return false
+func NewSyncMap() SyncMap {
+	op := operator.GetOperator()
+	if op == nil {
+		return &defaultSyncMap{}
 	}
-	for _, s := range desc.Start.All() {
-		if s == consts.DirectivePublic {
-			return true
-		}
-	}
-	return false
+	return op.Tools().(operator.ToolsOperator).NewSyncMap().(SyncMap)
+}
+
+type defaultSyncMap struct {
+}
+
+func (d *defaultSyncMap) Put(key string, value interface{}) {
+}
+func (d *defaultSyncMap) Get(key string) (interface{}, bool) {
+	return nil, false
+}
+func (d *defaultSyncMap) Remove(key string) (interface{}, bool) {
+	return nil, false
 }

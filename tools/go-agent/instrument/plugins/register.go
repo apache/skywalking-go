@@ -28,6 +28,7 @@ import (
 	"github.com/apache/skywalking-go/plugins/http"
 	"github.com/apache/skywalking-go/plugins/kratosv2"
 	"github.com/apache/skywalking-go/plugins/microv4"
+	"github.com/apache/skywalking-go/plugins/mongo"
 	"github.com/apache/skywalking-go/plugins/sarama"
 )
 
@@ -42,6 +43,7 @@ func init() {
 	registerFramework(kratosv2.NewInstrument())
 	registerFramework(microv4.NewInstrument())
 	registerFramework(goredisv9.NewInstrument())
+	registerFramework(mongo.NewInstrument())
 	registerFramework(sarama.NewInstrument())
 
 	// gorm related instruments

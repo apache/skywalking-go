@@ -17,8 +17,7 @@
 # limitations under the License.
 
 home="$(cd "$(dirname $0)"; pwd)"
-go build ${GO_BUILD_OPTS} -o http
+go build ${GO_BUILD_OPTS} -o mongo
 
-export SW_AGENT_PLUGIN_CONFIG_HTTP_SERVER_COLLECT_PARAMETERS=true
-
-./http
+export SW_AGENT_PLUGIN_CONFIG_MONGO_COLLECT_STATEMENT=true
+./mongo
