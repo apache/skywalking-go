@@ -13,6 +13,7 @@ use (
 	./plugins/gorm
 	./plugins/kratosv2
 	./plugins/microv4
+	./plugins/mongo
 
 	./test/benchmark-codebase/consumer
 	./test/benchmark-codebase/provider
@@ -28,6 +29,7 @@ use (
 	./test/plugins/scenarios/gorm
 	./test/plugins/scenarios/kratosv2
 	./test/plugins/scenarios/microv4
+	./test/plugins/scenarios/mongo
 
 	./test/plugins/scenarios/plugin_exclusion
 

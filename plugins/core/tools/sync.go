@@ -15,14 +15,32 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package operator
+package tools
 
-type ToolsOperator interface {
-	ReflectGetValue(instance interface{}, filters []interface{}) interface{}
-	GetEnvValue(key string) string
-	ParseFloat(val string, bitSize int) (float64, error)
-	ParseBool(val string) bool
-	ParseInt(val string, base, bitSize int) (int64, error)
-	Atoi(val string) (int, error)
-	NewSyncMap() interface{}
+import "github.com/apache/skywalking-go/plugins/core/operator"
+
+type SyncMap interface {
+	Put(key string, value interface{})
+	Get(key string) (interface{}, bool)
+	Remove(key string) (interface{}, bool)
+}
+
+func NewSyncMap() SyncMap {
+	op := operator.GetOperator()
+	if op == nil {
+		return &defaultSyncMap{}
+	}
+	return op.Tools().(operator.ToolsOperator).NewSyncMap().(SyncMap)
+}
+
+type defaultSyncMap struct {
+}
+
+func (d *defaultSyncMap) Put(key string, value interface{}) {
+}
+func (d *defaultSyncMap) Get(key string) (interface{}, bool) {
+	return nil, false
+}
+func (d *defaultSyncMap) Remove(key string) (interface{}, bool) {
+	return nil, false
 }

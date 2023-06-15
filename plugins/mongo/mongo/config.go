@@ -15,14 +15,9 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package operator
+package mongo
 
-type ToolsOperator interface {
-	ReflectGetValue(instance interface{}, filters []interface{}) interface{}
-	GetEnvValue(key string) string
-	ParseFloat(val string, bitSize int) (float64, error)
-	ParseBool(val string) bool
-	ParseInt(val string, base, bitSize int) (int64, error)
-	Atoi(val string) (int, error)
-	NewSyncMap() interface{}
+//skywalking:config
+var config struct {
+	CollectStatement bool `config:"collect_statement"`
 }
