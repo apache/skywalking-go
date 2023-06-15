@@ -19,6 +19,7 @@ Release Notes.
 
 #### Bug Fixes
 * Fix throw panic when log the tracing context before agent core initialized.
+* Fix plugin version matcher `tryToFindThePluginVersion` to support capital letters in module paths and versions.
 
 #### Issues and PR
 - All issues are [here](https://github.com/apache/skywalking/milestone/180?closed=1)
