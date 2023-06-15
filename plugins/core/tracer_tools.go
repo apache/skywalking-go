@@ -22,6 +22,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"sync"
 	"unsafe"
 )
 
@@ -103,6 +104,10 @@ func (t *TracerTools) Atoi(val string) (int, error) {
 	return strconv.Atoi(val)
 }
 
+func (t *TracerTools) NewSyncMap() interface{} {
+	return newSyncMap()
+}
+
 func (t *TracerTools) checkFieldSupport(field reflect.Value, instanceField *reflect.StructField, filter *ReflectFieldFilter) bool {
 	if filter.name != "" {
 		if instanceField.Name != filter.name {
@@ -121,4 +126,26 @@ func (t *TracerTools) checkFieldSupport(field reflect.Value, instanceField *refl
 		}
 	}
 	return true
+}
+
+type syncMapImpl struct {
+	data *sync.Map
+}
+
+func newSyncMap() *syncMapImpl {
+	return &syncMapImpl{
+		data: &sync.Map{},
+	}
+}
+
+func (s *syncMapImpl) Put(key string, value interface{}) {
+	s.data.Store(key, value)
+}
+
+func (s *syncMapImpl) Get(key string) (interface{}, bool) {
+	return s.data.Load(key)
+}
+
+func (s *syncMapImpl) Remove(key string) (interface{}, bool) {
+	return s.data.LoadAndDelete(key)
 }

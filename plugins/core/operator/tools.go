@@ -24,4 +24,5 @@ type ToolsOperator interface {
 	ParseBool(val string) bool
 	ParseInt(val string, base, bitSize int) (int64, error)
 	Atoi(val string) (int, error)
+	NewSyncMap() interface{}
 }

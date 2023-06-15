@@ -57,3 +57,9 @@ plugin:
     http:
       # Collect the parameters of the HTTP request on the server side
       server_collect_parameters: ${SW_AGENT_PLUGIN_CONFIG_HTTP_SERVER_COLLECT_PARAMETERS:false}
+    mongo:
+      # Collect the statement of the MongoDB request
+      collect_statement: ${SW_AGENT_PLUGIN_CONFIG_MONGO_COLLECT_STATEMENT:false}
+    sql:
+      # Collect the parameter of the SQL request
+      collect_parameter: ${SW_AGENT_PLUGIN_CONFIG_SQL_COLLECT_PARAMETER:false}

@@ -77,6 +77,8 @@ jobs:
           - gorm
           - kratosv2
           - microv4
+          - mongo
+          - mysql
           - plugin_exclusion
     steps:
       - uses: actions/checkout@v2

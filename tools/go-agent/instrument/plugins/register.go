@@ -28,6 +28,9 @@ import (
 	"github.com/apache/skywalking-go/plugins/http"
 	"github.com/apache/skywalking-go/plugins/kratosv2"
 	"github.com/apache/skywalking-go/plugins/microv4"
+	"github.com/apache/skywalking-go/plugins/mongo"
+	sql_entry "github.com/apache/skywalking-go/plugins/sql/entry"
+	sql_mysql "github.com/apache/skywalking-go/plugins/sql/mysql"
 )
 
 var instruments = make([]instrument.Instrument, 0)
@@ -41,10 +44,15 @@ func init() {
 	registerFramework(kratosv2.NewInstrument())
 	registerFramework(microv4.NewInstrument())
 	registerFramework(goredisv9.NewInstrument())
+	registerFramework(mongo.NewInstrument())
 
 	// gorm related instruments
 	registerFramework(gorm_entry.NewInstrument())
 	registerFramework(gorm_mysql.NewInstrument())
+
+	// sql related instruments
+	registerFramework(sql_entry.NewInstrument())
+	registerFramework(sql_mysql.NewInstrument())
 }
 
 func registerFramework(ins instrument.Instrument) {
