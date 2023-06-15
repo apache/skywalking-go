@@ -68,13 +68,12 @@ func testConsume(ctx context.Context) error {
 		log.Fatalf("ConsumePartition err: %v", err)
 		return err
 	}
-	for i := int64(0); i < 10; i++ {
-		select {
-		case _ = <-c.Messages():
-			continue
-		case _ = <-c.Errors():
-			break
-		}
+	select {
+	case _ = <-c.Messages():
+		c.Close()
+		break
+	case _ = <-c.Errors():
+		break
 	}
 
 	return nil
