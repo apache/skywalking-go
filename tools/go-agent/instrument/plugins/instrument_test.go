@@ -2,9 +2,10 @@ package plugins
 
 import (
 	"embed"
+	"testing"
+
 	"github.com/apache/skywalking-go/plugins/core/instrument"
 	"github.com/apache/skywalking-go/tools/go-agent/instrument/api"
-	"testing"
 )
 
 func TestInstrument_tryToFindThePluginVersion(t *testing.T) {

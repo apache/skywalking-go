@@ -23,11 +23,12 @@ import (
 	"fmt"
 	"go/parser"
 	"go/token"
-	"golang.org/x/mod/module"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"golang.org/x/mod/module"
 
 	"github.com/pkg/errors"
 
