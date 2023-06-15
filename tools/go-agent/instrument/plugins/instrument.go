@@ -513,10 +513,13 @@ func (i *Instrument) tryToFindThePluginVersion(opts *api.CompileOptions, ins ins
 		// example: github.com/Shopify/sarama
 		basePkg := ins.BasePackage()
 
+		// Capital letters in module paths and versions are escaped using exclamation points
+		// (Azure is escaped as !azure) to avoid conflicts on case-insensitive file systems.
 		// example: github.com/!shopify/sarama
+		// see: https://go.dev/ref/mod
 		escapedBasePkg, _ := module.EscapePath(basePkg)
 
-		// arg example: github.com/!shopify/sarama/@1.34.1/acl.go
+		// arg example: github.com/!shopify/sarama@1.34.1/acl.go
 		_, afterPkg, found := strings.Cut(arg, escapedBasePkg)
 		if !found {
 			return "", fmt.Errorf("could not found the go version of the package %s, go file path: %s", basePkg, arg)
