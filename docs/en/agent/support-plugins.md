@@ -1,18 +1,18 @@
 # Supported Libraries
 
 * HTTP Server
-  * `gin`: [Gin](https://github.com/gin-gonic/gin)
-  * `http`: [Native HTTP](https://pkg.go.dev/net/http)
-  * `go-restfulv3`: [Go-Restful](https://github.com/emicklei/go-restful)
+  * `gin`: [Gin](https://github.com/gin-gonic/gin) tested v1.7.0 to v1.9.0.
+  * `http`: [Native HTTP](https://pkg.go.dev/net/http) tested go v1.17 to go v1.20.
+  * `go-restfulv3`: [Go-Restful](https://github.com/emicklei/go-restful) tested v3.7.1 to 3.10.2.
 * HTTP Client
-  * `http`: [Native HTTP](https://pkg.go.dev/net/http)
+  * `http`: [Native HTTP](https://pkg.go.dev/net/http) tested go v1.17 to go v1.20.
 * RPC Frameworks
-  * `dubbo`: [Dubbo](https://github.com/apache/dubbo-go)
-  * `kratosv2`: [Kratos](github.com/go-kratos/kratos)
-  * `microv4`: [Go-Micro](https://github.com/go-micro/go-micro)
+  * `dubbo`: [Dubbo](https://github.com/apache/dubbo-go) tested v3.0.1 to v3.0.5.
+  * `kratosv2`: [Kratos](github.com/go-kratos/kratos) tested v2.3.1 to v2.6.2.
+  * `microv4`: [Go-Micro](https://github.com/go-micro/go-micro) tested v4.6.0 to v4.10.2.
 * Database Client
-  * `gorm`: [GORM](https://github.com/go-gorm/gorm)
+  * `gorm`: [GORM](https://github.com/go-gorm/gorm) tested v1.22.0 to v1.25.1.
     * [MySQL Driver](https://github.com/go-gorm/mysql)
-  * `mongo`: [Mongo](https://github.com/mongodb/mongo-go-driver)
+  * `mongo`: [Mongo](https://github.com/mongodb/mongo-go-driver) tested v1.11.0 to v1.11.7.
 * Cache Client
-  * `go-redisv9`: [go-redis](https://github.com/redis/go-redis)
+  * `go-redisv9`: [go-redis](https://github.com/redis/go-redis) tested v9.0.3 to v9.0.5.
