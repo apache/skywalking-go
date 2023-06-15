@@ -31,13 +31,12 @@ func (c *consumerInterceptor) OnConsume(msg *sarama.ConsumerMessage) {
 		tracing.WithTag(tracing.TagMQBroker, strings.Join(c.brokers, ",")),
 		tracing.WithTag(tracing.TagMQTopic, msg.Topic),
 		tracing.WithLayer(tracing.SpanLayerMQ),
-		tracing.WithComponent(componentId),
+		tracing.WithComponent(componentID),
 	)
 
 	if err != nil {
 		return
 	}
 
-	defer s.End()
-	return
+	s.End()
 }

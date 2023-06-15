@@ -1,5 +1,5 @@
 package sarama
 
 const (
-	componentId = 5015
+	componentID = 5015
 )
