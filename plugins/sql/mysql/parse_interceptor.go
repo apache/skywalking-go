@@ -15,21 +15,41 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package tools
+package mysql
 
-var basicDataTypes = make(map[string]bool)
+import (
+	"github.com/go-sql-driver/mysql"
 
-func init() {
-	types := []string{
-		"bool", "int8", "int16", "int32", "int64", "uint8", "uint16", "uint32", "uint64", "int", "uint", "uintptr",
-		"float32", "float64", "complex64", "complex128", "string", "error", "interface{}", "_", "byte", "any",
-	}
-	for _, tp := range types {
-		basicDataTypes[tp] = true
-	}
+	"github.com/apache/skywalking-go/plugins/core/operator"
+	"github.com/apache/skywalking-go/plugins/core/tracing"
+)
+
+type ParseInterceptor struct {
 }
 
-// nolint
-func IsBasicDataType(name string) bool {
-	return basicDataTypes[name]
+func (n *ParseInterceptor) BeforeInvoke(invocation operator.Invocation) error {
+	return nil
+}
+
+func (n *ParseInterceptor) AfterInvoke(invocation operator.Invocation, results ...interface{}) error {
+	if cfg, ok := results[0].(*mysql.Config); ok && cfg != nil && tracing.GetRuntimeContextValue("needInfo") == true {
+		tracing.SetRuntimeContextValue("info", &DBInfo{Addr: cfg.Addr})
+	}
+	return nil
+}
+
+type DBInfo struct {
+	Addr string
+}
+
+func (i *DBInfo) Peer() string {
+	return i.Addr
+}
+
+func (i *DBInfo) ComponentID() int32 {
+	return 5012
+}
+
+func (i *DBInfo) DBType() string {
+	return "Mysql"
 }

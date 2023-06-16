@@ -15,21 +15,24 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package tools
+package entry
 
-var basicDataTypes = make(map[string]bool)
+import (
+	"database/sql"
 
-func init() {
-	types := []string{
-		"bool", "int8", "int16", "int32", "int64", "uint8", "uint16", "uint32", "uint64", "int", "uint", "uintptr",
-		"float32", "float64", "complex64", "complex128", "string", "error", "interface{}", "_", "byte", "any",
-	}
-	for _, tp := range types {
-		basicDataTypes[tp] = true
-	}
+	"github.com/apache/skywalking-go/plugins/core/operator"
+)
+
+type TxStmtInterceptor struct {
 }
 
-// nolint
-func IsBasicDataType(name string) bool {
-	return basicDataTypes[name]
+func (n *TxStmtInterceptor) BeforeInvoke(invocation operator.Invocation) error {
+	return nil
+}
+
+func (n *TxStmtInterceptor) AfterInvoke(invocation operator.Invocation, results ...interface{}) error {
+	if stmt, ok := results[0].(*sql.Stmt); ok && stmt != nil {
+		results[0].(operator.EnhancedInstance).SetSkyWalkingDynamicField(getInstanceInfo(invocation.CallerInstance()))
+	}
+	return nil
 }

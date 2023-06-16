@@ -150,11 +150,18 @@ func instrumentFiles(buildDir string, inst api.Instrument, args []string) error 
 
 func parseFilesInArgs(args []string) (map[string]*fileInfo, error) {
 	parsedFiles := make(map[string]*fileInfo)
+	var lastPath string
+	defer func() {
+		if e := recover(); e != nil {
+			logrus.Errorf("panic when parsing files: %s: %v", lastPath, e)
+		}
+	}()
 	for inx, path := range args {
 		// only process the go file
 		if !strings.HasSuffix(path, ".go") {
 			continue
 		}
+		lastPath = path
 
 		// parse the file
 		file, err := decorator.ParseFile(nil, path, nil, parser.ParseComments)

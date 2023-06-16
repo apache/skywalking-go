@@ -89,5 +89,9 @@ func (r *RuntimeContext) Get(key string) interface{} {
 }
 
 func (r *RuntimeContext) Set(key string, value interface{}) {
+	if value == nil {
+		delete(r.data, key)
+		return
+	}
 	r.data[key] = value
 }

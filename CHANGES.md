@@ -13,6 +13,7 @@ Release Notes.
 * Support [go-redis](https://github.com/redis/go-redis) v9 redis client framework.
 * Support collecting [Native HTTP](https://pkg.go.dev/net/http) URI parameter on server side.
 * Support [Mongo](https://github.com/mongodb/mongo-go-driver) database client framework.
+* Support [Native SQL](https://pkg.go.dev/net/http) database client framework with [MySQL Driver](github.com/go-sql-driver/mysql).
 
 #### Documentation
 

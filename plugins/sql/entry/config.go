@@ -15,21 +15,9 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package tools
+package entry
 
-var basicDataTypes = make(map[string]bool)
-
-func init() {
-	types := []string{
-		"bool", "int8", "int16", "int32", "int64", "uint8", "uint16", "uint32", "uint64", "int", "uint", "uintptr",
-		"float32", "float64", "complex64", "complex128", "string", "error", "interface{}", "_", "byte", "any",
-	}
-	for _, tp := range types {
-		basicDataTypes[tp] = true
-	}
-}
-
-// nolint
-func IsBasicDataType(name string) bool {
-	return basicDataTypes[name]
+//skywalking:config
+var config struct {
+	CollectParameter bool `config:"collect_parameter"`
 }
