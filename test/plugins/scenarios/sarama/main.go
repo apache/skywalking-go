@@ -40,7 +40,6 @@ func executeHandler(w http.ResponseWriter, r *http.Request) {
 		fn   testFunc
 	}{
 		{"produce", testProduce},
-		{"consume", testConsume},
 	}
 
 	for _, test := range testCases {
@@ -94,6 +93,10 @@ func main() {
 		log.Fatalf("NewConsumer err: %v", err)
 		return
 	}
+
+	go func() {
+		_ = testConsume(context.Background())
+	}()
 
 	http.HandleFunc("/execute", executeHandler)
 
