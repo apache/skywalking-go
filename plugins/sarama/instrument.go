@@ -76,6 +76,56 @@ func (i *Instrument) Points() []*instrument.Point {
 			),
 			Interceptor: "ConsumerInterceptor",
 		},
+		{
+			At: instrument.NewMethodEnhance(
+				"*SyncProducer",
+				"SendMessage",
+				instrument.WithArgsCount(1),
+				instrument.WithArgType(0, "*sarama.ProducerMessage"),
+				instrument.WithResultCount(3),
+				instrument.WithResultType(0, "int32"),
+				instrument.WithResultType(1, "int64"),
+				instrument.WithResultType(2, "error"),
+			),
+			Interceptor: "SendMessageInterceptor",
+		},
+		{
+			At: instrument.NewMethodEnhance(
+				"*SyncProducer",
+				"SendMessages",
+				instrument.WithArgsCount(1),
+				instrument.WithArgType(0, "[]*ProducerMessage"),
+				instrument.WithResultCount(1),
+				instrument.WithResultType(0, "error"),
+			),
+			Interceptor: "SendMessagesInterceptor",
+		},
+		{
+			At: instrument.NewStructEnhance("syncProducer"),
+		},
+		{
+			At: instrument.NewStaticMethodEnhance(
+				"NewSyncProducer",
+				instrument.WithArgsCount(2),
+				instrument.WithArgType(0, "[]string"),
+				instrument.WithArgType(1, "*Config"),
+				instrument.WithResultCount(2),
+				instrument.WithResultType(0, "SyncProducer"),
+				instrument.WithResultType(1, "error"),
+			),
+			Interceptor: "NewSyncProducerInterceptor",
+		},
+		{
+			At: instrument.NewStaticMethodEnhance(
+				"NewSyncProducerFromClient",
+				instrument.WithArgsCount(1),
+				instrument.WithArgType(0, "Client"),
+				instrument.WithResultCount(2),
+				instrument.WithResultType(0, "SyncProducer"),
+				instrument.WithResultType(1, "error"),
+			),
+			Interceptor: "NewSyncProducerFromClientInterceptor",
+		},
 	}
 }
 

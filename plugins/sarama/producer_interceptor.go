@@ -19,6 +19,7 @@ package sarama
 
 import (
 	"fmt"
+	"github.com/apache/skywalking-go/plugins/core"
 	"github.com/apache/skywalking-go/plugins/core/operator"
 	"strings"
 
@@ -61,6 +62,22 @@ type producerInterceptor struct {
 }
 
 func (p *producerInterceptor) OnSend(msg *sarama.ProducerMessage) {
+	if msg == nil {
+		// Panic protection. Should be unreachable.
+		return
+	}
+
+	// If trace info is already existed in msg header, msg must be instrumented
+	// in `SendMessage()` or `SendMessages()` in SyncProducer
+	for _, h := range msg.Headers {
+		k := string(h.Key)
+		if k == core.Header || k == core.HeaderCorrelation {
+			return
+		}
+	}
+
+	// If trace info is not existed in msg header, msg must be sent by AsyncProducer.
+	// Start a new exit Span.
 	s, err := tracing.CreateExitSpan(
 		// operationName
 		"Kafka/"+msg.Topic+"/Producer",
