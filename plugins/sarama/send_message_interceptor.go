@@ -18,10 +18,12 @@
 package sarama
 
 import (
+	"strings"
+
 	"github.com/Shopify/sarama"
+
 	"github.com/apache/skywalking-go/plugins/core/operator"
 	"github.com/apache/skywalking-go/plugins/core/tracing"
-	"strings"
 )
 
 type SendMessageInterceptor struct {

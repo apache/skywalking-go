@@ -19,8 +19,9 @@ package sarama
 
 import (
 	"fmt"
-	"github.com/apache/skywalking-go/plugins/core/operator"
 	"strings"
+
+	"github.com/apache/skywalking-go/plugins/core/operator"
 
 	"github.com/Shopify/sarama"
 
