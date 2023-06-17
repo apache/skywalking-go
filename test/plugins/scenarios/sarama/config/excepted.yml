@@ -58,6 +58,27 @@ segmentItems:
                  traceId: not null}
       - segmentId: not null
         spans:
+          - operationName: Kafka/sarama_auto_instrument/Consumer
+            parentSpanId: -1
+            spanId: 0
+            spanLayer: MQ
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 5015
+            isError: false
+            spanType: Entry
+            peer: ''
+            skipAnalysis: false
+            tags:
+              - { key: mq.broker, value: 'kafka-server:9092' }
+              - { key: mq.topic, value: sarama_auto_instrument }
+            refs:
+              - { parentEndpoint: 'Kafka/sarama_auto_instrument/Producer', networkAddress: 'kafka-server:9092', refType: CrossProcess,
+                  parentSpanId: 0, parentTraceSegmentId: not null,
+                  parentServiceInstance: not null, parentService: sarama,
+                  traceId: not null }
+      - segmentId: not null
+        spans:
           - operationName: Kafka/sarama_auto_instrument/Producer
             parentSpanId: 0
             spanId: 1
