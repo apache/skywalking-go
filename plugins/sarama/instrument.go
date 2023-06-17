@@ -55,19 +55,25 @@ func (i *Instrument) VersionChecker(pluginVersion string) bool {
 func (i *Instrument) Points() []*instrument.Point {
 	return []*instrument.Point{
 		{
-			At: instrument.NewStaticMethodEnhance("newAsyncProducer",
+			At: instrument.NewStaticMethodEnhance(
+				"newAsyncProducer",
 				instrument.WithArgsCount(1),
 				instrument.WithArgType(0, "Client"),
 				instrument.WithResultCount(2),
-				instrument.WithResultType(0, "AsyncProducer"), instrument.WithResultType(1, "error")),
+				instrument.WithResultType(0, "AsyncProducer"),
+				instrument.WithResultType(1, "error"),
+			),
 			Interceptor: "AsyncProducerInterceptor",
 		},
 		{
-			At: instrument.NewStaticMethodEnhance("newConsumer",
+			At: instrument.NewStaticMethodEnhance(
+				"newConsumer",
 				instrument.WithArgsCount(1),
 				instrument.WithArgType(0, "Client"),
 				instrument.WithResultCount(2),
-				instrument.WithResultType(0, "Consumer"), instrument.WithResultType(1, "error")),
+				instrument.WithResultType(0, "Consumer"),
+				instrument.WithResultType(1, "error"),
+			),
 			Interceptor: "ConsumerInterceptor",
 		},
 	}
