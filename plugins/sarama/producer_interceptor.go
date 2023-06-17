@@ -21,12 +21,17 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/apache/skywalking-go/plugins/core"
 	"github.com/apache/skywalking-go/plugins/core/operator"
 
 	"github.com/Shopify/sarama"
 
 	"github.com/apache/skywalking-go/plugins/core/tracing"
+)
+
+// Propagation Header keys. Defined in `plugins/core/propagating.go`.
+const (
+	Header            string = "sw8"
+	HeaderCorrelation string = "sw8-correlation"
 )
 
 type AsyncProducerInterceptor struct {
@@ -72,7 +77,7 @@ func (p *producerInterceptor) OnSend(msg *sarama.ProducerMessage) {
 	// in `SendMessage()` or `SendMessages()` in SyncProducer
 	for _, h := range msg.Headers {
 		k := string(h.Key)
-		if k == core.Header || k == core.HeaderCorrelation {
+		if k == Header || k == HeaderCorrelation {
 			return
 		}
 	}
@@ -99,7 +104,7 @@ func (p *producerInterceptor) OnSend(msg *sarama.ProducerMessage) {
 		tracing.WithTag(tracing.TagMQBroker, strings.Join(p.brokers, ",")),
 		tracing.WithTag(tracing.TagMQTopic, msg.Topic),
 		tracing.WithLayer(tracing.SpanLayerMQ),
-		tracing.WithComponent(componentID),
+		tracing.WithComponent(5015),
 	)
 
 	if err != nil {

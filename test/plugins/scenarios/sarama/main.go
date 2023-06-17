@@ -53,13 +53,12 @@ func executeHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func testProduce(ctx context.Context) error {
-	return producer.SendMessages([]*sarama.ProducerMessage{
-		{
-			Topic: "sarama_auto_instrument",
-			Key:   nil,
-			Value: sarama.StringEncoder("this is a test msg"),
-		},
+	_, _, err := producer.SendMessage(&sarama.ProducerMessage{
+		Topic: "sarama_auto_instrument",
+		Key:   nil,
+		Value: sarama.StringEncoder("this is a test msg"),
 	})
+	return err
 }
 
 func testConsume(ctx context.Context) error {

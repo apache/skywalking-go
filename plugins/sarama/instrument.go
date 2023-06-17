@@ -78,10 +78,10 @@ func (i *Instrument) Points() []*instrument.Point {
 		},
 		{
 			At: instrument.NewMethodEnhance(
-				"*SyncProducer",
+				"*syncProducer",
 				"SendMessage",
 				instrument.WithArgsCount(1),
-				instrument.WithArgType(0, "*sarama.ProducerMessage"),
+				instrument.WithArgType(0, "*ProducerMessage"),
 				instrument.WithResultCount(3),
 				instrument.WithResultType(0, "int32"),
 				instrument.WithResultType(1, "int64"),
@@ -89,17 +89,17 @@ func (i *Instrument) Points() []*instrument.Point {
 			),
 			Interceptor: "SendMessageInterceptor",
 		},
-		{
-			At: instrument.NewMethodEnhance(
-				"*SyncProducer",
-				"SendMessages",
-				instrument.WithArgsCount(1),
-				instrument.WithArgType(0, "[]*ProducerMessage"),
-				instrument.WithResultCount(1),
-				instrument.WithResultType(0, "error"),
-			),
-			Interceptor: "SendMessagesInterceptor",
-		},
+		//{
+		//	At: instrument.NewMethodEnhance(
+		//		"*syncProducer",
+		//		"SendMessages",
+		//		instrument.WithArgsCount(1),
+		//		instrument.WithArgType(0, "[]*ProducerMessage"),
+		//		instrument.WithResultCount(1),
+		//		instrument.WithResultType(0, "error"),
+		//	),
+		//	Interceptor: "SendMessagesInterceptor",
+		//},
 		{
 			At: instrument.NewStructEnhance("syncProducer"),
 		},

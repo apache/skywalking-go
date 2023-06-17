@@ -71,7 +71,7 @@ func (s *SendMessageInterceptor) BeforeInvoke(invocation operator.Invocation) er
 		tracing.WithTag(tracing.TagMQBroker, strings.Join(brokers, ",")),
 		tracing.WithTag(tracing.TagMQTopic, msg.Topic),
 		tracing.WithLayer(tracing.SpanLayerMQ),
-		tracing.WithComponent(componentID),
+		tracing.WithComponent(5015),
 	)
 
 	if err != nil {
@@ -139,7 +139,7 @@ func (s *SendMessagesInterceptor) BeforeInvoke(invocation operator.Invocation) e
 		tracing.WithTag(tracing.TagMQBroker, strings.Join(brokers, ",")),
 		tracing.WithTag(tracing.TagMQTopic, strings.Join(topics, ",")),
 		tracing.WithLayer(tracing.SpanLayerMQ),
-		tracing.WithComponent(componentID),
+		tracing.WithComponent(5015),
 	)
 
 	if err != nil {
