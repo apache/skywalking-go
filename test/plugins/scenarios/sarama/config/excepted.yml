@@ -20,20 +20,21 @@ segmentItems:
     segments:
       - segmentId: not null
         spans:
-          - operationName: Kafka/sarama_auto_instrument/Producer
-            parentSpanId: 0
-            spanId: 1
-            spanLayer: MQ
+          - operationName: GET:/health
+            parentSpanId: -1
+            spanId: 0
+            spanLayer: Http
             startTime: nq 0
             endTime: nq 0
-            componentId: 5015
+            componentId: 5004
             isError: false
-            spanType: Exit
-            peer: kafka-server:9092
+            spanType: Entry
+            peer: ''
             skipAnalysis: false
             tags:
-              - {key: mq.broker, value: 'kafka-server:9092'}
-              - {key: mq.topic, value: sarama_auto_instrument}
+              - {key: http.method, value: GET}
+              - {key: url, value: 'service:8080/health'}
+              - {key: status_code, value: '200'}
       - segmentId: not null
         spans:
           - operationName: Kafka/sarama_auto_instrument/Consumer
@@ -51,9 +52,40 @@ segmentItems:
               - {key: mq.broker, value: 'kafka-server:9092'}
               - {key: mq.topic, value: sarama_auto_instrument}
             refs:
-              - {parentEndpoint: Kafka/sarama_auto_instrument/Producer, networkAddress: 'kafka-server:9092',
-                 refType: CrossProcess, parentSpanId: 0, parentTraceSegmentId: not null,
+              - {parentEndpoint: 'GET:/execute', networkAddress: 'kafka-server:9092', refType: CrossProcess,
+                 parentSpanId: 1, parentTraceSegmentId: not null,
                  parentServiceInstance: not null, parentService: sarama,
                  traceId: not null}
+      - segmentId: not null
+        spans:
+          - operationName: Kafka/sarama_auto_instrument/Producer
+            parentSpanId: 0
+            spanId: 1
+            spanLayer: MQ
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 5015
+            isError: false
+            spanType: Exit
+            peer: kafka-server:9092
+            skipAnalysis: false
+            tags:
+              - {key: mq.broker, value: 'kafka-server:9092'}
+              - {key: mq.topic, value: sarama_auto_instrument}
+          - operationName: GET:/execute
+            parentSpanId: -1
+            spanId: 0
+            spanLayer: Http
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 5004
+            isError: false
+            spanType: Entry
+            peer: ''
+            skipAnalysis: false
+            tags:
+              - {key: http.method, value: GET}
+              - {key: url, value: 'service:8080/execute'}
+              - {key: status_code, value: '200'}
 meterItems: []
 logItems: []
