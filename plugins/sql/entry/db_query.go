@@ -15,21 +15,19 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package tools
+package entry
 
-var basicDataTypes = make(map[string]bool)
+import (
+	"github.com/apache/skywalking-go/plugins/core/operator"
+)
 
-func init() {
-	types := []string{
-		"bool", "int8", "int16", "int32", "int64", "uint8", "uint16", "uint32", "uint64", "int", "uint", "uintptr",
-		"float32", "float64", "complex64", "complex128", "string", "error", "interface{}", "_", "byte", "any",
-	}
-	for _, tp := range types {
-		basicDataTypes[tp] = true
-	}
+type QueryInterceptor struct {
 }
 
-// nolint
-func IsBasicDataType(name string) bool {
-	return basicDataTypes[name]
+func (n *QueryInterceptor) BeforeInvoke(invocation operator.Invocation) error {
+	return GeneralQueryBeforeInvoke(invocation, "Query")
+}
+
+func (n *QueryInterceptor) AfterInvoke(invocation operator.Invocation, results ...interface{}) error {
+	return GeneralQueryAfterInvoke(invocation, results...)
 }

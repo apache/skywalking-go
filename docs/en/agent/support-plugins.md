@@ -13,6 +13,8 @@
 * Database Client
   * `gorm`: [GORM](https://github.com/go-gorm/gorm) tested v1.22.0 to v1.25.1.
     * [MySQL Driver](https://github.com/go-gorm/mysql)
-  * `mongo`: [Mongo](https://github.com/mongodb/mongo-go-driver) tested v1.11.0 to v1.11.7.
+  * `mongo`: [Mongo](https://github.com/mongodb/mongo-go-driver) tested v1.11.1 to v1.11.7.
+  * `sql`: [Native SQL](https://pkg.go.dev/database/sql) tested go v1.17 to go v1.20.
+    * [MySQL Driver](https://github.com/go-sql-driver/mysql) tested v1.4.0 to v1.7.1.
 * Cache Client
   * `go-redisv9`: [go-redis](https://github.com/redis/go-redis) tested v9.0.3 to v9.0.5.

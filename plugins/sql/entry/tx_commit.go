@@ -15,21 +15,33 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package tools
+package entry
 
-var basicDataTypes = make(map[string]bool)
+import (
+	"github.com/apache/skywalking-go/plugins/core/operator"
+	"github.com/apache/skywalking-go/plugins/core/tracing"
+)
 
-func init() {
-	types := []string{
-		"bool", "int8", "int16", "int32", "int64", "uint8", "uint16", "uint32", "uint64", "int", "uint", "uintptr",
-		"float32", "float64", "complex64", "complex128", "string", "error", "interface{}", "_", "byte", "any",
-	}
-	for _, tp := range types {
-		basicDataTypes[tp] = true
-	}
+type TxCommitInterceptor struct {
 }
 
-// nolint
-func IsBasicDataType(name string) bool {
-	return basicDataTypes[name]
+func (n *TxCommitInterceptor) BeforeInvoke(invocation operator.Invocation) error {
+	span, err := createExitSpan(invocation.CallerInstance(), "Tx/Commit")
+	if err != nil {
+		return err
+	}
+	invocation.SetContext(span)
+	return nil
+}
+
+func (n *TxCommitInterceptor) AfterInvoke(invocation operator.Invocation, results ...interface{}) error {
+	ctx := invocation.GetContext()
+	if ctx == nil {
+		return nil
+	}
+	if err, ok := results[0].(error); ok && err != nil {
+		ctx.(tracing.Span).Error(err.Error())
+	}
+	ctx.(tracing.Span).End()
+	return nil
 }

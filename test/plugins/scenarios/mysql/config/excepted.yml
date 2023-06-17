@@ -15,12 +15,12 @@
 # limitations under the License.
 
 segmentItems:
-  - serviceName: gorm
+  - serviceName: mysql
     segmentSize: ge 1
     segments:
       - segmentId: not null
         spans:
-          - operationName: /raw
+          - operationName: Mysql/Ping
             parentSpanId: 0
             spanId: 1
             spanLayer: Database
@@ -29,11 +29,11 @@ segmentItems:
             componentId: 5012
             isError: false
             spanType: Exit
-            peer: mysql-server:3306
+            peer: mysql:3306
             skipAnalysis: false
             tags:
-              - { key: db.type, value: mysql }
-          - operationName: Mysql/BeginTx
+              - { key: db.type, value: Mysql }
+          - operationName: Mysql/Exec
             parentSpanId: 0
             spanId: 2
             spanLayer: Database
@@ -41,12 +41,13 @@ segmentItems:
             endTime: nq 0
             componentId: 5012
             isError: false
-            spanType: Local
-            peer: ''
+            spanType: Exit
+            peer: mysql:3306
             skipAnalysis: false
             tags:
+              - { key: db.statement, value: "DROP TABLE IF EXISTS users" }
               - { key: db.type, value: Mysql }
-          - operationName: users/create
+          - operationName: Mysql/Exec
             parentSpanId: 0
             spanId: 3
             spanLayer: Database
@@ -55,11 +56,12 @@ segmentItems:
             componentId: 5012
             isError: false
             spanType: Exit
-            peer: mysql-server:3306
+            peer: mysql:3306
             skipAnalysis: false
             tags:
-              - { key: db.type, value: mysql }
-          - operationName: Mysql/Tx/Commit
+              - { key: db.statement, value: 'CREATE TABLE IF NOT EXISTS users (id char(255), name VARCHAR(255), age INTEGER)' }
+              - { key: db.type, value: Mysql }
+          - operationName: Mysql/Exec
             parentSpanId: 0
             spanId: 4
             spanLayer: Database
@@ -68,11 +70,13 @@ segmentItems:
             componentId: 5012
             isError: false
             spanType: Exit
-            peer: mysql-server:3306
+            peer: mysql:3306
             skipAnalysis: false
             tags:
+              - { key: db.statement, value: 'INSERT INTO users (id, name, age) VALUE ( ?, ?, ?)' }
               - { key: db.type, value: Mysql }
-          - operationName: users/query
+              - {key: db.sql.parameters, value: '0, foo, 10'}
+          - operationName: Mysql/Query
             parentSpanId: 0
             spanId: 5
             spanLayer: Database
@@ -81,11 +85,13 @@ segmentItems:
             componentId: 5012
             isError: false
             spanType: Exit
-            peer: mysql-server:3306
+            peer: mysql:3306
             skipAnalysis: false
             tags:
-              - { key: db.type, value: mysql }
-          - operationName: users/row
+              - { key: db.statement, value: 'SELECT name FROM users WHERE id = ?' }
+              - { key: db.type, value: Mysql }
+              - {key: db.sql.parameters, value: '0'}
+          - operationName: Mysql/Prepare
             parentSpanId: 0
             spanId: 6
             spanLayer: Database
@@ -93,14 +99,29 @@ segmentItems:
             endTime: nq 0
             componentId: 5012
             isError: false
-            spanType: Exit
-            peer: mysql-server:3306
+            spanType: Local
+            peer: ''
             skipAnalysis: false
             tags:
-              - { key: db.type, value: mysql }
-          - operationName: Mysql/BeginTx
+              - { key: db.statement, value: 'INSERT INTO users (id, name, age) VALUE ( ?, ?, ?)' }
+              - { key: db.type, value: Mysql }
+          - operationName: Mysql/Stmt/Exec
             parentSpanId: 0
             spanId: 7
+            spanLayer: Database
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 5012
+            isError: false
+            spanType: Exit
+            peer: mysql:3306
+            skipAnalysis: false
+            tags:
+              - { key: db.type, value: Mysql }
+              - {key: db.sql.parameters, value: '1, bar, 11'}
+          - operationName: Mysql/BeginTx
+            parentSpanId: 0
+            spanId: 8
             spanLayer: Database
             startTime: nq 0
             endTime: nq 0
@@ -111,20 +132,7 @@ segmentItems:
             skipAnalysis: false
             tags:
               - { key: db.type, value: Mysql }
-          - operationName: users/update
-            parentSpanId: 0
-            spanId: 8
-            spanLayer: Database
-            startTime: nq 0
-            endTime: nq 0
-            componentId: 5012
-            isError: false
-            spanType: Exit
-            peer: mysql-server:3306
-            skipAnalysis: false
-            tags:
-              - { key: db.type, value: mysql }
-          - operationName: Mysql/Tx/Commit
+          - operationName: Mysql/Tx/Exec
             parentSpanId: 0
             spanId: 9
             spanLayer: Database
@@ -133,13 +141,43 @@ segmentItems:
             componentId: 5012
             isError: false
             spanType: Exit
-            peer: mysql-server:3306
+            peer: mysql:3306
+            skipAnalysis: false
+            tags:
+              - { key: db.statement, value: 'INSERT INTO users (id, name, age) VALUE ( ?, ?, ? )' }
+              - { key: db.type, value: Mysql }
+              - {key: db.sql.parameters, value: '2, foobar, 24'}
+          - operationName: Mysql/Tx/Exec
+            parentSpanId: 0
+            spanId: 10
+            spanLayer: Database
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 5012
+            isError: false
+            spanType: Exit
+            peer: mysql:3306
+            skipAnalysis: false
+            tags:
+              - { key: db.statement, value: 'UPDATE users SET name = ? WHERE id = ?' }
+              - { key: db.type, value: Mysql }
+              - {key: db.sql.parameters, value: 'foobar, 0'}
+          - operationName: Mysql/Tx/Commit
+            parentSpanId: 0
+            spanId: 11
+            spanLayer: Database
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 5012
+            isError: false
+            spanType: Exit
+            peer: mysql:3306
             skipAnalysis: false
             tags:
               - { key: db.type, value: Mysql }
           - operationName: Mysql/BeginTx
             parentSpanId: 0
-            spanId: 10
+            spanId: 12
             spanLayer: Database
             startTime: nq 0
             endTime: nq 0
@@ -150,29 +188,46 @@ segmentItems:
             skipAnalysis: false
             tags:
               - { key: db.type, value: Mysql }
-          - operationName: users/delete
+          - operationName: Mysql/Tx/Exec
             parentSpanId: 0
-            spanId: 11
+            spanId: 13
             spanLayer: Database
             startTime: nq 0
             endTime: nq 0
             componentId: 5012
             isError: false
             spanType: Exit
-            peer: mysql-server:3306
+            peer: mysql:3306
             skipAnalysis: false
             tags:
-              - { key: db.type, value: mysql }
-          - operationName: Mysql/Tx/Commit
+              - { key: db.statement, value: 'UPDATE users SET age = ? WHERE id = ?' }
+              - { key: db.type, value: Mysql }
+              - {key: db.sql.parameters, value: '48, 2'}
+          - operationName: Mysql/Tx/Exec
             parentSpanId: 0
-            spanId: 12
+            spanId: 14
             spanLayer: Database
             startTime: nq 0
             endTime: nq 0
             componentId: 5012
             isError: false
             spanType: Exit
-            peer: mysql-server:3306
+            peer: mysql:3306
+            skipAnalysis: false
+            tags:
+              - { key: db.statement, value: 'UPDATE users SET name = ? WHERE id = ?' }
+              - { key: db.type, value: Mysql }
+              - {key: db.sql.parameters, value: 'foobar, 1'}
+          - operationName: Mysql/Tx/Rollback
+            parentSpanId: 0
+            spanId: 15
+            spanLayer: Database
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 5012
+            isError: false
+            spanType: Exit
+            peer: mysql:3306
             skipAnalysis: false
             tags:
               - { key: db.type, value: Mysql }

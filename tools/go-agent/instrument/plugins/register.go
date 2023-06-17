@@ -22,7 +22,6 @@ import (
 	"github.com/apache/skywalking-go/plugins/dubbo"
 	"github.com/apache/skywalking-go/plugins/gin"
 	goredisv9 "github.com/apache/skywalking-go/plugins/go-redisv9"
-	"github.com/apache/skywalking-go/plugins/go-restfulv3"
 	gorm_entry "github.com/apache/skywalking-go/plugins/gorm/entry"
 	gorm_mysql "github.com/apache/skywalking-go/plugins/gorm/mysql"
 	"github.com/apache/skywalking-go/plugins/http"
@@ -30,6 +29,8 @@ import (
 	"github.com/apache/skywalking-go/plugins/microv4"
 	"github.com/apache/skywalking-go/plugins/mongo"
 	"github.com/apache/skywalking-go/plugins/sarama"
+	sql_entry "github.com/apache/skywalking-go/plugins/sql/entry"
+	sql_mysql "github.com/apache/skywalking-go/plugins/sql/mysql"
 )
 
 var instruments = make([]instrument.Instrument, 0)
@@ -49,6 +50,10 @@ func init() {
 	// gorm related instruments
 	registerFramework(gorm_entry.NewInstrument())
 	registerFramework(gorm_mysql.NewInstrument())
+
+	// sql related instruments
+	registerFramework(sql_entry.NewInstrument())
+	registerFramework(sql_mysql.NewInstrument())
 }
 
 func registerFramework(ins instrument.Instrument) {
