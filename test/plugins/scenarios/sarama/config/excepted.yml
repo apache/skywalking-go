@@ -16,7 +16,7 @@
 
 segmentItems:
   - serviceName: sarama
-    segmentSize: ge 2
+    segmentSize: ge 3
     segments:
       - segmentId: not null
         spans:
@@ -87,5 +87,21 @@ segmentItems:
               - {key: http.method, value: GET}
               - {key: url, value: 'service:8080/execute'}
               - {key: status_code, value: '200'}
+      - segmentId: not null
+        spans:
+          - operationName: Kafka/sarama_auto_instrument/Producer
+            parentSpanId: -1
+            spanId: 0
+            spanLayer: MQ
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 5015
+            isError: false
+            spanType: Exit
+            peer: kafka-server:9092
+            skipAnalysis: false
+            tags:
+              - {key: mq.broker, value: 'kafka-server:9092'}
+              - {key: mq.topic, value: sarama_auto_instrument}
 meterItems: []
 logItems: []

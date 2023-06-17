@@ -28,8 +28,9 @@ import (
 )
 
 var (
-	producer sarama.SyncProducer
-	consumer sarama.Consumer
+	producer      sarama.SyncProducer
+	asyncProducer sarama.AsyncProducer
+	consumer      sarama.Consumer
 )
 
 type testFunc func(ctx context.Context) error
@@ -39,7 +40,8 @@ func executeHandler(w http.ResponseWriter, r *http.Request) {
 		name string
 		fn   testFunc
 	}{
-		{"produce", testProduce},
+		{"sync produce", testProduce},
+		{"async produce", testAsyncProduce},
 	}
 
 	for _, test := range testCases {
@@ -57,19 +59,31 @@ func testProduce(ctx context.Context) error {
 		Key:   nil,
 		Value: sarama.StringEncoder("this is a test msg"),
 	})
+	_ = producer.Close()
 	return err
 }
 
-func testConsume(ctx context.Context) error {
+func testAsyncProduce(ctx context.Context) error {
+	asyncProducer.Input() <- &sarama.ProducerMessage{
+		Topic: "sarama_auto_instrument",
+		Key:   nil,
+		Value: sarama.StringEncoder("stop"),
+	}
+	_ = asyncProducer.Close()
+	return nil
+}
+
+func consumeMsgs(ctx context.Context) error {
 	c, err := consumer.ConsumePartition("sarama_auto_instrument", 0, 0)
 	if err != nil {
 		log.Fatalf("ConsumePartition err: %v", err)
 		return err
 	}
 	select {
-	case _ = <-c.Messages():
-		c.Close()
-		break
+	case cs := <-c.Messages():
+		if string(cs.Value) == "stop" {
+			break
+		}
 	case _ = <-c.Errors():
 		break
 	}
@@ -85,9 +99,18 @@ func main() {
 	conf.Producer.Return.Errors = true
 	producer, err = sarama.NewSyncProducer([]string{"kafka-server:9092"}, conf)
 	if err != nil {
+		log.Fatalf("New SyncProducer err: %v", err)
+		return
+	}
+
+	conf = sarama.NewConfig()
+	conf.Version = sarama.V2_8_1_0
+	asyncProducer, err = sarama.NewAsyncProducer([]string{"kafka-server:9092"}, conf)
+	if err != nil {
 		log.Fatalf("NewAsyncProducer err: %v", err)
 		return
 	}
+
 	consumer, err = sarama.NewConsumer([]string{"kafka-server:9092"}, conf)
 	if err != nil {
 		log.Fatalf("NewConsumer err: %v", err)
@@ -95,7 +118,7 @@ func main() {
 	}
 
 	go func() {
-		_ = testConsume(context.Background())
+		_ = consumeMsgs(context.Background())
 	}()
 
 	http.HandleFunc("/execute", executeHandler)
