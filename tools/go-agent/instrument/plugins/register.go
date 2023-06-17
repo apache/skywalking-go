@@ -22,6 +22,7 @@ import (
 	"github.com/apache/skywalking-go/plugins/dubbo"
 	"github.com/apache/skywalking-go/plugins/gin"
 	goredisv9 "github.com/apache/skywalking-go/plugins/go-redisv9"
+	"github.com/apache/skywalking-go/plugins/go-restfulv3"
 	gorm_entry "github.com/apache/skywalking-go/plugins/gorm/entry"
 	gorm_mysql "github.com/apache/skywalking-go/plugins/gorm/mysql"
 	"github.com/apache/skywalking-go/plugins/http"
