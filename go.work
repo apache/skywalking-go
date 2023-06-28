@@ -15,6 +15,7 @@ use (
 	./plugins/microv4
 	./plugins/mongo
 	./plugins/sql
+	./plugins/runtimemetrics
 
 	./test/benchmark-codebase/consumer
 	./test/benchmark-codebase/provider
