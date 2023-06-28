@@ -28,6 +28,7 @@ import (
 
 const interfaceName = "interface{}"
 const OtherPackageRefPrefix = "swref_"
+const parameterAppender = ", "
 
 type ParameterInfo struct {
 	Name                 string
@@ -144,6 +145,7 @@ func (p *PackagedParameterInfo) PackagedTypeName() string {
 	return GenerateTypeNameByExp(p.PackagedType())
 }
 
+// nolint
 func GenerateTypeNameByExp(exp dst.Expr) string {
 	var data string
 	switch n := exp.(type) {
@@ -161,6 +163,27 @@ func GenerateTypeNameByExp(exp dst.Expr) string {
 		data = "[]" + GenerateTypeNameByExp(n.Elt)
 	case *dst.ArrayType:
 		data = "[]" + GenerateTypeNameByExp(n.Elt)
+	case *dst.FuncType:
+		data = "func("
+		if n.Params != nil && len(n.Params.List) > 0 {
+			for i, f := range n.Params.List {
+				if i > 0 {
+					data += parameterAppender
+				}
+				data += GenerateTypeNameByExp(f.Type)
+			}
+		}
+		data += ")"
+		if n.Results != nil && len(n.Results.List) > 0 {
+			data += "("
+			for i, f := range n.Results.List {
+				if i > 0 {
+					data += parameterAppender
+				}
+				data += GenerateTypeNameByExp(f.Type)
+			}
+			data += ")"
+		}
 	default:
 		return ""
 	}

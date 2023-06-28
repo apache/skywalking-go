@@ -28,6 +28,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"golang.org/x/mod/module"
+
 	"github.com/pkg/errors"
 
 	"github.com/apache/skywalking-go/plugins/core"
@@ -547,10 +549,18 @@ func (i *Instrument) tryToFindThePluginVersion(opts *api.CompileOptions, ins ins
 		if !strings.HasSuffix(arg, ".go") {
 			continue
 		}
+
+		// example: github.com/Shopify/sarama
 		basePkg := ins.BasePackage()
 
-		// example: github.com/gin-gonic/gin@1.1.1/gin.go
-		_, afterPkg, found := strings.Cut(arg, basePkg)
+		// Capital letters in module paths and versions are escaped using exclamation points
+		// (Azure is escaped as !azure) to avoid conflicts on case-insensitive file systems.
+		// example: github.com/!shopify/sarama
+		// see: https://go.dev/ref/mod
+		escapedBasePkg, _ := module.EscapePath(basePkg)
+
+		// arg example: github.com/!shopify/sarama@1.34.1/acl.go
+		_, afterPkg, found := strings.Cut(arg, escapedBasePkg)
 		if !found {
 			return "", fmt.Errorf("could not found the go version of the package %s, go file path: %s", basePkg, arg)
 		}
