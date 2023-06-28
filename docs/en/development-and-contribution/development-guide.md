@@ -452,6 +452,87 @@ Typically, use APIs as following to control or switch the context:
 2. Propagate the snapshot context to any other goroutine in your plugin.
 3. Use `tracing.ContinueContext(snapshot)` to continue the snapshot context in the target goroutine.
 
+### Meter API
+
+The Meter API is used to record the metrics of the target program, and currently supports the following methods:
+
+```go
+// NewCounter creates a new counter metrics.
+// name is the name of the metrics
+// opts is the options for the metrics
+func NewCounter(name string, opts ...Opt) Counter
+
+// NewGauge creates a new gauge metrics.
+// name is the name of the metrics
+// getter is the function to get the value of the gauge meter
+// opts is the options for the metrics
+func NewGauge(name string, getter func() float64, opts ...Opt) Gauge
+
+// NewHistogram creates a new histogram metrics.
+// name is the name of the metrics
+// steps is the buckets of the histogram
+// opts is the options for the metrics
+func NewHistogram(name string, steps []float64, opts ...Opt) Histogram
+
+// NewHistogramWithMinValue creates a new histogram metrics.
+// name is the name of the metrics
+// minVal is the min value of the histogram bucket
+// steps is the buckets of the histogram
+// opts is the options for the metrics
+func NewHistogramWithMinValue(name string, minVal float64, steps []float64, opts ...Opt) Histogram
+
+// RegisterBeforeCollectHook registers a hook function which will be called before metrics collect.
+func RegisterBeforeCollectHook(f func())
+```
+
+#### Meter Option
+
+The Meter Options can be passed when creating a Meter to configure the information in the Meter.
+
+```go
+// WithLabel adds a label to the metrics.
+func WithLabel(key, value string) Opt
+```
+
+#### Meter Type
+
+##### Counter
+
+Counter is a cumulative metric that represents a single monotonically increasing counter whose value can only increase.
+
+```go
+type Counter interface {
+	// Get returns the current value of the counter.
+	Get() float64
+	// Inc increments the counter with value.
+	Inc(val float64)
+}
+```
+
+##### Gauge
+
+Gauge is a metric that represents a single numerical value that can arbitrarily go up and down.
+
+```go
+type Gauge interface {
+    // Get returns the current value of the gauge.
+    Get() float64
+}
+```
+
+##### Histogram
+
+Histogram is a metric that represents the distribution of a set of values.
+
+```go
+type Histogram interface {
+	// Observe find the value associate bucket and add 1.
+	Observe(val float64)
+	// ObserveWithCount find the value associate bucket and add specific count.
+	ObserveWithCount(val float64, count int64)
+}
+```
+
 ## Import Plugin
 
 Once you have finished developing the plugin, you need to import the completed module into the Agent program and [define it in the corresponding file](../../../tools/go-agent/instrument/plugins/register.go). 

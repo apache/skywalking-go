@@ -352,7 +352,7 @@ func newSegmentRoot(segmentSpan *SegmentSpanImpl) *RootSegmentSpan {
 				break
 			}
 		}
-		s.tracer().Reporter.Send(append(s.segment, s))
+		s.tracer().Reporter.SendTracing(append(s.segment, s))
 	}()
 	return s
 }

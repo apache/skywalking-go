@@ -25,6 +25,7 @@ var (
 	SetGlobalOperator = func(interface{}) {}
 	GetGlobalOperator = func() interface{} { return nil }
 	GetInitNotify     = func() []func() { return nil }
+	MetricsObtain     = func() ([]interface{}, []func()) { return nil, nil }
 )
 
 type ContextSnapshoter interface {

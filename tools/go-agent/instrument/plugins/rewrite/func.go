@@ -34,6 +34,8 @@ var (
 	GlobalOperatorRealGetMethodName = VarPrefix + "OperatorGetOperator"
 
 	GlobalOperatorRealAppendTracerInitNotify = VarPrefix + "OperatorAppendInitNotify"
+	MetricsRegisterAppender                  = VarPrefix + "OperatorMetricsAppender"
+	MetricsCollectAppender                   = VarPrefix + "OperatorMetricsCollectAppender"
 
 	GlobalOperatorTypeName = TypePrefix + "OperatorOperator"
 )
@@ -68,6 +70,8 @@ func (c *Context) Func(funcDecl *dst.FuncDecl, cursor *dstutil.Cursor) {
 		}
 	}
 
+	c.initFunctionDetector(funcDecl)
+
 	// enhance method parameter and return value
 	c.enhanceFuncParameter(funcDecl.Type.Params)
 	c.enhanceFuncParameter(funcDecl.Type.Results)
@@ -75,6 +79,16 @@ func (c *Context) Func(funcDecl *dst.FuncDecl, cursor *dstutil.Cursor) {
 	// enhance the method body
 	for _, stmt := range funcDecl.Body.List {
 		c.enhanceFuncStmt(stmt)
+	}
+}
+
+func (c *Context) initFunctionDetector(f *dst.FuncDecl) {
+	initFunc := tools.FindDirective(f, consts.DirectiveInit)
+	if initFunc != "" {
+		if f.Recv != nil && len(f.Recv.List) > 0 {
+			panic("init function should not have receiver")
+		}
+		c.appendInitFunction(f.Name.Name)
 	}
 }
 
@@ -153,7 +167,15 @@ func (c *Context) enhanceFuncStmt(stmt dst.Stmt) {
 				}
 			}
 		case *dst.ValueSpec:
-			c.Var(n, false)
+			for _, n := range n.Names {
+				if k, v := c.enhanceVarNameWhenRewrite(n); k != "" {
+					c.rewriteMapping.addVarMapping(k, v)
+				}
+			}
+			c.enhanceTypeNameWhenRewrite(n.Type, n, -1)
+			for _, subVal := range n.Values {
+				c.enhanceTypeNameWhenRewrite(subVal, n, -1)
+			}
 		case *dst.TypeSwitchStmt:
 			c.enhanceFuncStmt(n.Init)
 			c.enhanceFuncStmt(n.Assign)
@@ -162,9 +184,17 @@ func (c *Context) enhanceFuncStmt(stmt dst.Stmt) {
 					c.enhanceFuncStmt(stmt)
 				}
 			}
+		case *dst.SwitchStmt:
+			c.enhanceFuncStmt(n.Init)
+			c.enhanceTypeNameWhenRewrite(n.Tag, n, -1)
+			if n.Body != nil {
+				for _, stmt := range n.Body.List {
+					c.enhanceFuncStmt(stmt)
+				}
+			}
 		case *dst.CaseClause:
-			for _, stmt := range n.List {
-				c.enhanceTypeNameWhenRewrite(stmt, n, -1)
+			for i, stmt := range n.List {
+				c.enhanceTypeNameWhenRewrite(stmt, n, i)
 			}
 			for _, stmt := range n.Body {
 				c.enhanceFuncStmt(stmt)
@@ -197,7 +227,7 @@ func (c *Context) rewriteVarIfExistingMapping(exp, parent dst.Expr) bool {
 	case *dst.SelectorExpr:
 		if pkg, ok := n.X.(*dst.Ident); ok {
 			if imp := c.packageImport[pkg.Name]; imp != nil {
-				tools.RemovePackageRef(parent, n)
+				tools.RemovePackageRef(parent, n, -1)
 				return true
 			}
 		}

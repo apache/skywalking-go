@@ -46,7 +46,8 @@ const (
 func NewGRPCReporter(logger operator.LogOperator, serverAddr string, opts ...ReporterOption) (reporter.Reporter, error) {
 	r := &gRPCReporter{
 		logger:           logger,
-		sendCh:           make(chan *agentv3.SegmentObject, maxSendQueueSize),
+		tracingSendCh:    make(chan *agentv3.SegmentObject, maxSendQueueSize),
+		metricsSendCh:    make(chan []*agentv3.MeterData, maxSendQueueSize),
 		checkInterval:    defaultCheckInterval,
 		cdsInterval:      defaultCDSInterval, // cds default on
 		connectionStatus: reporter.ConnectionStatusConnected,
@@ -69,6 +70,7 @@ func NewGRPCReporter(logger operator.LogOperator, serverAddr string, opts ...Rep
 	}
 	r.conn = conn
 	r.traceClient = agentv3.NewTraceSegmentReportServiceClient(r.conn)
+	r.metricsClient = agentv3.NewMeterReportServiceClient(r.conn)
 	r.managementClient = managementv3.NewManagementServiceClient(r.conn)
 	if r.cdsInterval > 0 {
 		r.cdsClient = configuration.NewConfigurationDiscoveryServiceClient(r.conn)
@@ -80,9 +82,11 @@ func NewGRPCReporter(logger operator.LogOperator, serverAddr string, opts ...Rep
 type gRPCReporter struct {
 	entity           *reporter.Entity
 	logger           operator.LogOperator
-	sendCh           chan *agentv3.SegmentObject
+	tracingSendCh    chan *agentv3.SegmentObject
+	metricsSendCh    chan []*agentv3.MeterData
 	conn             *grpc.ClientConn
 	traceClient      agentv3.TraceSegmentReportServiceClient
+	metricsClient    agentv3.MeterReportServiceClient
 	managementClient managementv3.ManagementServiceClient
 	checkInterval    time.Duration
 	cdsInterval      time.Duration
@@ -109,7 +113,7 @@ func (r *gRPCReporter) ConnectionStatus() reporter.ConnectionStatus {
 	return r.connectionStatus
 }
 
-func (r *gRPCReporter) Send(spans []reporter.ReportedSpan) {
+func (r *gRPCReporter) SendTracing(spans []reporter.ReportedSpan) {
 	spanSize := len(spans)
 	if spanSize < 1 {
 		return
@@ -167,21 +171,93 @@ func (r *gRPCReporter) Send(spans []reporter.ReportedSpan) {
 		segmentObject.Spans[i].Refs = srr
 	}
 	defer func() {
-		// recover the panic caused by close sendCh
+		// recover the panic caused by close tracingSendCh
 		if err := recover(); err != nil {
 			r.logger.Errorf("reporter segment err %v", err)
 		}
 	}()
 	select {
-	case r.sendCh <- segmentObject:
+	case r.tracingSendCh <- segmentObject:
 	default:
-		r.logger.Errorf("reach max send buffer")
+		r.logger.Errorf("reach max tracing send buffer")
 	}
 }
 
+func (r *gRPCReporter) SendMetrics(metrics []reporter.ReportedMeter) {
+	if len(metrics) == 0 {
+		return
+	}
+	meters := make([]*agentv3.MeterData, len(metrics))
+	for i, m := range metrics {
+		meter := &agentv3.MeterData{}
+		switch data := m.(type) {
+		case reporter.ReportedMeterSingleValue:
+			meter.Metric = &agentv3.MeterData_SingleValue{
+				SingleValue: &agentv3.MeterSingleValue{
+					Name:   data.Name(),
+					Labels: r.convertLabels(data.Labels()),
+					Value:  data.Value(),
+				},
+			}
+		case reporter.ReportedMeterHistogram:
+			buckets := make([]*agentv3.MeterBucketValue, len(data.BucketValues()))
+			for i, b := range data.BucketValues() {
+				buckets[i] = &agentv3.MeterBucketValue{
+					Bucket:             b.Bucket(),
+					Count:              b.Count(),
+					IsNegativeInfinity: b.IsNegativeInfinity(),
+				}
+			}
+			meter.Metric = &agentv3.MeterData_Histogram{
+				Histogram: &agentv3.MeterHistogram{
+					Name:   data.Name(),
+					Labels: r.convertLabels(data.Labels()),
+					Values: buckets,
+				},
+			}
+		}
+
+		meters[i] = meter
+	}
+
+	meters[0].Service = r.entity.ServiceName
+	meters[0].ServiceInstance = r.entity.ServiceInstanceName
+	meters[0].Timestamp = time.Now().UnixNano() / int64(time.Millisecond)
+	defer func() {
+		// recover the panic caused by close tracingSendCh
+		if err := recover(); err != nil {
+			r.logger.Errorf("reporter metrics err %v", err)
+		}
+	}()
+	select {
+	case r.metricsSendCh <- meters:
+	default:
+		r.logger.Errorf("reach max metrics send buffer")
+	}
+}
+
+func (r *gRPCReporter) convertLabels(labels map[string]string) []*agentv3.Label {
+	if len(labels) == 0 {
+		return nil
+	}
+	ls := make([]*agentv3.Label, 0)
+	for k, v := range labels {
+		ls = append(ls, &agentv3.Label{
+			Name:  k,
+			Value: v,
+		})
+	}
+	return ls
+}
+
 func (r *gRPCReporter) Close() {
-	if r.sendCh != nil && r.bootFlag {
-		close(r.sendCh)
+	if r.bootFlag {
+		if r.tracingSendCh != nil {
+			close(r.tracingSendCh)
+		}
+		if r.metricsSendCh != nil {
+			close(r.metricsSendCh)
+		}
 	} else {
 		r.closeGRPCConn()
 	}
@@ -208,16 +284,39 @@ func (r *gRPCReporter) initSendPipeline() {
 				time.Sleep(5 * time.Second)
 				continue StreamLoop
 			}
-			for s := range r.sendCh {
+			for s := range r.tracingSendCh {
 				err = stream.Send(s)
 				if err != nil {
 					r.logger.Errorf("send segment error %v", err)
-					r.closeStream(stream)
+					r.closeTracingStream(stream)
 					continue StreamLoop
 				}
 			}
-			r.closeStream(stream)
+			r.closeTracingStream(stream)
 			r.closeGRPCConn()
+			break
+		}
+	}()
+	go func() {
+	StreamLoop:
+		for {
+			stream, err := r.metricsClient.CollectBatch(metadata.NewOutgoingContext(context.Background(), r.md))
+			if err != nil {
+				r.logger.Errorf("open stream error %v", err)
+				time.Sleep(5 * time.Second)
+				continue StreamLoop
+			}
+			for s := range r.metricsSendCh {
+				err = stream.Send(&agentv3.MeterDataCollection{
+					MeterData: s,
+				})
+				if err != nil {
+					r.logger.Errorf("send metrics error %v", err)
+					r.closeMetricsStream(stream)
+					continue StreamLoop
+				}
+			}
+			r.closeMetricsStream(stream)
 			break
 		}
 	}()
@@ -259,7 +358,14 @@ func (r *gRPCReporter) initCDS(cdsWatchers []reporter.AgentConfigChangeWatcher) 
 	}()
 }
 
-func (r *gRPCReporter) closeStream(stream agentv3.TraceSegmentReportService_CollectClient) {
+func (r *gRPCReporter) closeTracingStream(stream agentv3.TraceSegmentReportService_CollectClient) {
+	_, err := stream.CloseAndRecv()
+	if err != nil && err != io.EOF {
+		r.logger.Errorf("send closing error %v", err)
+	}
+}
+
+func (r *gRPCReporter) closeMetricsStream(stream agentv3.MeterReportService_CollectBatchClient) {
 	_, err := stream.CloseAndRecv()
 	if err != nil && err != io.EOF {
 		r.logger.Errorf("send closing error %v", err)

@@ -62,6 +62,27 @@ type ReportedSpan interface {
 	ComponentID() int32
 }
 
+type ReportedMeter interface {
+	Name() string
+	Labels() map[string]string
+}
+
+type ReportedMeterSingleValue interface {
+	ReportedMeter
+	Value() float64
+}
+
+type ReportedMeterBucketValue interface {
+	Bucket() float64
+	Count() int64
+	IsNegativeInfinity() bool
+}
+
+type ReportedMeterHistogram interface {
+	ReportedMeter
+	BucketValues() []ReportedMeterBucketValue
+}
+
 type Entity struct {
 	ServiceName         string
 	ServiceInstanceName string
@@ -85,7 +106,8 @@ var (
 
 type Reporter interface {
 	Boot(entity *Entity, cdsWatchers []AgentConfigChangeWatcher)
-	Send(spans []ReportedSpan)
+	SendTracing(spans []ReportedSpan)
+	SendMetrics(metrics []ReportedMeter)
 	ConnectionStatus() ConnectionStatus
 	Close()
 }

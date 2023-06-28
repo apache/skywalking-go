@@ -25,6 +25,8 @@ import (
 
 	"github.com/dave/dst"
 	"github.com/dave/dst/decorator"
+
+	"github.com/apache/skywalking-go/tools/go-agent/instrument/consts"
 )
 
 func CopyGoFiles(fromFS fs.ReadDirFS, fromDir, targetDir string,
@@ -49,7 +51,7 @@ func CopyGoFiles(fromFS fs.ReadDirFS, fromDir, targetDir string,
 		}
 
 		// ignore nocopy files
-		if bytes.Contains(readFile, []byte("//skywalking:nocopy")) {
+		if bytes.Contains(readFile, []byte(consts.DirecitveNoCopy)) {
 			continue
 		}
 

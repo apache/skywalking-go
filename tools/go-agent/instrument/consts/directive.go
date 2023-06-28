@@ -33,4 +33,7 @@ var (
 
 	// DirectiveConfig is the directive for define the config variable
 	DirectiveConfig = "//skywalking:config"
+
+	// DirectiveInit is the directive for define the init function after the agent initialized
+	DirectiveInit = "//skywalking:init"
 )

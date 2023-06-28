@@ -48,6 +48,7 @@ type Agent struct {
 	ServiceName     StringValue `yaml:"service_name"`
 	InstanceEnvName StringValue `yaml:"instance_env_name"`
 	Sampler         StringValue `yaml:"sampler"`
+	Meter           Meter       `yaml:"meter"`
 }
 
 type Reporter struct {
@@ -62,6 +63,10 @@ type Log struct {
 type LogTracing struct {
 	Enabled StringValue `yaml:"enable"`
 	Key     StringValue `yaml:"key"`
+}
+
+type Meter struct {
+	CollectInterval StringValue `yaml:"collect_interval"`
 }
 
 type GRPCReporter struct {

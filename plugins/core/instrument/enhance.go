@@ -24,6 +24,7 @@ type EnhanceType int
 var (
 	EnhanceTypeMethod EnhanceType = 1
 	EnhanceTypeStruct EnhanceType = 2
+	EnhanceTypeForce  EnhanceType = 3
 )
 
 type MethodFilterOption func(decl *dst.FuncDecl, files []*dst.File) bool
@@ -35,6 +36,8 @@ type EnhanceMatcher struct {
 	Receiver      string
 	MethodFilters []MethodFilterOption
 	StructFilters []StructFilterOption
+
+	ForceEnhance bool
 }
 
 // NewStaticMethodEnhance creates a new EnhanceMatcher for static method.
@@ -50,6 +53,10 @@ func NewMethodEnhance(receiver, name string, filters ...MethodFilterOption) *Enh
 // NewStructEnhance creates a new EnhanceMatcher for struct.
 func NewStructEnhance(name string, filters ...StructFilterOption) *EnhanceMatcher {
 	return &EnhanceMatcher{Type: EnhanceTypeStruct, Name: name, StructFilters: filters}
+}
+
+func NewForceEnhance() *EnhanceMatcher {
+	return &EnhanceMatcher{Type: EnhanceTypeForce, ForceEnhance: true}
 }
 
 func verifyTypeName(exp dst.Expr, val string) bool {
