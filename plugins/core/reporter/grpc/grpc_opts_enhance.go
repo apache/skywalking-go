@@ -42,7 +42,7 @@ func WithCheckInterval(interval time.Duration) ReporterOption {
 // WithMaxSendQueueSize setup send span queue buffer length
 func WithMaxSendQueueSize(maxSendQueueSize int) ReporterOption {
 	return func(r *gRPCReporter) {
-		r.sendCh = make(chan *agentv3.SegmentObject, maxSendQueueSize)
+		r.tracingSendCh = make(chan *agentv3.SegmentObject, maxSendQueueSize)
 	}
 }
 

@@ -80,6 +80,7 @@ jobs:
           - mongo
           - mysql
           - plugin_exclusion
+          - runtime_metrics
     steps:
       - uses: actions/checkout@v2
         with:

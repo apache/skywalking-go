@@ -29,6 +29,8 @@ import (
 	_ "reflect"
 	_ "runtime"
 	_ "runtime/debug"
+	_ "runtime/metrics"
+	_ "sort"
 	_ "strconv"
 	_ "strings"
 	_ "sync"

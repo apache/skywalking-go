@@ -39,7 +39,7 @@ var GenerateCommonPrefix = "skywalking_"
 
 var GenerateMethodPrefix = GenerateCommonPrefix + "enhance_"
 var GenerateVarPrefix = GenerateCommonPrefix + "var_"
-var OperatorDirs = []string{"operator", "log", "tracing", "tools"}
+var OperatorDirs = []string{"operator", "log", "tracing", "tools", "metrics"}
 
 var OperatePrefix = GenerateCommonPrefix + "operator"
 var TypePrefix = OperatePrefix + "Type"
@@ -57,6 +57,8 @@ type Context struct {
 
 	packageImport  map[string]*rewriteImportInfo
 	rewriteMapping *rewriteMapping
+
+	InitFuncDetector []string
 }
 
 func NewContext(compilePkgFullPath, targetPackage string) *Context {
@@ -74,6 +76,10 @@ func NewContext(compilePkgFullPath, targetPackage string) *Context {
 		ctx:         c,
 	}
 	return c
+}
+
+func (c *Context) appendInitFunction(name string) {
+	c.InitFuncDetector = append(c.InitFuncDetector, name)
 }
 
 type rewriteImportInfo struct {
@@ -269,6 +275,11 @@ func (c *Context) enhanceTypeNameWhenRewrite(fieldType dst.Expr, parent dst.Node
 			} else {
 				panic("binary expr arg index error")
 			}
+		case *dst.CaseClause:
+			if argIndex < 0 {
+				panic("case clause arg index error")
+			}
+			p.List[argIndex] = generateExpr()
 		}
 	case *dst.StarExpr:
 		return c.enhanceTypeNameWhenRewrite(t.X, t, -1)
@@ -281,6 +292,8 @@ func (c *Context) enhanceTypeNameWhenRewrite(fieldType dst.Expr, parent dst.Node
 			// for struct data, ex: "&xxx{k: v}"
 			if kv, ok := elt.(*dst.KeyValueExpr); ok {
 				c.rewriteVarIfExistingMapping(kv.Value, elt)
+			} else if call, ok := elt.(*dst.CallExpr); ok {
+				c.enhanceTypeNameWhenRewrite(call, t, -1)
 			}
 		}
 		return c.enhanceTypeNameWhenRewrite(t.Type, t, -1)
@@ -328,7 +341,7 @@ func (c *Context) enhanceTypeNameWhenRewrite(fieldType dst.Expr, parent dst.Node
 
 func (c *Context) typeIsBasicTypeValueOrEnhanceName(name string) bool {
 	if strings.HasPrefix(name, OperatePrefix) || strings.HasPrefix(name, GenerateMethodPrefix) || tools.IsBasicDataType(name) ||
-		name == "nil" || name == "true" || name == "false" || name == "append" || name == "panic" {
+		name == "nil" || name == "true" || name == "false" || name == "append" || name == "panic" || name == "new" {
 		return true
 	}
 	if _, valErr := strconv.ParseFloat(name, 64); valErr == nil {

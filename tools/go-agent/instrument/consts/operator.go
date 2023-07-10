@@ -22,6 +22,9 @@ const (
 	GlobalLoggerFieldName           = "globalSkyWalkingLogger"
 	GlobalTracerInitNotifyFieldName = "globalSkyWalkingInitNotify"
 
+	MetricsRegisterFieldName = "metricsRegister"
+	MetricsHookFieldName     = "metricsHook"
+
 	GlobalTracerSnapshotInterface = "skywalkingGoroutineSnapshotCreator"
 
 	GlobalTracerSetMethodName              = "_skywalking_set_global_operator"
@@ -30,6 +33,10 @@ const (
 	GlobalLoggerGetMethodName              = "_skywalking_get_global_logger"
 	GlobalTracerInitAppendNotifyMethodName = "_skywalking_global_init_append_notify"
 	GlobalTracerInitGetNotifyMethodName    = "_skywalking_global_init_get_notify"
+
+	MetricsRegisterAppendMethodName = "_skywalking_metrics_register_append"
+	MetricsObtainMethodName         = "_skywalking_metrics_obtain"
+	MetricsHookAppendMethodName     = "_skywalking_metrics_hook_append"
 
 	CurrentGoroutineIDGetMethodName = "_skywalking_get_goid"
 )

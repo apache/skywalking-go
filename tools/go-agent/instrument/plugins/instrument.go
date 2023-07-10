@@ -51,9 +51,11 @@ import (
 var templatesFS embed.FS
 
 type Instrument struct {
-	realInst      instrument.Instrument
-	methodFilters []*instrument.Point
-	structFilters []*instrument.Point
+	realInst        instrument.Instrument
+	methodFilters   []*instrument.Point
+	structFilters   []*instrument.Point
+	forceEnhance    bool
+	containsEnhance bool
 
 	compileOpts *api.CompileOptions
 
@@ -118,6 +120,8 @@ func (i *Instrument) CouldHandle(opts *api.CompileOptions) bool {
 					i.methodFilters = append(i.methodFilters, p)
 				case instrument.EnhanceTypeStruct:
 					i.structFilters = append(i.structFilters, p)
+				case instrument.EnhanceTypeForce:
+					i.forceEnhance = true
 				}
 			}
 			return true
@@ -135,6 +139,7 @@ func (i *Instrument) FilterAndEdit(path string, curFile *dst.File, cursor *dstut
 			}
 			i.enhanceStruct(i.realInst, filter, n, path)
 			tools.LogWithStructEnhance(i.compileOpts.Package, n.Name.Name, "", "adding enhanced instance field")
+			i.containsEnhance = true
 			return true
 		}
 	case *dst.FuncDecl:
@@ -149,8 +154,13 @@ func (i *Instrument) FilterAndEdit(path string, curFile *dst.File, cursor *dstut
 				receiver = tools.GenerateTypeNameByExp(n.Recv.List[0].Type)
 			}
 			tools.LogWithMethodEnhance(i.compileOpts.Package, receiver, n.Name.Name, "adding enhanced method")
+			i.containsEnhance = true
 			return true
 		}
+	}
+	if i.forceEnhance && !i.containsEnhance {
+		i.containsEnhance = true
+		return true
 	}
 	return false
 }
@@ -194,12 +204,12 @@ func (i *Instrument) AfterEnhanceFile(fromPath, newPath string) error {
 
 func (i *Instrument) WriteExtraFiles(basePath string) ([]string, error) {
 	// if no enhancements or already wrote extra files, then ignore
-	if len(i.enhancements) == 0 || i.extraFilesWrote {
+	if (len(i.enhancements) == 0 && !i.forceEnhance) || i.extraFilesWrote {
 		return nil, nil
 	}
 	i.extraFilesWrote = true
 
-	packageName := ""
+	packageName := filepath.Base(i.compileOpts.Package)
 	for _, e := range i.enhancements {
 		if e.PackageName() != "" {
 			packageName = e.PackageName()
@@ -330,6 +340,7 @@ func (i *Instrument) processPluginConfig(fileContent []byte) error {
 	return nil
 }
 
+//nolint
 func (i *Instrument) copyOperatorsFS(context *rewrite.Context, baseDir, packageName string) ([]string, error) {
 	result := make([]string, 0)
 	var debugBaseDir string
@@ -382,6 +393,12 @@ var {{.OperatorGetLinkMethod}} func() interface{}
 //go:linkname {{.OperatorAppendInitNotifyLinkMethod}} {{.OperatorAppendInitNotifyLinkMethod}}
 var {{.OperatorAppendInitNotifyLinkMethod}} func(func())
 
+//go:linkname {{.MetricsRegisterAppenderLinkMethod}} {{.MetricsRegisterAppenderLinkMethod}}
+var {{.MetricsRegisterAppenderLinkMethod}} func(interface{})
+
+//go:linkname {{.MetricsHookAppenderLinkMethod}} {{.MetricsHookAppenderLinkMethod}}
+var {{.MetricsHookAppenderLinkMethod}} func(func())
+
 func init() {
 	if {{.OperatorGetLinkMethod}} != nil {
 		{{.OperatorGetRealMethod}} = func() {{.OperatorTypeName}} {
@@ -398,6 +415,12 @@ func init() {
 	if {{.OperatorAppendInitNotifyLinkMethod}} != nil {
 		{{.OperatorAppendInitNotifyRealMethod}} = {{.OperatorAppendInitNotifyLinkMethod}}
 	}
+	if {{.MetricsRegisterAppenderLinkMethod}} != nil {
+		{{.MetricsRegisterAppenderRealMethod}} = {{.MetricsRegisterAppenderLinkMethod}}
+	}
+	if {{.MetricsHookAppenderLinkMethod}} != nil {
+		{{.MetricsHookAppenderRealMethod}} = {{.MetricsHookAppenderLinkMethod}}
+	}
 }
 `, struct {
 			PackageName                        string
@@ -406,6 +429,10 @@ func init() {
 			OperatorTypeName                   string
 			OperatorAppendInitNotifyLinkMethod string
 			OperatorAppendInitNotifyRealMethod string
+			MetricsRegisterAppenderLinkMethod  string
+			MetricsRegisterAppenderRealMethod  string
+			MetricsHookAppenderLinkMethod      string
+			MetricsHookAppenderRealMethod      string
 		}{
 			PackageName:                        packageName,
 			OperatorGetLinkMethod:              consts.GlobalTracerGetMethodName,
@@ -413,6 +440,10 @@ func init() {
 			OperatorTypeName:                   rewrite.GlobalOperatorTypeName,
 			OperatorAppendInitNotifyLinkMethod: consts.GlobalTracerInitAppendNotifyMethodName,
 			OperatorAppendInitNotifyRealMethod: rewrite.GlobalOperatorRealAppendTracerInitNotify,
+			MetricsRegisterAppenderLinkMethod:  consts.MetricsRegisterAppendMethodName,
+			MetricsRegisterAppenderRealMethod:  rewrite.MetricsRegisterAppender,
+			MetricsHookAppenderLinkMethod:      consts.MetricsHookAppendMethodName,
+			MetricsHookAppenderRealMethod:      rewrite.MetricsCollectAppender,
 		}),
 	})
 	if err != nil {
@@ -461,6 +492,15 @@ func (i *Instrument) writeDelegatorFile(ctx *rewrite.Context, basePath string) (
 	}
 
 	ctx.SingleFile(file)
+
+	if len(ctx.InitFuncDetector) > 0 {
+		for _, fun := range ctx.InitFuncDetector {
+			initFunc.Body.List = append(initFunc.Body.List, &dst.ExprStmt{X: &dst.CallExpr{
+				Fun:  dst.NewIdent(rewrite.GlobalOperatorRealAppendTracerInitNotify),
+				Args: []dst.Expr{dst.NewIdent(fun)},
+			}})
+		}
+	}
 
 	adapterFile := filepath.Join(basePath, "skywalking_delegator.go")
 	if err := tools.WriteDSTFile(adapterFile, file, nil); err != nil {

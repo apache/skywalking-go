@@ -19,6 +19,8 @@ package operator
 
 var GetOperator = func() Operator { return nil }
 var AppendInitNotify = func(func()) {}
+var MetricsAppender = func(interface{}) {}
+var MetricsCollectAppender = func(func()) {}
 
 type Operator interface {
 	Tracing() interface{} // to TracingOperator
@@ -26,6 +28,7 @@ type Operator interface {
 	Tools() interface{}   // to ToolsOperator
 	DebugStack() []byte   // Getting the stack of the current goroutine, for getting details when plugin broken.
 	Entity() interface{}  // Get the entity of the service
+	Metrics() interface{} // to MetricsOperator
 }
 
 type Entity interface {

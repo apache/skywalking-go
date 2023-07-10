@@ -29,6 +29,7 @@ import (
 	"github.com/apache/skywalking-go/plugins/kratosv2"
 	"github.com/apache/skywalking-go/plugins/microv4"
 	"github.com/apache/skywalking-go/plugins/mongo"
+	runtime_metrics "github.com/apache/skywalking-go/plugins/runtimemetrics"
 	sql_entry "github.com/apache/skywalking-go/plugins/sql/entry"
 	sql_mysql "github.com/apache/skywalking-go/plugins/sql/mysql"
 )
@@ -45,6 +46,7 @@ func init() {
 	registerFramework(microv4.NewInstrument())
 	registerFramework(goredisv9.NewInstrument())
 	registerFramework(mongo.NewInstrument())
+	registerFramework(runtime_metrics.NewInstrument())
 
 	// gorm related instruments
 	registerFramework(gorm_entry.NewInstrument())

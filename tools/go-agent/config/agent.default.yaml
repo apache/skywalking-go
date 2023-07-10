@@ -24,6 +24,9 @@ agent:
   instance_env_name: SW_AGENT_INSTANCE_NAME
   # Sampling rate of tracing data, which is a floating-point value that must be between 0 and 1.
   sampler: ${SW_AGENT_SAMPLE:1}
+  meter:
+    # The interval of collecting metrics, in seconds.
+    collect_interval: ${SW_AGENT_METER_COLLECT_INTERVAL:20}
 
 reporter:
   grpc:

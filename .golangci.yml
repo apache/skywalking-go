@@ -93,9 +93,10 @@ linters:
     - typecheck
     - unconvert
     - unparam
-    - unused
     - varcheck
     - whitespace
+  disable:
+    - unused
 
 service:
   golangci-lint-version: 1.20.x

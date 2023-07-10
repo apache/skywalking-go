@@ -146,7 +146,8 @@ func (t *Tracer) InitTracer(extend map[string]interface{}) {
 	}
 	entity := NewEntity({{.Config.Agent.ServiceName.ToGoStringValue}}, {{.Config.Agent.InstanceEnvName.ToGoStringValue}})
 	samp := NewDynamicSampler({{.Config.Agent.Sampler.ToGoFloatValue "loading the agent sampler error"}}, t)
-	if err := t.Init(entity, rep, samp, nil); err != nil {
+	meterCollectInterval := {{.Config.Agent.Meter.CollectInterval.ToGoIntValue "loading the agent meter interval error"}}
+	if err := t.Init(entity, rep, samp, nil, meterCollectInterval); err != nil {
 		t.Log.Errorf("cannot initialize the SkyWalking Tracer: %v", err)
 	}
 }`, struct {
@@ -183,6 +184,9 @@ var {{.GetGoroutineIDLinkMethod}} func() int64
 //go:linkname {{.GetInitNotifyLinkMethod}} {{.GetInitNotifyLinkMethod}}
 var {{.GetInitNotifyLinkMethod}} func() []func()
 
+//go:linkname {{.MetricsObtainMethodName}} {{.MetricsObtainMethodName}}
+var {{.MetricsObtainMethodName}} func() ([]interface{}, []func())
+
 func init() {
 	if {{.TLSGetLinkMethod}} != nil && {{.TLSSetLinkMethod}} != nil {
 		GetGLS = {{.TLSGetLinkMethod}}
@@ -199,6 +203,9 @@ func init() {
 	if {{.GetInitNotifyLinkMethod}} != nil {
 		GetInitNotify = {{.GetInitNotifyLinkMethod}}
 	}
+	if {{.MetricsObtainMethodName}} != nil {
+		MetricsObtain = {{.MetricsObtainMethodName}}
+	}
 }
 `, struct {
 		TLSGetLinkMethod            string
@@ -207,6 +214,7 @@ func init() {
 		GetGlobalOperatorLinkMethod string
 		GetGoroutineIDLinkMethod    string
 		GetInitNotifyLinkMethod     string
+		MetricsObtainMethodName     string
 	}{
 		TLSGetLinkMethod:            consts.TLSGetMethodName,
 		TLSSetLinkMethod:            consts.TLSSetMethodName,
@@ -214,5 +222,6 @@ func init() {
 		GetGlobalOperatorLinkMethod: consts.GlobalTracerGetMethodName,
 		GetGoroutineIDLinkMethod:    consts.CurrentGoroutineIDGetMethodName,
 		GetInitNotifyLinkMethod:     consts.GlobalTracerInitGetNotifyMethodName,
+		MetricsObtainMethodName:     consts.MetricsObtainMethodName,
 	}))
 }
