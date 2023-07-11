@@ -99,3 +99,11 @@ func (n *NoopSpan) PrepareAsync() {
 
 func (n *NoopSpan) AsyncFinish() {
 }
+
+func (n *NoopSpan) GetEndPointName() string {
+	return ""
+}
+
+func (n *NoopSpan) GetParentSpan() interface{} {
+	return nil
+}

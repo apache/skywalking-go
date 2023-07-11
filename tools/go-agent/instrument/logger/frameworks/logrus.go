@@ -40,9 +40,10 @@ func (l *Logrus) Name() string {
 }
 
 func (l *Logrus) PackagePaths() map[string]*PackageConfiguration {
-	return map[string]*PackageConfiguration{"github.com/sirupsen/logrus": {NeedsHelpers: true}}
+	return map[string]*PackageConfiguration{"github.com/sirupsen/logrus": {NeedsHelpers: true, NeedsVariables: true, NeedsChangeLoggerFunc: true}}
 }
 
+//nolint
 func (l *Logrus) AutomaticBindFunctions(fun *dst.FuncDecl) string {
 	// if init the output or format then the logrus would be bind
 	if fun.Recv == nil || len(fun.Recv.List) != 1 || tools.GenerateTypeNameByExp(fun.Recv.List[0].Type) != "*Logger" {
@@ -78,4 +79,12 @@ func (l *Logrus) generateReWriteFile(name, debugDir string) *rewrite.FileInfo {
 
 func (l *Logrus) CustomizedEnhance(path string, curFile *dst.File, cursor *dstutil.Cursor, allFiles []*dst.File) (map[string]string, bool) {
 	return nil, false
+}
+
+func (l *Logrus) InitFunctions() []*dst.FuncDecl {
+	return nil
+}
+
+func (l *Logrus) InitImports() []*dst.ImportSpec {
+	return nil
 }

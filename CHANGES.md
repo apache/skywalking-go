@@ -8,12 +8,17 @@ Release Notes.
 * Enhance the plugin rewrite ability to support `switch` and `if/else` in the plugin codes.
 * Support inject the skywalking-go into project through agent.
 * Support add configuration for plugin.
+* Support metrics report API for plugin.
+* Support report Golang runtime metrics.
+* Support log reporter.
 
 #### Plugins
 * Support [go-redis](https://github.com/redis/go-redis) v9 redis client framework.
 * Support collecting [Native HTTP](https://pkg.go.dev/net/http) URI parameter on server side.
 * Support [Mongo](https://github.com/mongodb/mongo-go-driver) database client framework.
 * Support [Native SQL](https://pkg.go.dev/net/http) database client framework with [MySQL Driver](github.com/go-sql-driver/mysql).
+* Support [Logrus](https://github.com/sirupsen/logrus) log report to the backend.
+* Support [Zap](https://github.com/uber-go/zap) log report to the backend.
 
 #### Documentation
 

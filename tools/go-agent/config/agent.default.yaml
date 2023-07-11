@@ -51,6 +51,11 @@ log:
     enable: ${SW_AGENT_LOG_TRACING_ENABLE:true}
     # If tracing information is enabled, the tracing information would be stored in the current Key in each log.
     key: ${SW_AGENT_LOG_TRACING_KEY:SW_CTX}
+  reporter:
+    # Whether to upload logs to the backend.
+    enable: ${SW_AGENT_LOG_REPORTER_ENABLE:true}
+    # The fields name list that needs to added to the label of the log.(multiple split by ",")
+    label_keys: ${SW_AGENT_LOG_REPORTER_LABEL_KEYS:}
 
 plugin:
   # List the names of excluded plugins, multiple plugin names should be splitted by ","

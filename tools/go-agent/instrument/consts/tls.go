@@ -19,6 +19,6 @@ package consts
 
 const (
 	TLSFieldName     = "skywalking_tls"
-	TLSGetMethodName = "_skywalking_get_gls"
-	TLSSetMethodName = "_skywalking_set_gls"
+	TLSGetMethodName = "skywalking_get_gls"
+	TLSSetMethodName = "skywalking_set_gls"
 )

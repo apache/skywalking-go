@@ -56,13 +56,19 @@ type Reporter struct {
 }
 
 type Log struct {
-	Type    StringValue `yaml:"type"`
-	Tracing LogTracing  `yaml:"tracing"`
+	Type     StringValue `yaml:"type"`
+	Tracing  LogTracing  `yaml:"tracing"`
+	Reporter LogReporter `yaml:"reporter"`
 }
 
 type LogTracing struct {
 	Enabled StringValue `yaml:"enable"`
 	Key     StringValue `yaml:"key"`
+}
+
+type LogReporter struct {
+	Enabled   StringValue `yaml:"enable"`
+	LabelKeys StringValue `yaml:"label_keys"`
 }
 
 type Meter struct {
@@ -178,6 +184,26 @@ func (s *StringValue) ToGoStringValue() string {
 	tmpValue := os.Getenv("%s")
 	if tmpValue == "" { return "%s"}
 	return tmpValue
+}()`, s.EnvKey, s.Default, s.EnvKey, s.Default), "\n", ";")
+}
+
+func (s *StringValue) ToGoStringListValue() string {
+	return strings.ReplaceAll(fmt.Sprintf(`func() []string {
+	splitResult := func(s string) []string {
+		t := strings.Split(s, ",")
+		if len(t) == 1 && t[0] == "" { return nil }
+		res := make([]string, 0, 0)
+		for _, v := range t {
+			if v != "" {
+				res = append(res, v)
+			}
+		}
+		return res
+	}
+	if "%s" == "" { return splitResult("%s") }
+	tmpValue := os.Getenv("%s")
+	if tmpValue == "" { return splitResult("%s") }
+	return splitResult(tmpValue)
 }()`, s.EnvKey, s.Default, s.EnvKey, s.Default), "\n", ";")
 }
 

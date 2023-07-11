@@ -35,7 +35,7 @@ func NewInstrument() *Instrument {
 }
 
 func (r *Instrument) Name() string {
-	return "runtime-metrics"
+	return "runtimemetrics"
 }
 
 func (r *Instrument) BasePackage() string {

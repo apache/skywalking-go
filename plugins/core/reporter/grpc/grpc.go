@@ -30,6 +30,7 @@ import (
 
 	configuration "skywalking.apache.org/repo/goapi/collect/agent/configuration/v3"
 	agentv3 "skywalking.apache.org/repo/goapi/collect/language/agent/v3"
+	logv3 "skywalking.apache.org/repo/goapi/collect/logging/v3"
 	managementv3 "skywalking.apache.org/repo/goapi/collect/management/v3"
 
 	"github.com/apache/skywalking-go/plugins/core/operator"
@@ -48,6 +49,7 @@ func NewGRPCReporter(logger operator.LogOperator, serverAddr string, opts ...Rep
 		logger:           logger,
 		tracingSendCh:    make(chan *agentv3.SegmentObject, maxSendQueueSize),
 		metricsSendCh:    make(chan []*agentv3.MeterData, maxSendQueueSize),
+		logSendCh:        make(chan *logv3.LogData, maxSendQueueSize),
 		checkInterval:    defaultCheckInterval,
 		cdsInterval:      defaultCDSInterval, // cds default on
 		connectionStatus: reporter.ConnectionStatusConnected,
@@ -71,6 +73,7 @@ func NewGRPCReporter(logger operator.LogOperator, serverAddr string, opts ...Rep
 	r.conn = conn
 	r.traceClient = agentv3.NewTraceSegmentReportServiceClient(r.conn)
 	r.metricsClient = agentv3.NewMeterReportServiceClient(r.conn)
+	r.logClient = logv3.NewLogReportServiceClient(r.conn)
 	r.managementClient = managementv3.NewManagementServiceClient(r.conn)
 	if r.cdsInterval > 0 {
 		r.cdsClient = configuration.NewConfigurationDiscoveryServiceClient(r.conn)
@@ -84,9 +87,11 @@ type gRPCReporter struct {
 	logger           operator.LogOperator
 	tracingSendCh    chan *agentv3.SegmentObject
 	metricsSendCh    chan []*agentv3.MeterData
+	logSendCh        chan *logv3.LogData
 	conn             *grpc.ClientConn
 	traceClient      agentv3.TraceSegmentReportServiceClient
 	metricsClient    agentv3.MeterReportServiceClient
+	logClient        logv3.LogReportServiceClient
 	managementClient managementv3.ManagementServiceClient
 	checkInterval    time.Duration
 	cdsInterval      time.Duration
@@ -236,6 +241,19 @@ func (r *gRPCReporter) SendMetrics(metrics []reporter.ReportedMeter) {
 	}
 }
 
+func (r *gRPCReporter) SendLog(log *logv3.LogData) {
+	defer func() {
+		if err := recover(); err != nil {
+			r.logger.Errorf("reporter log err %v", err)
+		}
+	}()
+	select {
+	case r.logSendCh <- log:
+	default:
+		r.logger.Errorf("reach max logger send buffer")
+	}
+}
+
 func (r *gRPCReporter) convertLabels(labels map[string]string) []*agentv3.Label {
 	if len(labels) == 0 {
 		return nil
@@ -320,6 +338,27 @@ func (r *gRPCReporter) initSendPipeline() {
 			break
 		}
 	}()
+	go func() {
+	StreamLoop:
+		for {
+			stream, err := r.logClient.Collect(metadata.NewOutgoingContext(context.Background(), r.md))
+			if err != nil {
+				r.logger.Errorf("open stream error %v", err)
+				time.Sleep(5 * time.Second)
+				continue StreamLoop
+			}
+			for s := range r.logSendCh {
+				err = stream.Send(s)
+				if err != nil {
+					r.logger.Errorf("send log error %v", err)
+					r.closeLogStream(stream)
+					continue StreamLoop
+				}
+			}
+			r.closeLogStream(stream)
+			break
+		}
+	}()
 }
 
 func (r *gRPCReporter) initCDS(cdsWatchers []reporter.AgentConfigChangeWatcher) {
@@ -366,6 +405,13 @@ func (r *gRPCReporter) closeTracingStream(stream agentv3.TraceSegmentReportServi
 }
 
 func (r *gRPCReporter) closeMetricsStream(stream agentv3.MeterReportService_CollectBatchClient) {
+	_, err := stream.CloseAndRecv()
+	if err != nil && err != io.EOF {
+		r.logger.Errorf("send closing error %v", err)
+	}
+}
+
+func (r *gRPCReporter) closeLogStream(stream logv3.LogReportService_CollectClient) {
 	_, err := stream.CloseAndRecv()
 	if err != nil && err != io.EOF {
 		r.logger.Errorf("send closing error %v", err)

@@ -20,6 +20,7 @@ package reporter
 import (
 	commonv3 "skywalking.apache.org/repo/goapi/collect/common/v3"
 	agentv3 "skywalking.apache.org/repo/goapi/collect/language/agent/v3"
+	logv3 "skywalking.apache.org/repo/goapi/collect/logging/v3"
 )
 
 // Tag are supported by sky-walking engine.
@@ -108,6 +109,7 @@ type Reporter interface {
 	Boot(entity *Entity, cdsWatchers []AgentConfigChangeWatcher)
 	SendTracing(spans []ReportedSpan)
 	SendMetrics(metrics []ReportedMeter)
+	SendLog(log *logv3.LogData)
 	ConnectionStatus() ConnectionStatus
 	Close()
 }

@@ -28,6 +28,7 @@ type Operator interface {
 	Tracing() interface{}
 	ChangeLogger(logger interface{})
 	Entity() interface{}
+	LogReporter() interface{}
 }
 
 type TracingOperator interface {
@@ -38,6 +39,8 @@ type TracingSpan interface {
 	GetTraceID() string
 	GetSegmentID() string
 	GetSpanID() int32
+	GetEndPointName() string
+	GetParentSpan() interface{}
 }
 
 type Entity interface {
@@ -60,24 +63,60 @@ func (span *NoopSpan) GetSpanID() int32 {
 	return -1
 }
 
+func (span *NoopSpan) GetParentSpan() interface{} {
+	return nil
+}
+
+func (span *NoopSpan) GetEndPointName() string {
+	return ""
+}
+
 type SkyWalkingLogContext struct {
 	ServiceName    string
 	InstanceName   string
 	TraceID        string
+	EndPoint       string
 	TraceSegmentID string
 	SpanID         int32
 }
 
+func (s *SkyWalkingLogContext) GetServiceName() string {
+	return s.ServiceName
+}
+
+func (s *SkyWalkingLogContext) GetInstanceName() string {
+	return s.InstanceName
+}
+
+func (s *SkyWalkingLogContext) GetTraceID() string {
+	return s.TraceID
+}
+
+func (s *SkyWalkingLogContext) GetTraceSegmentID() string {
+	return s.TraceSegmentID
+}
+
+func (s *SkyWalkingLogContext) GetSpanID() int32 {
+	return s.SpanID
+}
+
+func (s *SkyWalkingLogContext) GetEndPointName() string {
+	return s.EndPoint
+}
+
 var noopContext = &NoopSpan{}
 
-func GetLogContext() *SkyWalkingLogContext {
+func GetLogContext(withEndpoint bool) *SkyWalkingLogContext {
 	operator := GetOperator()
 	var activeSpan TracingSpan = noopContext
-	var serviceName, instanceName string
+	var serviceName, instanceName, endpoint string
 	if operator != nil {
 		tracingOperator := operator.Tracing().(TracingOperator)
-		if s, ok := tracingOperator.ActiveSpan().(TracingSpan); ok {
+		if s, ok := tracingOperator.ActiveSpan().(TracingSpan); ok && s != nil {
 			activeSpan = s
+			if withEndpoint {
+				endpoint = findEndpointNameBySpan(s)
+			}
 		}
 		entity := operator.Entity()
 		if entity != nil {
@@ -92,14 +131,31 @@ func GetLogContext() *SkyWalkingLogContext {
 		TraceID:        activeSpan.GetTraceID(),
 		TraceSegmentID: activeSpan.GetSegmentID(),
 		SpanID:         activeSpan.GetSpanID(),
+		EndPoint:       endpoint,
 	}
 }
 
-func GetLogContextString() string {
-	return GetLogContext().String()
+func findEndpointNameBySpan(s TracingSpan) string {
+	tmp := s
+	for tmp != nil {
+		if name := tmp.GetEndPointName(); name != "" {
+			return name
+		}
+		parent := tmp.GetParentSpan()
+		if parentTmp, ok := parent.(TracingSpan); ok && parentTmp != nil {
+			tmp = parentTmp
+		} else {
+			tmp = nil
+		}
+	}
+	return ""
 }
 
-func (context *SkyWalkingLogContext) String() string {
-	return fmt.Sprintf("[%s,%s,%s,%s,%d]", context.ServiceName, context.InstanceName,
-		context.TraceID, context.TraceSegmentID, context.SpanID)
+func GetLogContextString() string {
+	return GetLogContext(false).String()
+}
+
+func (s *SkyWalkingLogContext) String() string {
+	return fmt.Sprintf("[%s,%s,%s,%s,%d]", s.ServiceName, s.InstanceName,
+		s.TraceID, s.TraceSegmentID, s.SpanID)
 }

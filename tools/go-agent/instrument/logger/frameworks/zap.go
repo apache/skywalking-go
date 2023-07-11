@@ -19,6 +19,7 @@ package frameworks
 
 import (
 	"fmt"
+	"go/token"
 	"path/filepath"
 
 	"github.com/apache/skywalking-go/tools/go-agent/instrument/plugins/rewrite"
@@ -30,17 +31,17 @@ import (
 
 const (
 	zapPackageRootPath = "go.uber.org/zap"
+	zapPackageCorePath = "go.uber.org/zap/zapcore"
 	LoggerTypeName     = "*Logger"
 )
 
 var zapStaticFuncNames = []string{
 	"New", "NewNop", "NewProduction", "NewDevelopment", "NewExample",
 }
-var zapLoggerMethodNames = []string{
-	"Log", "Debug", "Info", "Warn", "Error", "Panic", "Fatal", "DPanic",
-}
 
 type Zap struct {
+	initFunction *dst.FuncDecl
+	initImports  []*dst.ImportSpec
 }
 
 func NewZap() *Zap {
@@ -53,7 +54,8 @@ func (z *Zap) Name() string {
 
 func (z *Zap) PackagePaths() map[string]*PackageConfiguration {
 	return map[string]*PackageConfiguration{
-		zapPackageRootPath: {NeedsHelpers: true},
+		zapPackageRootPath: {NeedsHelpers: true, NeedsVariables: true, NeedsChangeLoggerFunc: true},
+		zapPackageCorePath: {NeedsHelpers: true, NeedsVariables: false, NeedsChangeLoggerFunc: false},
 	}
 }
 
@@ -77,98 +79,136 @@ func (z *Zap) AutomaticBindFunctions(fun *dst.FuncDecl) string {
 }
 
 func (z *Zap) GenerateExtraFiles(pkgPath, debugDir string) ([]*rewrite.FileInfo, error) {
+	var path string
 	if pkgPath == zapPackageRootPath {
-		file, err := FrameworkFS.ReadFile("zap_adapt.go")
-		if err != nil {
-			panic(fmt.Errorf("get zap file error: %v", err))
-		}
-
-		result := make([]*rewrite.FileInfo, 0)
-		if debugDir == "" {
-			result = append(result, rewrite.NewFile("zap", "zap_adapt.go", string(file)))
-		} else {
-			result = append(result, rewrite.NewFileWithDebug("zap", "zap_adapt.go", string(file),
-				filepath.Join(debugDir, "tools", "go-agent", "instrument", "logger", "frameworks")))
-		}
-
-		return result, nil
+		path = "zap_root.go"
+	} else if pkgPath == zapPackageCorePath {
+		path = "zap_core.go"
 	}
-	return nil, nil
+
+	file, err := FrameworkFS.ReadFile(path)
+	if err != nil {
+		panic(fmt.Errorf("get zap file error: %v", err))
+	}
+
+	result := make([]*rewrite.FileInfo, 0)
+	if debugDir == "" {
+		result = append(result, rewrite.NewFile("zap", path, string(file)))
+	} else {
+		result = append(result, rewrite.NewFileWithDebug("zap", path, string(file),
+			filepath.Join(debugDir, "tools", "go-agent", "instrument", "logger", "frameworks")))
+	}
+	return result, nil
 }
 
+//nolint
 func (z *Zap) CustomizedEnhance(path string, curFile *dst.File, cursor *dstutil.Cursor, allFiles []*dst.File) (map[string]string, bool) {
-	fun, ok := cursor.Node().(*dst.FuncDecl)
-	if !ok {
-		return nil, false
-	}
+	switch n := cursor.Node().(type) {
+	case *dst.TypeSpec:
+		// adding the context field into entry
+		st, ok := n.Type.(*dst.StructType)
+		if !ok || st.Fields == nil || n.Name == nil {
+			return nil, false
+		}
+		if n.Name.Name == "CheckedEntry" {
+			st.Fields.List = append(st.Fields.List,
+				// tracing context object
+				&dst.Field{Names: []*dst.Ident{dst.NewIdent("SWContext")}, Type: dst.NewIdent("interface{}")},
+				// tracing context field
+				&dst.Field{Names: []*dst.Ident{dst.NewIdent("SWContextField")}, Type: &dst.StarExpr{X: dst.NewIdent("Field")}},
+				// existing fields needs to be added into, such as generate from log.With("key", "value")
+				&dst.Field{Names: []*dst.Ident{dst.NewIdent("SWFields")}, Type: &dst.ArrayType{Elt: dst.NewIdent("Field")}},
+			)
+			curFile.Decls = append(curFile.Decls, &dst.GenDecl{
+				Tok: token.VAR,
+				Specs: []dst.Spec{
+					&dst.ValueSpec{Names: []*dst.Ident{
+						dst.NewIdent("SWReporterEnable"),
+						dst.NewIdent("SWLogEnable"),
+					}, Type: dst.NewIdent("bool")},
+					&dst.ValueSpec{Names: []*dst.Ident{
+						dst.NewIdent("SWReporterLabelKeys"),
+					}, Type: dst.NewIdent("[]string")},
+					&dst.ValueSpec{Names: []*dst.Ident{
+						dst.NewIdent("SWLogTracingContextKey"),
+					}, Type: dst.NewIdent("string")},
+					&dst.ValueSpec{Names: []*dst.Ident{
+						dst.NewIdent("SWFields"),
+					}, Type: dst.NewIdent("[]Field")},
+				},
+			})
+			return nil, true
+		}
+		if n.Name.Name == "Logger" {
+			st.Fields.List = append(st.Fields.List,
+				&dst.Field{Names: []*dst.Ident{dst.NewIdent("SWFields")}, Type: dst.NewIdent("[]zapcore.Field")})
+			return nil, true
+		}
+	case *dst.FuncDecl:
+		// enhance the method which check the log and generate the entry
+		if n.Recv != nil && len(n.Recv.List) == 1 && tools.GenerateTypeNameByExp(n.Recv.List[0].Type) == "*Logger" &&
+			n.Name.Name == "check" &&
+			n.Type.Results != nil && len(n.Type.Results.List) > 0 &&
+			tools.GenerateTypeNameByExp(n.Type.Results.List[0].Type) == "*zapcore.CheckedEntry" {
+			entryName := tools.EnhanceParameterNames(n.Type.Results, true)[0].Name
+			recvName := tools.EnhanceParameterNames(n.Recv, true)[0].Name
 
-	// enhance the *Logger.Info, Warn, etc. method for add tracing context field
-	if fun.Recv == nil || len(fun.Recv.List) != 1 || fun.Type.Params == nil || len(fun.Type.Params.List) <= 1 {
-		return nil, false
-	}
+			// init the zapcore variables
+			z.initFunction = tools.GoStringToDecls(fmt.Sprintf(`func initZapCore() {
+zapcore.SWReporterEnable = %s
+zapcore.SWReporterLabelKeys = %s
+zapcore.SWLogEnable = %s
+}`, "LogReporterEnable", "LogReporterLabelKeys", "LogTracingContextEnable"))[0].(*dst.FuncDecl)
+			z.initImports = []*dst.ImportSpec{
+				{Path: &dst.BasicLit{Kind: token.STRING, Value: `"go.uber.org/zap/zapcore"`}},
+			}
 
-	if tools.GenerateTypeNameByExp(fun.Recv.List[0].Type) == LoggerTypeName {
-		return z.enhanceLoggerTracingContext(fun)
-	} else if tools.GenerateTypeNameByExp(fun.Recv.List[0].Type) == "*SugaredLogger" {
-		return z.enhanceSugaredLoggerTracingContext(fun)
-	}
+			return z.enhanceMethod(n, fmt.Sprintf("defer func() {if %s != nil {"+
+				"%s.SWContext, %s.SWContextField = %s%s(%s); %s.SWFields = %s.SWFields;}}()", entryName,
+				entryName, entryName, rewrite.StaticMethodPrefix, "ZapTracingContextEnhance", entryName, entryName, recvName)), true
+		}
 
+		if n.Recv != nil && len(n.Recv.List) == 1 && n.Name.Name == "With" &&
+			n.Type.Params != nil && len(n.Type.Params.List) == 1 &&
+			tools.GenerateTypeNameByExp(n.Recv.List[0].Type) == "*Logger" && tools.GenerateTypeNameByExp(n.Type.Params.List[0].Type) == "[]Field" {
+			recvs := tools.EnhanceParameterNames(n.Recv, false)
+			parameters := tools.EnhanceParameterNames(n.Type.Params, false)
+			results := tools.EnhanceParameterNames(n.Type.Results, true)
+
+			return z.enhanceMethod(n, fmt.Sprintf(`defer func() {if %s != nil { %s.SWFields = %sZap%s(%s, %s.SWFields) }}()`,
+				results[0].Name, results[0].Name, rewrite.StaticMethodPrefix, "KnownFieldFilter", parameters[0].Name, recvs[0].Name)), true
+		}
+
+		// enhance the method which write the checked entry context
+		if n.Recv != nil && len(n.Recv.List) == 1 && tools.GenerateTypeNameByExp(n.Recv.List[0].Type) == "*CheckedEntry" &&
+			n.Name.Name == "Write" &&
+			n.Type.Params != nil && len(n.Type.Params.List) == 1 &&
+			tools.GenerateTypeNameByExp(n.Type.Params.List[0].Type) == "[]Field" {
+			recvs := tools.EnhanceParameterNames(n.Recv, false)
+			parameters := tools.EnhanceParameterNames(n.Type.Params, false)
+			return z.enhanceMethod(n, fmt.Sprintf(`if %s != nil { %s = %sZapcore%s(%s, %s, %s.SWFields, %s.SWContext, %s.SWContextField, SWReporterEnable, SWLogEnable, SWReporterLabelKeys) }`,
+				recvs[0].Name, parameters[0].Name, rewrite.StaticMethodPrefix, "ReportLogFromZapEntry", recvs[0].Name,
+				parameters[0].Name, recvs[0].Name, recvs[0].Name, recvs[0].Name)), true
+		}
+	}
 	return nil, false
 }
 
-func (z *Zap) enhanceSugaredLoggerTracingContext(fun *dst.FuncDecl) (map[string]string, bool) {
-	if fun.Name.Name != "log" {
-		return nil, false
-	}
-	parameters := tools.EnhanceParameterNames(fun.Type.Params, false)
-	var contextParameter *tools.ParameterInfo
-	for _, p := range parameters {
-		if p.Name == "context" && p.TypeName == "[]interface{}" {
-			contextParameter = p
-			break
-		}
-	}
-	if contextParameter == nil {
-		return nil, false
-	}
+func (z *Zap) enhanceMethod(fun *dst.FuncDecl, goCode string) map[string]string {
 	funcID := tools.BuildFuncIdentity(zapPackageRootPath, fun)
 	replaceKey := fmt.Sprintf("//goagent:enhance_%s", funcID)
-	replaceValue := fmt.Sprintf("%s = %s%s(%s)",
-		contextParameter.Name, rewrite.StaticMethodPrefix, "ZapAddZapTracingInterfaceField", contextParameter.Name)
 	fun.Body.Decs.Lbrace.Prepend("\n", replaceKey)
 
-	return map[string]string{replaceKey: replaceValue}, true
+	return map[string]string{replaceKey: goCode}
 }
 
-func (z *Zap) enhanceLoggerTracingContext(fun *dst.FuncDecl) (map[string]string, bool) {
-	foundMethod := false
+func (z *Zap) InitFunctions() []*dst.FuncDecl {
+	if z.initFunction != nil {
+		return []*dst.FuncDecl{z.initFunction}
+	}
+	return nil
+}
 
-	for _, name := range zapLoggerMethodNames {
-		if fun.Name.Name == name {
-			foundMethod = true
-			break
-		}
-	}
-	if !foundMethod {
-		return nil, false
-	}
-
-	parameterNames := tools.EnhanceParameterNames(fun.Type.Params, false)
-	var fieldParameter *tools.ParameterInfo
-	for _, p := range parameterNames {
-		if p.TypeName == "...Field" {
-			fieldParameter = p
-			break
-		}
-	}
-	if fieldParameter == nil {
-		return nil, false
-	}
-	funcID := tools.BuildFuncIdentity(zapPackageRootPath, fun)
-	replaceKey := fmt.Sprintf("//goagent:enhance_%s", funcID)
-	replaceValue := fmt.Sprintf("%s = %s%s(%s)",
-		fieldParameter.Name, rewrite.StaticMethodPrefix, "ZapAddZapTracingField", fieldParameter.Name)
-	fun.Body.Decs.Lbrace.Prepend("\n", replaceKey)
-
-	return map[string]string{replaceKey: replaceValue}, true
+func (z *Zap) InitImports() []*dst.ImportSpec {
+	return z.initImports
 }
