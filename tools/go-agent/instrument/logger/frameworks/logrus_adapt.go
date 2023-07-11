@@ -26,9 +26,9 @@ func init() {
 }
 
 func UpdateLogrusLogger(l *logrus.Logger) {
-	if LogTracingContextEnable() {
+	if LogTracingContextEnable {
 		if _, wrapperd := l.Formatter.(*WrapFormat); !wrapperd {
-			l.Formatter = Wrap(l.Formatter, LogTracingContextKey())
+			l.Formatter = Wrap(l.Formatter, LogTracingContextKey)
 		}
 	}
 	ChangeLogger(NewLogrusAdapter(l))

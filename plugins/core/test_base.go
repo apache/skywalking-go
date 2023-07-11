@@ -22,6 +22,8 @@ import (
 
 	"github.com/apache/skywalking-go/plugins/core/operator"
 	"github.com/apache/skywalking-go/plugins/core/reporter"
+
+	logv3 "skywalking.apache.org/repo/goapi/collect/logging/v3"
 )
 
 var tlsData interface{}
@@ -66,6 +68,7 @@ func GetReportedSpans() []reporter.ReportedSpan {
 type StoreReporter struct {
 	Spans   []reporter.ReportedSpan
 	Metrics []reporter.ReportedMeter
+	Logs    []*logv3.LogData
 }
 
 func NewStoreReporter() *StoreReporter {
@@ -81,6 +84,10 @@ func (r *StoreReporter) SendTracing(spans []reporter.ReportedSpan) {
 
 func (r *StoreReporter) SendMetrics(metrics []reporter.ReportedMeter) {
 	r.Metrics = append(r.Metrics, metrics...)
+}
+
+func (r *StoreReporter) SendLog(log *logv3.LogData) {
+	r.Logs = append(r.Logs, log)
 }
 
 func (r *StoreReporter) ConnectionStatus() reporter.ConnectionStatus {

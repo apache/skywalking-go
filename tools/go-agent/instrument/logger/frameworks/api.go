@@ -19,6 +19,8 @@ package frameworks
 
 import (
 	"embed"
+	"fmt"
+	"time"
 
 	"github.com/apache/skywalking-go/plugins/core/operator"
 	"github.com/apache/skywalking-go/tools/go-agent/instrument/plugins/rewrite"
@@ -37,14 +39,21 @@ var ChangeLogger = func(i operator.LogOperator) {
 }
 
 // LogTracingContextEnable check log the tracing context enable
-var LogTracingContextEnable = func() bool {
-	return false
-}
+var LogTracingContextEnable = false
+
+// LogReporterEnable check log the reporter enable
+var LogReporterEnable = false
+
+// LogReporterLabelKeys get the reporter customized label keys
+var LogReporterLabelKeys []string
 
 // LogTracingContextKey get the tracing context key
 // nolint
-var LogTracingContextKey = func() string {
-	return "SW_CTX"
+var LogTracingContextKey = "SW_CTX"
+
+// GetLogContext get the tracing context
+var GetLogContext = func(withEndpoint bool) fmt.Stringer {
+	return nil
 }
 
 // GetLogContextString get the log context string
@@ -52,15 +61,23 @@ func GetLogContextString() string {
 	return ""
 }
 
+// ReportLog report the log to backend
+var ReportLog = func(ctx interface{}, time time.Time, level, msg string, labels map[string]string) {
+}
+
 type PackageConfiguration struct {
 	// needs to generate the operator helpers
 	NeedsHelpers bool
+	// needs to generate the operator variables
+	NeedsVariables bool
+	// needs the change logger method
+	NeedsChangeLoggerFunc bool
 }
 
 type LogFramework interface {
 	// Name of the framework
 	Name() string
-	// PackagePaths of the framework, define which package needs to be instrument
+	// PackagePaths of the framework, define which package needs to be instrumented
 	PackagePaths() map[string]*PackageConfiguration
 	// AutomaticBindFunctions if the filtered method invoke and log type is automatic detect,
 	// then when the method invoke, the log type would be current framework
@@ -69,4 +86,8 @@ type LogFramework interface {
 	GenerateExtraFiles(pkgPath, debugDir string) ([]*rewrite.FileInfo, error)
 	// CustomizedEnhance used to customized enhance the log framework
 	CustomizedEnhance(path string, curFile *dst.File, cursor *dstutil.Cursor, allFiles []*dst.File) (map[string]string, bool)
+	// InitFunctions used to init the log framework
+	InitFunctions() []*dst.FuncDecl
+	// InitImports used to import the log framework when init functions
+	InitImports() []*dst.ImportSpec
 }

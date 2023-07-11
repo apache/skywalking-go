@@ -26,6 +26,8 @@ import (
 
 	"github.com/apache/skywalking-go/plugins/core/operator"
 	"github.com/apache/skywalking-go/plugins/core/reporter"
+
+	logv3 "skywalking.apache.org/repo/goapi/collect/logging/v3"
 )
 
 // nolint
@@ -133,6 +135,10 @@ func (e *emptyReporter) SendTracing(spans []reporter.ReportedSpan) {
 
 // nolint
 func (e *emptyReporter) SendMetrics(metrics []reporter.ReportedMeter) {
+}
+
+// nolint
+func (e *emptyReporter) SendLog(log *logv3.LogData) {
 }
 
 func (e *emptyReporter) ConnectionStatus() reporter.ConnectionStatus {

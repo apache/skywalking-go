@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 type ZapLogContextStringGenerator struct {
@@ -34,18 +35,29 @@ func UpdateZapLogger(l *zap.Logger) {
 	ChangeLogger(NewZapAdapter(l))
 }
 
-func AddZapTracingField(fields []zap.Field) []zap.Field {
-	if LogTracingContextEnable() {
-		return append(fields, zap.String(LogTracingContextKey(), GetLogContextString()))
+func TracingContextEnhance(entry *zapcore.CheckedEntry) (interface{}, *zapcore.Field) {
+	var getEndpoint = LogReporterEnable
+	if LogReporterEnable || LogTracingContextEnable {
+		ctx := GetLogContext(getEndpoint)
+		f := zap.String(LogTracingContextKey, ctx.String())
+		return ctx, &f
 	}
-	return fields
+	return nil, nil
 }
 
-func AddZapTracingInterfaceField(fields []interface{}) []interface{} {
-	if LogTracingContextEnable() {
-		return append(fields, zap.String(LogTracingContextKey(), GetLogContextString()))
+func KnownFieldFilter(fs, existingFields []zapcore.Field) []zapcore.Field {
+	keys := LogReporterLabelKeys
+	res := make([]zapcore.Field, 0)
+	for _, k := range keys {
+		for _, f := range fs {
+			if f.Key == k {
+				res = append(res, f)
+			}
+		}
 	}
-	return fields
+	// copy original data
+	res = append(res, existingFields...)
+	return res
 }
 
 type ZapAdapter struct {

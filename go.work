@@ -33,6 +33,8 @@ use (
 	./test/plugins/scenarios/microv4
 	./test/plugins/scenarios/mongo
 	./test/plugins/scenarios/mysql
+	./test/plugins/scenarios/logrus
+	./test/plugins/scenarios/zap
 
 	./test/plugins/scenarios/plugin_exclusion
 	./test/plugins/scenarios/runtime_metrics

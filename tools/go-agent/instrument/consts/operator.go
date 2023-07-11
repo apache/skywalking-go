@@ -27,16 +27,16 @@ const (
 
 	GlobalTracerSnapshotInterface = "skywalkingGoroutineSnapshotCreator"
 
-	GlobalTracerSetMethodName              = "_skywalking_set_global_operator"
-	GlobalTracerGetMethodName              = "_skywalking_get_global_operator"
-	GlobalLoggerSetMethodName              = "_skywalking_set_global_logger"
-	GlobalLoggerGetMethodName              = "_skywalking_get_global_logger"
-	GlobalTracerInitAppendNotifyMethodName = "_skywalking_global_init_append_notify"
-	GlobalTracerInitGetNotifyMethodName    = "_skywalking_global_init_get_notify"
+	GlobalTracerSetMethodName              = "skywalking_set_global_operator"
+	GlobalTracerGetMethodName              = "skywalking_get_global_operator"
+	GlobalLoggerSetMethodName              = "skywalking_set_global_logger"
+	GlobalLoggerGetMethodName              = "skywalking_get_global_logger"
+	GlobalTracerInitAppendNotifyMethodName = "skywalking_global_init_append_notify"
+	GlobalTracerInitGetNotifyMethodName    = "skywalking_global_init_get_notify"
 
-	MetricsRegisterAppendMethodName = "_skywalking_metrics_register_append"
-	MetricsObtainMethodName         = "_skywalking_metrics_obtain"
-	MetricsHookAppendMethodName     = "_skywalking_metrics_hook_append"
+	MetricsRegisterAppendMethodName = "skywalking_metrics_register_append"
+	MetricsObtainMethodName         = "skywalking_metrics_obtain"
+	MetricsHookAppendMethodName     = "skywalking_metrics_hook_append"
 
-	CurrentGoroutineIDGetMethodName = "_skywalking_get_goid"
+	CurrentGoroutineIDGetMethodName = "skywalking_get_goid"
 )
