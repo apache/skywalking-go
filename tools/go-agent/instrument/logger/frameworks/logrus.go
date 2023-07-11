@@ -45,12 +45,15 @@ func (l *Logrus) PackagePaths() map[string]*PackageConfiguration {
 
 //nolint
 func (l *Logrus) AutomaticBindFunctions(fun *dst.FuncDecl) string {
-	// if init the output or format then the logrus would be bind
-	if fun.Recv == nil || len(fun.Recv.List) != 1 || tools.GenerateTypeNameByExp(fun.Recv.List[0].Type) != "*Logger" {
-		return ""
+	// enhance logrus.New(), update the logger when getting new instance
+	if fun.Name.Name == "New" && fun.Type.Results != nil && len(fun.Type.Results.List) == 1 &&
+		tools.GenerateTypeNameByExp(fun.Type.Results.List[0].Type) == "*Logger" {
+		// default New() could be executed before skywalking init, so needs to invoke initFunc activity to make sure helpers are initialized
+		return rewrite.StaticMethodPrefix + "LogrusinitFunc();" + rewrite.StaticMethodPrefix + "LogrusUpdateLogrusLogger(*ret_0)"
 	}
 
-	if fun.Name.Name == "SetOutput" || fun.Name.Name == "SetFormatter" {
+	if fun.Recv != nil && len(fun.Recv.List) == 1 && tools.GenerateTypeNameByExp(fun.Recv.List[0].Type) == "*Logger" &&
+		(fun.Name.Name == "SetOutput" || fun.Name.Name == "SetFormatter") {
 		return rewrite.StaticMethodPrefix + "LogrusUpdateLogrusLogger(*recv_0)"
 	}
 

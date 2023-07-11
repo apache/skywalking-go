@@ -133,10 +133,15 @@ func (i *Instrument) writeTracerInitLink(dir string) (string, error) {
 
 import (
 	"github.com/apache/skywalking-go/agent/reporter"
+	"github.com/apache/skywalking-go/agent/core/operator"
 	"fmt"
 	"os"
 	"strconv"
+	_ "unsafe"
 )
+
+//go:linkname {{.GetGlobalLoggerLinkMethod}} {{.GetGlobalLoggerLinkMethod}}
+var {{.GetGlobalLoggerLinkMethod}} func() interface{}
 
 func (t *Tracer) InitTracer(extend map[string]interface{}) {
 	rep, err := reporter.{{.GRPCReporterFuncName}}(t.Log)
@@ -147,15 +152,23 @@ func (t *Tracer) InitTracer(extend map[string]interface{}) {
 	entity := NewEntity({{.Config.Agent.ServiceName.ToGoStringValue}}, {{.Config.Agent.InstanceEnvName.ToGoStringValue}})
 	samp := NewDynamicSampler({{.Config.Agent.Sampler.ToGoFloatValue "loading the agent sampler error"}}, t)
 	meterCollectInterval := {{.Config.Agent.Meter.CollectInterval.ToGoIntValue "loading the agent meter interval error"}}
-	if err := t.Init(entity, rep, samp, nil, meterCollectInterval); err != nil {
+	var logger operator.LogOperator
+	if {{.GetGlobalLoggerLinkMethod}} != nil {
+		if l, ok := {{.GetGlobalLoggerLinkMethod}}().(operator.LogOperator); ok &&  l != nil {
+			logger = l
+		}
+	}
+	if err := t.Init(entity, rep, samp, logger, meterCollectInterval); err != nil {
 		t.Log.Errorf("cannot initialize the SkyWalking Tracer: %v", err)
 	}
 }`, struct {
-		GRPCReporterFuncName string
-		Config               *config.Config
+		GRPCReporterFuncName      string
+		GetGlobalLoggerLinkMethod string
+		Config                    *config.Config
 	}{
-		GRPCReporterFuncName: consts.GRPCInitFuncName,
-		Config:               config.GetConfig(),
+		GRPCReporterFuncName:      consts.GRPCInitFuncName,
+		GetGlobalLoggerLinkMethod: consts.GlobalLoggerGetMethodName,
+		Config:                    config.GetConfig(),
 	})))
 }
 

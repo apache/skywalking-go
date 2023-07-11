@@ -36,7 +36,7 @@ var {{.LogReportFuncName}} = func(ctx interface{}, time time.Time, level, msg st
     op.LogReporter().(logReporter).ReportLog(ctx, time, level, msg, labels)
 }
 
-func init() {
+func initFunc() {
 	// for context.go getting operator
 	if {{.GetGlobalOperatorLinkMethod}} != nil {
 		// for operator delegator
@@ -77,4 +77,8 @@ func init() {
 	{{- range .InitFunctionNames}}
     {{.}}()
     {{- end}}
+}
+
+func init() {
+    initFunc()
 }

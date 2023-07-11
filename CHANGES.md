@@ -11,6 +11,7 @@ Release Notes.
 * Support metrics report API for plugin.
 * Support report Golang runtime metrics.
 * Support log reporter.
+* Enhance the `logrus` logger plugin to support adapt without any settings method invoke.
 
 #### Plugins
 * Support [go-redis](https://github.com/redis/go-redis) v9 redis client framework.
