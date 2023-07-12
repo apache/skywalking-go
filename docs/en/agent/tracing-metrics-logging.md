@@ -5,6 +5,18 @@ For a detailed list of supported plugins, [please refer to the documentation](./
 This document aims to provide you with some configuration information for your usage. 
 Please ensure that you have followed the [documentation to successfully install the SkyWalking Go Agent into your application](../setup/gobuild.md).
 
+## Registration Mechanism
+
+The Go Agent would register the program with the SkyWalking backend at startup and maintain a heartbeat so that it can be queried and displayed in the SkyWalking UI.
+All Tracing, Metrics and Logs are reported based on this.
+
+This contains the following two key configurations:
+
+| Name                    | Environment Key | Default Value          | Description                                                                                                                               |
+|-------------------------|-----------------|------------------------|-------------------------------------------------------------------------------------------------------------------------------------------|
+| agent.service_name      | SW_AGENT_NAME   | Your_Application_Name  | The name of the service which showed in UI.                                                                                               |
+| agent.instance_env_name |                 | SW_AGENT_INSTANCE_NAME | To obtain the environment variable key for the instance name, if it cannot be obtained, an instance name will be automatically generated. |
+
 ## Tracing
 
 Distributed tracing is the most common form of plugin in the Go Agent, and it becomes active with each new incoming request. By default, all plugins are enabled. For a specific list of plugins, please [refer to the documentation](./support-plugins.md#tracing-plugins).
@@ -15,8 +27,6 @@ The basic configuration is as follows:
 
 | Name                    | Environment Key   | Default Value         | Description                                                                                                                               |
 |-------------------------|-------------------|-----------------------|-------------------------------------------------------------------------------------------------------------------------------------------|
-| agent.service_name      | SW_AGENT_NAME     | Your_Application_Name | The name of the service which showed in UI.                                                                                               |
-| agent.instance_env_name | SW_AGENT_INSTANCE |                       | To obtain the environment variable key for the instance name, if it cannot be obtained, an instance name will be automatically generated. |
 | agent.sampler           | SW_AGENT_SAMPLER  | 1                     | Sampling rate of tracing data, which is a floating-point value that must be between 0 and 1.                                              |
 
 ## Metrics
