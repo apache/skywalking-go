@@ -21,10 +21,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func init() {
-	UpdateLogrusLogger(logrus.New())
-}
-
 func UpdateLogrusLogger(l *logrus.Logger) {
 	if LogTracingContextEnable {
 		if _, wrapperd := l.Formatter.(*WrapFormat); !wrapperd {

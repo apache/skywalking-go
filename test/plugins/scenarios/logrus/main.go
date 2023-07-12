@@ -54,8 +54,6 @@ func consumerHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	logrus.SetFormatter(&logrus.JSONFormatter{})
-
 	http.HandleFunc("/provider", providerHandler)
 	http.HandleFunc("/consumer", consumerHandler)
 

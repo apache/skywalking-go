@@ -5,6 +5,16 @@ It currently supports the recognition of `Logrus` and `Zap` frameworks. If neith
 
 You can learn about the configuration details through the "log" configuration item in the [default settings](../../../tools/go-agent/config/agent.default.yaml).
 
+## Logging Detection
+
+Log detection means that the logging plugin would automatically detect the usage of logs in your application. 
+When the log type is set to `auto`, it would choose the appropriate log based on the creation rules of different frameworks. The selection rules vary depending on the framework:
+
+1. `Logrus`: It automatically selects the current logger when executing functions such as `logrus.New`, `logger.SetOutput`, or `logger.SetFormatter`.
+2. `Zap`: It automatically selects the current logger when executing functions such as `zap.New`, `zap.NewNop`, `zap.NewProduction`, `zap.NewDevelopment`, or `zap.NewExample`.
+
+If there are multiple different logging systems in your current application, the last-called logging system would be chosen.
+
 ## Agent with Logging system
 
 The integration of the Agent with logs includes the two parts as following.
