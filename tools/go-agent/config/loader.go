@@ -76,8 +76,20 @@ type Meter struct {
 }
 
 type GRPCReporter struct {
-	BackendService StringValue `yaml:"backend_service"`
-	MaxSendQueue   StringValue `yaml:"max_send_queue"`
+	BackendService   StringValue     `yaml:"backend_service"`
+	MaxSendQueue     StringValue     `yaml:"max_send_queue"`
+	CheckInterval    StringValue     `yaml:"check_interval"`
+	Authentication   StringValue     `yaml:"authentication"`
+	CDSFetchInterval StringValue     `yaml:"cds_fetch_interval"`
+	TLS              GRPCReporterTLS `yaml:"tls"`
+}
+
+type GRPCReporterTLS struct {
+	Enable              StringValue `yaml:"enable"`
+	CAPath              StringValue `yaml:"ca_path"`
+	ClientKeyPath       StringValue `yaml:"client_key_path"`
+	ClientCertChainPath StringValue `yaml:"client_cert_chain_path"`
+	InsecureSkipVerify  StringValue `yaml:"insecure_skip_verify"`
 }
 
 type Plugin struct {
