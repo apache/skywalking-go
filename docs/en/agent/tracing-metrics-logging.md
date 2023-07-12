@@ -5,12 +5,9 @@ For a detailed list of supported plugins, [please refer to the documentation](./
 This document aims to provide you with some configuration information for your usage. 
 Please ensure that you have followed the [documentation to successfully install the SkyWalking Go Agent into your application](../setup/gobuild.md).
 
-## Registration Mechanism
+## Metadata Mechanism
 
-The Go Agent would register the program with the SkyWalking backend at startup and maintain a heartbeat so that it can be queried and displayed in the SkyWalking UI.
-All Tracing, Metrics and Logs are reported based on this.
-
-This contains the following two key configurations:
+The Go Agent would be identified by the SkyWalking backend after startup and maintain a heartbeat to keep alive.
 
 | Name                    | Environment Key | Default Value          | Description                                                                                                                               |
 |-------------------------|-----------------|------------------------|-------------------------------------------------------------------------------------------------------------------------------------------|
