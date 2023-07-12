@@ -2,11 +2,6 @@
 Transport Layer Security (TLS) is a very common security way when transport data through Internet.
 In some use cases, end users report the background:
 
-> Target(under monitoring) applications are in a region, which also named VPC,
-at the same time, the SkyWalking backend is in another region (VPC).
->
-> Because of that, security requirement is very obvious.
-
 ## Creating SSL/TLS Certificates
 
 The first step is to generate certificates and key files for encrypting communication. This is
@@ -24,7 +19,7 @@ We need the following files:
 - Find `server.crt`, `server.pem` and `ca.crt`. Use them at server side. Please refer to `gRPC Security` of the OAP server doc for more details.
 
 ## Enable TLS
-- Enable (m)TLS on the OAP server side, [read more on this documentation](https://skywalking.apache.org/docs/main/v9.5.0/en/setup/backend/grpc-security/).
+- Enable (m)TLS on the OAP server side, [read more on this documentation](https://skywalking.apache.org/docs/main/next/en/setup/backend/grpc-security/).
 - Following the configuration to enable (m)TLS on the agent side.
 
 | Name                                            | Environment Variable                              | Required Type | Description                                                         |
