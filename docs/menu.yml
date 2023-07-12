@@ -35,6 +35,8 @@ catalog:
           path: /en/advanced-features/plugin-exclusion
         - name: Plugin Configuration
           path: /en/agent/plugin-configurations
+        - name: Transport Layer Security (TLS)
+          path: /en/advanced-features/grpc-tls
     - name: Plugins
       catalog:
         - name: Supported Libraries

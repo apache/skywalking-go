@@ -115,11 +115,31 @@ import (
 	"fmt"
 	"strconv"
 	"os"
+	"time"
+	"strings"
 )
 
 func {{.InitFuncName}}(logger operator.LogOperator) (Reporter, error) {
-	return NewGRPCReporter(logger, {{.Config.Reporter.GRPC.BackendService.ToGoStringValue}},
-		WithMaxSendQueueSize({{.Config.Reporter.GRPC.MaxSendQueue.ToGoIntValue "the GRPC reporter max queue size must be number"}}))
+	var opts []ReporterOption
+	checkIntervalVal := {{.Config.Reporter.GRPC.CheckInterval.ToGoIntValue "the GRPC reporter check interval must be number"}}
+	opts = append(opts, WithCheckInterval(time.Second * time.Duration(checkIntervalVal)))
+	opts = append(opts, WithMaxSendQueueSize({{.Config.Reporter.GRPC.MaxSendQueue.ToGoIntValue "the GRPC reporter max queue size must be number"}}))
+	opts = append(opts, WithAuthentication({{.Config.Reporter.GRPC.Authentication.ToGoStringValue}}))
+	cdsFetchIntervalVal := {{.Config.Reporter.GRPC.CDSFetchInterval.ToGoIntValue "the GRPC reporter max queue size must be number"}}
+	opts = append(opts, WithCDS(time.Second * time.Duration(cdsFetchIntervalVal)))
+
+	if {{.Config.Reporter.GRPC.TLS.Enable.ToGoBoolValue}} {
+		tc, err := generateTLSCredential({{.Config.Reporter.GRPC.TLS.CAPath.ToGoStringValue}}, 
+			{{.Config.Reporter.GRPC.TLS.ClientKeyPath.ToGoStringValue}},
+			{{.Config.Reporter.GRPC.TLS.ClientCertChainPath.ToGoStringValue}},
+			{{.Config.Reporter.GRPC.TLS.InsecureSkipVerify.ToGoBoolValue}})
+		if err != nil {
+			panic(fmt.Sprintf("generate go agent tls credential error: %v", err))
+		}
+		opts = append(opts, WithTransportCredentials(tc))
+	}
+
+	return NewGRPCReporter(logger, {{.Config.Reporter.GRPC.BackendService.ToGoStringValue}}, opts...)
 }
 `, struct {
 		InitFuncName string

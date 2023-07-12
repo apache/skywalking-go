@@ -34,6 +34,23 @@ reporter:
     backend_service: ${SW_AGENT_REPORTER_GRPC_BACKEND_SERVICE:127.0.0.1:11800}
     # The maximum count of segment for reporting tracing data.
     max_send_queue: ${SW_AGENT_REPORTER_GRPC_MAX_SEND_QUEUE:5000}
+    # The interval(s) of checking service and backend service
+    check_interval: ${SW_AGENT_REPORTER_GRPC_CHECK_INTERVAL:20}
+    # The authentication string for communicate with backend.
+    authentication: ${SW_AGENT_REPORTER_GRPC_AUTHENTICATION:}
+    # The interval(s) of fetching dynamic configuration from backend.
+    cds_fetch_interval: ${SW_AGENT_REPORTER_GRPC_CDS_FETCH_INTERVAL:20}
+    tls:
+      # Whether to enable TLS with backend.
+      enable: ${SW_AGENT_REPORTER_GRPC_TLS_ENABLE:false}
+      # The file path of ca.crt. The config only works when opening the TLS switch.
+      ca_path: ${SW_AGENT_REPORTER_GRPC_TLS_CA_PATH:}
+      # The file path of client.pem. The config only works when mTLS.
+      client_key_path: ${SW_AGENT_REPORTER_GRPC_TLS_CLIENT_KEY_PATH:}
+      # The file path of client.crt. The config only works when mTLS.
+      client_cert_chain_path: ${SW_AGENT_REPORTER_GRPC_TLS_CLIENT_CERT_CHAIN_PATH:}
+      # Controls whether a client verifies the server's certificate chain and host name.
+      insecure_skip_verify: ${SW_AGENT_REPORTER_GRPC_TLS_INSECURE_SKIP_VERIFY:false}
 
 log:
   # The type determines which logging type is currently used by the system.

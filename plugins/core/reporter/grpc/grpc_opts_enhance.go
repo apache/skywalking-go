@@ -18,6 +18,10 @@
 package grpc
 
 import (
+	"crypto/tls"
+	"crypto/x509"
+	"fmt"
+	"os"
 	"time"
 
 	"google.golang.org/grpc/credentials"
@@ -65,4 +69,54 @@ func WithCDS(interval time.Duration) ReporterOption {
 	return func(r *gRPCReporter) {
 		r.cdsInterval = interval
 	}
+}
+
+//nolint
+func generateTLSCredential(caPath, clientKeyPath, clientCertChainPath string, skipVerify bool) (tc credentials.TransportCredentials, tlsErr error) {
+	if err := checkTLSFile(caPath); err != nil {
+		return nil, err
+	}
+	tlsConfig := new(tls.Config)
+	tlsConfig.Renegotiation = tls.RenegotiateNever
+	tlsConfig.InsecureSkipVerify = skipVerify
+	caPem, err := os.ReadFile(caPath)
+	if err != nil {
+		return nil, err
+	}
+	certPool := x509.NewCertPool()
+	if !certPool.AppendCertsFromPEM(caPem) {
+		return nil, fmt.Errorf("failed to append certificates")
+	}
+	tlsConfig.RootCAs = certPool
+
+	if clientKeyPath != "" && clientCertChainPath != "" {
+		if err := checkTLSFile(clientKeyPath); err != nil {
+			return nil, err
+		}
+		if err := checkTLSFile(clientCertChainPath); err != nil {
+			return nil, err
+		}
+		clientPem, err := tls.LoadX509KeyPair(clientCertChainPath, clientKeyPath)
+		if err != nil {
+			return nil, err
+		}
+		tlsConfig.Certificates = []tls.Certificate{clientPem}
+	}
+	return credentials.NewTLS(tlsConfig), nil
+}
+
+// checkTLSFile checks the TLS files.
+func checkTLSFile(path string) error {
+	file, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	stat, err := file.Stat()
+	if err != nil {
+		return err
+	}
+	if stat.Size() == 0 {
+		return fmt.Errorf("the TLS file is illegal: %s", path)
+	}
+	return nil
 }
