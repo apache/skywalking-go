@@ -22,6 +22,8 @@ Release Notes.
 * Support [Zap](https://github.com/uber-go/zap) log report to the backend.
 
 #### Documentation
+* Combine `Supported Libraries` and `Performance Test` into `Plugins` section.
+* Add `Tracing, Metrics and Logging` document into `Plugins` section. 
 
 #### Bug Fixes
 * Fix throw panic when log the tracing context before agent core initialized.
