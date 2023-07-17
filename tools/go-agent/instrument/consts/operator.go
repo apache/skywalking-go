@@ -18,15 +18,25 @@
 package consts
 
 const (
-	GlobalTracerFieldName = "globalSkyWalkingOperator"
-	GlobalLoggerFieldName = "globalSkyWalkingLogger"
+	GlobalTracerFieldName           = "globalSkyWalkingOperator"
+	GlobalLoggerFieldName           = "globalSkyWalkingLogger"
+	GlobalTracerInitNotifyFieldName = "globalSkyWalkingInitNotify"
+
+	MetricsRegisterFieldName = "metricsRegister"
+	MetricsHookFieldName     = "metricsHook"
 
 	GlobalTracerSnapshotInterface = "skywalkingGoroutineSnapshotCreator"
 
-	GlobalTracerSetMethodName = "_skywalking_set_global_operator"
-	GlobalTracerGetMethodName = "_skywalking_get_global_operator"
-	GlobalLoggerSetMethodName = "_skywalking_set_global_logger"
-	GlobalLoggerGetMethodName = "_skywalking_get_global_logger"
+	GlobalTracerSetMethodName              = "skywalking_set_global_operator"
+	GlobalTracerGetMethodName              = "skywalking_get_global_operator"
+	GlobalLoggerSetMethodName              = "skywalking_set_global_logger"
+	GlobalLoggerGetMethodName              = "skywalking_get_global_logger"
+	GlobalTracerInitAppendNotifyMethodName = "skywalking_global_init_append_notify"
+	GlobalTracerInitGetNotifyMethodName    = "skywalking_global_init_get_notify"
 
-	CurrentGoroutineIDGetMethodName = "_skywalking_get_goid"
+	MetricsRegisterAppendMethodName = "skywalking_metrics_register_append"
+	MetricsObtainMethodName         = "skywalking_metrics_obtain"
+	MetricsHookAppendMethodName     = "skywalking_metrics_hook_append"
+
+	CurrentGoroutineIDGetMethodName = "skywalking_get_goid"
 )

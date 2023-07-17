@@ -13,6 +13,9 @@ use (
 	./plugins/gorm
 	./plugins/kratosv2
 	./plugins/microv4
+	./plugins/mongo
+	./plugins/sql
+	./plugins/runtimemetrics
 
 	./test/benchmark-codebase/consumer
 	./test/benchmark-codebase/provider
@@ -28,8 +31,13 @@ use (
 	./test/plugins/scenarios/gorm
 	./test/plugins/scenarios/kratosv2
 	./test/plugins/scenarios/microv4
+	./test/plugins/scenarios/mongo
+	./test/plugins/scenarios/mysql
+	./test/plugins/scenarios/logrus
+	./test/plugins/scenarios/zap
 
 	./test/plugins/scenarios/plugin_exclusion
+	./test/plugins/scenarios/runtime_metrics
 
 	./tools/go-agent
 

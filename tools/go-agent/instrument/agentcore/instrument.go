@@ -133,10 +133,15 @@ func (i *Instrument) writeTracerInitLink(dir string) (string, error) {
 
 import (
 	"github.com/apache/skywalking-go/agent/reporter"
+	"github.com/apache/skywalking-go/agent/core/operator"
 	"fmt"
 	"os"
 	"strconv"
+	_ "unsafe"
 )
+
+//go:linkname {{.GetGlobalLoggerLinkMethod}} {{.GetGlobalLoggerLinkMethod}}
+var {{.GetGlobalLoggerLinkMethod}} func() interface{}
 
 func (t *Tracer) InitTracer(extend map[string]interface{}) {
 	rep, err := reporter.{{.GRPCReporterFuncName}}(t.Log)
@@ -146,15 +151,24 @@ func (t *Tracer) InitTracer(extend map[string]interface{}) {
 	}
 	entity := NewEntity({{.Config.Agent.ServiceName.ToGoStringValue}}, {{.Config.Agent.InstanceEnvName.ToGoStringValue}})
 	samp := NewDynamicSampler({{.Config.Agent.Sampler.ToGoFloatValue "loading the agent sampler error"}}, t)
-	if err := t.Init(entity, rep, samp, nil); err != nil {
+	meterCollectInterval := {{.Config.Agent.Meter.CollectInterval.ToGoIntValue "loading the agent meter interval error"}}
+	var logger operator.LogOperator
+	if {{.GetGlobalLoggerLinkMethod}} != nil {
+		if l, ok := {{.GetGlobalLoggerLinkMethod}}().(operator.LogOperator); ok &&  l != nil {
+			logger = l
+		}
+	}
+	if err := t.Init(entity, rep, samp, logger, meterCollectInterval); err != nil {
 		t.Log.Errorf("cannot initialize the SkyWalking Tracer: %v", err)
 	}
 }`, struct {
-		GRPCReporterFuncName string
-		Config               *config.Config
+		GRPCReporterFuncName      string
+		GetGlobalLoggerLinkMethod string
+		Config                    *config.Config
 	}{
-		GRPCReporterFuncName: consts.GRPCInitFuncName,
-		Config:               config.GetConfig(),
+		GRPCReporterFuncName:      consts.GRPCInitFuncName,
+		GetGlobalLoggerLinkMethod: consts.GlobalLoggerGetMethodName,
+		Config:                    config.GetConfig(),
 	})))
 }
 
@@ -180,6 +194,12 @@ var {{.GetGlobalOperatorLinkMethod}} func() interface{}
 //go:linkname {{.GetGoroutineIDLinkMethod}} {{.GetGoroutineIDLinkMethod}}
 var {{.GetGoroutineIDLinkMethod}} func() int64
 
+//go:linkname {{.GetInitNotifyLinkMethod}} {{.GetInitNotifyLinkMethod}}
+var {{.GetInitNotifyLinkMethod}} func() []func()
+
+//go:linkname {{.MetricsObtainMethodName}} {{.MetricsObtainMethodName}}
+var {{.MetricsObtainMethodName}} func() ([]interface{}, []func())
+
 func init() {
 	if {{.TLSGetLinkMethod}} != nil && {{.TLSSetLinkMethod}} != nil {
 		GetGLS = {{.TLSGetLinkMethod}}
@@ -193,6 +213,12 @@ func init() {
 		GetGlobalOperator = {{.GetGlobalOperatorLinkMethod}}
 		SetGlobalOperator(newTracer())	// setting the global tracer when init the agent core
 	}
+	if {{.GetInitNotifyLinkMethod}} != nil {
+		GetInitNotify = {{.GetInitNotifyLinkMethod}}
+	}
+	if {{.MetricsObtainMethodName}} != nil {
+		MetricsObtain = {{.MetricsObtainMethodName}}
+	}
 }
 `, struct {
 		TLSGetLinkMethod            string
@@ -200,11 +226,15 @@ func init() {
 		SetGlobalOperatorLinkMethod string
 		GetGlobalOperatorLinkMethod string
 		GetGoroutineIDLinkMethod    string
+		GetInitNotifyLinkMethod     string
+		MetricsObtainMethodName     string
 	}{
 		TLSGetLinkMethod:            consts.TLSGetMethodName,
 		TLSSetLinkMethod:            consts.TLSSetMethodName,
 		SetGlobalOperatorLinkMethod: consts.GlobalTracerSetMethodName,
 		GetGlobalOperatorLinkMethod: consts.GlobalTracerGetMethodName,
 		GetGoroutineIDLinkMethod:    consts.CurrentGoroutineIDGetMethodName,
+		GetInitNotifyLinkMethod:     consts.GlobalTracerInitGetNotifyMethodName,
+		MetricsObtainMethodName:     consts.MetricsObtainMethodName,
 	}))
 }

@@ -48,6 +48,7 @@ type Agent struct {
 	ServiceName     StringValue `yaml:"service_name"`
 	InstanceEnvName StringValue `yaml:"instance_env_name"`
 	Sampler         StringValue `yaml:"sampler"`
+	Meter           Meter       `yaml:"meter"`
 }
 
 type Reporter struct {
@@ -55,8 +56,9 @@ type Reporter struct {
 }
 
 type Log struct {
-	Type    StringValue `yaml:"type"`
-	Tracing LogTracing  `yaml:"tracing"`
+	Type     StringValue `yaml:"type"`
+	Tracing  LogTracing  `yaml:"tracing"`
+	Reporter LogReporter `yaml:"reporter"`
 }
 
 type LogTracing struct {
@@ -64,13 +66,35 @@ type LogTracing struct {
 	Key     StringValue `yaml:"key"`
 }
 
+type LogReporter struct {
+	Enabled   StringValue `yaml:"enable"`
+	LabelKeys StringValue `yaml:"label_keys"`
+}
+
+type Meter struct {
+	CollectInterval StringValue `yaml:"collect_interval"`
+}
+
 type GRPCReporter struct {
-	BackendService StringValue `yaml:"backend_service"`
-	MaxSendQueue   StringValue `yaml:"max_send_queue"`
+	BackendService   StringValue     `yaml:"backend_service"`
+	MaxSendQueue     StringValue     `yaml:"max_send_queue"`
+	CheckInterval    StringValue     `yaml:"check_interval"`
+	Authentication   StringValue     `yaml:"authentication"`
+	CDSFetchInterval StringValue     `yaml:"cds_fetch_interval"`
+	TLS              GRPCReporterTLS `yaml:"tls"`
+}
+
+type GRPCReporterTLS struct {
+	Enable              StringValue `yaml:"enable"`
+	CAPath              StringValue `yaml:"ca_path"`
+	ClientKeyPath       StringValue `yaml:"client_key_path"`
+	ClientCertChainPath StringValue `yaml:"client_cert_chain_path"`
+	InsecureSkipVerify  StringValue `yaml:"insecure_skip_verify"`
 }
 
 type Plugin struct {
-	Excluded StringValue `yaml:"excluded"`
+	Config   PluginConfig `yaml:"config"`
+	Excluded StringValue  `yaml:"excluded"`
 }
 
 func LoadConfig(path string) error {
@@ -104,6 +128,43 @@ func GetConfig() *Config {
 	return config
 }
 
+type PluginConfig struct {
+	data map[string]interface{}
+}
+
+func (c *PluginConfig) UnmarshalYAML(value *yaml.Node) error {
+	result := make(map[string]interface{})
+	if err := value.Decode(&result); err != nil {
+		return err
+	}
+	c.data = result
+	return nil
+}
+
+func (c *PluginConfig) ParseToStringValue(paths ...string) *StringValue {
+	if len(paths) == 0 {
+		return nil
+	}
+	res := c.data[paths[0]]
+	for i := 1; i < len(paths); i++ {
+		if res == nil {
+			return nil
+		}
+		current, ok := res.(map[string]interface{})
+		if !ok {
+			panic("cannot identity the path: %s" + strings.Join(paths, "."))
+		}
+		res = current[paths[i]]
+	}
+	if res == nil {
+		panic("the value of path is not found: " + strings.Join(paths, "."))
+	}
+
+	v := &StringValue{}
+	v.UnmarshalString(fmt.Sprintf("%v", res))
+	return v
+}
+
 type StringValue struct {
 	EnvKey  string
 	Default string
@@ -114,16 +175,19 @@ func (s *StringValue) UnmarshalYAML(value *yaml.Node) error {
 	if e := value.Decode(&val); e != nil {
 		return e
 	}
+	s.UnmarshalString(val)
+	return nil
+}
 
+func (s *StringValue) UnmarshalString(val string) {
 	groups := EnvRegularRegex.FindStringSubmatch(val)
 	if len(groups) == 0 {
 		s.Default = val
-		return nil
+		return
 	}
 
 	s.EnvKey = groups[1]
 	s.Default = groups[2]
-	return nil
 }
 
 func (s *StringValue) ToGoStringValue() string {
@@ -132,6 +196,26 @@ func (s *StringValue) ToGoStringValue() string {
 	tmpValue := os.Getenv("%s")
 	if tmpValue == "" { return "%s"}
 	return tmpValue
+}()`, s.EnvKey, s.Default, s.EnvKey, s.Default), "\n", ";")
+}
+
+func (s *StringValue) ToGoStringListValue() string {
+	return strings.ReplaceAll(fmt.Sprintf(`func() []string {
+	splitResult := func(s string) []string {
+		t := strings.Split(s, ",")
+		if len(t) == 1 && t[0] == "" { return nil }
+		res := make([]string, 0, 0)
+		for _, v := range t {
+			if v != "" {
+				res = append(res, v)
+			}
+		}
+		return res
+	}
+	if "%s" == "" { return splitResult("%s") }
+	tmpValue := os.Getenv("%s")
+	if tmpValue == "" { return splitResult("%s") }
+	return splitResult(tmpValue)
 }()`, s.EnvKey, s.Default, s.EnvKey, s.Default), "\n", ";")
 }
 

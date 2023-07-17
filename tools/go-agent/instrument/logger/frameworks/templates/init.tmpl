@@ -1,9 +1,15 @@
-package {{.PackageName}}
-
 import (
 	_ "unsafe"
+	"time"
+	{{- if .NeedsVariables}}
 	"os"
 	"strings"
+	{{- end}}
+
+	// customized imports
+	{{- range $key, $value := .Imports}}
+	{{$key}} {{$value}}
+    {{- end}}
 )
 
 //go:linkname {{.GetGlobalOperatorLinkMethod}} {{.GetGlobalOperatorLinkMethod}}
@@ -12,10 +18,25 @@ var {{.GetGlobalOperatorLinkMethod}} func() interface{}
 //go:linkname {{.SetGlobalLoggerLinkMethod}} {{.SetGlobalLoggerLinkMethod}}
 var {{.SetGlobalLoggerLinkMethod}} func(v interface{})
 
-var {{.LogTracingEnableFuncName}} = {{.LogTypeInConfig.Tracing.Enabled.ToGoBoolFunction}}
-var {{.LogTracingContextKeyFuncName}} = {{.LogTypeInConfig.Tracing.Key.ToGoStringFunction}}
+{{- if .NeedsVariables}}
+var {{.LogTracingEnableVarName}} = {{.LogTypeInConfig.Tracing.Enabled.ToGoBoolValue}}
+var {{.LogTracingContextKeyVarName}} = {{.LogTypeInConfig.Tracing.Key.ToGoStringValue}}
+var {{.LogReporterEnableVarName}} = {{.LogTypeInConfig.Reporter.Enabled.ToGoBoolValue}}
+var {{.LogReporterLabelsVarName}} = {{.LogTypeInConfig.Reporter.LabelKeys.ToGoStringListValue}}
+{{- end}}
 
-func init() {
+type logReporter interface {
+    ReportLog(ctx, time interface{}, level, msg string, labels map[string]string)
+}
+var {{.LogReportFuncName}} = func(ctx interface{}, time time.Time, level, msg string, labels map[string]string) {
+    op := {{.GetOperatorMethodName}}()
+    if op == nil {
+        return
+    }
+    op.LogReporter().(logReporter).ReportLog(ctx, time, level, msg, labels)
+}
+
+func initFunc() {
 	// for context.go getting operator
 	if {{.GetGlobalOperatorLinkMethod}} != nil {
 		// for operator delegator
@@ -29,6 +50,7 @@ func init() {
 	}
 
 	// for context.go change logger
+	{{- if .NeedsChangeLoggerFunc}}
 	if {{.SetGlobalLoggerLinkMethod}} != nil {
 		logType := {{.LogTypeInConfig.Type.ToGoStringValue}}
 		supportLogChange := false
@@ -49,4 +71,14 @@ func init() {
 			{{.SetGlobalLoggerLinkMethod}}(logger)
 		}
 	}
+	{{- end}}
+
+	// init all log initiator
+	{{- range .InitFunctionNames}}
+    {{.}}()
+    {{- end}}
+}
+
+func init() {
+    initFunc()
 }

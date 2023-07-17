@@ -22,34 +22,28 @@ import "github.com/dave/dst"
 // WithArgsCount filter methods with specific count of arguments.
 func WithArgsCount(argsCount int) MethodFilterOption {
 	return func(method *dst.FuncDecl, files []*dst.File) bool {
-		return (method.Type.Params == nil && len(method.Type.Params.List) == argsCount) || (len(method.Type.Params.List) == argsCount)
+		return fieldListParameterCount(method.Type.Params) == argsCount
 	}
 }
 
 // WithResultCount filter methods with specific count of results.
 func WithResultCount(resultCount int) MethodFilterOption {
 	return func(decl *dst.FuncDecl, files []*dst.File) bool {
-		return (decl.Type.Results == nil && resultCount == 0) || (len(decl.Type.Results.List) == resultCount)
+		return fieldListParameterCount(decl.Type.Results) == resultCount
 	}
 }
 
 // WithArgType filter methods with specific type of the index of the argument.
 func WithArgType(argIndex int, dataType string) MethodFilterOption {
 	return func(decl *dst.FuncDecl, files []*dst.File) bool {
-		if decl.Type.Params == nil || len(decl.Type.Params.List) <= argIndex {
-			return false
-		}
-		return verifyTypeName(decl.Type.Params.List[argIndex].Type, dataType)
+		return verifyTypeSameInFieldList(decl.Type.Params, argIndex, dataType)
 	}
 }
 
 // WithResultType filter methods with specific type of the index of the result.
 func WithResultType(argIndex int, dataType string) MethodFilterOption {
 	return func(decl *dst.FuncDecl, files []*dst.File) bool {
-		if decl.Type.Results == nil || len(decl.Type.Results.List) <= argIndex {
-			return false
-		}
-		return verifyTypeName(decl.Type.Results.List[argIndex].Type, dataType)
+		return verifyTypeSameInFieldList(decl.Type.Results, argIndex, dataType)
 	}
 }
 
@@ -68,4 +62,42 @@ func WithReceiverType(dataType string) MethodFilterOption {
 		}
 		return verifyTypeName(decl.Recv.List[0].Type, dataType)
 	}
+}
+
+func fieldListParameterCount(fieldList *dst.FieldList) int {
+	if fieldList == nil || len(fieldList.List) == 0 {
+		return 0
+	}
+	res := 0
+	for _, f := range fieldList.List {
+		if len(f.Names) == 0 {
+			res++
+			continue
+		}
+		res += len(f.Names)
+	}
+	return res
+}
+
+func verifyTypeSameInFieldList(fieldList *dst.FieldList, inx int, typeStr string) bool {
+	if inx >= fieldListParameterCount(fieldList) {
+		return false
+	}
+	realInx := 0
+	for _, f := range fieldList.List {
+		if len(f.Names) == 0 {
+			if realInx == inx {
+				return verifyTypeName(f.Type, typeStr)
+			}
+			realInx++
+			continue
+		}
+		for i := 0; i < len(f.Names); i++ {
+			if realInx == inx {
+				return verifyTypeName(f.Type, typeStr)
+			}
+			realInx++
+		}
+	}
+	return false
 }

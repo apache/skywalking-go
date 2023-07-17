@@ -24,6 +24,9 @@ agent:
   instance_env_name: SW_AGENT_INSTANCE_NAME
   # Sampling rate of tracing data, which is a floating-point value that must be between 0 and 1.
   sampler: ${SW_AGENT_SAMPLE:1}
+  meter:
+    # The interval of collecting metrics, in seconds.
+    collect_interval: ${SW_AGENT_METER_COLLECT_INTERVAL:20}
 
 reporter:
   grpc:
@@ -31,6 +34,23 @@ reporter:
     backend_service: ${SW_AGENT_REPORTER_GRPC_BACKEND_SERVICE:127.0.0.1:11800}
     # The maximum count of segment for reporting tracing data.
     max_send_queue: ${SW_AGENT_REPORTER_GRPC_MAX_SEND_QUEUE:5000}
+    # The interval(s) of checking service and backend service
+    check_interval: ${SW_AGENT_REPORTER_GRPC_CHECK_INTERVAL:20}
+    # The authentication string for communicate with backend.
+    authentication: ${SW_AGENT_REPORTER_GRPC_AUTHENTICATION:}
+    # The interval(s) of fetching dynamic configuration from backend.
+    cds_fetch_interval: ${SW_AGENT_REPORTER_GRPC_CDS_FETCH_INTERVAL:20}
+    tls:
+      # Whether to enable TLS with backend.
+      enable: ${SW_AGENT_REPORTER_GRPC_TLS_ENABLE:false}
+      # The file path of ca.crt. The config only works when opening the TLS switch.
+      ca_path: ${SW_AGENT_REPORTER_GRPC_TLS_CA_PATH:}
+      # The file path of client.pem. The config only works when mTLS.
+      client_key_path: ${SW_AGENT_REPORTER_GRPC_TLS_CLIENT_KEY_PATH:}
+      # The file path of client.crt. The config only works when mTLS.
+      client_cert_chain_path: ${SW_AGENT_REPORTER_GRPC_TLS_CLIENT_CERT_CHAIN_PATH:}
+      # Controls whether a client verifies the server's certificate chain and host name.
+      insecure_skip_verify: ${SW_AGENT_REPORTER_GRPC_TLS_INSECURE_SKIP_VERIFY:false}
 
 log:
   # The type determines which logging type is currently used by the system.
@@ -48,8 +68,23 @@ log:
     enable: ${SW_AGENT_LOG_TRACING_ENABLE:true}
     # If tracing information is enabled, the tracing information would be stored in the current Key in each log.
     key: ${SW_AGENT_LOG_TRACING_KEY:SW_CTX}
+  reporter:
+    # Whether to upload logs to the backend.
+    enable: ${SW_AGENT_LOG_REPORTER_ENABLE:true}
+    # The fields name list that needs to added to the label of the log.(multiple split by ",")
+    label_keys: ${SW_AGENT_LOG_REPORTER_LABEL_KEYS:}
 
 plugin:
   # List the names of excluded plugins, multiple plugin names should be splitted by ","
   # NOTE: This parameter only takes effect during the compilation phase.
   excluded: ${SW_AGENT_PLUGIN_EXCLUDES:}
+  config:
+    http:
+      # Collect the parameters of the HTTP request on the server side
+      server_collect_parameters: ${SW_AGENT_PLUGIN_CONFIG_HTTP_SERVER_COLLECT_PARAMETERS:false}
+    mongo:
+      # Collect the statement of the MongoDB request
+      collect_statement: ${SW_AGENT_PLUGIN_CONFIG_MONGO_COLLECT_STATEMENT:false}
+    sql:
+      # Collect the parameter of the SQL request
+      collect_parameter: ${SW_AGENT_PLUGIN_CONFIG_SQL_COLLECT_PARAMETER:false}

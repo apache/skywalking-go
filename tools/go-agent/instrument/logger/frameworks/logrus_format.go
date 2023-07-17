@@ -18,6 +18,8 @@
 package frameworks
 
 import (
+	"fmt"
+
 	"github.com/sirupsen/logrus"
 )
 
@@ -39,8 +41,30 @@ func Wrap(base logrus.Formatter, contextKey string) *WrapFormat {
 
 // Format logging with trace context
 func (format *WrapFormat) Format(entry *logrus.Entry) ([]byte, error) {
+	var logContext fmt.Stringer
+	keys := LogReporterLabelKeys
+	if LogReporterEnable {
+		ctx := GetLogContext(true)
+		if ctx == nil {
+			return format.Base.Format(entry)
+		}
+		logContext = ctx
+		labels := make(map[string]string, len(keys))
+		for _, key := range keys {
+			for k, v := range entry.Data {
+				if k == key {
+					labels[key] = fmt.Sprintf("%v", v)
+				}
+			}
+		}
+		ReportLog(ctx, entry.Time, entry.Level.String(), entry.Message, labels)
+	}
 	// append trace context
-	entry.Data[format.traceContextKey] = GetLogContextString()
+	if logContext == nil {
+		entry.Data[format.traceContextKey] = GetLogContextString()
+	} else {
+		entry.Data[format.traceContextKey] = logContext.String()
+	}
 
 	return format.Base.Format(entry)
 }

@@ -30,4 +30,10 @@ var (
 
 	// DirecitveNoCopy is the directive for define current go file would not copy to the framework
 	DirecitveNoCopy = "//skywalking:nocopy"
+
+	// DirectiveConfig is the directive for define the config variable
+	DirectiveConfig = "//skywalking:config"
+
+	// DirectiveInit is the directive for define the init function after the agent initialized
+	DirectiveInit = "//skywalking:init"
 )

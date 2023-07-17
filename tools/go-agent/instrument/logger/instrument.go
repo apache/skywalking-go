@@ -187,13 +187,15 @@ func (i *Instrument) WriteExtraFiles(dir string) ([]string, error) {
 		return nil, err
 	}
 	files = append(files, generateExtraFiles...)
+	if i.packageConf.NeedsHelpers {
+		files = append(files, rewrite.NewFile(packageName, "skywalking_init.go",
+			i.generateInitLoggerFileContent(packageName)))
+	}
 	extraFiles, err := ctx.MultipleFilesWithWritten("skywalking_", dir, packageName, files)
 	if err != nil {
 		return nil, err
 	}
-	if i.packageConf.NeedsHelpers {
-		extraFiles = append(extraFiles, i.generateInitLoggerFile(dir, packageName))
-	}
+
 	return extraFiles, nil
 }
 
@@ -222,40 +224,72 @@ func (i *Instrument) writeDelegatorFile(pkgName string) (string, error) {
 	return tools.GenerateDSTFileContent(delegator, nil)
 }
 
-func (i *Instrument) generateInitLoggerFile(dir, pkgName string) string {
+func (i *Instrument) generateInitLoggerFileContent(pkgName string) string {
 	initTmpl, err := frameworks.FrameworkFS.ReadFile("templates/init.tmpl")
 	if err != nil {
 		panic(fmt.Sprintf("cannot found init template in logger framerwork: %v", err))
 	}
-	file, err := tools.WriteFile(dir, "skywalking_init.go", tools.ExecuteTemplate(string(initTmpl), struct {
-		PackageName                  string
-		GetGlobalOperatorLinkMethod  string
-		SetGlobalLoggerLinkMethod    string
-		OperatorTypeName             string
-		LogTypeInConfig              *config.Log
-		ConfigTypeAutomaticValue     string
-		CurrentLogTypeName           string
-		GetOperatorMethodName        string
-		ChangeLoggerMethodName       string
-		LogTracingEnableFuncName     string
-		LogTracingContextKeyFuncName string
-	}{
-		PackageName:                  pkgName,
-		GetGlobalOperatorLinkMethod:  consts.GlobalTracerGetMethodName,
-		SetGlobalLoggerLinkMethod:    consts.GlobalLoggerSetMethodName,
-		OperatorTypeName:             rewrite.TypePrefix + i.generatePackageNameWithTitle() + "Operator",
-		LogTypeInConfig:              &config.GetConfig().Log,
-		ConfigTypeAutomaticValue:     config.ConfigTypeAutomatic,
-		CurrentLogTypeName:           i.framework.Name(),
-		GetOperatorMethodName:        rewrite.VarPrefix + i.generatePackageNameWithTitle() + "GetOperator",
-		ChangeLoggerMethodName:       rewrite.VarPrefix + i.generatePackageNameWithTitle() + "ChangeLogger",
-		LogTracingEnableFuncName:     rewrite.StaticMethodPrefix + i.generatePackageNameWithTitle() + "LogTracingContextEnable",
-		LogTracingContextKeyFuncName: rewrite.StaticMethodPrefix + i.generatePackageNameWithTitle() + "LogTracingContextKey",
-	}))
-	if err != nil {
-		panic(fmt.Errorf("generate logger init file error: %v", err))
+
+	initFunctions := i.framework.InitFunctions()
+	initFuncNames := make([]string, 0)
+	for _, initFunc := range initFunctions {
+		initFuncNames = append(initFuncNames, initFunc.Name.Name)
 	}
-	return file
+	importsMap := make(map[string]string)
+	for _, imp := range i.framework.InitImports() {
+		name := filepath.Base(strings.TrimSuffix(imp.Path.Value, "\""))
+		if imp.Name != nil && imp.Name.Name != "" {
+			name = imp.Name.Name
+		}
+		importsMap[name] = imp.Path.Value
+	}
+	initDecls := tools.GoStringToDecls(tools.ExecuteTemplate(string(initTmpl), struct {
+		Imports                     map[string]string
+		NeedsVariables              bool
+		NeedsChangeLoggerFunc       bool
+		GetGlobalOperatorLinkMethod string
+		SetGlobalLoggerLinkMethod   string
+		OperatorTypeName            string
+		LogTypeInConfig             *config.Log
+		ConfigTypeAutomaticValue    string
+		CurrentLogTypeName          string
+		GetOperatorMethodName       string
+		ChangeLoggerMethodName      string
+		LogTracingEnableVarName     string
+		LogTracingContextKeyVarName string
+		LogReporterEnableVarName    string
+		LogReporterLabelsVarName    string
+		LogReportFuncName           string
+		InitFunctionNames           []string
+	}{
+		Imports:                     importsMap,
+		NeedsVariables:              i.packageConf.NeedsVariables,
+		NeedsChangeLoggerFunc:       i.packageConf.NeedsChangeLoggerFunc,
+		GetGlobalOperatorLinkMethod: consts.GlobalTracerGetMethodName,
+		SetGlobalLoggerLinkMethod:   consts.GlobalLoggerSetMethodName,
+		OperatorTypeName:            "Operator",
+		LogTypeInConfig:             &config.GetConfig().Log,
+		ConfigTypeAutomaticValue:    config.ConfigTypeAutomatic,
+		CurrentLogTypeName:          i.framework.Name(),
+		GetOperatorMethodName:       "GetOperator",
+		ChangeLoggerMethodName:      "ChangeLogger",
+		LogTracingEnableVarName:     "LogTracingContextEnable",
+		LogTracingContextKeyVarName: "LogTracingContextKey",
+		LogReporterEnableVarName:    "LogReporterEnable",
+		LogReporterLabelsVarName:    "LogReporterLabelKeys",
+		LogReportFuncName:           "ReportLog",
+		InitFunctionNames:           initFuncNames,
+	}))
+	for _, f := range initFunctions {
+		initDecls = append(initDecls, f)
+	}
+
+	f := &dst.File{Name: dst.NewIdent(pkgName), Decls: initDecls}
+	if c, err1 := tools.GenerateDSTFileContent(f, nil); err1 != nil {
+		panic(fmt.Errorf("generate logger init file error: %v", err))
+	} else {
+		return c
+	}
 }
 
 func (i *Instrument) generatePackageNameWithTitle() string {

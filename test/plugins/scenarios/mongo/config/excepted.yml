@@ -1,0 +1,123 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+segmentItems:
+- serviceName: mongo
+  segmentSize: ge 1
+  segments:
+  - segmentId: not null
+    spans:
+      - operationName: MongoDB/create
+        parentSpanId: 0
+        spanId: 1
+        spanLayer: Database
+        startTime: nq 0
+        endTime: nq 0
+        componentId: 42
+        isError: false
+        spanType: Exit
+        peer: mongo:27017
+        skipAnalysis: false
+        tags:
+          - {key: db.type, value: MongoDB}
+          - {key: db.statement, value: '{"create":"users","$db":"database"}'}
+      - operationName: MongoDB/insert
+        parentSpanId: 0
+        spanId: 2
+        spanLayer: Database
+        startTime: nq 0
+        endTime: nq 0
+        componentId: 42
+        isError: false
+        spanType: Exit
+        peer: mongo:27017
+        skipAnalysis: false
+        tags:
+          - {key: db.type, value: MongoDB}
+          - {key: db.statement, value: not null}
+      - operationName: MongoDB/find
+        parentSpanId: 0
+        spanId: 3
+        spanLayer: Database
+        startTime: nq 0
+        endTime: nq 0
+        componentId: 42
+        isError: false
+        spanType: Exit
+        peer: mongo:27017
+        skipAnalysis: false
+        tags:
+          - {key: db.type, value: MongoDB}
+          - {key: db.statement, value: '{"find":"users","filter":{"name":"Elza2"},"limit":{"$numberLong":"1"},"singleBatch":true,"$db":"database"}'}
+      - operationName: MongoDB/find
+        parentSpanId: 0
+        spanId: 4
+        spanLayer: Database
+        startTime: nq 0
+        endTime: nq 0
+        componentId: 42
+        isError: false
+        spanType: Exit
+        peer: mongo:27017
+        skipAnalysis: false
+        tags:
+          - {key: db.type, value: MongoDB}
+          - {key: db.statement, value: '{"find":"users","filter":{"name":"Elza2"},"limit":{"$numberLong":"1"},"singleBatch":true,"$db":"database"}'}
+      - operationName: MongoDB/update
+        parentSpanId: 0
+        spanId: 5
+        spanLayer: Database
+        startTime: nq 0
+        endTime: nq 0
+        componentId: 42
+        isError: false
+        spanType: Exit
+        peer: mongo:27017
+        skipAnalysis: false
+        tags:
+          - {key: db.type, value: MongoDB}
+          - {key: db.statement, value: not null}
+      - operationName: MongoDB/delete
+        parentSpanId: 0
+        spanId: 6
+        spanLayer: Database
+        startTime: nq 0
+        endTime: nq 0
+        componentId: 42
+        isError: false
+        spanType: Exit
+        peer: mongo:27017
+        skipAnalysis: false
+        tags:
+          - {key: db.type, value: MongoDB}
+          - {key: db.statement, value: '{"delete":"users","ordered":true,"$db":"database","deletes":[{"q":{"name":"Elza2"},"limit":{"$numberInt":"1"}}]}'}
+      - operationName: GET:/execute
+        parentSpanId: -1
+        spanId: 0
+        spanLayer: Http
+        startTime: nq 0
+        endTime: nq 0
+        componentId: 5004
+        isError: false
+        spanType: Entry
+        peer: ''
+        skipAnalysis: false
+        tags:
+          - {key: http.method, value: GET}
+          - {key: url, value: 'service:8080/execute'}
+          - {key: status_code, value: '200'}
+meterItems: []
+logItems: []

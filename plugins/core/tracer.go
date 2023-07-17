@@ -22,9 +22,12 @@ import (
 	defLog "log"
 	"os"
 	"reflect"
+	"sync"
 
 	"github.com/apache/skywalking-go/plugins/core/operator"
 	"github.com/apache/skywalking-go/plugins/core/reporter"
+
+	logv3 "skywalking.apache.org/repo/goapi/collect/logging/v3"
 )
 
 // nolint
@@ -46,9 +49,13 @@ type Tracer struct {
 	cdsWatchers []reporter.AgentConfigChangeWatcher
 	// for plugin tools
 	tools *TracerTools
+	// for all metrics
+	meterMap              *sync.Map
+	meterCollectListeners []func()
 }
 
-func (t *Tracer) Init(entity *reporter.Entity, rep reporter.Reporter, samp Sampler, logger operator.LogOperator) error {
+func (t *Tracer) Init(entity *reporter.Entity, rep reporter.Reporter, samp Sampler, logger operator.LogOperator,
+	meterCollectSecond int) error {
 	t.ServiceEntity = entity
 	t.Reporter = rep
 	t.Sampler = samp
@@ -57,6 +64,13 @@ func (t *Tracer) Init(entity *reporter.Entity, rep reporter.Reporter, samp Sampl
 	}
 	t.Reporter.Boot(entity, t.cdsWatchers)
 	t.initFlag = 1
+	t.initMetricsCollect(meterCollectSecond)
+	// notify the tracer been init success
+	if len(GetInitNotify()) > 0 {
+		for _, fun := range GetInitNotify() {
+			fun()
+		}
+	}
 	return nil
 }
 
@@ -95,6 +109,8 @@ func newTracer() *Tracer {
 		Log:         &LogWrapper{newDefaultLogger()},
 		cdsWatchers: make([]reporter.AgentConfigChangeWatcher, 0),
 		tools:       NewTracerTools(),
+
+		meterMap: &sync.Map{},
 	}
 }
 
@@ -114,7 +130,15 @@ func (e *emptyReporter) Boot(entity *reporter.Entity, cdsWatchers []reporter.Age
 }
 
 // nolint
-func (e *emptyReporter) Send(spans []reporter.ReportedSpan) {
+func (e *emptyReporter) SendTracing(spans []reporter.ReportedSpan) {
+}
+
+// nolint
+func (e *emptyReporter) SendMetrics(metrics []reporter.ReportedMeter) {
+}
+
+// nolint
+func (e *emptyReporter) SendLog(log *logv3.LogData) {
 }
 
 func (e *emptyReporter) ConnectionStatus() reporter.ConnectionStatus {

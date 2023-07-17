@@ -77,7 +77,19 @@ func DeletePackageImports(file dst.Node, imports ...string) {
 				return true
 			}
 			if _, ok := deletedPackages[pkgRefName.Name]; ok {
-				RemovePackageRef(cursor.Parent(), n)
+				RemovePackageRef(cursor.Parent(), n, -1)
+			}
+		case *dst.CaseClause:
+			for i, d := range n.List {
+				if sel, ok := d.(*dst.SelectorExpr); ok {
+					pkgRefName, ok := sel.X.(*dst.Ident)
+					if !ok {
+						return true
+					}
+					if _, ok := deletedPackages[pkgRefName.Name]; ok {
+						RemovePackageRef(n, sel, i)
+					}
+				}
 			}
 		}
 		return true
@@ -90,7 +102,7 @@ func DeletePackageImports(file dst.Node, imports ...string) {
 	}
 }
 
-func RemovePackageRef(parent dst.Node, current *dst.SelectorExpr) {
+func RemovePackageRef(parent dst.Node, current *dst.SelectorExpr, inx int) {
 	switch p := parent.(type) {
 	case *dst.Field:
 		p.Type = dst.NewIdent(current.Sel.Name)
@@ -110,6 +122,8 @@ func RemovePackageRef(parent dst.Node, current *dst.SelectorExpr) {
 		p.Value = dst.NewIdent(current.Sel.Name)
 	case *dst.AssignStmt:
 		p.Rhs = []dst.Expr{dst.NewIdent(current.Sel.Name)}
+	case *dst.CaseClause:
+		p.List[inx] = dst.NewIdent(current.Sel.Name)
 	}
 }
 

@@ -33,10 +33,18 @@ catalog:
           path: /en/advanced-features/logging-setup
         - name: Plugin Exclusion
           path: /en/advanced-features/plugin-exclusion
-    - name: Supported Libraries
-      path: /en/agent/support-plugins
-    - name: Performance Test
-      path: /en/agent/performance-tests
+        - name: Plugin Configuration
+          path: /en/agent/plugin-configurations
+        - name: Transport Layer Security (TLS)
+          path: /en/advanced-features/grpc-tls
+    - name: Plugins
+      catalog:
+        - name: Supported Libraries
+          path: /en/agent/support-plugins
+        - name: Tracing, Metrics and Logging
+          path: /en/agent/tracing-metrics-logging
+        - name: Go Agent Performance Test
+          path: /en/agent/performance-tests
     - name: Development and Contribution
       catalog:
         - name: Plugin Development Guild

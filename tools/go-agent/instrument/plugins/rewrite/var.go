@@ -28,8 +28,8 @@ func (c *Context) Var(val *dst.ValueSpec, onlyName bool) {
 		oldName := val.Names[0].Name
 		if !c.alreadyGenerated(oldName) {
 			val.Names[0] = dst.NewIdent(fmt.Sprintf("%s%s%s", VarPrefix, c.currentPackageTitle, oldName))
-			c.rewriteMapping.addVarMapping(oldName, val.Names[0].Name)
 		}
+		c.rewriteMapping.addVarMapping(oldName, val.Names[0].Name)
 	}
 	if onlyName {
 		return

@@ -24,6 +24,8 @@ var (
 	SetGLS            = func(interface{}) {}
 	SetGlobalOperator = func(interface{}) {}
 	GetGlobalOperator = func() interface{} { return nil }
+	GetInitNotify     = func() []func() { return nil }
+	MetricsObtain     = func() ([]interface{}, []func()) { return nil, nil }
 )
 
 type ContextSnapshoter interface {
@@ -88,5 +90,9 @@ func (r *RuntimeContext) Get(key string) interface{} {
 }
 
 func (r *RuntimeContext) Set(key string, value interface{}) {
+	if value == nil {
+		delete(r.data, key)
+		return
+	}
 	r.data[key] = value
 }

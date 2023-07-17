@@ -15,22 +15,46 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package rewrite
+package runtimemetrics
 
 import (
-	"github.com/apache/skywalking-go/tools/go-agent/instrument/consts"
+	"embed"
 
-	"github.com/dave/dst"
+	"github.com/apache/skywalking-go/plugins/core/instrument"
 )
 
-func ContainsPublicDirective(desc *dst.NodeDecs) bool {
-	if desc == nil {
-		return false
+//go:embed *
+var fs embed.FS
+
+//skywalking:nocopy
+type Instrument struct {
+}
+
+func NewInstrument() *Instrument {
+	return &Instrument{}
+}
+
+func (r *Instrument) Name() string {
+	return "runtimemetrics"
+}
+
+func (r *Instrument) BasePackage() string {
+	return "runtime/metrics"
+}
+
+func (r *Instrument) VersionChecker(version string) bool {
+	return true
+}
+
+func (r *Instrument) Points() []*instrument.Point {
+	return []*instrument.Point{
+		{
+			PackagePath: "",
+			At:          instrument.NewForceEnhance(),
+		},
 	}
-	for _, s := range desc.Start.All() {
-		if s == consts.DirectivePublic {
-			return true
-		}
-	}
-	return false
+}
+
+func (r *Instrument) FS() *embed.FS {
+	return &fs
 }

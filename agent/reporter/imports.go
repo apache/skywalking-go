@@ -20,10 +20,13 @@ package reporter
 import (
 	// imports required packages for gRPC reporter
 	_ "context"
+	_ "crypto/tls"
+	_ "crypto/x509"
 	_ "fmt"
 	_ "io"
 	_ "os"
 	_ "strconv"
+	_ "strings"
 	_ "time"
 
 	// imports the logs for reporter

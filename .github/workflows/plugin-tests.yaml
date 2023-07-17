@@ -77,7 +77,12 @@ jobs:
           - gorm
           - kratosv2
           - microv4
+          - mongo
+          - mysql
+          - zap
+          - logrus
           - plugin_exclusion
+          - runtime_metrics
     steps:
       - uses: actions/checkout@v2
         with:

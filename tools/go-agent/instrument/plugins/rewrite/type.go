@@ -20,6 +20,9 @@ package rewrite
 import (
 	"fmt"
 
+	"github.com/apache/skywalking-go/tools/go-agent/instrument/consts"
+	"github.com/apache/skywalking-go/tools/go-agent/tools"
+
 	"github.com/dave/dst"
 )
 
@@ -62,7 +65,7 @@ func (c *Context) Type(tp *dst.TypeSpec, parent dst.Node, onlyName bool) {
 
 func (c *Context) generateTypePrefix(parent dst.Node) string {
 	prefix := TypePrefix
-	if parent == nil || !ContainsPublicDirective(parent.Decorations()) {
+	if parent == nil || !tools.ContainsDirective(parent, consts.DirectivePublic) {
 		return prefix
 	}
 	return c.titleCase.String(TypePrefix)

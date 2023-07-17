@@ -246,6 +246,50 @@ place your interceptor code in the relative location within the plugin. **The Ag
 For example, if you want to intercept a method in `github.com/gin-gonic/gin/render`, create a **render** directory in the root of your plugin, and **put the interceptor inside it**. 
 This ensures that the interceptor is properly included during the copy operation and can be correctly applied to the target package.
 
+### Plugin Configuration
+
+Plugin configuration is used to add custom configuration parameters to a specified plugin. 
+When users specify configuration items, the plugin can dynamically adapt the content needed in the plugin according to the user's configuration items.
+
+#### Declaration
+
+Please declare the configuration file you need in the package you want to use. 
+Declare it using `var`, and add the `//skywalking:config` directive to specify that this variable requires dynamic updating.
+
+By default, the configuration item belongs to the configuration of the current plugin. 
+For example, if the name of my current plugin is `gin`, then this configuration item is under the `gin` plugin. 
+Of course, you can also change it to the `http` plugin to reference the configuration information of the relevant plugin, 
+in which case you need to specify it as `//skywalking:config http`.
+
+#### Item
+
+Each configuration item needs to add a `config` tag. This is used to specify the name of the current configuration content. 
+By default, it would lowercase all letters and add an `_` identifier before each uppercase letter.
+
+Currently, it supports basic data types and struct types, and it also supports obtaining data values through environment variables.
+
+#### Demo
+
+For example, I have declared the following configuration item:
+
+```go
+//skywalking:config http
+var config struct {
+    ServerCollectParameters bool `config:"server_collect_parameters"`
+	
+    Client struct{
+        CollectParameters bool `config:"collect_parameters"`
+    } `config:"client"`
+}
+```
+
+In the above example, I created a plugin configuration for `http`, which includes two configuration items.
+
+1. `config.ServerCollectParameters`: Its configuration is located at `http.server_collect_parameters`.
+2. `config.Client.CollectParameter`: Its configuration is located at `http.client.collect_parameter`.
+
+When the plugin needs to be used, it can be accessed directly by reading the config configuration.
+
 ## Agent API
 
 The Agent API is used when a method is intercepted and interacts with the Agent Core.
@@ -407,6 +451,87 @@ Typically, use APIs as following to control or switch the context:
 1. Use `tracing.CaptureContext()` to get the ContextSnapshot object.
 2. Propagate the snapshot context to any other goroutine in your plugin.
 3. Use `tracing.ContinueContext(snapshot)` to continue the snapshot context in the target goroutine.
+
+### Meter API
+
+The Meter API is used to record the metrics of the target program, and currently supports the following methods:
+
+```go
+// NewCounter creates a new counter metrics.
+// name is the name of the metrics
+// opts is the options for the metrics
+func NewCounter(name string, opts ...Opt) Counter
+
+// NewGauge creates a new gauge metrics.
+// name is the name of the metrics
+// getter is the function to get the value of the gauge meter
+// opts is the options for the metrics
+func NewGauge(name string, getter func() float64, opts ...Opt) Gauge
+
+// NewHistogram creates a new histogram metrics.
+// name is the name of the metrics
+// steps is the buckets of the histogram
+// opts is the options for the metrics
+func NewHistogram(name string, steps []float64, opts ...Opt) Histogram
+
+// NewHistogramWithMinValue creates a new histogram metrics.
+// name is the name of the metrics
+// minVal is the min value of the histogram bucket
+// steps is the buckets of the histogram
+// opts is the options for the metrics
+func NewHistogramWithMinValue(name string, minVal float64, steps []float64, opts ...Opt) Histogram
+
+// RegisterBeforeCollectHook registers a hook function which will be called before metrics collect.
+func RegisterBeforeCollectHook(f func())
+```
+
+#### Meter Option
+
+The Meter Options can be passed when creating a Meter to configure the information in the Meter.
+
+```go
+// WithLabel adds a label to the metrics.
+func WithLabel(key, value string) Opt
+```
+
+#### Meter Type
+
+##### Counter
+
+Counter is a cumulative metric that represents a single monotonically increasing counter whose value can only increase.
+
+```go
+type Counter interface {
+	// Get returns the current value of the counter.
+	Get() float64
+	// Inc increments the counter with value.
+	Inc(val float64)
+}
+```
+
+##### Gauge
+
+Gauge is a metric that represents a single numerical value that can arbitrarily go up and down.
+
+```go
+type Gauge interface {
+    // Get returns the current value of the gauge.
+    Get() float64
+}
+```
+
+##### Histogram
+
+Histogram is a metric that represents the distribution of a set of values.
+
+```go
+type Histogram interface {
+	// Observe find the value associate bucket and add 1.
+	Observe(val float64)
+	// ObserveWithCount find the value associate bucket and add specific count.
+	ObserveWithCount(val float64, count int64)
+}
+```
 
 ## Import Plugin
 

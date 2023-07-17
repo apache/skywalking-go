@@ -20,6 +20,7 @@ package reporter
 import (
 	commonv3 "skywalking.apache.org/repo/goapi/collect/common/v3"
 	agentv3 "skywalking.apache.org/repo/goapi/collect/language/agent/v3"
+	logv3 "skywalking.apache.org/repo/goapi/collect/logging/v3"
 )
 
 // Tag are supported by sky-walking engine.
@@ -62,6 +63,27 @@ type ReportedSpan interface {
 	ComponentID() int32
 }
 
+type ReportedMeter interface {
+	Name() string
+	Labels() map[string]string
+}
+
+type ReportedMeterSingleValue interface {
+	ReportedMeter
+	Value() float64
+}
+
+type ReportedMeterBucketValue interface {
+	Bucket() float64
+	Count() int64
+	IsNegativeInfinity() bool
+}
+
+type ReportedMeterHistogram interface {
+	ReportedMeter
+	BucketValues() []ReportedMeterBucketValue
+}
+
 type Entity struct {
 	ServiceName         string
 	ServiceInstanceName string
@@ -85,7 +107,9 @@ var (
 
 type Reporter interface {
 	Boot(entity *Entity, cdsWatchers []AgentConfigChangeWatcher)
-	Send(spans []ReportedSpan)
+	SendTracing(spans []ReportedSpan)
+	SendMetrics(metrics []ReportedMeter)
+	SendLog(log *logv3.LogData)
 	ConnectionStatus() ConnectionStatus
 	Close()
 }

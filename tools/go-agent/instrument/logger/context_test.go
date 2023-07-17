@@ -32,19 +32,32 @@ func init() {
 	}
 }
 
+type ExtractorWrapper struct {
+	F func(headerKey string) (string, error)
+}
+
+func (e *ExtractorWrapper) Fun() func(headerKey string) (string, error) {
+	return e.F
+}
+
 func TestGetLogContext(t *testing.T) {
 	serviceName := "test-service"
 	serviceInstanceName := "test-instance"
 	core.Tracing.ServiceEntity = &reporter.Entity{ServiceName: serviceName, ServiceInstanceName: serviceInstanceName}
-	s, err := core.Tracing.CreateLocalSpan("/test")
+	s, err := core.Tracing.CreateEntrySpan("/test", &ExtractorWrapper{
+		F: func(headerKey string) (string, error) {
+			return "", nil
+		},
+	})
 	assert.Nil(t, err, "err should be nil")
 	assert.NotNil(t, s, "span cannot be nil")
-	context := GetLogContext()
+	context := GetLogContext(true)
 	assert.NotNil(t, context, "context cannot be nil")
 	rootSpan, ok := s.(*core.RootSegmentSpan)
 	assert.True(t, ok, "span should be root span")
 	assert.Equal(t, serviceName, context.ServiceName, "service name should be equal")
 	assert.Equal(t, serviceInstanceName, serviceInstanceName, "service instance name should be equal")
+	assert.Equal(t, "/test", context.GetEndPointName(), "endpoint name should be equal")
 	assert.Equal(t, rootSpan.Context().GetTraceID(), context.TraceID, "trace id should be equal")
 	assert.Equal(t, rootSpan.Context().GetSegmentID(), context.TraceSegmentID, "trace segment id should be equal")
 	assert.Equal(t, rootSpan.Context().GetSpanID(), context.SpanID, "span id should be equal")

@@ -27,3 +27,7 @@ type LogOperator interface {
 	Error(args ...interface{})
 	Errorf(format string, args ...interface{})
 }
+
+type LogReporter interface {
+	ReportLog(ctx, time interface{}, level, msg string, labels map[string]string)
+}

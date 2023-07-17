@@ -191,3 +191,14 @@ func (ds *DefaultSpan) AsyncFinish() {
 	}
 	ds.AsyncModeFinished = true
 }
+
+func (ds *DefaultSpan) GetEndPointName() string {
+	if ds.SpanType == SpanTypeEntry {
+		return ds.OperationName
+	}
+	return ""
+}
+
+func (ds *DefaultSpan) GetParentSpan() interface{} {
+	return ds.Parent
+}

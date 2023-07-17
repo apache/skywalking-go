@@ -22,21 +22,45 @@ import (
 	"os"
 )
 
+var version string
+
 type EnhancementToolFlags struct {
-	Help   bool   `swflag:"-h"`
-	Debug  string `swflag:"-debug"`
-	Config string `swflag:"-config"`
+	Help        bool   `swflag:"-h"`
+	Debug       string `swflag:"-debug"`
+	Config      string `swflag:"-config"`
+	Inject      string `swflag:"-inject"`
+	AllProjects bool   `swflag:"-all"`
+	Version     bool   `swflag:"-version"`
 }
 
 func PrintUsageWithExit() {
 	fmt.Printf(`Usage: go {build,install} -a [-work] -toolexec "%s" PACKAGE...
 
-The Go-agent-enhance tool is designed for automatic enhancement of Golang programs, 
-providing the capability for Distribute Tracing.
+The Go-agent-enhance tool is designed for automatic enhancement of Golang programs, or inject the agent code into the project.
 
 Options:
 		-h
 				Print the usage message.
+		-inject
+				Inject the agent code into the project, the value is the path of the project or single file.
+		-all
+				Inject the agent code into all the project in the current directory.
+		-debug
+				Hepling to debug the enhance process, the value is the path of the debug file.
+		-config
+				The file path of the agent config file.
+		-version
+				Print current agent version.
 `, os.Args[0])
 	os.Exit(1)
+}
+
+func PrintVersion() {
+	res := version
+	if res == "" {
+		res = "unknown"
+	} else {
+		res = fmt.Sprintf("v%s", res)
+	}
+	fmt.Printf("skywalking-go agent version: %s\n", res)
 }

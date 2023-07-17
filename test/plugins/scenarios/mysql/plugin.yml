@@ -1,0 +1,54 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+entry-service: http://${HTTP_HOST}:${HTTP_PORT}/execute
+health-checker: http://${HTTP_HOST}:${HTTP_PORT}/health
+start-script: ./bin/startup.sh
+framework: github.com/go-sql-driver/mysql
+export-port: 8080
+support-version:
+  - go: 1.17
+    framework:
+      - v1.7.1
+  - go: 1.18
+    framework:
+      - v1.4.0
+      - v1.4.1
+      - v1.5.0
+      - v1.6.0
+      - v1.7.1
+  - go: 1.19
+    framework:
+      - v1.7.1
+  - go: 1.20
+    framework:
+      - v1.7.1
+dependencies:
+  mysql:
+    image: mysql:5.7
+    hostname: mysql-server
+    expose:
+      - "3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: "password"
+      MYSQL_USER: "user"
+      MYSQL_PASSWORD: "password"
+      MYSQL_DATABASE: "database"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 60s
+      retries: 120

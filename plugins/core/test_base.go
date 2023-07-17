@@ -18,8 +18,12 @@
 package core
 
 import (
+	"sync"
+
 	"github.com/apache/skywalking-go/plugins/core/operator"
 	"github.com/apache/skywalking-go/plugins/core/reporter"
+
+	logv3 "skywalking.apache.org/repo/goapi/collect/logging/v3"
 )
 
 var tlsData interface{}
@@ -42,7 +46,7 @@ func init() {
 func ResetTracingContext() {
 	SetGLS(nil)
 	Tracing = &Tracer{initFlag: 1, Sampler: NewConstSampler(true), Reporter: &StoreReporter{},
-		ServiceEntity: NewEntity("test", "test-instance")}
+		ServiceEntity: NewEntity("test", "test-instance"), meterMap: &sync.Map{}}
 	SetAsNewGoroutine()
 	ReportConnectionStatus = reporter.ConnectionStatusConnected
 }
@@ -62,7 +66,9 @@ func GetReportedSpans() []reporter.ReportedSpan {
 }
 
 type StoreReporter struct {
-	Spans []reporter.ReportedSpan
+	Spans   []reporter.ReportedSpan
+	Metrics []reporter.ReportedMeter
+	Logs    []*logv3.LogData
 }
 
 func NewStoreReporter() *StoreReporter {
@@ -72,8 +78,16 @@ func NewStoreReporter() *StoreReporter {
 func (r *StoreReporter) Boot(entity *reporter.Entity, cdsWatchers []reporter.AgentConfigChangeWatcher) {
 }
 
-func (r *StoreReporter) Send(spans []reporter.ReportedSpan) {
+func (r *StoreReporter) SendTracing(spans []reporter.ReportedSpan) {
 	r.Spans = append(r.Spans, spans...)
+}
+
+func (r *StoreReporter) SendMetrics(metrics []reporter.ReportedMeter) {
+	r.Metrics = append(r.Metrics, metrics...)
+}
+
+func (r *StoreReporter) SendLog(log *logv3.LogData) {
+	r.Logs = append(r.Logs, log)
 }
 
 func (r *StoreReporter) ConnectionStatus() reporter.ConnectionStatus {
