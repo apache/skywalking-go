@@ -20,6 +20,7 @@ package plugins
 import (
 	"github.com/apache/skywalking-go/plugins/core/instrument"
 	"github.com/apache/skywalking-go/plugins/dubbo"
+	echov4 "github.com/apache/skywalking-go/plugins/echov4"
 	"github.com/apache/skywalking-go/plugins/gin"
 	goredisv9 "github.com/apache/skywalking-go/plugins/go-redisv9"
 	"github.com/apache/skywalking-go/plugins/go-restfulv3"
@@ -47,6 +48,7 @@ func init() {
 	registerFramework(goredisv9.NewInstrument())
 	registerFramework(mongo.NewInstrument())
 	registerFramework(runtime_metrics.NewInstrument())
+	registerFramework(echov4.NewInstrument())
 
 	// gorm related instruments
 	registerFramework(gorm_entry.NewInstrument())
