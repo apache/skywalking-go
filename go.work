@@ -6,7 +6,7 @@ use (
 	// define the plugins
 	./plugins/core
 	./plugins/dubbo
-	./plugins/echov4
+	./plugins/echo
 	./plugins/gin
 	./plugins/go-redisv9
 	./plugins/go-restfulv3
@@ -25,7 +25,7 @@ use (
 
 	// define the plugin test scenarios
 	./test/plugins/scenarios/dubbo
-	./test/plugins/scenarios/echov4
+	./test/plugins/scenarios/echo
 	./test/plugins/scenarios/gin
 	./test/plugins/scenarios/go-redisv9
 	./test/plugins/scenarios/go-restfulv3

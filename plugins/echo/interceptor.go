@@ -35,9 +35,6 @@ func (h *Interceptor) BeforeInvoke(invocation operator.Invocation) error {
 
 // AfterInvoke would be called after the target method invocation.
 func (h *Interceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {
-	if len(result) != 1 {
-		return fmt.Errorf("echo.New :skywalking return result length not equal 1")
-	}
 	e, ok := result[0].(*echo.Echo)
 	if !ok {
 		return fmt.Errorf("echo :skywalking cannot create middleware for echo not match *Echo: %T", e)
@@ -58,7 +55,7 @@ func middleware() echo.MiddlewareFunc {
 				tracing.WithLayer(tracing.SpanLayerHTTP),
 				tracing.WithTag(tracing.TagHTTPMethod, request.Method),
 				tracing.WithTag(tracing.TagURL, request.Host+request.URL.Path),
-				tracing.WithComponent(5006))
+				tracing.WithComponent(5015))
 			if err != nil {
 				return err
 			}
