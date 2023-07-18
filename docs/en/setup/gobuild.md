@@ -21,7 +21,7 @@ Please execute the following command, which would automatically import SkyWalkin
 ```
 
 * `/path/to/agent` is the path to the agent which your downloaded.
-* `/path/to/your/project` is the home path to your project.
+* `/path/to/your/project` is the home path to your project, support absolute and related with current directory path.
 * `-all` is the parameter for injecting all submodules in your project.
 
 ### 2.2 Code Dependency
