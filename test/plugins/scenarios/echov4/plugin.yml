@@ -26,5 +26,5 @@ support-version:
       - v4.9.0
   - go: 1.18
     framework:
-      - v4.10.0
       - v4.10.2
+      - v4.11.1

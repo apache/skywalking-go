@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package echo
+package echov4
 
 import (
 	"embed"
@@ -55,7 +55,7 @@ func (i *Instrument) Points() []*instrument.Point {
 				instrument.WithResultCount(1),
 				instrument.WithResultType(0, "*Echo"),
 			),
-			Interceptor: "EchoInterceptor",
+			Interceptor: "Interceptor",
 		},
 	}
 }

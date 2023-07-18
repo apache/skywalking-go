@@ -1,4 +1,5 @@
 # Tracing Plugins
+
 The following plugins provide the distributed tracing capability, and the OAP backend would analyze the topology and
 metrics based on the tracing data.
 
@@ -6,6 +7,7 @@ metrics based on the tracing data.
   * `gin`: [Gin](https://github.com/gin-gonic/gin) tested v1.7.0 to v1.9.0.
   * `http`: [Native HTTP](https://pkg.go.dev/net/http) tested go v1.17 to go v1.20.
   * `go-restfulv3`: [Go-Restful](https://github.com/emicklei/go-restful) tested v3.7.1 to 3.10.2.
+  * `echo`: [Echo](https://github.com/labstack/echo) tested v4.8.0 to v4.11.1
 * HTTP Client
   * `http`: [Native HTTP](https://pkg.go.dev/net/http) tested go v1.17 to go v1.20.
 * RPC Frameworks
@@ -22,11 +24,13 @@ metrics based on the tracing data.
   * `go-redisv9`: [go-redis](https://github.com/redis/go-redis) tested v9.0.3 to v9.0.5.
 
 # Metrics Plugins
+
 The meter plugin provides the advanced metrics collections.
 
 * `runtimemetrics`: [Native Runtime Metrics](https://pkg.go.dev/runtime/metrics) tested go v1.17 to go v1.20.
 
 # Logging Plugins
+
 The logging plugin provides the advanced logging collections.
 
 * `logrus`: [Logrus](https://github.com/sirupsen/logrus) tested v1.8.2 to v1.9.3.
