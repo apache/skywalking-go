@@ -54,11 +54,15 @@ func InjectProject(flags *EnhancementToolFlags) error {
 	if version == "" {
 		return fmt.Errorf("version is empty, please use the release version of skywalking-go")
 	}
+	abs, err := filepath.Abs(flags.Inject)
+	if err != nil {
+		return err
+	}
 	injector := &projectInjector{}
 	if stat.IsDir() {
-		return injector.injectDir(flags.Inject, flags.AllProjects)
+		return injector.injectDir(abs, flags.AllProjects)
 	}
-	return injector.injectFile(flags.Inject)
+	return injector.injectFile(abs)
 }
 
 func (i *projectInjector) injectDir(path string, allProjects bool) error {
