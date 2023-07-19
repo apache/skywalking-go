@@ -13,6 +13,7 @@ Release Notes.
 * Support log reporter.
 * Enhance the `logrus` logger plugin to support adapt without any settings method invoke.
 * Disable sending observing data if the gRPC connection is not established for reducing the connection error log.
+* Support enhance vendor management project.
 
 #### Plugins
 * Support [go-redis](https://github.com/redis/go-redis) v9 redis client framework.

@@ -54,6 +54,9 @@ func Execute(opts *api.CompileOptions, args []string) ([]string, error) {
 		return args, nil
 	}
 
+	// remove the vendor directory to get the real package name
+	opts.Package = tools.UnVendor(opts.Package)
+
 	// init the logger for the instrument
 	loggerFile, err := initLogger(opts)
 	if err != nil {
