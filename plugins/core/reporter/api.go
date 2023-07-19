@@ -103,6 +103,7 @@ type ConnectionStatus int32
 var (
 	ConnectionStatusConnected  ConnectionStatus = 1
 	ConnectionStatusDisconnect ConnectionStatus = 2
+	ConnectionStatusShutdown   ConnectionStatus = 3
 )
 
 type Reporter interface {
