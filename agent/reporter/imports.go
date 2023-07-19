@@ -35,6 +35,7 @@ import (
 
 	// imports configuration and starter for gRPC
 	_ "google.golang.org/grpc"
+	_ "google.golang.org/grpc/backoff"
 	_ "google.golang.org/grpc/balancer"
 	_ "google.golang.org/grpc/balancer/grpclb"
 	_ "google.golang.org/grpc/balancer/roundrobin"
