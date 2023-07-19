@@ -16,7 +16,7 @@
 #
 
 github:
-  description: The Golang auto-instrument Agent for Apache SkyWalking, which provides the native tracing abilities for Golang projects.
+  description: The Golang auto-instrument Agent for Apache SkyWalking, which provides the native tracing/metrics/logging abilities for Golang projects.
   homepage: https://skywalking.apache.org/
   labels:
     - skywalking
