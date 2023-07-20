@@ -77,11 +77,11 @@ func NewMethodEnhance(inst instrument.Instrument, matcher *instrument.Point, f *
 		packageName:           pkgName,
 		InstrumentName:        inst.Name(),
 		InterceptorDefineName: matcher.Interceptor,
-		Parameters:            tools.EnhanceParameterNamesWithPackagePrefix(pkgName, f.Type.Params, false),
-		Results:               tools.EnhanceParameterNamesWithPackagePrefix(pkgName, f.Type.Results, true),
+		Parameters:            tools.EnhanceParameterNamesWithPackagePrefix(pkgName, f.Type.Params, tools.FieldListTypeParam),
+		Results:               tools.EnhanceParameterNamesWithPackagePrefix(pkgName, f.Type.Results, tools.FieldListTypeResult),
 	}
 	if f.Recv != nil {
-		enhance.Recvs = tools.EnhanceParameterNamesWithPackagePrefix(pkgName, f.Recv, false)
+		enhance.Recvs = tools.EnhanceParameterNamesWithPackagePrefix(pkgName, f.Recv, tools.FieldListTypeRecv)
 	}
 
 	importAnalyzer.AnalyzeNeedsImports(path, f.Type.Params)
