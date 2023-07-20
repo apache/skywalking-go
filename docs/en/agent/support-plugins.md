@@ -20,6 +20,8 @@ metrics based on the tracing data.
     * [MySQL Driver](https://github.com/go-sql-driver/mysql) tested v1.4.0 to v1.7.1.
 * Cache Client
   * `go-redisv9`: [go-redis](https://github.com/redis/go-redis) tested v9.0.3 to v9.0.5.
+* Lock Client
+  * `mutex`: [Native Mutex](https://pkg.go.dev/sync) tested go v1.17 to go v1.20.
 
 # Metrics Plugins
 The meter plugin provides the advanced metrics collections.

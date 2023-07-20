@@ -282,6 +282,20 @@ func (s *StringValue) GetListStringResult() []string {
 	return strings.Split(val, ",")
 }
 
+// GetListStringResultByLookup get the value from os.LookupEnv, if the env found, even it's empty
+func (s *StringValue) GetListStringResultByLookup() []string {
+	val := s.Default
+	if s.EnvKey != "" {
+		if envValue, existing := os.LookupEnv(s.EnvKey); existing {
+			val = envValue
+		}
+	}
+	if val == "" {
+		return nil
+	}
+	return strings.Split(val, ",")
+}
+
 func (s *StringValue) overwriteFrom(other *StringValue) {
 	if other.EnvKey != "" {
 		s.EnvKey = other.EnvKey

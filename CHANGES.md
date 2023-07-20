@@ -22,6 +22,7 @@ Release Notes.
 * Support [Native SQL](https://pkg.go.dev/net/http) database client framework with [MySQL Driver](github.com/go-sql-driver/mysql).
 * Support [Logrus](https://github.com/sirupsen/logrus) log report to the backend.
 * Support [Zap](https://github.com/uber-go/zap) log report to the backend.
+* Support [Native Mutex](https://pkg.go.dev/sync) lock client framework.
 
 #### Documentation
 * Combine `Supported Libraries` and `Performance Test` into `Plugins` section.

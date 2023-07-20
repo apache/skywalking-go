@@ -77,7 +77,7 @@ log:
 plugin:
   # List the names of excluded plugins, multiple plugin names should be splitted by ","
   # NOTE: This parameter only takes effect during the compilation phase.
-  excluded: ${SW_AGENT_PLUGIN_EXCLUDES:}
+  excluded: ${SW_AGENT_PLUGIN_EXCLUDES:mutex}
   config:
     http:
       # Collect the parameters of the HTTP request on the server side

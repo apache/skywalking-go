@@ -17,8 +17,10 @@
 # limitations under the License.
 
 home="$(cd "$(dirname $0)"; pwd)"
-export SW_AGENT_PLUGIN_EXCLUDES=http,mutex
 
-go build ${GO_BUILD_OPTS} -o gin
+export SW_AGENT_PLUGIN_EXCLUDES=""
+go build ${GO_BUILD_OPTS} -o http
 
-./gin
+export SW_AGENT_PLUGIN_CONFIG_HTTP_SERVER_COLLECT_PARAMETERS=true
+
+./http

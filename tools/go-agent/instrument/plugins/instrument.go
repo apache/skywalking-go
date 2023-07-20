@@ -89,7 +89,7 @@ func NewEnhanceInitFunction(funcName string, afterCoreInit bool) *EnhanceInitFun
 }
 
 func (i *Instrument) CouldHandle(opts *api.CompileOptions) bool {
-	excludePlugins := config.GetConfig().Plugin.Excluded.GetListStringResult()
+	excludePlugins := config.GetConfig().Plugin.Excluded.GetListStringResultByLookup()
 	excludePluginMap := make(map[string]bool, len(excludePlugins))
 	for _, v := range excludePlugins {
 		excludePluginMap[v] = true
