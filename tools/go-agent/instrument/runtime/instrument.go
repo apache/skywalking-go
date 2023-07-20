@@ -69,8 +69,8 @@ func (r *Instrument) FilterAndEdit(path string, curFile *dst.File, cursor *dstut
 		if len(n.Type.Params.List) != 3 {
 			return false
 		}
-		parameters := tools.EnhanceParameterNames(n.Type.Params, false)
-		results := tools.EnhanceParameterNames(n.Type.Results, true)
+		parameters := tools.EnhanceParameterNames(n.Type.Params, tools.FieldListTypeParam)
+		results := tools.EnhanceParameterNames(n.Type.Results, tools.FieldListTypeResult)
 
 		tools.InsertStmtsBeforeBody(n.Body, `defer func() {
 	{{(index .Results 0).Name}}.{{.TLSField}} = goroutineChange({{(index .Parameters 1).Name}}.{{.TLSField}})

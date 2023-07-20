@@ -42,16 +42,41 @@ type PackagedParameterInfo struct {
 	PackageName string
 }
 
+type FieldListType int
+
+const (
+	FieldListTypeParam FieldListType = iota
+	FieldListTypeResult
+	FieldListTypeRecv
+)
+
+func (f FieldListType) String() string {
+	switch f {
+	case FieldListTypeRecv:
+		return "recv"
+	case FieldListTypeParam:
+		return "param"
+	case FieldListTypeResult:
+		return "result"
+	}
+	return ""
+}
+
 // EnhanceParameterNames enhance the parameter names if they are missing
-func EnhanceParameterNames(fields *dst.FieldList, isResult bool) []*ParameterInfo {
+func EnhanceParameterNames(fields *dst.FieldList, fieldType FieldListType) []*ParameterInfo {
 	if fields == nil {
 		return nil
 	}
 	result := make([]*ParameterInfo, 0)
 	for i, f := range fields.List {
-		defineName := fmt.Sprintf("skywalking_param_%d", i)
-		if isResult {
+		var defineName string
+		switch fieldType {
+		case FieldListTypeParam:
+			defineName = fmt.Sprintf("skywalking_param_%d", i)
+		case FieldListTypeResult:
 			defineName = fmt.Sprintf("skywalking_result_%d", i)
+		case FieldListTypeRecv:
+			defineName = fmt.Sprintf("skywalking_recv_%d", i)
 		}
 		if len(f.Names) == 0 {
 			f.Names = []*dst.Ident{{Name: defineName}}
@@ -73,8 +98,8 @@ func EnhanceParameterNames(fields *dst.FieldList, isResult bool) []*ParameterInf
 	return result
 }
 
-func EnhanceParameterNamesWithPackagePrefix(pkg string, fields *dst.FieldList, isResult bool) []*PackagedParameterInfo {
-	params := EnhanceParameterNames(fields, isResult)
+func EnhanceParameterNamesWithPackagePrefix(pkg string, fields *dst.FieldList, fieldListType FieldListType) []*PackagedParameterInfo {
+	params := EnhanceParameterNames(fields, fieldListType)
 	result := make([]*PackagedParameterInfo, 0)
 	for _, p := range params {
 		result = append(result, &PackagedParameterInfo{ParameterInfo: *p, PackageName: pkg})
