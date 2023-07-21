@@ -22,7 +22,7 @@ import (
 	"github.com/apache/skywalking-go/plugins/core/tracing"
 )
 
-var componentID int32 = 5999
+var componentID int32 = 5016
 
 var lockingIsExecutingKey = "lockingIsExecuting"
 
