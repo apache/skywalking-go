@@ -150,8 +150,8 @@ func (z *Zap) CustomizedEnhance(path string, curFile *dst.File, cursor *dstutil.
 			n.Name.Name == "check" &&
 			n.Type.Results != nil && len(n.Type.Results.List) > 0 &&
 			tools.GenerateTypeNameByExp(n.Type.Results.List[0].Type) == "*zapcore.CheckedEntry" {
-			entryName := tools.EnhanceParameterNames(n.Type.Results, true)[0].Name
-			recvName := tools.EnhanceParameterNames(n.Recv, true)[0].Name
+			entryName := tools.EnhanceParameterNames(n.Type.Results, tools.FieldListTypeResult)[0].Name
+			recvName := tools.EnhanceParameterNames(n.Recv, tools.FieldListTypeRecv)[0].Name
 
 			// init the zapcore variables
 			z.initFunction = tools.GoStringToDecls(fmt.Sprintf(`func initZapCore() {
@@ -171,9 +171,9 @@ zapcore.SWLogEnable = %s
 		if n.Recv != nil && len(n.Recv.List) == 1 && n.Name.Name == "With" &&
 			n.Type.Params != nil && len(n.Type.Params.List) == 1 &&
 			tools.GenerateTypeNameByExp(n.Recv.List[0].Type) == "*Logger" && tools.GenerateTypeNameByExp(n.Type.Params.List[0].Type) == "[]Field" {
-			recvs := tools.EnhanceParameterNames(n.Recv, false)
-			parameters := tools.EnhanceParameterNames(n.Type.Params, false)
-			results := tools.EnhanceParameterNames(n.Type.Results, true)
+			recvs := tools.EnhanceParameterNames(n.Recv, tools.FieldListTypeRecv)
+			parameters := tools.EnhanceParameterNames(n.Type.Params, tools.FieldListTypeParam)
+			results := tools.EnhanceParameterNames(n.Type.Results, tools.FieldListTypeResult)
 
 			return z.enhanceMethod(n, fmt.Sprintf(`defer func() {if %s != nil { %s.SWFields = %sZap%s(%s, %s.SWFields) }}()`,
 				results[0].Name, results[0].Name, rewrite.StaticMethodPrefix, "KnownFieldFilter", parameters[0].Name, recvs[0].Name)), true
@@ -184,8 +184,8 @@ zapcore.SWLogEnable = %s
 			n.Name.Name == "Write" &&
 			n.Type.Params != nil && len(n.Type.Params.List) == 1 &&
 			tools.GenerateTypeNameByExp(n.Type.Params.List[0].Type) == "[]Field" {
-			recvs := tools.EnhanceParameterNames(n.Recv, false)
-			parameters := tools.EnhanceParameterNames(n.Type.Params, false)
+			recvs := tools.EnhanceParameterNames(n.Recv, tools.FieldListTypeRecv)
+			parameters := tools.EnhanceParameterNames(n.Type.Params, tools.FieldListTypeParam)
 			return z.enhanceMethod(n, fmt.Sprintf(`if %s != nil { %s = %sZapcore%s(%s, %s, %s.SWFields, %s.SWContext, %s.SWContextField, SWReporterEnable, SWLogEnable, SWReporterLabelKeys) }`,
 				recvs[0].Name, parameters[0].Name, rewrite.StaticMethodPrefix, "ReportLogFromZapEntry", recvs[0].Name,
 				parameters[0].Name, recvs[0].Name, recvs[0].Name, recvs[0].Name)), true

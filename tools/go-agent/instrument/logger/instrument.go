@@ -117,9 +117,9 @@ func (i *Instrument) addAutomaticBindFunc(path string, curFile dst.Node, fun *ds
 		Results               []*tools.ParameterInfo
 	}{
 		AutomaticBindFuncName: generateFuncName,
-		Recvs:                 tools.EnhanceParameterNames(fun.Recv, false),
-		Parameters:            tools.EnhanceParameterNames(fun.Type.Params, false),
-		Results:               tools.EnhanceParameterNames(fun.Type.Results, true),
+		Recvs:                 tools.EnhanceParameterNames(fun.Recv, tools.FieldListTypeRecv),
+		Parameters:            tools.EnhanceParameterNames(fun.Type.Params, tools.FieldListTypeParam),
+		Results:               tools.EnhanceParameterNames(fun.Type.Results, tools.FieldListTypeResult),
 	})
 	importAnalyzer.AnalyzeNeedsImports(path, fun.Recv)
 	importAnalyzer.AnalyzeNeedsImports(path, fun.Type.Params)
@@ -307,14 +307,14 @@ func (i *Instrument) addAutomaticFuncDelegators(f *dst.File, importDecl *dst.Gen
 			},
 		}
 
-		for i, recv := range tools.EnhanceParameterNamesWithPackagePrefix(packageName, fun.Func.Recv, false) {
+		for i, recv := range tools.EnhanceParameterNamesWithPackagePrefix(packageName, fun.Func.Recv, tools.FieldListTypeRecv) {
 			delegatorFunc.Type.Params.List = append(delegatorFunc.Type.Params.List, &dst.Field{
 				Names: []*dst.Ident{dst.NewIdent(fmt.Sprintf("recv_%d", i))},
 				Type:  &dst.StarExpr{X: recv.PackagedType()},
 			})
 		}
 
-		for i, parameter := range tools.EnhanceParameterNamesWithPackagePrefix(packageName, fun.Func.Type.Params, false) {
+		for i, parameter := range tools.EnhanceParameterNamesWithPackagePrefix(packageName, fun.Func.Type.Params, tools.FieldListTypeParam) {
 			packagedType := parameter.PackagedType()
 			// if the parameter is dynamic list, then change it to the array type
 			if el, ok := packagedType.(*dst.Ellipsis); ok {
@@ -326,7 +326,7 @@ func (i *Instrument) addAutomaticFuncDelegators(f *dst.File, importDecl *dst.Gen
 			})
 		}
 
-		for i, result := range tools.EnhanceParameterNamesWithPackagePrefix(packageName, fun.Func.Type.Results, true) {
+		for i, result := range tools.EnhanceParameterNamesWithPackagePrefix(packageName, fun.Func.Type.Results, tools.FieldListTypeResult) {
 			delegatorFunc.Type.Params.List = append(delegatorFunc.Type.Params.List, &dst.Field{
 				Names: []*dst.Ident{dst.NewIdent(fmt.Sprintf("ret_%d", i))},
 				Type:  &dst.StarExpr{X: result.PackagedType()},
