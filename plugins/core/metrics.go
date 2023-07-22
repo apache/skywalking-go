@@ -27,6 +27,18 @@ import (
 	"github.com/apache/skywalking-go/plugins/core/reporter"
 )
 
+var durationHistogramSteps = []float64{
+	0, 1, 3, 5, 7, 9, 10, 13, 17, 22, 28, 35, 43, 52, 62, 73, 85, 98, 112, 127, 143, 160, 178, 200, 223, 247, 273, 300,
+	400, 500, 600, 700, 800, 900, 1000, 1200, 1400, 1600, 2000, 3000, 5000, 10000, 20000, 30000, 40000, 50000, 60000,
+	70000, 80000, 90000, 100000, 200000, 300000, 400000, 500000, 600000, 700000, 800000, 900000, 1000000, 2000000,
+	3000000, 4000000, 5000000, 6000000, 7000000, 8000000, 9000000, 10000000, 13000000, 16000000, 19000000, 22000000,
+	25000000, 28000000, 31000000, 34000000, 37000000, 40000000, 43000000, 46000000, 49000000, 52000000, 55000000,
+	60000000, 70000000, 80000000, 90000000, 100000000, 120000000, 140000000, 160000000, 180000000, 200000000,
+	250000000, 300000000, 350000000, 400000000, 450000000, 500000000, 550000000, 600000000, 650000000, 700000000,
+	750000000, 800000000, 850000000, 900000000, 950000000, 1000000000, 1100000000, 1200000000, 1300000000,
+	1400000000, 1500000000, 1600000000, 1700000000, 1800000000, 1900000000, 2000000000, 2500000000, 3000000000,
+}
+
 func (t *Tracer) Metrics() interface{} {
 	return t
 }
@@ -62,6 +74,10 @@ func (t *Tracer) reachNotInitMetrics() {
 			histogram := newHistogramFromExistingBuckets(m.Name(), m.Labels(), m.Buckets())
 			m.ChangeFunctions(histogram.Observe, histogram.ObserveWithCount)
 			t.registerMetrics(m.Name(), m.Labels(), histogram)
+		case NoInitTimer:
+			timer := newTimer(m.NamePrefix(), m.Labels())
+			m.ChangeFunction(timer.Start)
+			timer.registerToTracer(t)
 		}
 	}
 	for _, hook := range hooks {
@@ -112,6 +128,16 @@ func (t *Tracer) NewHistogram(name string, minValue float64, steps []float64, op
 	}
 	t.registerMetrics(name, histogram.labels, histogram)
 	return histogram
+}
+
+func (t *Tracer) NewTimer(namePrefix string, opts interface{}) interface{} {
+	var labels map[string]string
+	if o, ok := opts.(meterOpts); ok && o != nil {
+		labels = o.GetLabels()
+	}
+	timer := newTimer(namePrefix, labels)
+	timer.registerToTracer(t)
+	return timer
 }
 
 func (t *Tracer) AddCollectHook(f func()) {
@@ -351,6 +377,62 @@ func (h *histogramBucket) IsNegativeInfinity() bool {
 	return false
 }
 
+type timerImpl struct {
+	// for calculating avg duration
+	totalCounter    *counterImpl
+	durationCounter *counterImpl
+
+	// for calculating duration histogram
+	durationHistogram *histogramImpl
+}
+
+type timerSampleImpl struct {
+	timer *timerImpl
+	start time.Time
+	end   *time.Time
+}
+
+func newTimer(namePrefix string, labels map[string]string) *timerImpl {
+	return &timerImpl{
+		totalCounter:    newCounter(namePrefix+"_total", labels, 0),
+		durationCounter: newCounter(namePrefix+"_duration", labels, 0),
+		durationHistogram: newHistogramFromSteps(namePrefix+"_duration_histogram", labels,
+			0, durationHistogramSteps),
+	}
+}
+
+func (t *timerImpl) registerToTracer(tracer *Tracer) {
+	tracer.registerMetrics(t.totalCounter.name, t.totalCounter.labels, t.totalCounter)
+	tracer.registerMetrics(t.durationCounter.name, t.durationCounter.labels, t.durationCounter)
+	tracer.registerMetrics(t.durationHistogram.name, t.durationHistogram.labels, t.durationHistogram)
+}
+
+func (t *timerImpl) Start() interface{} {
+	return &timerSampleImpl{
+		timer: t,
+		start: time.Now(),
+	}
+}
+
+func (t *timerSampleImpl) Stop() {
+	now := time.Now()
+	t.end = &now
+
+	// appending to the metrics
+	usedDuration := float64(t.Duration())
+	timer := t.timer
+	timer.totalCounter.Inc(1)
+	timer.durationCounter.Inc(usedDuration)
+	timer.durationHistogram.Observe(usedDuration)
+}
+
+func (t *timerSampleImpl) Duration() int64 {
+	if t.end == nil {
+		return 0
+	}
+	return t.end.Sub(t.start).Nanoseconds()
+}
+
 type NoInitCounter interface {
 	Name() string
 	Labels() map[string]string
@@ -374,4 +456,10 @@ type NoInitHistogram interface {
 type NoInitHistogramBucket interface {
 	Bucket() float64
 	Value() *int64
+}
+
+type NoInitTimer interface {
+	NamePrefix() string
+	Labels() map[string]string
+	ChangeFunction(startTimer func() interface{})
 }

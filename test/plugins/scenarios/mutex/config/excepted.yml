@@ -89,5 +89,16 @@ segmentItems:
               - { key: url, value: 'service:8080/consumer' }
               - { key: http.params, value: '' }
               - { key: status_code, value: '200' }
-meterItems: []
+meterItems:
+  - serviceName: mutex
+    meterSize: ge 9
+    meters:
+      - meterId:
+          name: instance_golang_mutex_use_time_duration
+          tags: []
+        singleValue: gt 1
+      - meterId:
+          name: instance_golang_mutex_acquisition_duration
+          tags: []
+        singleValue: gt 1
 logItems: []

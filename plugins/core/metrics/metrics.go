@@ -51,6 +51,18 @@ type Histogram interface {
 	ObserveWithCount(val float64, count int64)
 }
 
+type Timer interface {
+	// Start starts the timer sampler.
+	Start() TimerSample
+}
+
+type TimerSample interface {
+	// Stop the sample
+	Stop()
+	// Duration returns the duration(nanosecond) of the sample after execute Stop
+	Duration() int64
+}
+
 // NewCounter creates a new counter metrics.
 // name is the name of the metrics
 // opts is the options for the metrics
@@ -114,6 +126,25 @@ func NewHistogramWithMinValue(name string, minVal float64, steps []float64, opts
 		o(opt)
 	}
 	return op.Metrics().(operator.MetricsOperator).NewHistogram(name, minVal, steps, opt).(Histogram)
+}
+
+// NewTimer create a timer metric that can generate a sample and calculate the metrics between the start time and end time.
+// namePrefix is the name prefix of the metrics
+// opts is the options for the metrics
+func NewTimer(namePrefix string, opts ...Opt) Timer {
+	op := operator.GetOperator()
+	if op == nil {
+		timer := NewDefaultTimer(namePrefix, opts...)
+		operator.MetricsAppender(timer)
+		return timer
+	}
+
+	opt := newMeterOpts()
+	for _, o := range opts {
+		o(opt)
+	}
+	timer := op.Metrics().(operator.MetricsOperator).NewTimer(namePrefix, opt).(agentTimer)
+	return NewAgentCoreTimer(timer)
 }
 
 // RegisterBeforeCollectHook registers a hook function which will be called before metrics collect.

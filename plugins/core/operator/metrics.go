@@ -21,5 +21,6 @@ type MetricsOperator interface {
 	NewCounter(name string, opts interface{}) interface{}
 	NewGauge(name string, getter func() float64, opts interface{}) interface{}
 	NewHistogram(name string, minValue float64, steps []float64, opts interface{}) interface{}
+	NewTimer(namePrefix string, opts interface{}) interface{}
 	AddCollectHook(func())
 }

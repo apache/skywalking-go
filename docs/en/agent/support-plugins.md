@@ -27,6 +27,7 @@ metrics based on the tracing data.
 The meter plugin provides the advanced metrics collections.
 
 * `runtimemetrics`: [Native Runtime Metrics](https://pkg.go.dev/runtime/metrics) tested go v1.17 to go v1.20.
+* `mutex`: [Native Mutex](https://pkg.go.dev/sync) tested go v1.17 to go v1.20.
 
 # Logging Plugins
 The logging plugin provides the advanced logging collections.

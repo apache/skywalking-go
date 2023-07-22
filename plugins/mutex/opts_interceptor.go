@@ -21,143 +21,137 @@ import (
 	"github.com/apache/skywalking-go/plugins/core/operator"
 )
 
-var tryLockResult = "lock.result"
-
 type LockInterceptor struct {
 }
 
 func (h *LockInterceptor) BeforeInvoke(invocation operator.Invocation) error {
-	return BeforeInvoke(invocation, "Mutex/Lock")
+	return LockBeforeInvoke(invocation, "Mutex/Lock")
 }
 
 func (h *LockInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {
-	return AfterInvoke(invocation)
+	return LockAfterInvoke(invocation)
 }
 
 type TryLockInterceptor struct {
 }
 
 func (h *TryLockInterceptor) BeforeInvoke(invocation operator.Invocation) error {
-	return BeforeInvoke(invocation, "Mutex/TryLock")
+	return TryLockBeforeInvoke(invocation, "Mutex/TryLock")
 }
 
 func (h *TryLockInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {
-	return AfterInvokeWithTag(invocation, tryLockResult, getTryResultTagValue(result))
+	return TryLockAfterInvoke(invocation)
 }
 
 type UnLockInterceptor struct {
 }
 
 func (h *UnLockInterceptor) BeforeInvoke(invocation operator.Invocation) error {
-	return BeforeInvoke(invocation, "Mutex/UnLock")
+	return UnlockBeforeInvoke(invocation, "Mutex/UnLock")
 }
 
 func (h *UnLockInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {
-	return AfterInvoke(invocation)
+	return UnlockAfterInvoke(invocation)
 }
 
 type RWRLockInterceptor struct {
 }
 
 func (h *RWRLockInterceptor) BeforeInvoke(invocation operator.Invocation) error {
-	return BeforeInvoke(invocation, "RWMutex/RLock")
+	return LockBeforeInvoke(invocation, "RWMutex/RLock")
 }
 
 func (h *RWRLockInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {
-	return AfterInvoke(invocation)
+	return LockAfterInvoke(invocation)
 }
 
 type RWRTryLockInterceptor struct {
 }
 
 func (h *RWRTryLockInterceptor) BeforeInvoke(invocation operator.Invocation) error {
-	return BeforeInvoke(invocation, "RWMutex/RTryLock")
+	return TryLockBeforeInvoke(invocation, "RWMutex/RTryLock")
 }
 
 func (h *RWRTryLockInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {
-	return AfterInvokeWithTag(invocation, tryLockResult, getTryResultTagValue(result))
+	return TryLockAfterInvoke(invocation)
 }
 
 type RWRUnLockInterceptor struct {
 }
 
 func (h *RWRUnLockInterceptor) BeforeInvoke(invocation operator.Invocation) error {
-	return BeforeInvoke(invocation, "RWMutex/RUnLock")
+	return UnlockBeforeInvoke(invocation, "RWMutex/RUnLock")
 }
 
 func (h *RWRUnLockInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {
-	return AfterInvoke(invocation)
+	return UnlockAfterInvoke(invocation)
 }
 
 type RWLockInterceptor struct {
 }
 
 func (h *RWLockInterceptor) BeforeInvoke(invocation operator.Invocation) error {
-	return BeforeInvoke(invocation, "RWMutex/Lock")
+	return LockBeforeInvoke(invocation, "RWMutex/Lock")
 }
 
 func (h *RWLockInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {
-	return AfterInvoke(invocation)
+	return LockAfterInvoke(invocation)
 }
 
 type RWTryLockInterceptor struct {
 }
 
 func (h *RWTryLockInterceptor) BeforeInvoke(invocation operator.Invocation) error {
-	return BeforeInvoke(invocation, "RWMutex/TryLock")
+	return TryLockBeforeInvoke(invocation, "RWMutex/TryLock")
 }
 
 func (h *RWTryLockInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {
-	return AfterInvokeWithTag(invocation, tryLockResult, getTryResultTagValue(result))
+	return TryLockAfterInvoke(invocation)
 }
 
 type RWUnLockInterceptor struct {
 }
 
 func (h *RWUnLockInterceptor) BeforeInvoke(invocation operator.Invocation) error {
-	return BeforeInvoke(invocation, "RWMutex/UnLock")
+	return UnlockBeforeInvoke(invocation, "RWMutex/UnLock")
 }
 
 func (h *RWUnLockInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {
-	return AfterInvoke(invocation)
+	return UnlockAfterInvoke(invocation)
 }
 
 type WaitGroupAddInterceptor struct {
 }
 
 func (h *WaitGroupAddInterceptor) BeforeInvoke(invocation operator.Invocation) error {
-	return BeforeInvoke(invocation, "WaitGroup/Add")
+	_, err := BaseBeforeInvoke(invocation, "WaitGroup/Add")
+	return err
 }
 
 func (h *WaitGroupAddInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {
-	return AfterInvoke(invocation)
+	return BaseAfterInvoke(invocation)
 }
 
 type WaitGroupDoneInterceptor struct {
 }
 
 func (h *WaitGroupDoneInterceptor) BeforeInvoke(invocation operator.Invocation) error {
-	return BeforeInvoke(invocation, "WaitGroup/Done")
+	_, err := BaseBeforeInvoke(invocation, "WaitGroup/Done")
+	return err
 }
 
 func (h *WaitGroupDoneInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {
-	return AfterInvoke(invocation)
+	return BaseAfterInvoke(invocation)
 }
 
 type WaitGroupWaitInterceptor struct {
 }
 
 func (h *WaitGroupWaitInterceptor) BeforeInvoke(invocation operator.Invocation) error {
-	return BeforeInvoke(invocation, "WaitGroup/Wait")
+	_, err := BaseBeforeInvoke(invocation, "WaitGroup/Wait")
+	return err
 }
 
 func (h *WaitGroupWaitInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {
-	return AfterInvoke(invocation)
-}
-
-func getTryResultTagValue(result []interface{}) string {
-	if b, ok := result[0].(bool); ok && b {
-		return "true"
-	}
-	return "false"
+	return BaseAfterInvoke(invocation)
 }

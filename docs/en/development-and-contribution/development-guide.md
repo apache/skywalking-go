@@ -481,6 +481,11 @@ func NewHistogram(name string, steps []float64, opts ...Opt) Histogram
 // opts is the options for the metrics
 func NewHistogramWithMinValue(name string, minVal float64, steps []float64, opts ...Opt) Histogram
 
+// NewTimer create a timer metric that can generate a sample and calculate the metrics between the start time and end time.
+// namePrefix is the name prefix of the metrics
+// opts is the options for the metrics
+func NewTimer(namePrefix string, opts ...Opt) Timer
+
 // RegisterBeforeCollectHook registers a hook function which will be called before metrics collect.
 func RegisterBeforeCollectHook(f func())
 ```
@@ -530,6 +535,24 @@ type Histogram interface {
 	Observe(val float64)
 	// ObserveWithCount find the value associate bucket and add specific count.
 	ObserveWithCount(val float64, count int64)
+}
+```
+
+#### Timer
+
+Timer is a metric that calculates the metrics between the start time and end time.
+
+```go
+type Timer interface {
+	// Start starts the timer sampler.
+	Start() TimerSample
+}
+
+type TimerSample interface {
+    // Stop the sample
+    Stop()
+    // Duration returns the duration(nanosecond) of the sample after execute Stop
+    Duration() int64
 }
 ```
 

@@ -68,6 +68,8 @@ func consumerHandler(w http.ResponseWriter, r *http.Request) {
 		time.Sleep(time.Millisecond * 5)
 	}
 
+	// make sure the metrics been sent
+	time.Sleep(2 * time.Second)
 	w.Write([]byte("ok"))
 }
 

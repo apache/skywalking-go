@@ -21,8 +21,8 @@ func newMeterOpts() *Opts {
 	return &Opts{labels: make(map[string]string)}
 }
 
-func (b *Opts) GetLabels() map[string]string {
-	return b.labels
+func (o *Opts) GetLabels() map[string]string {
+	return o.labels
 }
 
 type counterImpl struct {
@@ -226,4 +226,63 @@ func (h *histogramBucket) Bucket() float64 {
 
 func (h *histogramBucket) Value() *int64 {
 	return h.val
+}
+
+type timerImpl struct {
+	namePrefix string
+	labels     map[string]string
+	startFunc  func() TimerSample
+}
+
+type timerSampleImpl struct {
+	// empty implementation for sample(because no time package import)
+}
+
+func (t *timerSampleImpl) Stop() {
+}
+
+func (t *timerSampleImpl) Duration() int64 {
+	return 0
+}
+
+func NewDefaultTimer(namePrefix string, opt ...Opt) Timer {
+	opts := newMeterOpts()
+	for _, o := range opt {
+		o(opts)
+	}
+	result := &timerImpl{namePrefix: namePrefix, labels: opts.labels}
+	result.startFunc = func() TimerSample {
+		return &timerSampleImpl{}
+	}
+	return result
+}
+
+func NewAgentCoreTimer(timer agentTimer) Timer {
+	return &timerImpl{
+		startFunc: func() TimerSample {
+			return timer.Start().(TimerSample)
+		},
+	}
+}
+
+func (t *timerImpl) Start() TimerSample {
+	return t.startFunc()
+}
+
+func (t *timerImpl) NamePrefix() string {
+	return t.namePrefix
+}
+
+func (t *timerImpl) Labels() map[string]string {
+	return t.labels
+}
+
+func (t *timerImpl) ChangeFunction(startTimer func() interface{}) {
+	t.startFunc = func() TimerSample {
+		return startTimer().(TimerSample)
+	}
+}
+
+type agentTimer interface {
+	Start() interface{}
 }
