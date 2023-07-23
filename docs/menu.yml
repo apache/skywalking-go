@@ -25,7 +25,7 @@ catalog:
           path: /en/concepts-and-designs/project-structure
     - name: Setup
       catalog:
-        - name: VM
+        - name: Quick Start
           path: /en/setup/gobuild
         - name: Docker
           path: /en/setup/docker
