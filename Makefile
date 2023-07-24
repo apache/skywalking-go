@@ -31,6 +31,10 @@ LINT_FILE_PATH = $(REPODIR).golangci.yml
 
 SHELL = /bin/bash
 
+HUB ?= docker.io/apache
+PROJECT ?= skywalking-go
+VERSION ?= $(shell git rev-parse --short HEAD)
+
 deps:
 	$(GO_GET) -v -t -d ./...
 
@@ -91,3 +95,35 @@ build:
 release:
 	/bin/sh tools/release/create_bin_release.sh
 	/bin/sh tools/release/create_source_release.sh
+
+base.all := go1.16 go1.17 go1.18 go1.19 go1.20
+base.each = $(word 1, $@)
+
+base.image.go1.16 := golang:1.16
+base.image.go1.17 := golang:1.17
+base.image.go1.18 := golang:1.18
+base.image.go1.19 := golang:1.19
+base.image.go1.20 := golang:1.20
+
+docker.%: PLATFORMS =
+docker.%: LOAD_OR_PUSH = --load
+docker.push.%: PLATFORMS = --platform linux/amd64,linux/arm64
+docker.push.%: LOAD_OR_PUSH = --push
+
+.PHONY: $(base.all)
+$(base.all:%=docker.%): BASE_IMAGE=$($(base.each:docker.%=base.image.%))
+$(base.all:%=docker.%): FINAL_TAG=$(VERSION)-$(base.each:docker.%=%)
+$(base.all:%=docker.push.%): BASE_IMAGE=$($(base.each:docker.push.%=base.image.%))
+$(base.all:%=docker.push.%): FINAL_TAG=$(VERSION)-$(base.each:docker.push.%=%)
+$(base.all:%=docker.%) $(base.all:%=docker.push.%):
+	docker buildx create --use --driver docker-container --name skywalking_go > /dev/null 2>&1 || true
+	docker build $(PLATFORMS) $(LOAD_OR_PUSH) \
+        --no-cache \
+        --build-arg "BASE_GO_IMAGE=$(BASE_IMAGE)" \
+        --build-arg "VERSION=$(VERSION)" \
+        . -t $(HUB)/$(PROJECT):$(FINAL_TAG)
+	docker buildx rm skywalking_go || true
+
+.PHONY: docker docker.push
+docker: $(base.all:%=docker.%)
+docker.push: $(base.all:%=docker.push.%)
