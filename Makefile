@@ -117,7 +117,7 @@ $(base.all:%=docker.push.%): BASE_IMAGE=$($(base.each:docker.push.%=base.image.%
 $(base.all:%=docker.push.%): FINAL_TAG=$(VERSION)-$(base.each:docker.push.%=%)
 $(base.all:%=docker.%) $(base.all:%=docker.push.%):
 	docker buildx create --use --driver docker-container --name skywalking_go > /dev/null 2>&1 || true
-	docker build $(PLATFORMS) $(LOAD_OR_PUSH) \
+	docker buildx build $(PLATFORMS) $(LOAD_OR_PUSH) \
         --no-cache \
         --build-arg "BASE_GO_IMAGE=$(BASE_IMAGE)" \
         --build-arg "VERSION=$(VERSION)" \
