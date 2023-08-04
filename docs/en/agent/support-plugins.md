@@ -6,6 +6,7 @@ metrics based on the tracing data.
   * `gin`: [Gin](https://github.com/gin-gonic/gin) tested v1.7.0 to v1.9.0.
   * `http`: [Native HTTP](https://pkg.go.dev/net/http) tested go v1.17 to go v1.20.
   * `go-restfulv3`: [Go-Restful](https://github.com/emicklei/go-restful) tested v3.7.1 to 3.10.2.
+  * `mux`: [Mux](https://github.com/gorilla/mux) tested v1.7.0 to v1.8.0.
 * HTTP Client
   * `http`: [Native HTTP](https://pkg.go.dev/net/http) tested go v1.17 to go v1.20.
 * RPC Frameworks

@@ -23,16 +23,18 @@ segmentItems:
           - operationName: /helloworld.Greeter/SayHello
             parentSpanId: -1
             spanId: 0
-            spanLayer: RPCFramework
+            spanLayer: Http
             startTime: nq 0
             endTime: nq 0
-            componentId: 5010
+            componentId: 5017
             isError: false
             spanType: Entry
             peer: ''
             skipAnalysis: false
             tags:
-              - {key: transport, value: HTTP}
+              - { key: http.method, value: GET }
+              - { key: url, value: 'localhost:8000/helloworld/test' }
+              - {key: status_code, value: '200'}
             refs:
               - {parentEndpoint: 'GET:/consumer', networkAddress: 'localhost:8000', refType: CrossProcess,
                  parentSpanId: 1, parentTraceSegmentId: not null, parentServiceInstance: not null,
