@@ -39,3 +39,9 @@ func TestContainsMainPackage(t *testing.T) {
 	assert.Nil(t, err, "should not return an error")
 	assert.True(t, mainPackage, "should contain main package")
 }
+
+func TestGithubSHA(t *testing.T) {
+	assert.True(t, gitSHARegex.MatchString("f7a33a6d91a74a3e8b524f9395b0457ea64c02b8"), "should be GitHub SHA")
+	assert.True(t, gitSHARegex.MatchString("f7a33a6"), "should be GitHub short SHA")
+	assert.False(t, gitSHARegex.MatchString("0.1.0"), "should not be GitHub SHA")
+}
