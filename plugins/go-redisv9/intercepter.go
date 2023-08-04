@@ -46,7 +46,7 @@ func (g *GoRedisInterceptor) AfterInvoke(invocation operator.Invocation, result 
 		})
 	case *redis.Ring:
 		c.OnNewNode(func(rdb *redis.Client) {
-			rdb.AddHook(newRedisHook(rdb.Options().Addr))
+			rdb.AddHook(newRedisHook(rdb.String()))
 		})
 	default:
 		return fmt.Errorf("go-redis :skyWalking cannot create hook for the unsupported client type: %T", c)
