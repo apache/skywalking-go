@@ -19,9 +19,7 @@ package goredisv9
 
 import (
 	"fmt"
-
 	"github.com/apache/skywalking-go/plugins/core/operator"
-
 	redis "github.com/redis/go-redis/v9"
 )
 
@@ -44,14 +42,10 @@ func (g *GoRedisInterceptor) AfterInvoke(invocation operator.Invocation, result 
 	case *redis.Client:
 		c.AddHook(newRedisHook(c.Options().Addr))
 	case *redis.ClusterClient:
-		c.AddHook(newRedisHook(""))
-
 		c.OnNewNode(func(rdb *redis.Client) {
-			rdb.AddHook(newRedisHook(rdb.Options().Addr))
+			rdb.AddHook(newRedisHook(rdb.String()))
 		})
 	case *redis.Ring:
-		c.AddHook(newRedisHook(""))
-
 		c.OnNewNode(func(rdb *redis.Client) {
 			rdb.AddHook(newRedisHook(rdb.Options().Addr))
 		})
