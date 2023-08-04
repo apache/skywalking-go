@@ -50,7 +50,7 @@ func (r *redisHook) DialHook(next redis.DialHook) redis.DialHook {
 			GoRedisCacheType+"/"+"dial",
 
 			// peer
-			r.Addr,
+			addr,
 
 			// injector
 			func(k, v string) error {

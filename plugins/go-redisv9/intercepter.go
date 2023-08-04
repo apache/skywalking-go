@@ -37,7 +37,6 @@ func (g *GoRedisInterceptor) AfterInvoke(invocation operator.Invocation, result 
 	if !ok {
 		return fmt.Errorf("go-redis :skyWalking cannot create hook for client not match UniversalClient: %T", rdb)
 	}
-
 	switch c := rdb.(type) {
 	case *redis.Client:
 		c.AddHook(newRedisHook(c.Options().Addr))
