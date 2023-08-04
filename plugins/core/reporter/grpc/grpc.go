@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/backoff"
 	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
@@ -66,7 +67,15 @@ func NewGRPCReporter(logger operator.LogOperator, serverAddr string, opts ...Rep
 		credsDialOption = grpc.WithTransportCredentials(insecure.NewCredentials())
 	}
 
-	conn, err := grpc.Dial(serverAddr, credsDialOption)
+	conn, err := grpc.Dial(serverAddr, credsDialOption, grpc.WithConnectParams(grpc.ConnectParams{
+		// update the max backoff delay interval
+		Backoff: backoff.Config{
+			BaseDelay:  1.0 * time.Second,
+			Multiplier: 1.6,
+			Jitter:     0.2,
+			MaxDelay:   r.checkInterval,
+		},
+	}))
 	if err != nil {
 		return nil, err
 	}
@@ -289,6 +298,7 @@ func (r *gRPCReporter) closeGRPCConn() {
 	}
 }
 
+//nolint
 func (r *gRPCReporter) initSendPipeline() {
 	if r.traceClient == nil {
 		return
@@ -296,6 +306,14 @@ func (r *gRPCReporter) initSendPipeline() {
 	go func() {
 	StreamLoop:
 		for {
+			switch r.updateConnectionStatus() {
+			case reporter.ConnectionStatusShutdown:
+				break
+			case reporter.ConnectionStatusDisconnect:
+				time.Sleep(5 * time.Second)
+				continue StreamLoop
+			}
+
 			stream, err := r.traceClient.Collect(metadata.NewOutgoingContext(context.Background(), r.md))
 			if err != nil {
 				r.logger.Errorf("open stream error %v", err)
@@ -318,6 +336,14 @@ func (r *gRPCReporter) initSendPipeline() {
 	go func() {
 	StreamLoop:
 		for {
+			switch r.updateConnectionStatus() {
+			case reporter.ConnectionStatusShutdown:
+				break
+			case reporter.ConnectionStatusDisconnect:
+				time.Sleep(5 * time.Second)
+				continue StreamLoop
+			}
+
 			stream, err := r.metricsClient.CollectBatch(metadata.NewOutgoingContext(context.Background(), r.md))
 			if err != nil {
 				r.logger.Errorf("open stream error %v", err)
@@ -341,6 +367,14 @@ func (r *gRPCReporter) initSendPipeline() {
 	go func() {
 	StreamLoop:
 		for {
+			switch r.updateConnectionStatus() {
+			case reporter.ConnectionStatusShutdown:
+				break
+			case reporter.ConnectionStatusDisconnect:
+				time.Sleep(5 * time.Second)
+				continue StreamLoop
+			}
+
 			stream, err := r.logClient.Collect(metadata.NewOutgoingContext(context.Background(), r.md))
 			if err != nil {
 				r.logger.Errorf("open stream error %v", err)
@@ -361,6 +395,19 @@ func (r *gRPCReporter) initSendPipeline() {
 	}()
 }
 
+func (r *gRPCReporter) updateConnectionStatus() reporter.ConnectionStatus {
+	state := r.conn.GetState()
+	switch state {
+	case connectivity.TransientFailure:
+		r.connectionStatus = reporter.ConnectionStatusDisconnect
+	case connectivity.Shutdown:
+		r.connectionStatus = reporter.ConnectionStatusShutdown
+	default:
+		r.connectionStatus = reporter.ConnectionStatusConnected
+	}
+	return r.connectionStatus
+}
+
 func (r *gRPCReporter) initCDS(cdsWatchers []reporter.AgentConfigChangeWatcher) {
 	if r.cdsClient == nil {
 		return
@@ -372,8 +419,12 @@ func (r *gRPCReporter) initCDS(cdsWatchers []reporter.AgentConfigChangeWatcher) 
 	// fetch config
 	go func() {
 		for {
-			if r.conn.GetState() == connectivity.Shutdown {
+			switch r.updateConnectionStatus() {
+			case reporter.ConnectionStatusShutdown:
 				break
+			case reporter.ConnectionStatusDisconnect:
+				time.Sleep(r.cdsInterval)
+				continue
 			}
 
 			configurations, err := r.cdsClient.FetchConfigurations(context.Background(), &configuration.ConfigurationSyncRequest{
@@ -434,14 +485,12 @@ func (r *gRPCReporter) check() {
 	go func() {
 		instancePropertiesSubmitted := false
 		for {
-			state := r.conn.GetState()
-			if state == connectivity.Shutdown {
+			switch r.updateConnectionStatus() {
+			case reporter.ConnectionStatusShutdown:
 				break
-			}
-			if state == connectivity.TransientFailure {
-				r.connectionStatus = reporter.ConnectionStatusDisconnect
-			} else {
-				r.connectionStatus = reporter.ConnectionStatusConnected
+			case reporter.ConnectionStatusDisconnect:
+				time.Sleep(r.checkInterval)
+				continue
 			}
 
 			if !instancePropertiesSubmitted {

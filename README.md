@@ -3,7 +3,7 @@ Apache SkyWalking Go
 
 <img src="http://skywalking.apache.org/images/skywalking-go.png" alt="SkyWalking Go logo" height="180px" align="right" />
 
-**SkyWalking Go**: The Golang auto-instrument Agent for Apache SkyWalking, which provides the native tracing abilities for Golang projects.
+**SkyWalking Go**: The Golang auto-instrument Agent for Apache SkyWalking, which provides the native tracing/metrics/logging abilities for Golang projects.
 
 [![GitHub stars](https://img.shields.io/github/stars/apache/skywalking-go.svg?style=for-the-badge&label=Stars&logo=github)](https://github.com/apache/skywalking)
 [![Twitter Follow](https://img.shields.io/twitter/follow/asfskywalking.svg?style=for-the-badge&label=Follow&logo=twitter)](https://twitter.com/AsfSkyWalking)

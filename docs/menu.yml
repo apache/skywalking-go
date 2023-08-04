@@ -24,7 +24,12 @@ catalog:
         - name: Project Structure
           path: /en/concepts-and-designs/project-structure
     - name: Setup
-      path: /en/setup/gobuild
+      catalog:
+        - name: Quick Start
+          path: /en/setup/gobuild
+        - name: Docker
+          path: /en/setup/docker
+      path:
     - name: Advanced Features
       catalog:
         - name: Setting Override
