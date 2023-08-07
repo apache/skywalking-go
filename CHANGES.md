@@ -8,6 +8,7 @@ Release Notes.
 
 #### Plugins
 * Support [mux](https://github.com/gorilla/mux) HTTP server framework.
+* Support [grpc](https://github.com/grpc/grpc-go) Unary server and client framework
 
 #### Documentation
 

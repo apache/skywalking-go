@@ -13,6 +13,7 @@ metrics based on the tracing data.
   * `dubbo`: [Dubbo](https://github.com/apache/dubbo-go) tested v3.0.1 to v3.0.5.
   * `kratosv2`: [Kratos](https://github.com/go-kratos/kratos) tested v2.3.1 to v2.6.2.
   * `microv4`: [Go-Micro](https://github.com/go-micro/go-micro) tested v4.6.0 to v4.10.2.
+  * `grpc` : [gRPC](https://github.com/grpc/grpc-go) tested v1.55.0 to v1.57.0.
 * Database Client
   * `gorm`: [GORM](https://github.com/go-gorm/gorm) tested v1.22.0 to v1.25.1.
     * [MySQL Driver](https://github.com/go-gorm/mysql)
