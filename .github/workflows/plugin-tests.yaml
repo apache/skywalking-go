@@ -83,6 +83,8 @@ jobs:
           - logrus
           - plugin_exclusion
           - runtime_metrics
+          - mux
+          - grpc
     steps:
       - uses: actions/checkout@v2
         with:

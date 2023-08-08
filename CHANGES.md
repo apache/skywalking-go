@@ -2,6 +2,22 @@ Changes by Version
 ==================
 Release Notes.
 
+0.3.0
+------------------
+#### Features
+
+#### Plugins
+* Support [mux](https://github.com/gorilla/mux) HTTP server framework.
+* Support [grpc](https://github.com/grpc/grpc-go) Unary server and client framework
+
+#### Documentation
+
+#### Bug Fixes
+
+#### Issues and PR
+- All issues are [here](https://github.com/apache/skywalking/milestone/189?closed=1)
+- All and pull requests are [here](https://github.com/apache/skywalking-go/milestone/3?closed=1)
+
 0.2.0
 ------------------
 #### Features
