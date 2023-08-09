@@ -82,7 +82,7 @@ func (r *redisHook) ProcessHook(next redis.ProcessHook) redis.ProcessHook {
 	return func(ctx context.Context, cmd redis.Cmder) error {
 		s, err := tracing.CreateExitSpan(
 			// operationName
-			GoRedisCacheType+"/"+cmd.FullName(),
+			GoRedisCacheType+"/"+strings.ReplaceAll(cmd.FullName(), " ", "/"),
 
 			// peer
 			r.Addr,

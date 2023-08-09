@@ -58,7 +58,7 @@ segmentItems:
               - { key: cache.args, value: 'command: map[]' }
       - segmentId: not null
         spans:
-          - operationName: redis/cluster slots
+          - operationName: redis/cluster/slots
             parentSpanId: -1
             spanId: 0
             spanLayer: Cache
@@ -94,23 +94,6 @@ segmentItems:
               - { key: cache.cmd, value: ping }
               - { key: cache.key, value: '' }
               - { key: cache.args, value: not null }
-      - segmentId: not null
-        spans:
-          - operationName: GET:/health
-            parentSpanId: -1
-            spanId: 0
-            spanLayer: Http
-            startTime: nq 0
-            endTime: nq 0
-            componentId: 5004
-            isError: false
-            spanType: Entry
-            peer: ''
-            skipAnalysis: false
-            tags:
-              - { key: http.method, value: GET }
-              - { key: url, value: 'service:8080/health' }
-              - { key: status_code, value: '200' }
       - segmentId: not null
         spans:
           - operationName: redis/set
