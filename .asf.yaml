@@ -24,6 +24,10 @@ github:
     - apm
     - distributed-tracing
     - dapper
+    - metrics
+    - logging
+    - agent
+    - auto-instrumentation
   enabled_merge_buttons:
     squash:  true
     merge:   false
