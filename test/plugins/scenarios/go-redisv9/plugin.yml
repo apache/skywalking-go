@@ -44,9 +44,9 @@ dependencies:
     image: docker.io/bitnami/redis-cluster:7.0
     hostname: redis-server
     environment:
-      ALLOW_EMPTY_PASSWORD: yes
+      ALLOW_EMPTY_PASSWORD: 'yes'
       REDIS_CLUSTER_REPLICAS: 0
-      REDIS_CLUSTER_CREATOR: yes
+      REDIS_CLUSTER_CREATOR: 'yes'
       REDIS_NODES: redis-cluster-server redis-cluster-server redis-cluster-server
       REDIS_PORT_NUMBER: 7001
     ports:
