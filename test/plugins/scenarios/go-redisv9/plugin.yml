@@ -23,10 +23,10 @@ support-version:
   - go: 1.17
     framework:
       - v9.0.3
-#  - go: 1.18
-#    framework:
-#      - v9.0.4
-#      - v9.0.5
+  - go: 1.18
+    framework:
+      - v9.0.4
+      - v9.0.5
 dependencies:
   redis-single-server:
     image: redis:6.2
