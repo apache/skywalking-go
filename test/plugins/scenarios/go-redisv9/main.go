@@ -112,10 +112,6 @@ func main() {
 
 	http.HandleFunc("/execute", executeHandler)
 
-	http.HandleFunc("/health", func(writer http.ResponseWriter, request *http.Request) {
-		writer.WriteHeader(http.StatusOK)
-	})
-
 	_ = http.ListenAndServe(":8080", nil)
 }
 
