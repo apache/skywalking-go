@@ -20,6 +20,99 @@ segmentItems:
     segments:
       - segmentId: not null
         spans:
+          - operationName: redis/ping
+            parentSpanId: -1
+            spanId: 0
+            spanLayer: Cache
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 5014
+            isError: false
+            spanType: Exit
+            peer: redis-server:6379
+            skipAnalysis: false
+            tags:
+              - { key: cache.type, value: redis }
+              - { key: cache.op, value: '' }
+              - { key: cache.cmd, value: ping }
+              - { key: cache.key, value: '' }
+              - { key: cache.args, value: not null }
+      - segmentId: not null
+        spans:
+          - operationName: redis/command
+            parentSpanId: -1
+            spanId: 0
+            spanLayer: Cache
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 5014
+            isError: false
+            spanType: Exit
+            peer: redis-server:7001
+            skipAnalysis: false
+            tags:
+              - { key: cache.type, value: redis }
+              - { key: cache.op, value: '' }
+              - { key: cache.cmd, value: command }
+              - { key: cache.key, value: '' }
+              - { key: cache.args, value: 'command: map[]' }
+      - segmentId: not null
+        spans:
+          - operationName: redis/cluster slots
+            parentSpanId: -1
+            spanId: 0
+            spanLayer: Cache
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 5014
+            isError: false
+            spanType: Exit
+            peer: redis-server:7001
+            skipAnalysis: false
+            tags:
+              - { key: cache.type, value: redis }
+              - { key: cache.op, value: '' }
+              - { key: cache.cmd, value: cluster slots }
+              - { key: cache.key, value: slots }
+              - { key: cache.args, value: 'cluster slots: []' }
+      - segmentId: not null
+        spans:
+          - operationName: redis/ping
+            parentSpanId: -1
+            spanId: 0
+            spanLayer: Cache
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 5014
+            isError: false
+            spanType: Exit
+            peer: not null
+            skipAnalysis: false
+            tags:
+              - { key: cache.type, value: redis }
+              - { key: cache.op, value: '' }
+              - { key: cache.cmd, value: ping }
+              - { key: cache.key, value: '' }
+              - { key: cache.args, value: not null }
+      - segmentId: not null
+        spans:
+          - operationName: GET:/health
+            parentSpanId: -1
+            spanId: 0
+            spanLayer: Http
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 5004
+            isError: false
+            spanType: Entry
+            peer: ''
+            skipAnalysis: false
+            tags:
+              - { key: http.method, value: GET }
+              - { key: url, value: 'service:8080/health' }
+              - { key: status_code, value: '200' }
+      - segmentId: not null
+        spans:
           - operationName: redis/set
             parentSpanId: 0
             spanId: 1
@@ -32,11 +125,11 @@ segmentItems:
             peer: redis-server:6379
             skipAnalysis: false
             tags:
-              - {key: cache.type, value: redis}
-              - {key: cache.op, value: write}
-              - {key: cache.cmd, value: set}
-              - {key: cache.key, value: key_TestSetAndGet}
-              - {key: cache.args, value: not null}
+              - { key: cache.type, value: redis }
+              - { key: cache.op, value: write }
+              - { key: cache.cmd, value: set }
+              - { key: cache.key, value: key_TestSetAndGet }
+              - { key: cache.args, value: not null }
           - operationName: redis/get
             parentSpanId: 0
             spanId: 2
@@ -49,11 +142,11 @@ segmentItems:
             peer: redis-server:6379
             skipAnalysis: false
             tags:
-              - {key: cache.type, value: redis}
-              - { key: cache.op, value: read}
-              - { key: cache.cmd, value: get}
-              - {key: cache.key, value: key_TestSetAndGet}
-              - { key: cache.args, value: not null}
+              - { key: cache.type, value: redis }
+              - { key: cache.op, value: read }
+              - { key: cache.cmd, value: get }
+              - { key: cache.key, value: key_TestSetAndGet }
+              - { key: cache.args, value: not null }
           - operationName: redis/pipeline
             parentSpanId: 0
             spanId: 3
@@ -66,8 +159,8 @@ segmentItems:
             peer: redis-server:6379
             skipAnalysis: false
             tags:
-              - {key: cache.type, value: redis}
-              - {key: cache.cmd, value: 'pipeline:set/set'}
+              - { key: cache.type, value: redis }
+              - { key: cache.cmd, value: 'pipeline:set/set' }
           - operationName: redis/pipeline
             parentSpanId: 0
             spanId: 4
@@ -80,8 +173,42 @@ segmentItems:
             peer: redis-server:6379
             skipAnalysis: false
             tags:
-              - {key: cache.type, value: redis}
-              - {key: cache.cmd, value: 'pipeline:get/get'}
+              - { key: cache.type, value: redis }
+              - { key: cache.cmd, value: 'pipeline:get/get' }
+          - operationName: redis/set
+            parentSpanId: 0
+            spanId: 5
+            spanLayer: Cache
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 5014
+            isError: false
+            spanType: Exit
+            peer: not null
+            skipAnalysis: false
+            tags:
+              - { key: cache.type, value: redis }
+              - { key: cache.op, value: write }
+              - { key: cache.cmd, value: set }
+              - { key: cache.key, value: key_TestSetAndGet }
+              - { key: cache.args, value: not null }
+          - operationName: redis/get
+            parentSpanId: 0
+            spanId: 6
+            spanLayer: Cache
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 5014
+            isError: false
+            spanType: Exit
+            peer: not null
+            skipAnalysis: false
+            tags:
+              - { key: cache.type, value: redis }
+              - { key: cache.op, value: read }
+              - { key: cache.cmd, value: get }
+              - { key: cache.key, value: key_TestSetAndGet }
+              - { key: cache.args, value: not null }
           - operationName: GET:/execute
             parentSpanId: -1
             spanId: 0
@@ -94,8 +221,40 @@ segmentItems:
             peer: ''
             skipAnalysis: false
             tags:
-              - {key: http.method, value: GET}
-              - {key: url, value: 'service:8080/execute'}
-              - {key: status_code, value: '200'}
+              - { key: http.method, value: GET }
+              - { key: url, value: 'service:8080/execute' }
+              - { key: status_code, value: '200' }
+      - segmentId: not null
+        spans:
+          - operationName: redis/pipeline
+            parentSpanId: -1
+            spanId: 0
+            spanLayer: Cache
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 5014
+            isError: false
+            spanType: Exit
+            peer: not null
+            skipAnalysis: false
+            tags:
+              - { key: cache.type, value: redis }
+              - { key: cache.cmd, value: 'pipeline:set/set' }
+      - segmentId: not null
+        spans:
+          - operationName: redis/pipeline
+            parentSpanId: -1
+            spanId: 0
+            spanLayer: Cache
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 5014
+            isError: false
+            spanType: Exit
+            peer: not null
+            skipAnalysis: false
+            tags:
+              - { key: cache.type, value: redis }
+              - { key: cache.cmd, value: 'pipeline:get/get' }
 meterItems: []
 logItems: []
