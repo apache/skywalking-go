@@ -22,6 +22,7 @@ GO_PATH = $$($(GO) env GOPATH)
 GO_BUILD = $(GO) build
 GO_GET = $(GO) get
 GO_LINT = $(GO_PATH)/bin/golangci-lint
+GO_LINT_VERSION ?= v1.54.0
 
 GO_TEST = $(GO) test
 GO_TEST_LDFLAGS =
@@ -39,7 +40,7 @@ deps:
 	$(GO_GET) -v -t -d ./...
 
 linter:
-	$(GO_LINT) version || curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GO_PATH)/bin v1.50.0
+	$(GO_LINT) version || curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/$(GO_LINT_VERSION)/install.sh | sh -s -- -b $(GO_PATH)/bin $(GO_LINT_VERSION)
 
 .PHONY: test
 test:
@@ -127,3 +128,11 @@ $(base.all:%=docker.%) $(base.all:%=docker.push.%):
 .PHONY: docker docker.push
 docker: $(base.all:%=docker.%)
 docker.push: $(base.all:%=docker.push.%)
+
+.PHONY: gomodtidy
+gomodtidy: ## Runs `go work sync` in the root and `go mod tidy` in all modules
+	GOWORK=$(PWD)/go.work go work sync
+	@find . -name "go.mod" \
+	| grep go.mod \
+	| xargs -I {} bash -c 'dirname {}' \
+	| xargs -I {} bash -c 'echo "=> {}"; cd {}; go mod tidy -v; '

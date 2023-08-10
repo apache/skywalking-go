@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/go-sql-driver/mysql v1.7.1
-	github.com/stretchr/testify v1.8.2
+	github.com/stretchr/testify v1.8.3
 	gorm.io/driver/mysql v1.5.1
 	gorm.io/gorm v1.25.1
 )

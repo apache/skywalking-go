@@ -6,8 +6,8 @@ require (
 	github.com/dave/dst v0.27.2
 	github.com/google/uuid v1.3.0
 	github.com/pkg/errors v0.9.1
-	github.com/stretchr/testify v1.8.2
-	google.golang.org/grpc v1.55.0
+	github.com/stretchr/testify v1.8.3
+	google.golang.org/grpc v1.56.2
 	skywalking.apache.org/repo/goapi v0.0.0-20230314034821-0c5a44bb767a
 )
 
