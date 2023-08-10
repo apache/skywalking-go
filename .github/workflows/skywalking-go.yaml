@@ -26,11 +26,11 @@ jobs:
     timeout-minutes: 60
     steps:
       - name: Set up Go 1.18
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v4
         with:
           go-version: 1.18
       - name: Check out code into the Go module directory
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           submodules: true
       - name: Check License
@@ -53,11 +53,11 @@ jobs:
     timeout-minutes: 60
     steps:
       - name: Set up Go ${{ matrix.go-version }}
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v4
         with:
           go-version: ${{ matrix.go-version }}
       - name: Check out code into the Go module directory
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           submodules: true
       - name: Get dependencies

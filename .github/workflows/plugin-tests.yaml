@@ -34,7 +34,7 @@ jobs:
     timeout-minutes: 60
     steps:
       - name: Set up Go 1.18
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v4
         with:
           go-version: 1.18
       - name: Setup docker (missing on MacOS)
@@ -47,7 +47,7 @@ jobs:
           # https://github.com/abiosoft/colima/blob/main/docs/FAQ.md#cannot-connect-to-the-docker-daemon-at-unixvarrundockersock-is-the-docker-daemon-running
           sudo ln -sf $HOME/.colima/default/docker.sock /var/run/docker.sock
       - name: Check out code into the Go module directory
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           submodules: true
       - name: Build
@@ -86,7 +86,7 @@ jobs:
           - mux
           - grpc
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: true
       - uses: actions/download-artifact@v2
@@ -116,7 +116,7 @@ jobs:
     runs-on: macos-latest
     timeout-minutes: 90
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: true
       - uses: actions/download-artifact@v2

@@ -35,9 +35,19 @@ jobs:
     env:
       VERSION: ${{ github.sha }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: true
+      - name: Setup Golang
+        uses: actions/setup-go@v4
+        with:
+          go-version: 1.18
+      - name: Pull deps for tools/go-agent
+        run: make -C tools/go-agent deps
+      - name: Build vendor folder for tools/go-agent
+        # groups all deps in a vendor folder to be able to pass into docker build
+        # and saves pull time
+        run: cd tools/go-agent && go mod vendor
       - name: Log in to the Container registry
         uses: docker/login-action@v1.10.0
         with:
