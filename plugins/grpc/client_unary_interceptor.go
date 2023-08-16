@@ -41,28 +41,31 @@ func (h *ClientUnaryInterceptor) BeforeInvoke(invocation operator.Invocation) er
 	s, err := tracing.CreateExitSpan(formatOperationName(method, ""), remoteAddr, func(headerKey, headerValue string) error {
 		ctx = metadata.AppendToOutgoingContext(ctx, headerKey, headerValue)
 		invocation.ChangeArg(0, ctx)
-
 		return nil
 	},
 		tracing.WithLayer(tracing.SpanLayerRPCFramework),
 		tracing.WithTag(tracing.TagURL, method),
-		tracing.WithTag("RPCType", "Unary"),
 		tracing.WithComponent(23),
 	)
 	if err != nil {
 		return err
 	}
+	s.Tag(RPC_TYPE_TAG, "Unary")
+	tracing.SetRuntimeContextValue(RPC_TYPE, "Unary")
+	tracing.SetRuntimeContextValue(CONTINUE_SNAPSHOT, tracing.CaptureContext())
+	tracing.SetRuntimeContextValue(END_SNAPSHOT, tracing.CaptureContext())
 	invocation.SetContext(s)
 	return nil
 }
 
 func (h *ClientUnaryInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {
-	if invocation.GetContext() != nil {
-		span := invocation.GetContext().(tracing.Span)
-		if err, ok := result[0].(error); ok && err != nil {
-			span.Error(err.Error())
-		}
-		span.End()
+	if invocation.GetContext() == nil {
+		return nil
 	}
+	span := invocation.GetContext().(tracing.Span)
+	if err, ok := result[0].(error); ok && err != nil {
+		span.Error(err.Error())
+	}
+	span.End()
 	return nil
 }

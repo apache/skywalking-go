@@ -63,6 +63,19 @@ segmentItems:
             skipAnalysis: false
             tags:
               - {key: url, value: not null}
+          - operationName: api.Echo.ServerStreamingEcho/Client/Response/CloseSend
+            parentSpanId: 4
+            spanId: 6
+            spanLayer: RPCFramework
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 23
+            isError: false
+            spanType: Local
+            peer: ''
+            skipAnalysis: false
+            tags:
+              - { key: url, value: not null }
           - operationName: api.Echo.UnaryEcho
             parentSpanId: 0
             spanId: 1
@@ -76,7 +89,231 @@ segmentItems:
             skipAnalysis: false
             tags:
               - {key: url, value: not null}
-              - {key: RPCType, value: not null}
+              - {key: rpc.type, value: not null}
+          - operationName: api.Echo.ServerStreamingEcho/Client/Request/SendMsg
+            parentSpanId: 4
+            spanId: 5
+            spanLayer: RPCFramework
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 23
+            isError: false
+            spanType: Local
+            peer: ''
+            skipAnalysis: false
+            tags:
+              - { key: url, value: not null }
+          - operationName: api.Echo.ServerStreamingEcho
+            parentSpanId: 0
+            spanId: 4
+            spanLayer: RPCFramework
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 23
+            isError: false
+            spanType: Exit
+            peer: 127.0.0.1:9999
+            skipAnalysis: false
+            tags:
+              - { key: url, value: not null }
+              - { key: rpc.type, value: not null }
+          - operationName: api.Echo.ServerStreamingEcho/Client/Response/RecvMsg
+            parentSpanId: 4
+            spanId: 7
+            spanLayer: RPCFramework
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 23
+            isError: false
+            spanType: Local
+            peer: ''
+            skipAnalysis: false
+            tags:
+              - { key: url, value: not null }
+          - operationName: api.Echo.ServerStreamingEcho/Client/Response/RecvMsg
+            parentSpanId: 4
+            spanId: 8
+            spanLayer: RPCFramework
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 23
+            isError: false
+            spanType: Local
+            peer: ''
+            skipAnalysis: false
+            tags:
+              - { key: url, value: not null }
+          - operationName: api.Echo.ServerStreamingEcho/Client/Response/CloseRecv
+            parentSpanId: 4
+            spanId: 9
+            spanLayer: RPCFramework
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 23
+            isError: false
+            spanType: Local
+            peer: ''
+            skipAnalysis: false
+            tags:
+              - { key: url, value: not null }
+          - operationName: api.Echo.ClientStreamingEcho/Client/Response/CloseSend
+            parentSpanId: 10
+            spanId: 13
+            spanLayer: RPCFramework
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 23
+            isError: false
+            spanType: Local
+            peer: ''
+            skipAnalysis: false
+            tags:
+              - { key: url, value: not null }
+          - operationName: api.Echo.ClientStreamingEcho/Client/Request/SendMsg
+            parentSpanId: 10
+            spanId: 11
+            spanLayer: RPCFramework
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 23
+            isError: false
+            spanType: Local
+            peer: ''
+            skipAnalysis: false
+            tags:
+              - { key: url, value: not null }
+          - operationName: api.Echo.ClientStreamingEcho/Client/Request/SendMsg
+            parentSpanId: 10
+            spanId: 12
+            spanLayer: RPCFramework
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 23
+            isError: false
+            spanType: Local
+            peer: ''
+            skipAnalysis: false
+            tags:
+              - { key: url, value: not null }
+          - operationName: api.Echo.ClientStreamingEcho
+            parentSpanId: 0
+            spanId: 10
+            spanLayer: RPCFramework
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 23
+            isError: false
+            spanType: Exit
+            peer: 127.0.0.1:9999
+            skipAnalysis: false
+            tags:
+              - { key: url, value: not null }
+              - { key: rpc.type, value: not null }
+          - operationName: api.Echo.BidirectionalStreamingEcho/Client/Request/SendMsg
+            parentSpanId: 15
+            spanId: 16
+            spanLayer: RPCFramework
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 23
+            isError: false
+            spanType: Local
+            peer: ''
+            skipAnalysis: false
+            tags:
+              - { key: url, value: not null }
+          - operationName: api.Echo.ClientStreamingEcho/Client/Response/CloseRecv
+            parentSpanId: 10
+            spanId: 14
+            spanLayer: RPCFramework
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 23
+            isError: false
+            spanType: Local
+            peer: ''
+            skipAnalysis: false
+            tags:
+              - { key: url, value: not null }
+          - operationName: api.Echo.BidirectionalStreamingEcho/Client/Response/RecvMsg
+            parentSpanId: 15
+            spanId: 17
+            spanLayer: RPCFramework
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 23
+            isError: false
+            spanType: Local
+            peer: ''
+            skipAnalysis: false
+            tags:
+              - { key: url, value: not null }
+          - operationName: api.Echo.BidirectionalStreamingEcho/Client/Request/SendMsg
+            parentSpanId: 15
+            spanId: 19
+            spanLayer: RPCFramework
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 23
+            isError: false
+            spanType: Local
+            peer: ''
+            skipAnalysis: false
+            tags:
+              - { key: url, value: not null }
+          - operationName: api.Echo.BidirectionalStreamingEcho/Client/Response/RecvMsg
+            parentSpanId: 15
+            spanId: 18
+            spanLayer: RPCFramework
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 23
+            isError: false
+            spanType: Local
+            peer: ''
+            skipAnalysis: false
+            tags:
+              - { key: url, value: not null }
+          - operationName: api.Echo.BidirectionalStreamingEcho/Client/Response/CloseSend
+            parentSpanId: 15
+            spanId: 21
+            spanLayer: RPCFramework
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 23
+            isError: false
+            spanType: Local
+            peer: ''
+            skipAnalysis: false
+            tags:
+              - { key: url, value: not null }
+          - operationName: api.Echo.BidirectionalStreamingEcho
+            parentSpanId: 0
+            spanId: 15
+            spanLayer: RPCFramework
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 23
+            isError: false
+            spanType: Exit
+            peer: 127.0.0.1:9999
+            skipAnalysis: false
+            tags:
+              - { key: url, value: not null }
+              - { key: rpc.type, value: not null }
+          - operationName: api.Echo.BidirectionalStreamingEcho/Client/Response/CloseRecv
+            parentSpanId: 15
+            spanId: 20
+            spanLayer: RPCFramework
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 23
+            isError: false
+            spanType: Local
+            peer: ''
+            skipAnalysis: false
+            tags:
+              - { key: url, value: not null }
           - operationName: GET:/consumer
             parentSpanId: -1
             spanId: 0
@@ -93,7 +330,7 @@ segmentItems:
               - {key: url, value: 'service:8080/consumer'}
               - {key: status_code, value: '200'}
   - serviceName: grpc-server
-    segmentSize: 1
+    segmentSize: 4
     segments:
       - segmentId: not null
         spans:
@@ -123,11 +360,230 @@ segmentItems:
             skipAnalysis: false
             tags:
               - {key: url, value: not null}
-              - {key: RPCType, value: not null}
+              - {key: rpc.type, value: not null}
             refs:
               - {parentEndpoint: 'GET:/consumer', networkAddress: '127.0.0.1:9999', refType: CrossProcess,
                  parentSpanId: 1, parentTraceSegmentId: not null,
                  parentServiceInstance: not null, parentService: grpc-client,
                  traceId: not null}
+      - segmentId: not null
+        spans:
+          - operationName: api.Echo.ServerStreamingEcho/Server/Response/RecvMsg
+            parentSpanId: 0
+            spanId: 1
+            spanLayer: RPCFramework
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 23
+            isError: false
+            spanType: Local
+            peer: ''
+            skipAnalysis: false
+            tags:
+              - { key: url, value: not null }
+          - operationName: api.Echo.ServerStreamingEcho/Server/Request/SendMsg
+            parentSpanId: 0
+            spanId: 2
+            spanLayer: RPCFramework
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 23
+            isError: false
+            spanType: Local
+            peer: ''
+            skipAnalysis: false
+            tags:
+              - { key: url, value: not null }
+          - operationName: api.Echo.ServerStreamingEcho/Server/Request/SendMsg
+            parentSpanId: 0
+            spanId: 3
+            spanLayer: RPCFramework
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 23
+            isError: false
+            spanType: Local
+            peer: ''
+            skipAnalysis: false
+            tags:
+              - { key: url, value: not null }
+          - operationName: api.Echo.ServerStreamingEcho
+            parentSpanId: -1
+            spanId: 0
+            spanLayer: RPCFramework
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 23
+            isError: false
+            spanType: Entry
+            peer: ''
+            skipAnalysis: false
+            tags:
+              - { key: url, value: not null }
+              - { key: rpc.type, value: not null }
+            refs:
+              - { parentEndpoint: 'GET:/consumer', networkAddress: '127.0.0.1:9999', refType: CrossProcess,
+                  parentSpanId: 4, parentTraceSegmentId: not null,
+                  parentServiceInstance: not null, parentService: grpc-client,
+                  traceId: not null }
+      - segmentId: not null
+        spans:
+          - operationName: api.Echo.ClientStreamingEcho/Server/Response/RecvMsg
+            parentSpanId: 0
+            spanId: 1
+            spanLayer: RPCFramework
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 23
+            isError: false
+            spanType: Local
+            peer: ''
+            skipAnalysis: false
+            tags:
+              - { key: url, value: not null }
+          - operationName: api.Echo.ClientStreamingEcho/Server/Response/RecvMsg
+            parentSpanId: 0
+            spanId: 2
+            spanLayer: RPCFramework
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 23
+            isError: false
+            spanType: Local
+            peer: ''
+            skipAnalysis: false
+            tags:
+              - { key: url, value: not null }
+          - operationName: api.Echo.ClientStreamingEcho/Server/Response/CloseRecv
+            parentSpanId: 0
+            spanId: 3
+            spanLayer: RPCFramework
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 23
+            isError: false
+            spanType: Local
+            peer: ''
+            skipAnalysis: false
+            tags:
+              - { key: url, value: not null }
+          - operationName: api.Echo.ClientStreamingEcho/Server/Request/SendMsg
+            parentSpanId: 0
+            spanId: 4
+            spanLayer: RPCFramework
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 23
+            isError: false
+            spanType: Local
+            peer: ''
+            skipAnalysis: false
+            tags:
+              - { key: url, value: not null }
+          - operationName: api.Echo.ClientStreamingEcho
+            parentSpanId: -1
+            spanId: 0
+            spanLayer: RPCFramework
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 23
+            isError: false
+            spanType: Entry
+            peer: ''
+            skipAnalysis: false
+            tags:
+              - { key: url, value: not null }
+              - { key: rpc.type, value: not null }
+            refs:
+              - { parentEndpoint: 'GET:/consumer', networkAddress: '127.0.0.1:9999', refType: CrossProcess,
+                  parentSpanId: 10, parentTraceSegmentId: not null,
+                  parentServiceInstance: not null, parentService: grpc-client,
+                  traceId: not null }
+      - segmentId: not null
+        spans:
+          - operationName: api.Echo.BidirectionalStreamingEcho/Server/Response/RecvMsg
+            parentSpanId: 0
+            spanId: 1
+            spanLayer: RPCFramework
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 23
+            isError: false
+            spanType: Local
+            peer: ''
+            skipAnalysis: false
+            tags:
+              - { key: url, value: not null }
+          - operationName: api.Echo.BidirectionalStreamingEcho/Server/Request/SendMsg
+            parentSpanId: 0
+            spanId: 2
+            spanLayer: RPCFramework
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 23
+            isError: false
+            spanType: Local
+            peer: ''
+            skipAnalysis: false
+            tags:
+              - { key: url, value: not null }
+          - operationName: api.Echo.BidirectionalStreamingEcho/Server/Request/SendMsg
+            parentSpanId: 0
+            spanId: 5
+            spanLayer: RPCFramework
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 23
+            isError: false
+            spanType: Local
+            peer: ''
+            skipAnalysis: false
+            tags:
+              - { key: url, value: not null }
+          - operationName: api.Echo.BidirectionalStreamingEcho/Server/Response/RecvMsg
+            parentSpanId: 0
+            spanId: 3
+            spanLayer: RPCFramework
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 23
+            isError: false
+            spanType: Local
+            peer: ''
+            skipAnalysis: false
+            tags:
+              - { key: url, value: not null }
+          - operationName: api.Echo.BidirectionalStreamingEcho/Server/Response/CloseRecv
+            parentSpanId: 0
+            spanId: 4
+            spanLayer: RPCFramework
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 23
+            isError: false
+            spanType: Local
+            peer: ''
+            skipAnalysis: false
+            tags:
+              - { key: url, value: not null }
+          - operationName: api.Echo.BidirectionalStreamingEcho
+            parentSpanId: -1
+            spanId: 0
+            spanLayer: RPCFramework
+            startTime: 0
+            endTime: 0
+            componentId: 23
+            isError: false
+            spanType: Entry
+            peer: ''
+            skipAnalysis: false
+            tags:
+              - { key: url, value: not null }
+              - { key: rpc.type, value: not null }
+            refs:
+              - { parentEndpoint: 'GET:/consumer', networkAddress: '127.0.0.1:9999', refType: CrossProcess,
+                  parentSpanId: 15, parentTraceSegmentId: not null,
+                  parentServiceInstance: not null, parentService: grpc-client,
+                  traceId: not null }
 meterItems: []
 logItems: []

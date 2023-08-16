@@ -22,35 +22,25 @@ import (
 	"github.com/apache/skywalking-go/plugins/core/tracing"
 )
 
-type ServerSendResponseInterceptor struct {
+type ClientFinishInterceptor struct {
 }
 
-func (h *ServerSendResponseInterceptor) BeforeInvoke(invocation operator.Invocation) error {
-	if tracing.ActiveSpan() == nil {
+func (h *ClientFinishInterceptor) BeforeInvoke(invocation operator.Invocation) error {
+	if tracing.GetRuntimeContextValue(interceptFinishMethod) != true {
 		return nil
 	}
-	cs := invocation.Args()[1].(*nativeStream)
-	method := cs.Method()
-	s, err := tracing.CreateLocalSpan(formatOperationName(method, "/Server/Response/SendResponse"),
-		tracing.WithLayer(tracing.SpanLayerRPCFramework),
-		tracing.WithTag(tracing.TagURL, method),
-		tracing.WithComponent(23),
-	)
-	if err != nil {
-		return err
+	tracing.SetRuntimeContextValue(interceptFinishMethod, false)
+	asyncSpan := tracing.GetRuntimeContextValue(ACTIVE_SPAN)
+	if asyncSpan != nil {
+		asyncSpan.(tracing.Span).AsyncFinish()
 	}
-	invocation.SetContext(s)
+	cs := invocation.CallerInstance().(*nativeclientStream)
+	method := cs.callHdr.Method
+	activeSpan := tracing.ActiveSpan()
+	activeSpan.SetOperationName(formatOperationName(method, "/Client/Response/CloseRecv"))
 	return nil
 }
 
-func (h *ServerSendResponseInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {
-	if invocation.GetContext() == nil {
-		return nil
-	}
-	span := invocation.GetContext().(tracing.Span)
-	if err, ok := result[0].(error); ok && err != nil {
-		span.Error(err.Error())
-	}
-	span.End()
+func (h *ClientFinishInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {
 	return nil
 }

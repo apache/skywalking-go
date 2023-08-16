@@ -18,21 +18,14 @@
 package grpc
 
 import (
-	"strings"
-
 	"github.com/apache/skywalking-go/plugins/core/operator"
 	"github.com/apache/skywalking-go/plugins/core/tracing"
 )
 
-type ClientSendMsgInterceptor struct {
+type ClientCloseSendInterceptor struct {
 }
 
-func (h *ClientSendMsgInterceptor) BeforeInvoke(invocation operator.Invocation) error {
-	cs := invocation.CallerInstance().(*nativeclientStream)
-	method := cs.callHdr.Method
-	if strings.HasPrefix(method, "/skywalking") {
-		return nil
-	}
+func (h *ClientCloseSendInterceptor) BeforeInvoke(invocation operator.Invocation) error {
 	endSnapshot := tracing.GetRuntimeContextValue(END_SNAPSHOT)
 	if endSnapshot != nil {
 		tracing.ContinueContext(endSnapshot.(tracing.ContextSnapshot))
@@ -44,7 +37,9 @@ func (h *ClientSendMsgInterceptor) BeforeInvoke(invocation operator.Invocation) 
 		tracing.SetRuntimeContextValue(CONTINUE_SNAPSHOT, continueSnapshot)
 		tracing.SetRuntimeContextValue(END_SNAPSHOT, endSnapshot)
 	}
-	s, err := tracing.CreateLocalSpan(formatOperationName(method, "/Client/Request/SendMsg"),
+	cs := invocation.CallerInstance().(*nativeclientStream)
+	method := cs.callHdr.Method
+	s, err := tracing.CreateLocalSpan(formatOperationName(method, "/Client/Response/CloseSend"),
 		tracing.WithLayer(tracing.SpanLayerRPCFramework),
 		tracing.WithTag(tracing.TagURL, method),
 		tracing.WithComponent(23),
@@ -56,7 +51,7 @@ func (h *ClientSendMsgInterceptor) BeforeInvoke(invocation operator.Invocation) 
 	return nil
 }
 
-func (h *ClientSendMsgInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {
+func (h *ClientCloseSendInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {
 	if invocation.GetContext() == nil {
 		return nil
 	}
@@ -65,9 +60,9 @@ func (h *ClientSendMsgInterceptor) AfterInvoke(invocation operator.Invocation, r
 		span.Error(err.Error())
 	}
 	span.End()
-	snapshotend := tracing.GetRuntimeContextValue("end")
-	if snapshotend != nil {
-		tracing.ContinueContext(snapshotend.(tracing.ContextSnapshot))
+	endSnapshot := tracing.GetRuntimeContextValue(END_SNAPSHOT)
+	if endSnapshot != nil {
+		tracing.ContinueContext(endSnapshot.(tracing.ContextSnapshot))
 	}
 	return nil
 }

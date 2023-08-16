@@ -24,27 +24,16 @@ import (
 	"github.com/apache/skywalking-go/plugins/core/tracing"
 )
 
-type ClientSendMsgInterceptor struct {
+type ServerSendMsgInterceptor struct {
 }
 
-func (h *ClientSendMsgInterceptor) BeforeInvoke(invocation operator.Invocation) error {
-	cs := invocation.CallerInstance().(*nativeclientStream)
-	method := cs.callHdr.Method
+func (h *ServerSendMsgInterceptor) BeforeInvoke(invocation operator.Invocation) error {
+	ss := invocation.CallerInstance().(*nativeserverStream)
+	method := ss.s.Method()
 	if strings.HasPrefix(method, "/skywalking") {
 		return nil
 	}
-	endSnapshot := tracing.GetRuntimeContextValue(END_SNAPSHOT)
-	if endSnapshot != nil {
-		tracing.ContinueContext(endSnapshot.(tracing.ContextSnapshot))
-		tracing.SetRuntimeContextValue(END_SNAPSHOT, endSnapshot)
-	}
-	continueSnapshot := tracing.GetRuntimeContextValue(CONTINUE_SNAPSHOT)
-	if continueSnapshot != nil {
-		tracing.ContinueContext(continueSnapshot.(tracing.ContextSnapshot))
-		tracing.SetRuntimeContextValue(CONTINUE_SNAPSHOT, continueSnapshot)
-		tracing.SetRuntimeContextValue(END_SNAPSHOT, endSnapshot)
-	}
-	s, err := tracing.CreateLocalSpan(formatOperationName(method, "/Client/Request/SendMsg"),
+	s, err := tracing.CreateLocalSpan(formatOperationName(method, "/Server/Request/SendMsg"),
 		tracing.WithLayer(tracing.SpanLayerRPCFramework),
 		tracing.WithTag(tracing.TagURL, method),
 		tracing.WithComponent(23),
@@ -56,7 +45,7 @@ func (h *ClientSendMsgInterceptor) BeforeInvoke(invocation operator.Invocation) 
 	return nil
 }
 
-func (h *ClientSendMsgInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {
+func (h *ServerSendMsgInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {
 	if invocation.GetContext() == nil {
 		return nil
 	}
@@ -65,9 +54,5 @@ func (h *ClientSendMsgInterceptor) AfterInvoke(invocation operator.Invocation, r
 		span.Error(err.Error())
 	}
 	span.End()
-	snapshotend := tracing.GetRuntimeContextValue("end")
-	if snapshotend != nil {
-		tracing.ContinueContext(snapshotend.(tracing.ContextSnapshot))
-	}
 	return nil
 }

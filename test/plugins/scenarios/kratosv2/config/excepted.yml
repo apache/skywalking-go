@@ -54,13 +54,26 @@ segmentItems:
             skipAnalysis: false
             tags:
               - {key: url, value: not null}
-              - {key: RPCType, value: not null}
+              - {key: rpc.type, value: not null}
             refs:
               - {parentEndpoint: 'GET:/consumer', networkAddress: 'localhost:9000', refType: CrossProcess,
                  parentSpanId: 2, parentTraceSegmentId: not null, parentServiceInstance: not null,
                  parentService: kratosv2, traceId: not null}
       - segmentId: not null
         spans:
+          - operationName:  helloworld.Greeter.SayHello/Client/Request/SendMsg
+            parentSpanId: 2
+            spanId: 3
+            spanLayer: RPCFramework
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 23
+            isError: false
+            spanType: Local
+            peer: ''
+            skipAnalysis: false
+            tags:
+              - { key: url, value: not null }
           - operationName: /helloworld/test
             parentSpanId: 0
             spanId: 1
@@ -75,19 +88,6 @@ segmentItems:
             tags:
               - { key: transport, value: HTTP }
               - { key: status_code, value: '200' }
-          - operationName:  helloworld.Greeter.SayHello/Client/Request/SendMsg
-            parentSpanId: 2
-            spanId: 3
-            spanLayer: RPCFramework
-            startTime: nq 0
-            endTime: nq 0
-            componentId: 23
-            isError: false
-            spanType: Local
-            peer: ''
-            skipAnalysis: false
-            tags:
-              - { key: url, value: not null }
           - operationName:  helloworld.Greeter.SayHello/Client/Response/RecvMsg
             parentSpanId: 2
             spanId: 4
@@ -114,7 +114,7 @@ segmentItems:
             skipAnalysis: false
             tags:
               - {key: url, value: not null}
-              - {key: RPCType, value: not null}
+              - {key: rpc.type, value: not null}
           - operationName: GET:/consumer
             parentSpanId: -1
             spanId: 0

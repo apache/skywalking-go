@@ -18,33 +18,31 @@
 package grpc
 
 import (
+	"context"
 	"strings"
+
+	"google.golang.org/grpc/metadata"
 
 	"github.com/apache/skywalking-go/plugins/core/operator"
 	"github.com/apache/skywalking-go/plugins/core/tracing"
 )
 
-type ClientSendMsgInterceptor struct {
+type ClientStreamingInterceptor struct {
 }
 
-func (h *ClientSendMsgInterceptor) BeforeInvoke(invocation operator.Invocation) error {
-	cs := invocation.CallerInstance().(*nativeclientStream)
-	method := cs.callHdr.Method
+func (h *ClientStreamingInterceptor) BeforeInvoke(invocation operator.Invocation) error {
+	method := invocation.Args()[2].(string)
+	clientconn := invocation.CallerInstance().(*nativeClientConn)
+	ctx := invocation.Args()[0].(context.Context)
+	remoteAddr := clientconn.Target()
 	if strings.HasPrefix(method, "/skywalking") {
 		return nil
 	}
-	endSnapshot := tracing.GetRuntimeContextValue(END_SNAPSHOT)
-	if endSnapshot != nil {
-		tracing.ContinueContext(endSnapshot.(tracing.ContextSnapshot))
-		tracing.SetRuntimeContextValue(END_SNAPSHOT, endSnapshot)
-	}
-	continueSnapshot := tracing.GetRuntimeContextValue(CONTINUE_SNAPSHOT)
-	if continueSnapshot != nil {
-		tracing.ContinueContext(continueSnapshot.(tracing.ContextSnapshot))
-		tracing.SetRuntimeContextValue(CONTINUE_SNAPSHOT, continueSnapshot)
-		tracing.SetRuntimeContextValue(END_SNAPSHOT, endSnapshot)
-	}
-	s, err := tracing.CreateLocalSpan(formatOperationName(method, "/Client/Request/SendMsg"),
+	s, err := tracing.CreateExitSpan(formatOperationName(method, ""), remoteAddr, func(headerKey, headerValue string) error {
+		ctx = metadata.AppendToOutgoingContext(ctx, headerKey, headerValue)
+		invocation.ChangeArg(0, ctx)
+		return nil
+	},
 		tracing.WithLayer(tracing.SpanLayerRPCFramework),
 		tracing.WithTag(tracing.TagURL, method),
 		tracing.WithComponent(23),
@@ -52,11 +50,16 @@ func (h *ClientSendMsgInterceptor) BeforeInvoke(invocation operator.Invocation) 
 	if err != nil {
 		return err
 	}
+	s.Tag(RPC_TYPE_TAG, "Streaming")
+	s.PrepareAsync()
+	tracing.SetRuntimeContextValue(ACTIVE_SPAN, s)
+	tracing.SetRuntimeContextValue(RPC_TYPE, "Streaming")
+	tracing.SetRuntimeContextValue(CONTINUE_SNAPSHOT, tracing.CaptureContext())
 	invocation.SetContext(s)
 	return nil
 }
 
-func (h *ClientSendMsgInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {
+func (h *ClientStreamingInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {
 	if invocation.GetContext() == nil {
 		return nil
 	}
@@ -65,9 +68,6 @@ func (h *ClientSendMsgInterceptor) AfterInvoke(invocation operator.Invocation, r
 		span.Error(err.Error())
 	}
 	span.End()
-	snapshotend := tracing.GetRuntimeContextValue("end")
-	if snapshotend != nil {
-		tracing.ContinueContext(snapshotend.(tracing.ContextSnapshot))
-	}
+	tracing.SetRuntimeContextValue(END_SNAPSHOT, tracing.CaptureContext())
 	return nil
 }
