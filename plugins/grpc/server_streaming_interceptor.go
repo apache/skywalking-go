@@ -22,35 +22,18 @@ import (
 	"github.com/apache/skywalking-go/plugins/core/tracing"
 )
 
-type ServerSendResponseInterceptor struct {
+type ServerStreamingInterceptor struct {
 }
 
-func (h *ServerSendResponseInterceptor) BeforeInvoke(invocation operator.Invocation) error {
-	if tracing.ActiveSpan() == nil {
+func (h *ServerStreamingInterceptor) BeforeInvoke(invocation operator.Invocation) error {
+	activeSpan := tracing.ActiveSpan()
+	if activeSpan == nil {
 		return nil
 	}
-	cs := invocation.Args()[1].(*nativeStream)
-	method := cs.Method()
-	s, err := tracing.CreateLocalSpan(formatOperationName(method, "/Server/Response/SendResponse"),
-		tracing.WithLayer(tracing.SpanLayerRPCFramework),
-		tracing.WithTag(tracing.TagURL, method),
-		tracing.WithComponent(23),
-	)
-	if err != nil {
-		return err
-	}
-	invocation.SetContext(s)
+	activeSpan.Tag(RPC_TYPE_TAG, "Streaming")
 	return nil
 }
 
-func (h *ServerSendResponseInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {
-	if invocation.GetContext() == nil {
-		return nil
-	}
-	span := invocation.GetContext().(tracing.Span)
-	if err, ok := result[0].(error); ok && err != nil {
-		span.Error(err.Error())
-	}
-	span.End()
+func (h *ServerStreamingInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {
 	return nil
 }

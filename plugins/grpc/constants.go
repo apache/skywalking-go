@@ -17,23 +17,14 @@
 
 package grpc
 
-import (
-	"github.com/apache/skywalking-go/plugins/core/operator"
-	"github.com/apache/skywalking-go/plugins/core/tracing"
-)
+var RPC_TYPE_TAG = "rpc.type"
 
-type ServerUnaryInterceptor struct {
-}
+var RPC_TYPE = "rpc.type"
 
-func (h *ServerUnaryInterceptor) BeforeInvoke(invocation operator.Invocation) error {
-	activeSpan := tracing.ActiveSpan()
-	if activeSpan == nil {
-		return nil
-	}
-	activeSpan.Tag(RPC_TYPE_TAG, "Unary")
-	return nil
-}
+var CONTINUE_SNAPSHOT = "grpc-continue-context-snapshot"
 
-func (h *ServerUnaryInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {
-	return nil
-}
+var END_SNAPSHOT = "grpc-end-context-snapshot"
+
+var ACTIVE_SPAN = "grpc-active-span"
+
+var interceptFinishMethod string = "interceptFinishMethod"
