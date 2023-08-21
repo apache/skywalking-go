@@ -18,42 +18,22 @@
 package grpc
 
 import (
-	"context"
+	"github.com/apache/skywalking-go/plugins/core/operator"
+	"github.com/apache/skywalking-go/plugins/core/tracing"
 )
 
-//skywalking:native google.golang.org/grpc/internal/transport Stream
-type nativeStream struct {
-	ctx    context.Context
-	method string
+type ServerStreamingInterceptor struct {
 }
 
-func (s *nativeStream) Method() string {
-	return s.method
+func (h *ServerStreamingInterceptor) BeforeInvoke(invocation operator.Invocation) error {
+	activeSpan := tracing.ActiveSpan()
+	if activeSpan == nil {
+		return nil
+	}
+	activeSpan.Tag(RPCTypeTag, "Streaming")
+	return nil
 }
 
-func (s *nativeStream) Context() context.Context {
-	return s.ctx
-}
-
-//skywalking:native google.golang.org/grpc ClientConn
-type nativeClientConn struct {
-}
-
-func (cc *nativeClientConn) Target() string {
-	return ""
-}
-
-//skywalking:native google.golang.org/grpc clientStream
-type nativeclientStream struct {
-	callHdr *nativeCallHdr
-}
-
-//skywalking:native google.golang.org/grpc/internal/transport Stream
-type nativeCallHdr struct {
-	Method string
-}
-
-//skywalking:native google.golang.org/grpc serverStream
-type nativeserverStream struct {
-	s *nativeStream
+func (h *ServerStreamingInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {
+	return nil
 }

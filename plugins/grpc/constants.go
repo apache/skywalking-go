@@ -17,43 +17,6 @@
 
 package grpc
 
-import (
-	"context"
-)
+var RPCTypeTag = "rpc.type"
 
-//skywalking:native google.golang.org/grpc/internal/transport Stream
-type nativeStream struct {
-	ctx    context.Context
-	method string
-}
-
-func (s *nativeStream) Method() string {
-	return s.method
-}
-
-func (s *nativeStream) Context() context.Context {
-	return s.ctx
-}
-
-//skywalking:native google.golang.org/grpc ClientConn
-type nativeClientConn struct {
-}
-
-func (cc *nativeClientConn) Target() string {
-	return ""
-}
-
-//skywalking:native google.golang.org/grpc clientStream
-type nativeclientStream struct {
-	callHdr *nativeCallHdr
-}
-
-//skywalking:native google.golang.org/grpc/internal/transport Stream
-type nativeCallHdr struct {
-	Method string
-}
-
-//skywalking:native google.golang.org/grpc serverStream
-type nativeserverStream struct {
-	s *nativeStream
-}
+var skywalkingService = "/skywalking"
