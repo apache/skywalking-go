@@ -46,7 +46,7 @@ Options:
 		-all
 				Inject the agent code into all the project in the current directory.
 		-debug
-				Hepling to debug the enhance process, the value is the path of the debug file.
+				Helping to debug the enhance process, the value is the path of the debug file.
 		-config
 				The file path of the agent config file.
 		-version
