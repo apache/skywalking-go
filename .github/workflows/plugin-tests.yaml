@@ -30,7 +30,7 @@ jobs:
       fail-fast: true
       matrix:
         os: [ubuntu, macos]
-    runs-on: ${{ matrix.os }}-latest
+    runs-on: ${{ matrix.os }}-13
     timeout-minutes: 60
     steps:
       - name: Set up Go 1.18
