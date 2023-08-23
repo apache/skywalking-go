@@ -18,6 +18,7 @@
 package grpc
 
 import (
+	"io"
 	"strings"
 
 	"github.com/apache/skywalking-go/plugins/core/operator"
@@ -30,8 +31,14 @@ type ClientRecvMsgInterceptor struct {
 func (h *ClientRecvMsgInterceptor) BeforeInvoke(invocation operator.Invocation) error {
 	cs := invocation.CallerInstance().(*nativeclientStream)
 	method := cs.callHdr.Method
-	if strings.HasPrefix(method, "/skywalking") {
+	if strings.HasPrefix(method, skywalkingService) {
 		return nil
+	}
+	csEnhanced, ok := invocation.CallerInstance().(operator.EnhancedInstance)
+	if ok && csEnhanced.GetSkyWalkingDynamicField() != nil {
+		contextdata := csEnhanced.GetSkyWalkingDynamicField().(*contextData)
+		tracing.ContinueContext(contextdata.continueSnapShot)
+		contextdata.interceptFinish = true
 	}
 	s, err := tracing.CreateLocalSpan(formatOperationName(method, "/Client/Response/RecvMsg"),
 		tracing.WithLayer(tracing.SpanLayerRPCFramework),
@@ -46,12 +53,24 @@ func (h *ClientRecvMsgInterceptor) BeforeInvoke(invocation operator.Invocation) 
 }
 
 func (h *ClientRecvMsgInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {
-	if invocation.GetContext() != nil {
-		span := invocation.GetContext().(tracing.Span)
-		if err, ok := result[0].(error); ok && err != nil {
-			span.Error(err.Error())
-		}
-		span.End()
+	if invocation.GetContext() == nil {
+		return nil
+	}
+	span := invocation.GetContext().(tracing.Span)
+	err, ok := result[0].(error)
+	if ok && err != nil && err != io.EOF {
+		span.Error(err.Error())
+	}
+	if err == io.EOF {
+		cs := invocation.CallerInstance().(*nativeclientStream)
+		method := cs.callHdr.Method
+		span.SetOperationName(formatOperationName(method, "/Client/Response/CloseRecv"))
+	}
+	span.End()
+	csEnhanced, ok := invocation.CallerInstance().(operator.EnhancedInstance)
+	if ok && csEnhanced.GetSkyWalkingDynamicField() != nil {
+		contextdata := csEnhanced.GetSkyWalkingDynamicField().(*contextData)
+		tracing.ContinueContext(contextdata.endSnapShot)
 	}
 	return nil
 }

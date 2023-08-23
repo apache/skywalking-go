@@ -24,21 +24,16 @@ import (
 	"github.com/apache/skywalking-go/plugins/core/tracing"
 )
 
-type ClientSendMsgInterceptor struct {
+type ServerSendMsgInterceptor struct {
 }
 
-func (h *ClientSendMsgInterceptor) BeforeInvoke(invocation operator.Invocation) error {
-	cs := invocation.CallerInstance().(*nativeclientStream)
-	method := cs.callHdr.Method
+func (h *ServerSendMsgInterceptor) BeforeInvoke(invocation operator.Invocation) error {
+	ss := invocation.CallerInstance().(*nativeserverStream)
+	method := ss.s.Method()
 	if strings.HasPrefix(method, skywalkingService) {
 		return nil
 	}
-	csEnhanced, ok := invocation.CallerInstance().(operator.EnhancedInstance)
-	if ok && csEnhanced.GetSkyWalkingDynamicField() != nil {
-		contextdata := csEnhanced.GetSkyWalkingDynamicField().(*contextData)
-		tracing.ContinueContext(contextdata.continueSnapShot)
-	}
-	s, err := tracing.CreateLocalSpan(formatOperationName(method, "/Client/Request/SendMsg"),
+	s, err := tracing.CreateLocalSpan(formatOperationName(method, "/Server/Request/SendMsg"),
 		tracing.WithLayer(tracing.SpanLayerRPCFramework),
 		tracing.WithTag(tracing.TagURL, method),
 		tracing.WithComponent(23),
@@ -50,7 +45,7 @@ func (h *ClientSendMsgInterceptor) BeforeInvoke(invocation operator.Invocation) 
 	return nil
 }
 
-func (h *ClientSendMsgInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {
+func (h *ServerSendMsgInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {
 	if invocation.GetContext() == nil {
 		return nil
 	}
