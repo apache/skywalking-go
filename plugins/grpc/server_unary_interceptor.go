@@ -26,13 +26,14 @@ type ServerUnaryInterceptor struct {
 }
 
 func (h *ServerUnaryInterceptor) BeforeInvoke(invocation operator.Invocation) error {
-	span := tracing.ActiveSpan()
-	if span == nil {
+	activeSpan := tracing.ActiveSpan()
+	if activeSpan == nil {
 		return nil
 	}
-	span.Tag("RPCType", "Unary")
+	activeSpan.Tag(RPCTypeTag, "Unary")
 	return nil
 }
+
 func (h *ServerUnaryInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {
 	return nil
 }

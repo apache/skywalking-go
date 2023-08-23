@@ -16,7 +16,7 @@
 
 segmentItems:
   - serviceName: kratosv2
-    segmentSize: ge 3
+    segmentSize: ge 4
     segments:
       - segmentId: not null
         spans:
@@ -34,7 +34,7 @@ segmentItems:
             tags:
               - { key: http.method, value: GET }
               - { key: url, value: 'localhost:8000/helloworld/test' }
-              - {key: status_code, value: '200'}
+              - { key: status_code, value: '200' }
             refs:
               - {parentEndpoint: 'GET:/consumer', networkAddress: 'localhost:8000', refType: CrossProcess,
                  parentSpanId: 1, parentTraceSegmentId: not null, parentServiceInstance: not null,
@@ -54,7 +54,7 @@ segmentItems:
             skipAnalysis: false
             tags:
               - {key: url, value: not null}
-              - {key: RPCType, value: not null}
+              - {key: rpc.type, value: 'Unary'}
             refs:
               - {parentEndpoint: 'GET:/consumer', networkAddress: 'localhost:9000', refType: CrossProcess,
                  parentSpanId: 2, parentTraceSegmentId: not null, parentServiceInstance: not null,
@@ -75,7 +75,7 @@ segmentItems:
             tags:
               - { key: transport, value: HTTP }
               - { key: status_code, value: '200' }
-          - operationName:  helloworld.Greeter.SayHello/Client/Request/SendMsg
+          - operationName: helloworld.Greeter.SayHello/Client/Request/SendMsg
             parentSpanId: 2
             spanId: 3
             spanLayer: RPCFramework
@@ -114,7 +114,7 @@ segmentItems:
             skipAnalysis: false
             tags:
               - {key: url, value: not null}
-              - {key: RPCType, value: not null}
+              - {key: rpc.type, value: 'Unary'}
           - operationName: GET:/consumer
             parentSpanId: -1
             spanId: 0

@@ -27,13 +27,26 @@ import (
 	"github.com/apache/skywalking-go/plugins/core/tracing"
 )
 
-type ClientUnaryInterceptor struct {
+type ClientStreamingInterceptor struct {
 }
 
-func (h *ClientUnaryInterceptor) BeforeInvoke(invocation operator.Invocation) error {
-	ctx := invocation.Args()[0].(context.Context)
-	method := invocation.Args()[1].(string)
+type contextData struct {
+	// asyncSpan is the span that calls PrepareAsync()
+	asyncSpan tracing.Span
+	// continueSnapShot is the snapshot that the span has not ended,
+	// When the service is in progress, it should be continued
+	continueSnapShot tracing.ContextSnapshot
+	// endSnapShot is the snapshot that the span has ended
+	// When the service is completely finished, it should be continued
+	endSnapShot tracing.ContextSnapshot
+	// interceptFinish is whether to intercept finish()
+	interceptFinish bool
+}
+
+func (h *ClientStreamingInterceptor) BeforeInvoke(invocation operator.Invocation) error {
+	method := invocation.Args()[2].(string)
 	clientconn := invocation.CallerInstance().(*nativeClientConn)
+	ctx := invocation.Args()[0].(context.Context)
 	remoteAddr := clientconn.Target()
 	if strings.HasPrefix(method, skywalkingService) {
 		return nil
@@ -50,12 +63,12 @@ func (h *ClientUnaryInterceptor) BeforeInvoke(invocation operator.Invocation) er
 	if err != nil {
 		return err
 	}
-	s.Tag(RPCTypeTag, "Unary")
+	s.Tag(RPCTypeTag, "Streaming")
 	invocation.SetContext(s)
 	return nil
 }
 
-func (h *ClientUnaryInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {
+func (h *ClientStreamingInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {
 	if invocation.GetContext() == nil {
 		return nil
 	}
@@ -63,6 +76,18 @@ func (h *ClientUnaryInterceptor) AfterInvoke(invocation operator.Invocation, res
 	if err, ok := result[0].(error); ok && err != nil {
 		span.Error(err.Error())
 	}
+	span.PrepareAsync()
+	continueSnapShot := tracing.CaptureContext()
 	span.End()
+	csEnhanced, ok := result[0].(operator.EnhancedInstance)
+	if !ok {
+		return nil
+	}
+	csEnhanced.SetSkyWalkingDynamicField(&contextData{
+		asyncSpan:        span,
+		continueSnapShot: continueSnapShot,
+		endSnapShot:      tracing.CaptureContext(),
+		interceptFinish:  false,
+	})
 	return nil
 }

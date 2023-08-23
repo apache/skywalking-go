@@ -19,9 +19,10 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"log"
 	"net"
-
 	"test/plugins/scenarios/grpc/api"
 
 	"google.golang.org/grpc"
@@ -31,6 +32,53 @@ import (
 
 type Echo struct {
 	api.UnimplementedEchoServer
+}
+
+func (e *Echo) BidirectionalStreamingEcho(stream api.Echo_BidirectionalStreamingEchoServer) error {
+
+	for {
+		req, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatalf("recv error:%v", err)
+		}
+		fmt.Printf("Recved :%v \n", req.GetMessage())
+
+		err = stream.Send(&api.EchoResponse{Message: req.GetMessage()})
+		if err != nil {
+			fmt.Println("Send error:", err)
+			continue
+		}
+	}
+	return nil
+}
+
+func (e *Echo) ClientStreamingEcho(stream api.Echo_ClientStreamingEchoServer) error {
+	for {
+		req, err := stream.Recv()
+		if err == io.EOF {
+			log.Println("client closed")
+			return stream.SendAndClose(&api.EchoResponse{Message: "ok"})
+		}
+		if err != nil {
+			return err
+		}
+		log.Printf("Recved %v", req.GetMessage())
+	}
+}
+
+func (e *Echo) ServerStreamingEcho(req *api.EchoRequest, stream api.Echo_ServerStreamingEchoServer) error {
+	log.Printf("Recved %v", req.GetMessage())
+	for i := 0; i < 2; i++ {
+		err := stream.Send(&api.EchoResponse{Message: req.GetMessage()})
+		if err != nil {
+			log.Fatalf("Send error:%v", err)
+			return err
+		}
+	}
+	return nil
 }
 
 func (e *Echo) UnaryEcho(ctx context.Context, req *api.EchoRequest) (*api.EchoResponse, error) {
