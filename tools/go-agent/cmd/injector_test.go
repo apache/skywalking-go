@@ -45,3 +45,21 @@ func TestGithubSHA(t *testing.T) {
 	assert.True(t, gitSHARegex.MatchString("f7a33a6"), "should be GitHub short SHA")
 	assert.False(t, gitSHARegex.MatchString("0.1.0"), "should not be GitHub SHA")
 }
+
+func TestGetCompitableVersion(t *testing.T) {
+	assert.Equal(t, "v0.1.0", getCompitableVersion("v0.1.0"))
+	assert.Equal(t, "v0.1.0", getCompitableVersion("0.1.0"))
+}
+
+func TestProjectWithMainDirectory(t *testing.T) {
+	assert.True(t, (&projectWithMainDirectory{
+		ProjectPath:     "./testdata/entry",
+		MainPackageDirs: []string{"./testdata/entry"},
+	}).isValid())
+	assert.False(t, (&projectWithMainDirectory{
+		MainPackageDirs: []string{"./testdata/entry"},
+	}).isValid())
+	assert.False(t, (&projectWithMainDirectory{
+		ProjectPath: "./testdata/entry",
+	}).isValid())
+}

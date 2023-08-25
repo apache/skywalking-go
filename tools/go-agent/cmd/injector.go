@@ -141,10 +141,7 @@ func (i *projectInjector) findGoModFileInDir(dir string) bool {
 }
 
 func (i *projectInjector) injectLibraryInRoot(dir string) error {
-	v := version
-	if !gitSHARegex.MatchString(version) {
-		v = "v" + version
-	}
+	v := getCompitableVersion(version)
 	fmt.Printf("injecting skywalking-go@%s depenedency into %s\n", v, dir)
 	command := exec.Command("go", "get", "github.com/apache/skywalking-go@"+v)
 	command.Dir = dir
@@ -326,6 +323,13 @@ func (i *projectInjector) containsImport(imp *dst.GenDecl) bool {
 		}
 	}
 	return false
+}
+
+func getCompitableVersion(version string) string {
+	if !gitSHARegex.MatchString(version) && !strings.HasPrefix(version, "v") {
+		return "v" + version
+	}
+	return version
 }
 
 func (i *projectInjector) appendNewImportFile(dir string) error {
