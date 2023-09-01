@@ -27,6 +27,7 @@ import (
 	gorm_mysql "github.com/apache/skywalking-go/plugins/gorm/mysql"
 	"github.com/apache/skywalking-go/plugins/grpc"
 	"github.com/apache/skywalking-go/plugins/http"
+	"github.com/apache/skywalking-go/plugins/irisv12"
 	"github.com/apache/skywalking-go/plugins/kratosv2"
 	"github.com/apache/skywalking-go/plugins/microv4"
 	"github.com/apache/skywalking-go/plugins/mongo"
@@ -51,6 +52,7 @@ func init() {
 	registerFramework(runtime_metrics.NewInstrument())
 	registerFramework(mux.NewInstrument())
 	registerFramework(grpc.NewInstrument())
+	registerFramework(irisv12.NewInstrument())
 
 	// gorm related instruments
 	registerFramework(gorm_entry.NewInstrument())

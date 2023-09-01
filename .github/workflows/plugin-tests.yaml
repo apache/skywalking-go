@@ -86,6 +86,7 @@ jobs:
           - runtime_metrics
           - mux
           - grpc
+          - irisv12
     steps:
       - uses: actions/checkout@v2
         with:
