@@ -19,9 +19,10 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"log"
 	"net/http"
-
 	"test/plugins/scenarios/grpc/api"
 
 	"google.golang.org/grpc"
@@ -30,6 +31,79 @@ import (
 	_ "github.com/apache/skywalking-go"
 )
 
+func bidirectionalStream(client api.EchoClient, writer http.ResponseWriter) {
+	stream, err := client.BidirectionalStreamingEcho(context.Background())
+	if err != nil {
+		writer.WriteHeader(500)
+		_, _ = writer.Write([]byte(err.Error()))
+		log.Println(err)
+	}
+	for i := 0; i < 2; i++ {
+		err := stream.Send(&api.EchoRequest{Message: "hello world"})
+		if err != nil {
+			log.Printf("send error:%v\n", err)
+		}
+	}
+	err = stream.CloseSend()
+	if err != nil {
+		log.Printf("Send error:%v\n", err)
+		return
+	}
+	for {
+		req, err := stream.Recv()
+		if err == io.EOF {
+			fmt.Println("Server Closed")
+			break
+		}
+		if err != nil {
+			continue
+		}
+		fmt.Printf("Recv Data:%v \n", req.GetMessage())
+	}
+}
+
+func clientStream(client api.EchoClient, writer http.ResponseWriter) {
+	stream, err := client.ClientStreamingEcho(context.Background())
+	if err != nil {
+		writer.WriteHeader(500)
+		_, _ = writer.Write([]byte(err.Error()))
+		log.Println(err)
+	}
+	for i := int64(0); i < 2; i++ {
+		err := stream.Send(&api.EchoRequest{Message: "hello world"})
+		if err != nil {
+			log.Printf("send error: %v", err)
+			continue
+		}
+	}
+	resp, err := stream.CloseAndRecv()
+	if err != nil {
+		log.Fatalf("CloseAndRecv() error: %v", err)
+	}
+	_, _ = writer.Write([]byte(resp.String()))
+}
+
+func serverStream(client api.EchoClient, writer http.ResponseWriter) {
+	stream, err := client.ServerStreamingEcho(context.Background(), &api.EchoRequest{Message: "Hello World"})
+	if err != nil {
+		writer.WriteHeader(500)
+		_, _ = writer.Write([]byte(err.Error()))
+		log.Println(err)
+	}
+	for {
+		resp, err := stream.Recv()
+		if err == io.EOF {
+			log.Println("server closed")
+			break
+		}
+		if err != nil {
+			log.Printf("Recv error:%v", err)
+			continue
+		}
+		_, _ = writer.Write([]byte(resp.String()))
+	}
+}
+
 func unary(client api.EchoClient, writer http.ResponseWriter) {
 	resp, err := client.UnaryEcho(context.Background(), &api.EchoRequest{Message: "Unary Echo"})
 	if err != nil {
@@ -37,9 +111,6 @@ func unary(client api.EchoClient, writer http.ResponseWriter) {
 		_, _ = writer.Write([]byte(err.Error()))
 		log.Println(err)
 	}
-
-	log.Println(resp.GetMessage())
-
 	_, _ = writer.Write([]byte(resp.String()))
 }
 
@@ -58,6 +129,9 @@ func main() {
 
 	http.HandleFunc("/consumer", func(writer http.ResponseWriter, request *http.Request) {
 		unary(client, writer)
+		serverStream(client, writer)
+		clientStream(client, writer)
+		bidirectionalStream(client, writer)
 	})
 
 	_ = http.ListenAndServe(":8080", nil)
