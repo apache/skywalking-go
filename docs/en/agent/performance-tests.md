@@ -51,7 +51,7 @@ Install the [Vegeta service](https://github.com/tsenart/vegeta#install) on the s
 
 ```
 GET http://${CONSUMER_IP}:8080/consumer
-Sw8: 1-MWYyZDRiZjQ3YmY3MTFlYWI3OTRhY2RlNDgwMDExMjI=-MWU3YzIwNGE3YmY3MTFlYWI4NThhY2RlNDgwMDExMjI=-0-c2VydmljZQ==-aW5zdGFuY2U=-cHJvcGFnYXRpb24=-cHJvcGFnYXRpb246NTU2Ng=="
+Sw8: 1-MWYyZDRiZjQ3YmY3MTFlYWI3OTRhY2RlNDgwMDExMjI=-MWU3YzIwNGE3YmY3MTFlYWI4NThhY2RlNDgwMDExMjI=-0-c2VydmljZQ==-aW5zdGFuY2U=-cHJvcGFnYXRpb24=-cHJvcGFnYXRpb246NTU2Ng==
 ```
 
 Please replace the above `CONSUMER_IP` with the real IP address of the consumer instance.
