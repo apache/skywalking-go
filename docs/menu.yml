@@ -52,7 +52,7 @@ catalog:
           path: /en/agent/performance-tests
     - name: Development and Contribution
       catalog:
-        - name: Plugin Development Guild
+        - name: Plugin Development Guide
           path: /en/development-and-contribution/development-guide
         - name: Write Plugin Testing
           path: /en/development-and-contribution/write-plugin-testing
