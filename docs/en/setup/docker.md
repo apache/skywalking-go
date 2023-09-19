@@ -8,7 +8,7 @@ Using the SkyWalking Go provided image as the base image, perform file copying a
 
 ```dockerfile
 # import the skywalking go base image
-FROM apache/skywalking-go-agent:<version>-go<go version>
+FROM apache/skywalking-go:<version>-go<go version>
 
 # Copy application code
 COPY /path/to/project /path/to/project
