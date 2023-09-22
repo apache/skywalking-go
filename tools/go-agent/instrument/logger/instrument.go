@@ -44,6 +44,7 @@ import (
 var logFrameworks = []frameworks.LogFramework{
 	frameworks.NewLogrus(),
 	frameworks.NewZap(),
+	// frameworks.NewBuildin(),
 }
 
 //go:embed context.go

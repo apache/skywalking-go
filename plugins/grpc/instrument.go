@@ -69,6 +69,21 @@ func (i *Instrument) Points() []*instrument.Point {
 		},
 		{
 			PackagePath: "",
+			At: instrument.NewMethodEnhance("*ClientConnInterface", "Invoke",
+				instrument.WithArgType(0, "context.Context"),
+				instrument.WithArgType(1, "string")),
+			Interceptor: "ClientUnaryInterceptor",
+		},
+		{
+			PackagePath: "",
+			At: instrument.NewMethodEnhance("*ClientConnInterface", "NewStream",
+				instrument.WithArgType(0, "context.Context"),
+				instrument.WithResultCount(2),
+				instrument.WithResultType(0, "ClientStream")),
+			Interceptor: "ClientStreamingInterceptor",
+		},
+		{
+			PackagePath: "",
 			At: instrument.NewMethodEnhance("*Server", "handleStream",
 				instrument.WithArgsCount(3),
 				instrument.WithArgType(0, "transport.ServerTransport")),
