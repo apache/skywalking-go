@@ -3,6 +3,7 @@ module github.com/apache/skywalking-go/plugins/irisv12
 go 1.18
 
 require (
+	github.com/apache/skywalking-go/plugins/core v0.0.0-20231008095129-fd62df7a4c77
 	github.com/kataras/iris/v12 v12.2.0
 )
 
@@ -28,10 +29,10 @@ require (
 	github.com/tdewolff/parse/v2 v2.6.7 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.3.5 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
-	golang.org/x/crypto v0.12.0 // indirect
-	golang.org/x/net v0.14.0 // indirect
-	golang.org/x/sys v0.11.0 // indirect
-	golang.org/x/text v0.12.0 // indirect
+	golang.org/x/crypto v0.14.0 // indirect
+	golang.org/x/net v0.17.0 // indirect
+	golang.org/x/sys v0.13.0 // indirect
+	golang.org/x/text v0.13.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
