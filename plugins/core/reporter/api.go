@@ -91,10 +91,16 @@ type Entity struct {
 }
 
 func (e *Entity) GetServiceName() string {
+	if e == nil {
+		return ""
+	}
 	return e.ServiceName
 }
 
 func (e *Entity) GetInstanceName() string {
+	if e == nil {
+		return ""
+	}
 	return e.ServiceInstanceName
 }
 
