@@ -20,9 +20,10 @@ package fasthttp
 import (
 	"fmt"
 
+	"github.com/valyala/fasthttp"
+
 	"github.com/apache/skywalking-go/plugins/core/operator"
 	"github.com/apache/skywalking-go/plugins/core/tracing"
-	"github.com/valyala/fasthttp"
 )
 
 type ClientInterceptor struct {
