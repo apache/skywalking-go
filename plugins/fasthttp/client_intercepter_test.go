@@ -18,9 +18,10 @@
 package fasthttp
 
 import (
-	"github.com/valyala/fasthttp"
 	"testing"
 	"time"
+
+	"github.com/valyala/fasthttp"
 
 	"github.com/apache/skywalking-go/plugins/core"
 	"github.com/apache/skywalking-go/plugins/core/operator"

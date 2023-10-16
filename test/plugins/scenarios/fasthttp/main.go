@@ -18,8 +18,9 @@
 package main
 
 import (
-	"github.com/valyala/fasthttp"
 	"time"
+
+	"github.com/valyala/fasthttp"
 
 	_ "github.com/apache/skywalking-go"
 )
@@ -37,7 +38,8 @@ func consumerHandler(ctx *fasthttp.RequestCtx) {
 	resp := fasthttp.AcquireResponse()
 
 	timeout := 5 * time.Second
-	err := fasthttp.DoTimeout(req, resp, timeout)
+	var defaultClient fasthttp.Client
+	err := defaultClient.DoTimeout(req, resp, timeout)
 
 	if err != nil {
 		ctx.Error("Internal Server Error", fasthttp.StatusInternalServerError)

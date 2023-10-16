@@ -28,7 +28,7 @@ segmentItems:
             endTime: nq 0
             componentId: 5004
             isError: false
-            spanType: Entry
+            spanType: Exit
             peer: ''
             skipAnalysis: false
             tags:
