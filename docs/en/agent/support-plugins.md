@@ -10,6 +10,7 @@ metrics based on the tracing data.
   * `iris`: [Iris](https://github.com/kataras/iris) tested v12.1.0 to 12.2.5.
 * HTTP Client
   * `http`: [Native HTTP](https://pkg.go.dev/net/http) tested go v1.17 to go v1.20.
+  * `fasthttp`: [FastHttp](https://github.com/valyala/fasthttp) tested go v1.17 to go v1.20.
 * RPC Frameworks
   * `dubbo`: [Dubbo](https://github.com/apache/dubbo-go) tested v3.0.1 to v3.0.5.
   * `kratosv2`: [Kratos](https://github.com/go-kratos/kratos) tested v2.3.1 to v2.6.2.

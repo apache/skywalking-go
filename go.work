@@ -19,6 +19,7 @@ use (
 	./plugins/mux
 	./plugins/grpc
 	./plugins/irisv12
+	./plugins/fasthttp
 
 	./test/benchmark-codebase/consumer
 	./test/benchmark-codebase/provider
@@ -41,6 +42,7 @@ use (
 	./test/plugins/scenarios/mux
 	./test/plugins/scenarios/grpc
     ./test/plugins/scenarios/irisv12
+    ./test/plugins/scenarios/fasthttp
 
 	./test/plugins/scenarios/plugin_exclusion
 	./test/plugins/scenarios/runtime_metrics
