@@ -64,7 +64,7 @@ func TestClientInvoke(t *testing.T) {
 	assert.Equal(t, 1, len(spans), "spans length should be 1")
 	assert.Equal(t, "GET:http://localhost/", spans[0].OperationName(), "operation name should be GET:/")
 	assert.Equal(t, "Http", spans[0].SpanLayer().String(), "SpanLayer should be Http")
-	assert.Equal(t, int32(5014), spans[0].ComponentID(), "ComponentID should be 5014")
+	assert.Equal(t, int32(5019), spans[0].ComponentID(), "ComponentID should be 5014")
 	assert.Nil(t, spans[0].Refs(), "refs should be nil")
 	assert.Greater(t, spans[0].EndTime(), spans[0].StartTime(), "end time should be greater than start time")
 }
