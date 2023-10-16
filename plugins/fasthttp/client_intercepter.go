@@ -37,7 +37,7 @@ func (h *ClientInterceptor) BeforeInvoke(invocation operator.Invocation) error {
 		}, tracing.WithLayer(tracing.SpanLayerHTTP),
 		tracing.WithTag(tracing.TagHTTPMethod, string(request.Header.Method())),
 		tracing.WithTag(tracing.TagURL, request.URI().String()),
-		tracing.WithComponent(5014))
+		tracing.WithComponent(5019))
 	if err != nil {
 		return err
 	}
@@ -56,9 +56,6 @@ func (h *ClientInterceptor) AfterInvoke(invocation operator.Invocation, result .
 		}
 		span.Tag(tracing.TagStatusCode, fmt.Sprintf("%d", resp.StatusCode()))
 
-		if requestId := resp.Header.Peek("X-Bce-Request-Id"); requestId != nil {
-			span.Tag(tracing.TagReqId, string(requestId))
-		}
 	}
 	if err, ok := result[0].(error); ok && err != nil {
 		span.Error(err.Error())
