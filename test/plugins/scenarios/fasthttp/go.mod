@@ -3,7 +3,6 @@ module test/plugins/scenarios/fasthttp
 go 1.18
 
 require (
-	github.com/apache/skywalking-go v0.2.0
 	github.com/valyala/fasthttp v1.50.0
 )
 

@@ -19,10 +19,10 @@ package fasthttp
 
 import (
 	"fmt"
-	"github.com/valyala/fasthttp"
 
 	"github.com/apache/skywalking-go/plugins/core/operator"
 	"github.com/apache/skywalking-go/plugins/core/tracing"
+	"github.com/valyala/fasthttp"
 )
 
 type ClientInterceptor struct {
@@ -52,10 +52,9 @@ func (h *ClientInterceptor) AfterInvoke(invocation operator.Invocation, result .
 	span := invocation.GetContext().(tracing.Span)
 	if resp, ok := invocation.Args()[1].(*fasthttp.Response); ok && resp != nil {
 		if resp.StatusCode() >= 400 {
-			span.Error(string(resp.Body()))
+			span.Error()
 		}
 		span.Tag(tracing.TagStatusCode, fmt.Sprintf("%d", resp.StatusCode()))
-
 	}
 	if err, ok := result[0].(error); ok && err != nil {
 		span.Error(err.Error())

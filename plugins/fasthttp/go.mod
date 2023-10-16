@@ -3,7 +3,6 @@ module github.com/apache/skywalking-go/plugins/fasthttp
 go 1.18
 
 require (
-	github.com/apache/skywalking-go/plugins/core v0.0.0-20231012073724-907c04460023
 	github.com/valyala/fasthttp v0.0.0-20171207120941-e5f51c11919d
 )
 

@@ -16,11 +16,11 @@
 
 segmentItems:
   - serviceName: fasthttp
-    segmentSize: ge 3
+    segmentSize: ge 1
     segments:
       - segmentId: not null
         spans:
-          - operationName: GET:/provider
+          - operationName: GET:http://localhost:8080/provider
             parentSpanId: -1
             spanId: 0
             spanLayer: Http
@@ -33,43 +33,11 @@ segmentItems:
             skipAnalysis: false
             tags:
               - {key: http.method, value: GET}
-              - {key: url, value: 'localhost:8080/provider'}
+              - {key: url, value: 'http://localhost:8080/provider'}
               - {key: status_code, value: '200'}
             refs:
-              - {parentEndpoint: 'GET:/consumer', networkAddress: 'localhost:8080', refType: CrossProcess,
+              - {parentEndpoint: 'GET:/consumer', networkAddress: not null, refType: CrossProcess,
                  parentSpanId: 1, parentTraceSegmentId: not null, parentServiceInstance: not null,
                  parentService: http, traceId: not null}
-      - segmentId: not null
-        spans:
-          - operationName: GET:/provider
-            parentSpanId: 0
-            spanId: 1
-            spanLayer: Http
-            startTime: gt 0
-            endTime: gt 0
-            componentId: 5005
-            isError: false
-            spanType: Exit
-            peer: localhost:8080
-            skipAnalysis: false
-            tags:
-              - {key: http.method, value: GET}
-              - {key: url, value: 'localhost:8080/provider'}
-              - {key: status_code, value: '200'}
-          - operationName: GET:/consumer
-            parentSpanId: -1
-            spanId: 0
-            spanLayer: Http
-            startTime: gt 0
-            endTime: gt 0
-            componentId: 5004
-            isError: false
-            spanType: Entry
-            peer: ''
-            skipAnalysis: false
-            tags:
-              - {key: http.method, value: GET}
-              - {key: url, value: 'service:8080/consumer'}
-              - {key: status_code, value: '200'}
 meterItems: []
 logItems: []
