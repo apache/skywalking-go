@@ -27,6 +27,9 @@ agent:
   meter:
     # The interval of collecting metrics, in seconds.
     collect_interval: ${SW_AGENT_METER_COLLECT_INTERVAL:20}
+  correlation:
+    max_key_count: ${SW_AGENT_CORRELATION_MAX_KEY_COUNT:3}
+    max_value_size: ${SW_AGENT_CORRELATION_MAX_VALUE_SIZE:128}
 
 reporter:
   grpc:

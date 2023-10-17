@@ -49,6 +49,7 @@ type Agent struct {
 	InstanceEnvName StringValue `yaml:"instance_env_name"`
 	Sampler         StringValue `yaml:"sampler"`
 	Meter           Meter       `yaml:"meter"`
+	Correlation     Correlation `yaml:"correlation"`
 }
 
 type Reporter struct {
@@ -95,6 +96,11 @@ type GRPCReporterTLS struct {
 type Plugin struct {
 	Config   PluginConfig `yaml:"config"`
 	Excluded StringValue  `yaml:"excluded"`
+}
+
+type Correlation struct {
+	MaxKeyCount  StringValue `yaml:"max_key_count"`
+	MaxValueSize StringValue `yaml:"max_value_size"`
 }
 
 func LoadConfig(path string) error {

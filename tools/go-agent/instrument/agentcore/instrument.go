@@ -158,7 +158,11 @@ func (t *Tracer) InitTracer(extend map[string]interface{}) {
 			logger = l
 		}
 	}
-	if err := t.Init(entity, rep, samp, logger, meterCollectInterval); err != nil {
+	correlation := &CorrelationConfig{
+		MaxKeyCount : {{.Config.Agent.Correlation.MaxKeyCount.ToGoIntValue "loading the agent correlation maxKeyCount error"}},
+		MaxValueSize : {{.Config.Agent.Correlation.MaxValueSize.ToGoIntValue "loading the agent correlation maxValueSize error"}},
+	}
+	if err := t.Init(entity, rep, samp, logger, meterCollectInterval, correlation); err != nil {
 		t.Log.Errorf("cannot initialize the SkyWalking Tracer: %v", err)
 	}
 }`, struct {
