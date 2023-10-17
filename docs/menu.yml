@@ -42,6 +42,10 @@ catalog:
           path: /en/agent/plugin-configurations
         - name: Transport Layer Security (TLS)
           path: /en/advanced-features/grpc-tls
+        - name: Manual APIs
+          catalog:
+            - name: Tracing APIs
+              path: /en/advanced-features/manual-apis/toolkit-trace.md
     - name: Plugins
       catalog:
         - name: Supported Libraries

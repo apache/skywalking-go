@@ -5,6 +5,7 @@ Release Notes.
 0.3.0
 ------------------
 #### Features
+* Support manual tracing APIs for users.
 
 #### Plugins
 * Support [mux](https://github.com/gorilla/mux) HTTP server framework.
@@ -12,6 +13,7 @@ Release Notes.
 * Support [iris](https://github.com/kataras/iris) framework.
 
 #### Documentation
+* Add `Tracing APIs` document into `Manual APIs`.
 
 #### Bug Fixes
 

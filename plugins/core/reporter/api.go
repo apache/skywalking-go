@@ -35,6 +35,8 @@ type SegmentContext interface {
 	GetSpanID() int32
 	GetParentSpanID() int32
 	GetParentSegmentID() string
+	GetCorrelationContextValue(key string) string
+	SetCorrelationContextValue(key, value string)
 }
 
 // SpanContext defines propagation specification of SkyWalking

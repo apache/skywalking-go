@@ -18,6 +18,7 @@
 package plugins
 
 import (
+	traceactivation "github.com/apache/skywalking-go/plugin/trace"
 	"github.com/apache/skywalking-go/plugins/core/instrument"
 	"github.com/apache/skywalking-go/plugins/dubbo"
 	"github.com/apache/skywalking-go/plugins/gin"
@@ -53,6 +54,7 @@ func init() {
 	registerFramework(mux.NewInstrument())
 	registerFramework(grpc.NewInstrument())
 	registerFramework(irisv12.NewInstrument())
+	registerFramework(traceactivation.NewInstrument())
 
 	// gorm related instruments
 	registerFramework(gorm_entry.NewInstrument())

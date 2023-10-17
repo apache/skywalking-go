@@ -83,6 +83,7 @@ type Config struct {
 	ExportPort     int                                 `yaml:"export-port"`
 	SupportVersion []SupportVersion                    `yaml:"support-version"`
 	Dependencies   map[string]*DockerDependencyService `yaml:"dependencies"`
+	Toolkit        bool                                `yaml:"toolkit"`
 }
 
 type DockerDependencyService struct {
