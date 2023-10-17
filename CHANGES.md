@@ -16,6 +16,7 @@ Release Notes.
 * Add `Tracing APIs` document into `Manual APIs`.
 
 #### Bug Fixes
+* Fix Docker image not supporting the `arm64` platform.
 
 #### Issues and PR
 - All issues are [here](https://github.com/apache/skywalking/milestone/189?closed=1)

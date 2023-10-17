@@ -22,9 +22,12 @@ ARG BASE_BUILDER_IMAGE='golang:1.18'
 FROM ${BASE_BUILDER_IMAGE} as builder
 # Go Agent Version
 ARG VERSION
+# Current ARCH
+ARG TARGETARCH
+
 WORKDIR /skywalking-go
 COPY . .
-RUN VERSION=$VERSION make -C tools/go-agent linux
+RUN VERSION=$VERSION ARCH=$TARGETARCH make -C tools/go-agent linux
 
 FROM ${BASE_GO_IMAGE}
 
