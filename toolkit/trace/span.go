@@ -15,21 +15,11 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package operator
+package trace
 
-type TracingOperator interface {
-	CreateEntrySpan(operationName string, extractor interface{}, opts ...interface{}) (s interface{}, err error)
-	CreateLocalSpan(operationName string, opts ...interface{}) (s interface{}, err error)
-	CreateExitSpan(operationName, peer string, injector interface{}, opts ...interface{}) (s interface{}, err error)
-	ActiveSpan() interface{} // to Span
+type ExtractorRef func(headerKey string) (string, error)
 
-	GetRuntimeContextValue(key string) interface{}
-	SetRuntimeContextValue(key string, value interface{})
+type InjectorRef func(headerKey, headerValue string) error
 
-	CaptureContext() interface{}
-	ContinueContext(interface{})
-	CleanContext()
-
-	GetCorrelationContextValue(key string) string
-	SetCorrelationContextValue(key, val string)
+type SpanRef interface {
 }

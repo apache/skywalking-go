@@ -156,6 +156,23 @@ func copyOptsAsInterface(opts []SpanOption) []interface{} {
 	return optsVal
 }
 
+// GetCorrelationContextValue returns the value of the key in the correlation context.
+func GetCorrelationContextValue(key string) string {
+	op := operator.GetOperator()
+	if op == nil {
+		return ""
+	}
+	return op.Tracing().(operator.TracingOperator).GetCorrelationContextValue(key)
+}
+
+// SetRuntimeContextValue sets the value of the key in the correlation context.
+func SetCorrelationContextValue(key, val string) {
+	op := operator.GetOperator()
+	if op != nil {
+		op.Tracing().(operator.TracingOperator).SetCorrelationContextValue(key, val)
+	}
+}
+
 type extractorWrapperImpl struct {
 	extractor Extractor
 }

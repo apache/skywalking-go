@@ -15,21 +15,25 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package operator
+package traceactivation
 
-type TracingOperator interface {
-	CreateEntrySpan(operationName string, extractor interface{}, opts ...interface{}) (s interface{}, err error)
-	CreateLocalSpan(operationName string, opts ...interface{}) (s interface{}, err error)
-	CreateExitSpan(operationName, peer string, injector interface{}, opts ...interface{}) (s interface{}, err error)
-	ActiveSpan() interface{} // to Span
+import (
+	"github.com/apache/skywalking-go/plugins/core/operator"
+	"github.com/apache/skywalking-go/plugins/core/tracing"
+)
 
-	GetRuntimeContextValue(key string) interface{}
-	SetRuntimeContextValue(key string, value interface{})
+type AddLogInterceptor struct {
+}
 
-	CaptureContext() interface{}
-	ContinueContext(interface{})
-	CleanContext()
+func (h *AddLogInterceptor) BeforeInvoke(invocation operator.Invocation) error {
+	span := tracing.ActiveSpan()
+	if span != nil {
+		logs := invocation.Args()[0].([]string)
+		span.Log(logs...)
+	}
+	return nil
+}
 
-	GetCorrelationContextValue(key string) string
-	SetCorrelationContextValue(key, val string)
+func (h *AddLogInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {
+	return nil
 }

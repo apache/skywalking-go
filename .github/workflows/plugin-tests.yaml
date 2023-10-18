@@ -87,6 +87,7 @@ jobs:
           - mux
           - grpc
           - irisv12
+          - trace-activation
           - fasthttp
     steps:
       - uses: actions/checkout@v2

@@ -14,21 +14,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# User used targeting base image
-ARG BASE_GO_IMAGE
-# Build the agent base image
-ARG BASE_BUILDER_IMAGE='golang:1.18'
-
-FROM ${BASE_BUILDER_IMAGE} as builder
-# Go Agent Version
-ARG VERSION
-# Current ARCH
-ARG TARGETARCH
-
-WORKDIR /skywalking-go
-COPY . .
-RUN VERSION=$VERSION ARCH=$TARGETARCH make -C tools/go-agent linux
-
-FROM ${BASE_GO_IMAGE}
-
-COPY --from=builder /skywalking-go/bin/skywalking-go-agent*linux* /usr/local/bin/skywalking-go-agent
+entry-service: http://${HTTP_HOST}:${HTTP_PORT}/consumer
+health-checker: http://${HTTP_HOST}:${HTTP_PORT}/health
+start-script: ./bin/startup.sh
+framework: go
+export-port: 8080
+support-version:
+  - go: 1.18
+  - go: 1.19
+  - go: 1.20
+toolkit: true

@@ -18,6 +18,7 @@
 package plugins
 
 import (
+	traceactivation "github.com/apache/skywalking-go/plugin/trace"
 	"github.com/apache/skywalking-go/plugins/core/instrument"
 	"github.com/apache/skywalking-go/plugins/dubbo"
 	fasthttp_client "github.com/apache/skywalking-go/plugins/fasthttp/client"
@@ -55,6 +56,7 @@ func init() {
 	registerFramework(mux.NewInstrument())
 	registerFramework(grpc.NewInstrument())
 	registerFramework(irisv12.NewInstrument())
+	registerFramework(traceactivation.NewInstrument())
 
 	// fasthttp related instruments
 	registerFramework(fasthttp_client.NewInstrument())
