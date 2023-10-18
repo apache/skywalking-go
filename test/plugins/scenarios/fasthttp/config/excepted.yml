@@ -16,7 +16,7 @@
 
 segmentItems:
   - serviceName: fasthttp
-    segmentSize: ge 1
+    segmentSize: ge 3
     segments:
       - segmentId: not null
         spans:
@@ -34,6 +34,42 @@ segmentItems:
             tags:
               - {key: http.method, value: GET}
               - {key: url, value: 'http://localhost:8080/provider'}
+              - {key: status_code, value: '200'}
+            refs:
+              - { parentEndpoint: 'http://localhost:8080/consumer', networkAddress: 'localhost:8080', refType: CrossProcess,
+                  parentSpanId: 1, parentTraceSegmentId: not null, parentServiceInstance: not null,
+                  parentService: http, traceId: not null }
+      - segmentId: not null
+        spans:
+          - operationName: GET:http://localhost:8080/provider
+            parentSpanId: 0
+            spanId: 1
+            spanLayer: Http
+            startTime: gt 0
+            endTime: gt 0
+            componentId: 5020
+            isError: false
+            spanType: Entry
+            peer: localhost:8080
+            skipAnalysis: false
+            tags:
+              - {key: http.method, value: GET}
+              - {key: url, value: 'http://localhost:8080/provider'}
+              - {key: status_code, value: '200'}
+          - operationName: GET:http://localhost:8080/consumer
+            parentSpanId: -1
+            spanId: 0
+            spanLayer: Http
+            startTime: gt 0
+            endTime: gt 0
+            componentId: 5020
+            isError: false
+            spanType: Entry
+            peer: ''
+            skipAnalysis: false
+            tags:
+              - {key: http.method, value: GET}
+              - {key: url, value: 'http://localhost:8080/consumer'}
               - {key: status_code, value: '200'}
 meterItems: []
 logItems: []

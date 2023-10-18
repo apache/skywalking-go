@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package fasthttp
+package router
 
 import (
 	"testing"
@@ -29,43 +29,38 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func init() {
-	core.ResetTracingContext()
-}
-
-func TestClientInvoke(t *testing.T) {
+func TestServerInvoke(t *testing.T) {
 	defer core.ResetTracingContext()
+	interceptor := &ServerInterceptor{}
 
 	req := fasthttp.AcquireRequest()
-	resp := fasthttp.AcquireResponse()
+	req.Header.SetMethod("GET")
+	req.SetRequestURI("http://localhost/test")
 	defer func() {
 		fasthttp.ReleaseRequest(req)
-		fasthttp.ReleaseResponse(resp)
 	}()
 
-	req.SetRequestURI("http://localhost/")
-	req.Header.SetMethod("GET")
-	resp.SetStatusCode(fasthttp.StatusBadRequest)
+	ctx := &fasthttp.RequestCtx{}
+	ctx.Init(req, nil, nil)
+	ctx.Response.SetStatusCode(200)
 
-	interceptor := &ClientInterceptor{}
-	var err error
-
-	invocation := operator.NewInvocation(nil, req, resp)
-	err = interceptor.BeforeInvoke(invocation)
+	assert.NotNil(t, ctx, "RequestCtx should not be nil")
+	invocation := operator.NewInvocation(nil, ctx)
+	err := interceptor.BeforeInvoke(invocation)
 	assert.Nil(t, err, "before invoke error should be nil")
 	assert.NotNil(t, invocation.GetContext(), "context should not be nil")
 
 	time.Sleep(100 * time.Millisecond)
-	err = interceptor.AfterInvoke(invocation, nil)
+	err = interceptor.AfterInvoke(invocation)
 	assert.Nil(t, err, "after invoke error should be nil")
 
 	time.Sleep(100 * time.Millisecond)
 	spans := core.GetReportedSpans()
 	assert.NotNil(t, spans, "spans should not be nil")
 	assert.Equal(t, 1, len(spans), "spans length should be 1")
-	assert.Equal(t, "GET:http://localhost/", spans[0].OperationName(), "operation name should be GET:/")
+	assert.Equal(t, "GET:http://localhost/test", spans[0].OperationName(), "operation name should be GET:http://localhost/test")
 	assert.Equal(t, "Http", spans[0].SpanLayer().String(), "SpanLayer should be Http")
-	assert.Equal(t, int32(5019), spans[0].ComponentID(), "ComponentID should be 5014")
+	assert.Equal(t, int32(5020), spans[0].ComponentID(), "ComponentID should be 5020")
 	assert.Nil(t, spans[0].Refs(), "refs should be nil")
 	assert.Greater(t, spans[0].EndTime(), spans[0].StartTime(), "end time should be greater than start time")
 }

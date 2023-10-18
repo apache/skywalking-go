@@ -18,8 +18,10 @@
 package main
 
 import (
+	"log"
 	"time"
 
+	"github.com/fasthttp/router"
 	"github.com/valyala/fasthttp"
 
 	_ "github.com/apache/skywalking-go"
@@ -47,23 +49,29 @@ func consumerHandler(ctx *fasthttp.RequestCtx) {
 	}
 
 	ctx.SetStatusCode(resp.StatusCode())
-	ctx.Write(resp.Body())
+	_, err = ctx.Write(resp.Body())
+	if err != nil {
+		return
+	}
 
 	fasthttp.ReleaseRequest(req)
 	fasthttp.ReleaseResponse(resp)
 }
 
+func healthHandler(ctx *fasthttp.RequestCtx) {
+	ctx.SetStatusCode(fasthttp.StatusOK)
+}
+
 func main() {
-	fasthttp.ListenAndServe(":8080", func(ctx *fasthttp.RequestCtx) {
-		switch string(ctx.Path()) {
-		case "/provider":
-			providerHandler(ctx)
-		case "/consumer":
-			consumerHandler(ctx)
-		case "/health":
-			ctx.SetStatusCode(fasthttp.StatusOK)
-		default:
-			ctx.Error("Not Found", fasthttp.StatusNotFound)
-		}
-	})
+	r := router.New()
+
+	r.GET("/provider", providerHandler)
+	r.GET("/consumer", consumerHandler)
+	r.GET("/health", healthHandler)
+
+	err := fasthttp.ListenAndServe(":8080", r.Handler)
+	if err != nil {
+		log.Print(err)
+		return
+	}
 }

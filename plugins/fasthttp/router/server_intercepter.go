@@ -15,50 +15,46 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package fasthttp
+package router
 
 import (
 	"fmt"
 
-	"github.com/valyala/fasthttp"
-
 	"github.com/apache/skywalking-go/plugins/core/operator"
 	"github.com/apache/skywalking-go/plugins/core/tracing"
+	"github.com/valyala/fasthttp"
 )
 
-type ClientInterceptor struct {
+type ServerInterceptor struct {
 }
 
-func (h *ClientInterceptor) BeforeInvoke(invocation operator.Invocation) error {
-	request := invocation.Args()[0].(*fasthttp.Request)
-	s, err := tracing.CreateExitSpan(fmt.Sprintf("%s:%s", string(request.Header.Method()), request.URI().String()),
-		string(request.Host()), func(headerKey, headerValue string) error {
-			request.Header.Add(headerKey, headerValue)
-			return nil
+func (h *ServerInterceptor) BeforeInvoke(invocation operator.Invocation) error {
+	ctx := invocation.Args()[0].(*fasthttp.RequestCtx)
+	s, err := tracing.CreateEntrySpan(fmt.Sprintf("%s:%s", string(ctx.Method()), ctx.URI().String()),
+		func(headerKey string) (string, error) {
+			return string(ctx.Request.Header.Peek(headerKey)), nil
 		}, tracing.WithLayer(tracing.SpanLayerHTTP),
-		tracing.WithTag(tracing.TagHTTPMethod, string(request.Header.Method())),
-		tracing.WithTag(tracing.TagURL, request.URI().String()),
-		tracing.WithComponent(5019))
+		tracing.WithTag(tracing.TagHTTPMethod, string(ctx.Method())),
+		tracing.WithTag(tracing.TagURL, ctx.URI().String()),
+		tracing.WithComponent(5020))
 	if err != nil {
 		return err
 	}
+
 	invocation.SetContext(s)
 	return nil
 }
 
-func (h *ClientInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {
+func (h *ServerInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {
 	if invocation.GetContext() == nil {
 		return nil
 	}
 	span := invocation.GetContext().(tracing.Span)
-	if resp, ok := invocation.Args()[1].(*fasthttp.Response); ok && resp != nil {
-		if resp.StatusCode() >= 400 {
+	if ctx, ok := invocation.Args()[0].(*fasthttp.RequestCtx); ok {
+		if ctx.Response.StatusCode() >= 400 {
 			span.Error()
 		}
-		span.Tag(tracing.TagStatusCode, fmt.Sprintf("%d", resp.StatusCode()))
-	}
-	if err, ok := result[0].(error); ok && err != nil {
-		span.Error(err.Error())
+		span.Tag(tracing.TagStatusCode, fmt.Sprintf("%d", ctx.Response.StatusCode()))
 	}
 	span.End()
 	return nil

@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package fasthttp
+package router
 
 import (
 	"embed"
@@ -39,7 +39,7 @@ func (i *Instrument) Name() string {
 }
 
 func (i *Instrument) BasePackage() string {
-	return "github.com/valyala/fasthttp"
+	return "github.com/fasthttp/router"
 }
 
 func (i *Instrument) VersionChecker(version string) bool {
@@ -50,12 +50,10 @@ func (i *Instrument) Points() []*instrument.Point {
 	return []*instrument.Point{
 		{
 			PackagePath: "",
-			At: instrument.NewMethodEnhance("*Client", "DoTimeout",
-				instrument.WithArgsCount(3),
-				instrument.WithArgType(0, "*Request"),
-				instrument.WithArgType(1, "*Response"),
-				instrument.WithArgType(2, "time.Duration")),
-			Interceptor: "ClientInterceptor",
+			At: instrument.NewMethodEnhance("*Router", "Handler",
+				instrument.WithArgsCount(1),
+				instrument.WithArgType(0, "*fasthttp.RequestCtx")),
+			Interceptor: "ServerInterceptor",
 		},
 	}
 }
