@@ -8,10 +8,10 @@ metrics based on the tracing data.
   * `go-restfulv3`: [Go-Restful](https://github.com/emicklei/go-restful) tested v3.7.1 to 3.10.2.
   * `mux`: [Mux](https://github.com/gorilla/mux) tested v1.7.0 to v1.8.0.
   * `iris`: [Iris](https://github.com/kataras/iris) tested v12.1.0 to 12.2.5.
-  * `fasthttp`: [FastHttp](https://github.com/valyala/fasthttp) tested v1.0.0 to v1.50.0.
+  * `fasthttp`: [FastHttp](https://github.com/valyala/fasthttp) tested v1.20.0 to v1.50.0.
 * HTTP Client
   * `http`: [Native HTTP](https://pkg.go.dev/net/http) tested go v1.17 to go v1.20.
-  * `fasthttp`: [FastHttp](https://github.com/valyala/fasthttp) tested v1.0.0 to v1.50.0.
+  * `fasthttp`: [FastHttp](https://github.com/valyala/fasthttp) tested v1.20.0 to v1.50.0.
 * RPC Frameworks
   * `dubbo`: [Dubbo](https://github.com/apache/dubbo-go) tested v3.0.1 to v3.0.5.
   * `kratosv2`: [Kratos](https://github.com/go-kratos/kratos) tested v2.3.1 to v2.6.2.
