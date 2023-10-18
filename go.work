@@ -42,9 +42,9 @@ use (
 	./test/plugins/scenarios/zap
 	./test/plugins/scenarios/mux
 	./test/plugins/scenarios/grpc
-  ./test/plugins/scenarios/irisv12
+  	./test/plugins/scenarios/irisv12
 	./test/plugins/scenarios/trace-activation
-  ./test/plugins/scenarios/fasthttp
+  	./test/plugins/scenarios/fasthttp
 
 	./test/plugins/scenarios/plugin_exclusion
 	./test/plugins/scenarios/runtime_metrics
