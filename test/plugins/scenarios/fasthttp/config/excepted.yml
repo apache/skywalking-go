@@ -20,23 +20,6 @@ segmentItems:
     segments:
       - segmentId: not null
         spans:
-          - operationName: GET:http://service:8080/health
-            parentSpanId: -1
-            spanId: 0
-            spanLayer: Http
-            startTime: nq 0
-            endTime: nq 0
-            componentId: 5020
-            isError: false
-            spanType: Entry
-            peer: ''
-            skipAnalysis: false
-            tags:
-              - {key: http.method, value: GET}
-              - {key: url, value: 'http://service:8080/health'}
-              - {key: status_code, value: '200'}
-      - segmentId: not null
-        spans:
           - operationName: GET:http://localhost:8080/provider
             parentSpanId: -1
             spanId: 0
