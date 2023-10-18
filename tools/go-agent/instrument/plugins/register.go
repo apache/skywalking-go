@@ -21,7 +21,7 @@ import (
 	traceactivation "github.com/apache/skywalking-go/plugin/trace"
 	"github.com/apache/skywalking-go/plugins/core/instrument"
 	"github.com/apache/skywalking-go/plugins/dubbo"
-	fasthttp_client "github.com/apache/skywalking-go/plugins/fasthttp/client"
+	fasthttp_client "github.com/apache/skywalking-go/plugins/fasthttp/hostclient"
 	fasthttp_router "github.com/apache/skywalking-go/plugins/fasthttp/router"
 	"github.com/apache/skywalking-go/plugins/gin"
 	goredisv9 "github.com/apache/skywalking-go/plugins/go-redisv9"
