@@ -3,18 +3,17 @@ module test/plugins/scenarios/fasthttp
 go 1.18
 
 require (
-	github.com/fasthttp/router v1.4.21
-	github.com/valyala/fasthttp v1.50.0
+	github.com/fasthttp/router v1.0.2
+	github.com/valyala/fasthttp v1.10.0
 )
 
 require (
-	github.com/andybalholm/brotli v1.0.5 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/klauspost/compress v1.16.3 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/savsgio/gotils v0.0.0-20230208104028-c358bd845dee // indirect
+	github.com/savsgio/gotils v0.0.0-20200319105752-a9cc718f6a3f // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	golang.org/x/net v0.10.0 // indirect
 	golang.org/x/sys v0.8.0 // indirect
