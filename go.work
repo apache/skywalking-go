@@ -20,6 +20,7 @@ use (
 	./plugins/grpc
 	./plugins/irisv12
 	./plugins/trace-activation
+	./plugins/fasthttp
 
 	./test/benchmark-codebase/consumer
 	./test/benchmark-codebase/provider
@@ -41,8 +42,9 @@ use (
 	./test/plugins/scenarios/zap
 	./test/plugins/scenarios/mux
 	./test/plugins/scenarios/grpc
-    ./test/plugins/scenarios/irisv12
+  	./test/plugins/scenarios/irisv12
 	./test/plugins/scenarios/trace-activation
+  	./test/plugins/scenarios/fasthttp
 
 	./test/plugins/scenarios/plugin_exclusion
 	./test/plugins/scenarios/runtime_metrics

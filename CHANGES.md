@@ -25,6 +25,7 @@ Release Notes.
 * Support [mux](https://github.com/gorilla/mux) HTTP server framework.
 * Support [grpc](https://github.com/grpc/grpc-go) server and client framework.
 * Support [iris](https://github.com/kataras/iris) framework.
+* Support [fasthttp](https://github.com/valyala/fasthttp) framework.
 
 #### Documentation
 * Add `Tracing APIs` document into `Manual APIs`.
