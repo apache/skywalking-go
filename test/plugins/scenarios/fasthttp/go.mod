@@ -3,11 +3,13 @@ module test/plugins/scenarios/fasthttp
 go 1.18
 
 require (
+	github.com/apache/skywalking-go v0.3.0
 	github.com/fasthttp/router v1.0.2
-	github.com/valyala/fasthttp v1.10.0
+	github.com/valyala/fasthttp v1.34.0
 )
 
 require (
+	github.com/andybalholm/brotli v1.0.4 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/uuid v1.3.0 // indirect
