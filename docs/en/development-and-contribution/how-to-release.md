@@ -22,6 +22,7 @@ This documentation guides the release manager to release the SkyWalking Go in th
 export VERSION=<the version to release>
 git clone git@github.com:apache/skywalking-go && cd skywalking-go
 git tag -a "v$VERSION" -m "Release Apache SkyWalking-Go v$VERSION"
+git tag -a "toolkit/v$VERSION" -m "Release Apache SkyWalking-Go Toolkit v$VERSION"
 git push --tags
 make release
 ```
