@@ -60,12 +60,12 @@ trace.StopSpan()
 
 ### Add Span’s Tag and Log
 
-Use `trace.SetLog` to record log in span.
+Use `trace.AddLog()` to record log in span.
 
-Use `trace.SetTag` to add tag to span, the parameters of tag are two String which are key and value respectively.
+Use `trace.SetTag()` to add tag to span, the parameters of tag are two String which are key and value respectively.
 
 ```go
-trace.SetLog(...string)
+trace.AddLog(...string)
 
 trace.SetTag("key","value")
 ```
@@ -76,7 +76,7 @@ Use `trace.PrepareAsync()` to make current span still alive until `trace.AsyncFi
 
 ### Capture/Continue Context Snapshot
 
-1. Use `trace.CaptureContext()` to get tthe segment info and store it in `ContextSnapshotRef`.
+1. Use `trace.CaptureContext()` to get the segment info and store it in `ContextSnapshotRef`.
 2. Propagate the snapshot context to any other goroutine.
 3. Use `trace.ContinueContext(snapshotRef)` to load the snapshotRef in the target goroutine.
 
@@ -90,7 +90,7 @@ All following APIs provide **readonly** features for the tracing context from tr
   traceID := trace.GetTraceID()
   ```
 
-- Use `trace.GetSegmentID` API to get segmentID.
+- Use `trace.GetSegmentID()` API to get segmentID.
 
   ```go
   segmentID := trace.GetSegmentID()
@@ -117,8 +117,8 @@ trace.SetCorrelation("key","value")
 
 CorrelationContext will remove the key when the value is empty.
 
-Use `trace.GetCorrelation` API to get custom data.
+Use `trace.GetCorrelation()` API to get custom data.
 
 ```go
-value := trace.GetCorrealtion("key")
+value := trace.GetCorrelation("key")
 ```
