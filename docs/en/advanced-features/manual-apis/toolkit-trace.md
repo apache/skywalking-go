@@ -60,12 +60,12 @@ trace.StopSpan()
 
 ### Add Span’s Tag and Log
 
-Use `trace.SetLog()` to record log in span.
+Use `trace.AddLog()` to record log in span.
 
 Use `trace.SetTag()` to add tag to span, the parameters of tag are two String which are key and value respectively.
 
 ```go
-trace.SetLog(...string)
+trace.AddLog(...string)
 
 trace.SetTag("key","value")
 ```
