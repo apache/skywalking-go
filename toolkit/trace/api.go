@@ -75,3 +75,6 @@ func GetCorrelation(key string) string {
 // nolint
 func SetCorrelation(key string, value string) {
 }
+
+func SetComponent(componentID int32) {
+}
