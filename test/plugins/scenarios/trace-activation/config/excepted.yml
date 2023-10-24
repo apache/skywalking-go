@@ -191,6 +191,17 @@ segmentItems:
                  parentSpanId: 10, parentTraceSegmentId: not null,
                  parentServiceInstance: not null, parentService: trace-activation,
                  traceId: not null}
+          - operationName: testComponent
+            parentSpanId: 8
+            spanId: 12
+            spanLayer: Unknown
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 5006
+            isError: false
+            spanType: Local
+            peer: ''
+            skipAnalysis: false
           - operationName: GET:/consumer
             parentSpanId: -1
             spanId: 0

@@ -97,3 +97,9 @@ func testCorrelation() {
 		return
 	}
 }
+
+func testComponent() {
+	trace.CreateLocalSpan("testComponent")
+	trace.SetComponent(5006)
+	trace.StopSpan()
+}
