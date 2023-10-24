@@ -53,7 +53,8 @@ type Agent struct {
 }
 
 type Reporter struct {
-	GRPC GRPCReporter `yaml:"grpc"`
+	Discard StringValue  `yaml:"discard"`
+	GRPC    GRPCReporter `yaml:"grpc"`
 }
 
 type Log struct {

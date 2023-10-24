@@ -89,6 +89,7 @@ jobs:
           - irisv12
           - trace-activation
           - fasthttp
+          - discard-reporter
     steps:
       - uses: actions/checkout@v2
         with:

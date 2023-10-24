@@ -7,6 +7,7 @@ Release Notes.
 #### Features
 
 #### Plugins
+* Support setting a discard type of reporter.
 
 #### Documentation
 
