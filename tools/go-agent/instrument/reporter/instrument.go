@@ -120,6 +120,9 @@ import (
 )
 
 func {{.InitFuncName}}(logger operator.LogOperator) (Reporter, error) {
+	if {{.Config.Reporter.Discard.ToGoBoolValue}} {
+		return NewDiscardReporter(), nil
+	}
 	var opts []ReporterOption
 	checkIntervalVal := {{.Config.Reporter.GRPC.CheckInterval.ToGoIntValue "the GRPC reporter check interval must be number"}}
 	opts = append(opts, WithCheckInterval(time.Second * time.Duration(checkIntervalVal)))
