@@ -43,12 +43,14 @@ func main() {
 			ctx.Status(http.StatusInternalServerError)
 			return err
 		}
-		ctx.WriteString(string(body))
+		ctx.SendString(string(body))
 		return nil
 	})
 
 	app.Get("/provider", func(ctx *fiber.Ctx) error {
-		ctx.WriteString("success")
+		if err := ctx.SendString("success"); err != nil {
+			return err
+		}
 		return nil
 	})
 
