@@ -3,7 +3,8 @@ module test/plugins/scenarios/grpc
 go 1.20
 
 require (
-	google.golang.org/grpc v1.56.2
+	github.com/apache/skywalking-go v0.3.0
+	google.golang.org/grpc v1.56.3
 )
 
 require (
