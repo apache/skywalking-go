@@ -88,6 +88,14 @@ func (i *Instrument) Points() []*instrument.Point {
 			Interceptor: "GetSpanIDInterceptor",
 		},
 		{
+			PackagePath: "", PackageName: "trace", At: instrument.NewMethodEnhance("*SpanRef", "SetTag"),
+			Interceptor: "AsyncTagInterceptor",
+		},
+		{
+			PackagePath: "", PackageName: "trace", At: instrument.NewMethodEnhance("*SpanRef", "AddLog"),
+			Interceptor: "AsyncLogInterceptor",
+		},
+		{
 			PackagePath: "", PackageName: "trace", At: instrument.NewStaticMethodEnhance("AddLog"),
 			Interceptor: "AddLogInterceptor",
 		},
@@ -118,14 +126,6 @@ func (i *Instrument) Points() []*instrument.Point {
 		{
 			PackagePath: "", PackageName: "trace", At: instrument.NewStaticMethodEnhance("SetComponent"),
 			Interceptor: "SetComponentInterceptor",
-		},
-		{
-			PackagePath: "", PackageName: "trace", At: instrument.NewMethodEnhance("*SpanRef", "SetTag"),
-			Interceptor: "AsyncTagInterceptor",
-		},
-		{
-			PackagePath: "", PackageName: "trace", At: instrument.NewMethodEnhance("*SpanRef", "AddLog"),
-			Interceptor: "AsyncLogInterceptor",
 		},
 	}
 }
