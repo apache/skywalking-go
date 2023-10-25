@@ -31,7 +31,10 @@ func (h *CreateLocalSpanInterceptor) BeforeInvoke(invocation operator.Invocation
 
 func (h *CreateLocalSpanInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {
 	operationName := invocation.Args()[0].(string)
-	s, _ := tracing.CreateLocalSpan(operationName)
+	s, err := tracing.CreateLocalSpan(operationName)
+	if err != nil {
+		invocation.DefineReturnValues(nil, err)
+	}
 	enhancced, ok := result[0].(operator.EnhancedInstance)
 	if !ok {
 		return nil

@@ -110,7 +110,8 @@ func testAsyncInCrossGoroutine() {
 	s.PrepareAsync()
 	trace.StopSpan()
 	go func() {
-		s.Tag("testAsyncInCrossGoroutine", "success")
+		s.SetTag("testAsyncTag", "success")
+		s.AddLog("testAsyncLog", "success")
 		s.AsyncFinish()
 		ch <- ""
 	}()

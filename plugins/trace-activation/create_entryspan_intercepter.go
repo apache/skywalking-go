@@ -35,7 +35,7 @@ func (h *CreateEntrySpanInterceptor) AfterInvoke(invocation operator.Invocation,
 	var extractor func(headerKey string) (string, error) = invocation.Args()[1].(trace.ExtractorRef)
 	s, err := tracing.CreateEntrySpan(operationName, extractor)
 	if err != nil {
-		return nil
+		invocation.DefineReturnValues(nil, err)
 	}
 	enhancced, ok := result[0].(operator.EnhancedInstance)
 	if !ok {

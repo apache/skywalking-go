@@ -17,6 +17,16 @@
 
 package trace
 
+type ExtractorRef func(headerKey string) (string, error)
+
+type InjectorRef func(headerKey, headerValue string) error
+
+type ContextSnapshotRef interface {
+}
+
+type SpanRef struct {
+}
+
 func CreateEntrySpan(operationName string, extractor ExtractorRef) (s *SpanRef, err error) {
 	return &SpanRef{}, err
 }
@@ -71,14 +81,4 @@ func SetCorrelation(key string, value string) {
 }
 
 func SetComponent(componentID int32) {
-}
-
-func (*SpanRef) PrepareAsync() {
-}
-
-func (*SpanRef) AsyncFinish() {
-}
-
-// nolint
-func (*SpanRef) Tag(key string, value string) {
 }

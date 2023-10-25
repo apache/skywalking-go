@@ -214,7 +214,10 @@ segmentItems:
             peer: ''
             skipAnalysis: false
             tags:
-              - { key: testAsyncInCrossGoroutine, value: success }
+              - { key: testAsyncTag, value: success }
+            logs:
+              - logEvent:
+                  - { key: testAsyncLog, value: success }
           - operationName: GET:/consumer
             parentSpanId: -1
             spanId: 0

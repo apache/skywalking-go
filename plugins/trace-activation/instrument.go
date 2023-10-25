@@ -139,8 +139,13 @@ func (i *Instrument) Points() []*instrument.Point {
 		},
 		{
 			PackagePath: "", PackageName: "trace",
-			At:          instrument.NewMethodEnhance("*SpanRef", "Tag"),
+			At:          instrument.NewMethodEnhance("*SpanRef", "SetTag"),
 			Interceptor: "AsyncTagInterceptor",
+		},
+		{
+			PackagePath: "", PackageName: "trace",
+			At:          instrument.NewMethodEnhance("*SpanRef", "AddLog"),
+			Interceptor: "AsyncLogInterceptor",
 		},
 	}
 }

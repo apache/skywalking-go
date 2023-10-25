@@ -36,7 +36,7 @@ func (h *CreateExitSpanInterceptor) AfterInvoke(invocation operator.Invocation, 
 	var injector func(headerKey, headerValue string) error = invocation.Args()[2].(trace.InjectorRef)
 	s, err := tracing.CreateExitSpan(operationName, peer, injector)
 	if err != nil {
-		return nil
+		invocation.DefineReturnValues(nil, err)
 	}
 	enhancced, ok := result[0].(operator.EnhancedInstance)
 	if !ok {

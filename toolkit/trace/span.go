@@ -17,9 +17,15 @@
 
 package trace
 
-type ExtractorRef func(headerKey string) (string, error)
+func (*SpanRef) PrepareAsync() {
+}
 
-type InjectorRef func(headerKey, headerValue string) error
+func (*SpanRef) AsyncFinish() {
+}
 
-type SpanRef struct {
+// nolint
+func (*SpanRef) SetTag(key string, value string) {
+}
+
+func (*SpanRef) AddLog(...string) {
 }
