@@ -5,11 +5,13 @@ go 1.18
 require (
 	github.com/google/uuid v1.3.0
 	github.com/pkg/errors v0.9.1
-	google.golang.org/grpc v1.55.0
+	google.golang.org/grpc v1.56.3
 	skywalking.apache.org/repo/goapi v0.0.0-20230314034821-0c5a44bb767a
 )
 
 require (
+	github.com/cncf/xds/go v0.0.0-20230607035331-e9ce68804cb4 // indirect
+	github.com/envoyproxy/protoc-gen-validate v0.10.1 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
 	golang.org/x/net v0.10.0 // indirect
