@@ -21,5 +21,5 @@ type ExtractorRef func(headerKey string) (string, error)
 
 type InjectorRef func(headerKey, headerValue string) error
 
-type SpanRef interface {
+type SpanRef struct {
 }

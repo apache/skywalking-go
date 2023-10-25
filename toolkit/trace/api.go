@@ -17,17 +17,17 @@
 
 package trace
 
-func CreateEntrySpan(operationName string, extractor ExtractorRef) (s SpanRef, err error) {
-	return nil, err
+func CreateEntrySpan(operationName string, extractor ExtractorRef) (s *SpanRef, err error) {
+	return &SpanRef{}, err
 }
 
 // nolint
-func CreateExitSpan(operationName string, peer string, injector InjectorRef) (s SpanRef, err error) {
-	return nil, err
+func CreateExitSpan(operationName string, peer string, injector InjectorRef) (s *SpanRef, err error) {
+	return &SpanRef{}, err
 }
 
-func CreateLocalSpan(operationName string) (s SpanRef, err error) {
-	return nil, err
+func CreateLocalSpan(operationName string) (s *SpanRef, err error) {
+	return &SpanRef{}, err
 }
 
 func StopSpan() {
@@ -62,12 +62,6 @@ func SetTag(key string, value string) {
 func AddLog(...string) {
 }
 
-func PrepareAsync() {
-}
-
-func AsyncFinish() {
-}
-
 func GetCorrelation(key string) string {
 	return ""
 }
@@ -77,4 +71,14 @@ func SetCorrelation(key string, value string) {
 }
 
 func SetComponent(componentID int32) {
+}
+
+func (*SpanRef) PrepareAsync() {
+}
+
+func (*SpanRef) AsyncFinish() {
+}
+
+// nolint
+func (*SpanRef) Tag(key string, value string) {
 }

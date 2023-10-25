@@ -99,7 +99,12 @@ The Component ID in Span is used to identify the current component, which is dec
 
 ### Async Prepare/Finish
 
-Use `trace.PrepareAsync()` to make current span still alive until `trace.AsyncFinish()` called.
+`SpanRef` is the return value of `CreateSpan`.Use `SpanRef.PrepareAsync()` to make current span still alive until `SpanRef.AsyncFinish()` called.
+
+* Call `PrepareAsync()`.
+* Use `trace.StopSpan()` to stop span in the original goroutine.
+* Propagate the `SpanRef` to any other goroutine. 
+* Call `SpanRef.AsyncFinish()` in any goroutine.
 
 ### Capture/Continue Context Snapshot
 

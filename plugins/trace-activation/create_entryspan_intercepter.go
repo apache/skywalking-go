@@ -27,13 +27,20 @@ type CreateEntrySpanInterceptor struct {
 }
 
 func (h *CreateEntrySpanInterceptor) BeforeInvoke(invocation operator.Invocation) error {
-	operationName := invocation.Args()[0].(string)
-	var extractor func(headerKey string) (string, error) = invocation.Args()[1].(trace.ExtractorRef)
-	s, err := tracing.CreateEntrySpan(operationName, extractor)
-	invocation.DefineReturnValues(s, err)
 	return nil
 }
 
 func (h *CreateEntrySpanInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {
+	operationName := invocation.Args()[0].(string)
+	var extractor func(headerKey string) (string, error) = invocation.Args()[1].(trace.ExtractorRef)
+	s, err := tracing.CreateEntrySpan(operationName, extractor)
+	if err != nil {
+		return nil
+	}
+	enhancced, ok := result[0].(operator.EnhancedInstance)
+	if !ok {
+		return nil
+	}
+	enhancced.SetSkyWalkingDynamicField(s)
 	return nil
 }

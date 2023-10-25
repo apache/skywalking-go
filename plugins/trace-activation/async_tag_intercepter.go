@@ -22,20 +22,20 @@ import (
 	"github.com/apache/skywalking-go/plugins/core/tracing"
 )
 
-type PrepareAsyncInterceptor struct {
+type AsyncTagInterceptor struct {
 }
 
-func (h *PrepareAsyncInterceptor) BeforeInvoke(invocation operator.Invocation) error {
+func (h *AsyncTagInterceptor) BeforeInvoke(invocation operator.Invocation) error {
 	return nil
 }
 
-func (h *PrepareAsyncInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {
+func (h *AsyncTagInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {
 	enhancced, ok := invocation.CallerInstance().(operator.EnhancedInstance)
 	if !ok {
 		return nil
 	}
 	s := enhancced.GetSkyWalkingDynamicField().(tracing.Span)
-	s.PrepareAsync()
+	s.Tag(invocation.Args()[0].(string), invocation.Args()[1].(string))
 	enhancced.SetSkyWalkingDynamicField(s)
 	return nil
 }

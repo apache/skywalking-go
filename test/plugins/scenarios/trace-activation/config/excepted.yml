@@ -202,6 +202,19 @@ segmentItems:
             spanType: Local
             peer: ''
             skipAnalysis: false
+          - operationName: testAsyncInCrossGoroutine
+            parentSpanId: 8
+            spanId: 13
+            spanLayer: Unknown
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 0
+            isError: false
+            spanType: Local
+            peer: ''
+            skipAnalysis: false
+            tags:
+              - { key: testAsyncInCrossGoroutine, value: success }
           - operationName: GET:/consumer
             parentSpanId: -1
             spanId: 0

@@ -50,6 +50,10 @@ func (i *Instrument) Points() []*instrument.Point {
 	return []*instrument.Point{
 		{
 			PackagePath: "", PackageName: "trace",
+			At: instrument.NewStructEnhance("SpanRef"),
+		},
+		{
+			PackagePath: "", PackageName: "trace",
 			At:          instrument.NewStaticMethodEnhance("CreateEntrySpan"),
 			Interceptor: "CreateEntrySpanInterceptor",
 		},
@@ -110,12 +114,12 @@ func (i *Instrument) Points() []*instrument.Point {
 		},
 		{
 			PackagePath: "", PackageName: "trace",
-			At:          instrument.NewStaticMethodEnhance("PrepareAsync"),
+			At:          instrument.NewMethodEnhance("*SpanRef", "PrepareAsync"),
 			Interceptor: "PrepareAsyncInterceptor",
 		},
 		{
 			PackagePath: "", PackageName: "trace",
-			At:          instrument.NewStaticMethodEnhance("AsyncFinish"),
+			At:          instrument.NewMethodEnhance("*SpanRef", "AsyncFinish"),
 			Interceptor: "AsyncFinishInterceptor",
 		},
 		{
@@ -132,6 +136,11 @@ func (i *Instrument) Points() []*instrument.Point {
 			PackagePath: "", PackageName: "trace",
 			At:          instrument.NewStaticMethodEnhance("SetComponent"),
 			Interceptor: "SetComponentInterceptor",
+		},
+		{
+			PackagePath: "", PackageName: "trace",
+			At:          instrument.NewMethodEnhance("*SpanRef", "Tag"),
+			Interceptor: "AsyncTagInterceptor",
 		},
 	}
 }
