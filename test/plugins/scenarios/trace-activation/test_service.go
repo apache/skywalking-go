@@ -103,3 +103,17 @@ func testComponent() {
 	trace.SetComponent(5006)
 	trace.StopSpan()
 }
+
+func testAsyncInCrossGoroutine() {
+	var ch = make(chan string)
+	s, _ := trace.CreateLocalSpan("testAsyncInCrossGoroutine")
+	s.PrepareAsync()
+	trace.StopSpan()
+	go func() {
+		s.SetTag("testAsyncTag", "success")
+		s.AddLog("testAsyncLog", "success")
+		s.AsyncFinish()
+		ch <- ""
+	}()
+	<-ch
+}

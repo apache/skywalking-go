@@ -15,7 +15,28 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package trace
+package traceactivation
 
-type ContextSnapshotRef interface {
+import (
+	"github.com/apache/skywalking-go/plugins/core/operator"
+	"github.com/apache/skywalking-go/plugins/core/tracing"
+)
+
+type AsyncLogInterceptor struct {
+}
+
+func (h *AsyncLogInterceptor) BeforeInvoke(invocation operator.Invocation) error {
+	return nil
+}
+
+func (h *AsyncLogInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {
+	enhancced, ok := invocation.CallerInstance().(operator.EnhancedInstance)
+	if !ok {
+		return nil
+	}
+	s := enhancced.GetSkyWalkingDynamicField().(tracing.Span)
+	logs := invocation.Args()[0].([]string)
+	s.Log(logs...)
+	enhancced.SetSkyWalkingDynamicField(s)
+	return nil
 }

@@ -30,9 +30,12 @@ func (h *PrepareAsyncInterceptor) BeforeInvoke(invocation operator.Invocation) e
 }
 
 func (h *PrepareAsyncInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {
-	span := tracing.ActiveSpan()
-	if span != nil {
-		span.PrepareAsync()
+	enhancced, ok := invocation.CallerInstance().(operator.EnhancedInstance)
+	if !ok {
+		return nil
 	}
+	s := enhancced.GetSkyWalkingDynamicField().(tracing.Span)
+	s.PrepareAsync()
+	enhancced.SetSkyWalkingDynamicField(s)
 	return nil
 }
