@@ -90,6 +90,7 @@ jobs:
           - trace-activation
           - fasthttp
           - discard-reporter
+          - fiber
     steps:
       - uses: actions/checkout@v2
         with:

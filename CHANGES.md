@@ -28,6 +28,7 @@ Release Notes.
 * Support [grpc](https://github.com/grpc/grpc-go) server and client framework.
 * Support [iris](https://github.com/kataras/iris) framework.
 * Support [fasthttp](https://github.com/valyala/fasthttp) framework.
+* Support [fiber](https://github.com/gofiber/fiber) framework.
 
 #### Documentation
 * Add `Tracing APIs` document into `Manual APIs`.

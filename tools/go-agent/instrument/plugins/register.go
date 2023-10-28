@@ -23,6 +23,7 @@ import (
 	"github.com/apache/skywalking-go/plugins/dubbo"
 	fasthttp_client "github.com/apache/skywalking-go/plugins/fasthttp/hostclient"
 	fasthttp_router "github.com/apache/skywalking-go/plugins/fasthttp/router"
+	"github.com/apache/skywalking-go/plugins/fiber"
 	"github.com/apache/skywalking-go/plugins/gin"
 	goredisv9 "github.com/apache/skywalking-go/plugins/go-redisv9"
 	"github.com/apache/skywalking-go/plugins/go-restfulv3"
@@ -57,6 +58,7 @@ func init() {
 	registerFramework(grpc.NewInstrument())
 	registerFramework(irisv12.NewInstrument())
 	registerFramework(traceactivation.NewInstrument())
+	registerFramework(fiber.NewInstrument())
 
 	// fasthttp related instruments
 	registerFramework(fasthttp_client.NewInstrument())
