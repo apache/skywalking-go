@@ -15,7 +15,24 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package trace
+package traceactivation
 
-type ContextSnapshotRef interface {
+import (
+	"github.com/apache/skywalking-go/plugins/core/operator"
+	"github.com/apache/skywalking-go/plugins/core/tracing"
+)
+
+type SetComponentInterceptor struct {
+}
+
+func (h *SetComponentInterceptor) BeforeInvoke(invocation operator.Invocation) error {
+	span := tracing.ActiveSpan()
+	if span != nil {
+		span.SetComponent(invocation.Args()[0].(int32))
+	}
+	return nil
+}
+
+func (h *SetComponentInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {
+	return nil
 }

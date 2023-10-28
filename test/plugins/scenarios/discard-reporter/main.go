@@ -18,35 +18,36 @@
 package main
 
 import (
+	"io"
+	"log"
 	"net/http"
 
 	_ "github.com/apache/skywalking-go"
-	"github.com/apache/skywalking-go/toolkit/trace"
 )
 
 func providerHandler(w http.ResponseWriter, r *http.Request) {
-	trace.CreateLocalSpan("testSetCorrelation")
-	trace.SetTag("testCorrelation", trace.GetCorrelation("testCorrelation"))
-	trace.StopSpan()
+	_, _ = w.Write([]byte("success"))
 }
 
 func consumerHandler(w http.ResponseWriter, r *http.Request) {
-	testTag()
-	testLog()
-	testGetSegmentID()
-	testGetSpanID()
-	testGetTraceID()
-	testSetOperationName()
-	testCorrelation()
-	testContext()
-	testContextCarrier()
-	testComponent()
-	testAsyncInCrossGoroutine()
+	resp, err := http.Get("http://localhost:8080/provider?test=1")
+	if err != nil {
+		log.Printf("request provider error: %v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Print(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	_, _ = w.Write(body)
 }
 
 func main() {
 	http.HandleFunc("/provider", providerHandler)
-
 	http.HandleFunc("/consumer", consumerHandler)
 
 	http.HandleFunc("/health", func(writer http.ResponseWriter, request *http.Request) {

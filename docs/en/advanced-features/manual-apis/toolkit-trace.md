@@ -23,6 +23,21 @@ type ExtractorRef func(headerKey string) (string, error)
 type InjectorRef func(headerKey, headerValue string) error
 ```
 
+The following demo demonstrates how to pass the Context Carrier in the Tracing API:
+
+```go
+// create a new entry span and extract the context carrier from the request
+trace.CreateEntrySpan("EntrySpan", func(headerKey string) (string, error) {
+    return request.Header.Get(headerKey), nil
+})
+
+// create a new exit span and inject the context carrier into the request
+trace.CreateExitSpan("ExitSpan", request.Host, func(headerKey, headerValue string) error {
+	request.Header.Add(headerKey, headerValue)
+	return nil
+})
+```
+
 ### Create Span
 
 Use `trace.CreateEntrySpan()` API to create entry span, and then use `SpanRef` to contain the reference of created span in agent kernel. 
@@ -60,23 +75,40 @@ trace.StopSpan()
 
 ### Add Span’s Tag and Log
 
-Use `trace.SetLog` to record log in span.
+Use `trace.AddLog()` to record log in span.
 
-Use `trace.SetTag` to add tag to span, the parameters of tag are two String which are key and value respectively.
+Use `trace.SetTag()` to add tag to span, the parameters of tag are two String which are key and value respectively.
 
 ```go
-trace.SetLog(...string)
+trace.AddLog(...string)
 
 trace.SetTag("key","value")
 ```
 
+### Set ComponentID
+
+Use `trace.SetComponent()` to set the component id of the Span
+
+- the type of parameter is int32.
+
+```go
+trace.SetComponent(ComponentID)
+```
+
+The Component ID in Span is used to identify the current component, which is declared in the [component libraries YAML](https://github.com/apache/skywalking/blob/master/oap-server/server-starter/src/main/resources/component-libraries.yml) from the OAP server side.
+
 ### Async Prepare/Finish
 
-Use `trace.PrepareAsync()` to make current span still alive until `trace.AsyncFinish()` called.
+`SpanRef` is the return value of `CreateSpan`.Use `SpanRef.PrepareAsync()` to make current span still alive until `SpanRef.AsyncFinish()` called.
+
+* Call `PrepareAsync()`.
+* Use `trace.StopSpan()` to stop span in the original goroutine.
+* Propagate the `SpanRef` to any other goroutine. 
+* Call `SpanRef.AsyncFinish()` in any goroutine.
 
 ### Capture/Continue Context Snapshot
 
-1. Use `trace.CaptureContext()` to get tthe segment info and store it in `ContextSnapshotRef`.
+1. Use `trace.CaptureContext()` to get the segment info and store it in `ContextSnapshotRef`.
 2. Propagate the snapshot context to any other goroutine.
 3. Use `trace.ContinueContext(snapshotRef)` to load the snapshotRef in the target goroutine.
 
@@ -90,7 +122,7 @@ All following APIs provide **readonly** features for the tracing context from tr
   traceID := trace.GetTraceID()
   ```
 
-- Use `trace.GetSegmentID` API to get segmentID.
+- Use `trace.GetSegmentID()` API to get segmentID.
 
   ```go
   segmentID := trace.GetSegmentID()
@@ -117,8 +149,8 @@ trace.SetCorrelation("key","value")
 
 CorrelationContext will remove the key when the value is empty.
 
-Use `trace.GetCorrelation` API to get custom data.
+Use `trace.GetCorrelation()` API to get custom data.
 
 ```go
-value := trace.GetCorrealtion("key")
+value := trace.GetCorrelation("key")
 ```

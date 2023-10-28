@@ -15,17 +15,32 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package trace
+package reporter
 
-func (*SpanRef) PrepareAsync() {
+import logv3 "skywalking.apache.org/repo/goapi/collect/logging/v3"
+
+type discardReporter struct{}
+
+func NewDiscardReporter() Reporter {
+	return &discardReporter{}
 }
 
-func (*SpanRef) AsyncFinish() {
+func (r *discardReporter) Boot(entity *Entity, cdsWatchers []AgentConfigChangeWatcher) {
+	// do nothing
 }
-
-// nolint
-func (*SpanRef) SetTag(key string, value string) {
+func (r *discardReporter) SendTracing(spans []ReportedSpan) {
+	// do nothing
 }
-
-func (*SpanRef) AddLog(...string) {
+func (r *discardReporter) SendMetrics(metrics []ReportedMeter) {
+	// do nothing
+}
+func (r *discardReporter) SendLog(log *logv3.LogData) {
+	// do nothing
+}
+func (r *discardReporter) ConnectionStatus() ConnectionStatus {
+	// do nothing
+	return 0
+}
+func (r *discardReporter) Close() {
+	// do nothing
 }

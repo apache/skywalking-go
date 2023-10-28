@@ -15,17 +15,24 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package trace
+package reporter_test
 
-func (*SpanRef) PrepareAsync() {
-}
+import (
+	"testing"
 
-func (*SpanRef) AsyncFinish() {
-}
+	"github.com/apache/skywalking-go/plugins/core/reporter"
+)
 
-// nolint
-func (*SpanRef) SetTag(key string, value string) {
-}
+func TestDiscardReporter(t *testing.T) {
+	r := reporter.NewDiscardReporter()
 
-func (*SpanRef) AddLog(...string) {
+	// make sure no panic
+	r.Boot(nil, nil)
+	r.SendTracing(nil)
+	r.SendMetrics(nil)
+	r.SendLog(nil)
+	if status := r.ConnectionStatus(); status != 0 {
+		t.Errorf("expect 0, actual is %d", status)
+	}
+	r.Close()
 }

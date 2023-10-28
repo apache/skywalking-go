@@ -7,10 +7,12 @@ Release Notes.
 #### Features
 
 #### Plugins
+* Support setting a discard type of reporter.
 
 #### Documentation
 
 #### Bug Fixes
+* Fix users can not use async api in toolkit-trace 
 
 #### Issues and PR
 - All issues are [here](https://github.com/apache/skywalking/milestone/197?closed=1)

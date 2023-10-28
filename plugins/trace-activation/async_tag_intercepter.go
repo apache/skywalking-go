@@ -15,17 +15,27 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package trace
+package traceactivation
 
-func (*SpanRef) PrepareAsync() {
+import (
+	"github.com/apache/skywalking-go/plugins/core/operator"
+	"github.com/apache/skywalking-go/plugins/core/tracing"
+)
+
+type AsyncTagInterceptor struct {
 }
 
-func (*SpanRef) AsyncFinish() {
+func (h *AsyncTagInterceptor) BeforeInvoke(invocation operator.Invocation) error {
+	return nil
 }
 
-// nolint
-func (*SpanRef) SetTag(key string, value string) {
-}
-
-func (*SpanRef) AddLog(...string) {
+func (h *AsyncTagInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {
+	enhancced, ok := invocation.CallerInstance().(operator.EnhancedInstance)
+	if !ok {
+		return nil
+	}
+	s := enhancced.GetSkyWalkingDynamicField().(tracing.Span)
+	s.Tag(invocation.Args()[0].(string), invocation.Args()[1].(string))
+	enhancced.SetSkyWalkingDynamicField(s)
+	return nil
 }
