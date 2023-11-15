@@ -21,6 +21,7 @@ import (
 	"bytes"
 	"embed"
 	"fmt"
+	"go/build"
 	"go/parser"
 	"go/token"
 	"io/fs"
@@ -63,11 +64,14 @@ type Instrument struct {
 	extraFilesWrote bool
 
 	importAnalyzer *tools.ImportAnalyzer
+	workingDir     string
 }
 
 func NewInstrument() *Instrument {
+	wd, _ := os.Getwd()
 	return &Instrument{
 		importAnalyzer: tools.CreateImportAnalyzer(),
+		workingDir:     wd,
 	}
 }
 
@@ -107,9 +111,8 @@ func (i *Instrument) CouldHandle(opts *api.CompileOptions) bool {
 		// check the version of the framework could handler
 		version, err := i.tryToFindThePluginVersion(opts, ins)
 		if err != nil {
-			// Local package (e.g. replaced toolkit) does not have version.
-			// So when the version is not detected, we should not skip it.
-			logrus.Warnf("the plugin %s %s", ins.Name(), err)
+			logrus.Warnf("ignore the plugin %s, because %s", ins.Name(), err)
+			continue
 		}
 
 		if ins.VersionChecker(version) {
@@ -548,6 +551,11 @@ func (i *Instrument) tryToFindThePluginVersion(opts *api.CompileOptions, ins ins
 	for _, arg := range opts.AllArgs {
 		// find the go file
 		if !strings.HasSuffix(arg, ".go") {
+			continue
+		}
+
+		// support local import. example: arg=../../../../toolkit/trace/api.go
+		if build.IsLocalImport(arg) {
 			continue
 		}
 
