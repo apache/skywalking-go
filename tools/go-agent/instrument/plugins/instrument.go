@@ -64,14 +64,11 @@ type Instrument struct {
 	extraFilesWrote bool
 
 	importAnalyzer *tools.ImportAnalyzer
-	workingDir     string
 }
 
 func NewInstrument() *Instrument {
-	wd, _ := os.Getwd()
 	return &Instrument{
 		importAnalyzer: tools.CreateImportAnalyzer(),
-		workingDir:     wd,
 	}
 }
 
