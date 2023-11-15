@@ -39,7 +39,7 @@ func (i *Instrument) Name() string {
 }
 
 func (i *Instrument) BasePackage() string {
-	return "github.com/apache/skywalking-go/toolkit/trace"
+	return "github.com/apache/skywalking-go/toolkit"
 }
 
 func (i *Instrument) VersionChecker(version string) bool {
@@ -49,82 +49,82 @@ func (i *Instrument) VersionChecker(version string) bool {
 func (i *Instrument) Points() []*instrument.Point {
 	return []*instrument.Point{
 		{
-			PackagePath: "", PackageName: "trace", At: instrument.NewStructEnhance("SpanRef"),
+			PackagePath: "trace", At: instrument.NewStructEnhance("SpanRef"),
 		},
 		{
-			PackagePath: "", PackageName: "trace", At: instrument.NewStaticMethodEnhance("CreateEntrySpan"),
+			PackagePath: "trace", At: instrument.NewStaticMethodEnhance("CreateEntrySpan"),
 			Interceptor: "CreateEntrySpanInterceptor",
 		},
 		{
-			PackagePath: "", PackageName: "trace", At: instrument.NewStaticMethodEnhance("CreateLocalSpan"),
+			PackagePath: "trace", At: instrument.NewStaticMethodEnhance("CreateLocalSpan"),
 			Interceptor: "CreateLocalSpanInterceptor",
 		},
 		{
-			PackagePath: "", PackageName: "trace", At: instrument.NewStaticMethodEnhance("CreateExitSpan"),
+			PackagePath: "trace", At: instrument.NewStaticMethodEnhance("CreateExitSpan"),
 			Interceptor: "CreateExitSpanInterceptor",
 		},
 		{
-			PackagePath: "", PackageName: "trace", At: instrument.NewStaticMethodEnhance("StopSpan"),
+			PackagePath: "trace", At: instrument.NewStaticMethodEnhance("StopSpan"),
 			Interceptor: "StopSpanInterceptor",
 		},
 		{
-			PackagePath: "", PackageName: "trace", At: instrument.NewStaticMethodEnhance("CaptureContext"),
+			PackagePath: "trace", At: instrument.NewStaticMethodEnhance("CaptureContext"),
 			Interceptor: "CaptureContextInterceptor",
 		},
 		{
-			PackagePath: "", PackageName: "trace", At: instrument.NewStaticMethodEnhance("ContinueContext"),
+			PackagePath: "trace", At: instrument.NewStaticMethodEnhance("ContinueContext"),
 			Interceptor: "ContinueContextInterceptor",
 		},
 		{
-			PackagePath: "", PackageName: "trace", At: instrument.NewStaticMethodEnhance("GetTraceID"),
+			PackagePath: "trace", At: instrument.NewStaticMethodEnhance("GetTraceID"),
 			Interceptor: "GetTraceIDInterceptor",
 		},
 		{
-			PackagePath: "", PackageName: "trace", At: instrument.NewStaticMethodEnhance("GetSegmentID"),
+			PackagePath: "trace", At: instrument.NewStaticMethodEnhance("GetSegmentID"),
 			Interceptor: "GetSegmentIDInterceptor",
 		},
 		{
-			PackagePath: "", PackageName: "trace", At: instrument.NewStaticMethodEnhance("GetSpanID"),
+			PackagePath: "trace", At: instrument.NewStaticMethodEnhance("GetSpanID"),
 			Interceptor: "GetSpanIDInterceptor",
 		},
 		{
-			PackagePath: "", PackageName: "trace", At: instrument.NewMethodEnhance("*SpanRef", "SetTag"),
+			PackagePath: "trace", At: instrument.NewMethodEnhance("*SpanRef", "SetTag"),
 			Interceptor: "AsyncTagInterceptor",
 		},
 		{
-			PackagePath: "", PackageName: "trace", At: instrument.NewMethodEnhance("*SpanRef", "AddLog"),
+			PackagePath: "trace", At: instrument.NewMethodEnhance("*SpanRef", "AddLog"),
 			Interceptor: "AsyncLogInterceptor",
 		},
 		{
-			PackagePath: "", PackageName: "trace", At: instrument.NewStaticMethodEnhance("AddLog"),
+			PackagePath: "trace", At: instrument.NewStaticMethodEnhance("AddLog"),
 			Interceptor: "AddLogInterceptor",
 		},
 		{
-			PackagePath: "", PackageName: "trace", At: instrument.NewStaticMethodEnhance("SetTag"),
+			PackagePath: "trace", At: instrument.NewStaticMethodEnhance("SetTag"),
 			Interceptor: "SetTagInterceptor",
 		},
 		{
-			PackagePath: "", PackageName: "trace", At: instrument.NewStaticMethodEnhance("SetOperationName"),
+			PackagePath: "trace", At: instrument.NewStaticMethodEnhance("SetOperationName"),
 			Interceptor: "SetOperationNameInterceptor",
 		},
 		{
-			PackagePath: "", PackageName: "trace", At: instrument.NewMethodEnhance("*SpanRef", "PrepareAsync"),
+			PackagePath: "trace", At: instrument.NewMethodEnhance("*SpanRef", "PrepareAsync"),
 			Interceptor: "PrepareAsyncInterceptor",
 		},
 		{
-			PackagePath: "", PackageName: "trace", At: instrument.NewMethodEnhance("*SpanRef", "AsyncFinish"),
+			PackagePath: "trace", At: instrument.NewMethodEnhance("*SpanRef", "AsyncFinish"),
 			Interceptor: "AsyncFinishInterceptor",
 		},
 		{
-			PackagePath: "", PackageName: "trace", At: instrument.NewStaticMethodEnhance("GetCorrelation"),
+			PackagePath: "trace", At: instrument.NewStaticMethodEnhance("GetCorrelation"),
 			Interceptor: "GetCorrelationInterceptor",
 		},
 		{
-			PackagePath: "", PackageName: "trace", At: instrument.NewStaticMethodEnhance("SetCorrelation"),
+			PackagePath: "trace", At: instrument.NewStaticMethodEnhance("SetCorrelation"),
 			Interceptor: "SetCorrelationInterceptor",
 		},
 		{
-			PackagePath: "", PackageName: "trace", At: instrument.NewStaticMethodEnhance("SetComponent"),
+			PackagePath: "trace", At: instrument.NewStaticMethodEnhance("SetComponent"),
 			Interceptor: "SetComponentInterceptor",
 		},
 	}

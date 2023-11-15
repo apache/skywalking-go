@@ -107,9 +107,8 @@ func (i *Instrument) CouldHandle(opts *api.CompileOptions) bool {
 		// check the version of the framework could handler
 		version, err := i.tryToFindThePluginVersion(opts, ins)
 		if err != nil {
-			// Local package (e.g. replaced toolkit) does not have version.
-			// So when the version is not detected, we should not skip it.
-			logrus.Warnf("the plugin %s %s", ins.Name(), err)
+			logrus.Warnf("ignore the plugin %s, because %s", ins.Name(), err)
+			continue
 		}
 
 		if ins.VersionChecker(version) {
@@ -563,7 +562,10 @@ func (i *Instrument) tryToFindThePluginVersion(opts *api.CompileOptions, ins ins
 		// arg example: github.com/!shopify/sarama@1.34.1/acl.go
 		_, afterPkg, found := strings.Cut(arg, escapedBasePkg)
 		if !found {
-			return "", fmt.Errorf("could not found the go version of the package %s, go file path: %s", basePkg, arg)
+			// This could happen if the module is replaced by a local one
+			// For example, in the E2E
+			logrus.Warnf("could not found the go version of the package %s, go file path: %s", basePkg, arg)
+			return "", nil
 		}
 
 		if !strings.HasPrefix(afterPkg, "@") {

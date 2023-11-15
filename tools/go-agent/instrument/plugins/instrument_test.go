@@ -21,6 +21,8 @@ import (
 	"embed"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/apache/skywalking-go/plugins/core/instrument"
 	"github.com/apache/skywalking-go/tools/go-agent/instrument/api"
 )
@@ -52,12 +54,35 @@ func TestInstrument_tryToFindThePluginVersion(t *testing.T) {
 			NewTestInstrument("github.com/Shopify/sarama"),
 			"1.34.1",
 		},
+		{
+			"plugin for go stdlib",
+			&api.CompileOptions{
+				AllArgs: []string{
+					"/opt/homebrew/Cellar/go/1.21.4/libexec/src/runtime/metrics/sample.go",
+				},
+			},
+			NewTestInstrument("runtime/metrics"),
+			"",
+		},
+		{
+			"plugin for replaced module",
+			&api.CompileOptions{
+				AllArgs: []string{
+					"/home/user/skywalking-go/toolkit/trace/api.go",
+				},
+			},
+			NewTestInstrument("github.com/apache/skywalking-go/toolkit"),
+			"",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			i := &Instrument{}
-			got, _ := i.tryToFindThePluginVersion(tt.opts, tt.ins)
+			got, err := i.tryToFindThePluginVersion(tt.opts, tt.ins)
+			if err != nil {
+				require.NoError(t, err)
+			}
 			if got != tt.want {
 				t.Errorf("tryToFindThePluginVersion() got = %v, want %v", got, tt.want)
 			}
