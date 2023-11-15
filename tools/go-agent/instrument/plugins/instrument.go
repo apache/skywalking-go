@@ -50,10 +50,6 @@ import (
 //go:embed templates
 var templatesFS embed.FS
 
-var (
-	errNoVersionFound = errors.New("no version found in the path of the source file")
-)
-
 type Instrument struct {
 	realInst        instrument.Instrument
 	methodFilters   []*instrument.Point
@@ -110,7 +106,7 @@ func (i *Instrument) CouldHandle(opts *api.CompileOptions) bool {
 		}
 		// check the version of the framework could handler
 		version, err := i.tryToFindThePluginVersion(opts, ins)
-		if err != nil && !errors.Is(err, errNoVersionFound) {
+		if err != nil {
 			logrus.Warnf("ignore the plugin %s, because %s", ins.Name(), err)
 			continue
 		}
@@ -566,7 +562,10 @@ func (i *Instrument) tryToFindThePluginVersion(opts *api.CompileOptions, ins ins
 		// arg example: github.com/!shopify/sarama@1.34.1/acl.go
 		_, afterPkg, found := strings.Cut(arg, escapedBasePkg)
 		if !found {
-			return "", errors.Wrapf(errNoVersionFound, "package %s, go file path: %s", basePkg, arg)
+			// This could happen if the module is replaced by a local one
+			// For example, in the E2E
+			logrus.Warnf("could not found the go version of the package %s, go file path: %s", basePkg, arg)
+			return "", nil
 		}
 
 		if !strings.HasPrefix(afterPkg, "@") {
