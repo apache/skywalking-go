@@ -559,6 +559,14 @@ func (i *Instrument) tryToFindThePluginVersion(opts *api.CompileOptions, ins ins
 		// see: https://go.dev/ref/mod
 		escapedBasePkg, _ := module.EscapePath(basePkg)
 
+		// trying to get the module version from vendor
+		vendor, err := i.tryToGetVersionByVendor(arg, escapedBasePkg)
+		if err != nil {
+			return "", err
+		} else if vendor != "" {
+			return vendor, nil
+		}
+
 		// arg example: github.com/!shopify/sarama@1.34.1/acl.go
 		_, afterPkg, found := strings.Cut(arg, escapedBasePkg)
 		if !found {
@@ -578,4 +586,22 @@ func (i *Instrument) tryToFindThePluginVersion(opts *api.CompileOptions, ins ins
 		return version[1:], nil
 	}
 	return "", nil
+}
+
+func (i *Instrument) tryToGetVersionByVendor(goFilePath string, pkgName string) (string, error) {
+	before, _, found := strings.Cut(goFilePath, tools.VendorDir+pkgName)
+	if !found {
+		return "", nil
+	}
+
+	modulePath := before + tools.VendorDir + "modules.txt"
+	modules, err := tools.ParseVendorModule(modulePath)
+	if err != nil {
+		return "", err
+	}
+	module := modules[pkgName]
+	if module == nil {
+		return "", fmt.Errorf("cannot found the current module in vendor: %s, module path: %s", pkgName, modulePath)
+	}
+	return module.Version, nil
 }

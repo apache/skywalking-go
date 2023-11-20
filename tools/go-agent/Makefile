@@ -34,7 +34,7 @@ GO_GET = $(GO) get
 
 PLATFORMS := linux darwin windows
 os = $(word 1, $@)
-ARCH ?= amd64
+ARCH ?= $(shell $(GO) env GOARCH)
 
 SHELL = /bin/bash
 
