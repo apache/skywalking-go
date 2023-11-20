@@ -1,0 +1,4 @@
+# github.com/apache/skywalking-go v0.3.0
+## explicit; go 1.18
+github.com/apache/skywalking-go
+github.com/apache/skywalking-go/log

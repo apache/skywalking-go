@@ -1,0 +1,6 @@
+# github.com/apache/skywalking-go v0.3.0
+## explicit; go 1.18
+github.com/apache/skywalking-go
+github.com/apache/skywalking-go/agent/core
+# github.com/bytedance/sonic v1.9.1
+github.com/bytedance/sonic

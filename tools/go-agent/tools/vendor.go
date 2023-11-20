@@ -17,15 +17,64 @@
 
 package tools
 
-import "strings"
+import (
+	"bytes"
+	"fmt"
+	"os"
+	"strings"
+)
 
-const vendorDir = "/vendor/"
+const VendorDir = "/vendor/"
+
+type VendorModule struct {
+	Name    string
+	Version string
+}
+
+type VendorModules map[string]*VendorModule
 
 // UnVendor removes the vendor directory from the path.
 func UnVendor(path string) string {
-	i := strings.Index(path, vendorDir)
+	i := strings.Index(path, VendorDir)
 	if i == -1 {
 		return path
 	}
-	return path[i+len(vendorDir):]
+	return path[i+len(VendorDir):]
+}
+
+func ParseVendorModule(path string) (VendorModules, error) {
+	moduleContent, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	modules := make(VendorModules)
+	var module *VendorModule
+	for _, moduleData := range bytes.Split(moduleContent, []byte("\n")) {
+		moduleString := strings.TrimSpace(string(moduleData))
+		if strings.HasPrefix(moduleString, "# ") {
+			// module
+			moduleInfo := strings.SplitAfterN(moduleString, " ", 3)
+			if len(moduleInfo) != 3 {
+				return nil, fmt.Errorf("module data cannot be analyzed")
+			}
+			module = &VendorModule{
+				Name:    moduleInfo[1],
+				Version: moduleInfo[2],
+			}
+			continue
+		} else if strings.HasPrefix(moduleString, "#") {
+			// go version required, ignore
+			continue
+		} else if moduleString == "" {
+			// empty data, ignore
+			continue
+		}
+
+		// otherwise, it should be the module package path
+		if module == nil {
+			return nil, fmt.Errorf("cannot found previous module data")
+		}
+		modules[moduleString] = module
+	}
+	return modules, nil
 }
