@@ -65,7 +65,7 @@ func ParseVendorModule(path string) (VendorModules, error) {
 		} else if strings.HasPrefix(moduleString, "#") {
 			// go version required, ignore
 			continue
-		} else if len(moduleString) == 0 {
+		} else if moduleString == "" {
 			// empty data, ignore
 			continue
 		}

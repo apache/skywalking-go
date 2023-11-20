@@ -588,7 +588,7 @@ func (i *Instrument) tryToFindThePluginVersion(opts *api.CompileOptions, ins ins
 	return "", nil
 }
 
-func (i *Instrument) tryToGetVersionByVendor(goFilePath string, pkgName string) (string, error) {
+func (i *Instrument) tryToGetVersionByVendor(goFilePath, pkgName string) (string, error) {
 	before, _, found := strings.Cut(goFilePath, tools.VendorDir+pkgName)
 	if !found {
 		return "", nil
@@ -599,9 +599,9 @@ func (i *Instrument) tryToGetVersionByVendor(goFilePath string, pkgName string) 
 	if err != nil {
 		return "", err
 	}
-	module := modules[pkgName]
-	if module == nil {
+	mod := modules[pkgName]
+	if mod == nil {
 		return "", fmt.Errorf("cannot found the current module in vendor: %s, module path: %s", pkgName, modulePath)
 	}
-	return module.Version, nil
+	return mod.Version, nil
 }
