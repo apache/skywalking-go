@@ -69,7 +69,7 @@ func TestInvoke(t *testing.T) {
 	}
 
 	assert.Equal(t, tags["client_ip"], "127.0.0.1")
-	assert.Equal(t, tags["remote_addr"], "127.0.0.1")
+	assert.Equal(t, tags["remote_ip"], "127.0.0.1")
 }
 
 type testWriter struct {
