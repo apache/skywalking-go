@@ -90,12 +90,15 @@ var writeOperation = map[string]bool{
 }
 
 var readOperation = map[string]bool{
+	"keys":        true,
+	"scan":        true,
 	"getrange":    true,
 	"getbit":      true,
 	"mget":        true,
 	"hvals":       true,
 	"hkeys":       true,
 	"hlen":        true,
+	"hscan":       true,
 	"hexists":     true,
 	"hget":        true,
 	"hgetall":     true,
