@@ -39,10 +39,13 @@ func TestInvoke(t *testing.T) {
 	interceptor := &HTTPInterceptor{}
 	request, err := http.NewRequest("GET", "http://localhost/", http.NoBody)
 	assert.Nil(t, err, "new request error should be nil")
-	invocation := operator.NewInvocation(nil, &gin.Context{
-		Request: request,
-		Writer:  &testWriter{},
-	})
+
+	ctx, _ := gin.CreateTestContext(nil)
+	ctx.Request = request
+	request.RemoteAddr = "127.0.0.1:30000"
+	ctx.Writer = &testWriter{}
+	invocation := operator.NewInvocation(nil, ctx)
+
 	err = interceptor.BeforeInvoke(invocation)
 	assert.Nil(t, err, "before invoke error should be nil")
 	assert.NotNil(t, invocation.GetContext(), "context should not be nil")
@@ -59,6 +62,14 @@ func TestInvoke(t *testing.T) {
 	assert.Equal(t, "GET:/", spans[0].OperationName(), "operation name should be GET:/")
 	assert.Nil(t, spans[0].Refs(), "refs should be nil")
 	assert.Greater(t, spans[0].EndTime(), spans[0].StartTime(), "end time should be greater than start time")
+
+	tags := map[string]string{}
+	for _, tt := range spans[0].Tags() {
+		tags[tt.Key] = tt.Value
+	}
+
+	assert.Equal(t, tags["client_ip"], "127.0.0.1")
+	assert.Equal(t, tags["remote_addr"], "127.0.0.1")
 }
 
 type testWriter struct {

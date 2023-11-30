@@ -50,6 +50,8 @@ type Tag string
 
 const (
 	TagURL             = "url"
+	TagRemoteAddr      = "remote_addr"
+	TagClientIP        = "client_ip"
 	TagStatusCode      = "status_code"
 	TagHTTPMethod      = "http.method"
 	TagHTTPParams      = "http.params"

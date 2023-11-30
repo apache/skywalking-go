@@ -53,6 +53,8 @@ func (h *HTTPInterceptor) AfterInvoke(invocation operator.Invocation, result ...
 	context := invocation.Args()[0].(*gin.Context)
 	span := invocation.GetContext().(tracing.Span)
 	span.Tag(tracing.TagStatusCode, fmt.Sprintf("%d", context.Writer.Status()))
+	span.Tag(tracing.TagRemoteAddr, context.RemoteIP())
+	span.Tag(tracing.TagClientIP, context.ClientIP())
 	if len(context.Errors) > 0 {
 		span.Error(context.Errors.String())
 	}
