@@ -99,7 +99,7 @@ func (r *redisHook) ProcessHook(next redis.ProcessHook) redis.ProcessHook {
 			tracing.WithTag(tracing.TagCacheOp, getCacheOp(cmd.FullName())),
 			tracing.WithTag(tracing.TagCacheCmd, cmd.FullName()),
 			tracing.WithTag(tracing.TagCacheKey, getKey(cmd.Args())),
-			tracing.WithTag(tracing.TagCacheArgs, cmd.String()),
+			tracing.WithTag(tracing.TagCacheArgs, maxString(cmd.String(), config.MaxArgsBytes)),
 		)
 
 		if err != nil {
@@ -186,4 +186,16 @@ func getKey(args []interface{}) string {
 		}
 	}
 	return key
+}
+
+// maxString limit the bytes length of the redis args.
+func maxString(s string, length int) string {
+	if length <= 0 { // no define or no limit
+		return s
+	}
+
+	if len(s) > length {
+		return s[:length]
+	}
+	return s
 }

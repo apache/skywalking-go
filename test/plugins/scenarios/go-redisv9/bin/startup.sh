@@ -19,4 +19,6 @@
 home="$(cd "$(dirname $0)"; pwd)"
 go build ${GO_BUILD_OPTS} -o goredisv9
 
+export SW_AGENT_PLUGIN_CONFIG_REDIS_MAX_ARGS_BYTES=1024
+
 ./goredisv9

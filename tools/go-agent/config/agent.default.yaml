@@ -92,3 +92,6 @@ plugin:
     sql:
       # Collect the parameter of the SQL request
       collect_parameter: ${SW_AGENT_PLUGIN_CONFIG_SQL_COLLECT_PARAMETER:false}
+    redis:
+      # Limit the bytes size of redis args request
+      max_args_bytes: ${SW_AGENT_PLUGIN_CONFIG_REDIS_MAX_ARGS_BYTES:1024}
