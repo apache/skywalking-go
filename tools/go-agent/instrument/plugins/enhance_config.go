@@ -215,7 +215,7 @@ func (f *ConfigField) GenerateAssignFieldValue(varName string, field, path []str
 		getFromEnvStr = fmt.Sprintf("if v := tools.GetEnvValue(%q); v != \"\" { result = v };", pluginConfig.EnvKey)
 	}
 	parseResStr := ""
-	parseErrorMessage := "cannot parse the config " + fieldKeyPathStr + ": err.Error()"
+	parseErrorMessage := fmt.Sprintf(`"cannot parse the config %s: " + err.Error()`, fieldKeyPathStr)
 	switch f.Type {
 	case "string":
 		parseResStr = "return result"

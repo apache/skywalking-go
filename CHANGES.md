@@ -8,6 +8,7 @@ Release Notes.
 
 #### Plugins
 * Support setting a discard type of reporter.
+* Add `redis.max_args_bytes` parameter for redis plugin.
 
 #### Documentation
 
@@ -65,7 +66,7 @@ Release Notes.
 
 #### Documentation
 * Combine `Supported Libraries` and `Performance Test` into `Plugins` section.
-* Add `Tracing, Metrics and Logging` document into `Plugins` section. 
+* Add `Tracing, Metrics and Logging` document into `Plugins` section.
 
 #### Bug Fixes
 * Fix throw panic when log the tracing context before agent core initialized.
