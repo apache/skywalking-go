@@ -28,6 +28,7 @@ import (
 	"google.golang.org/grpc/metadata"
 
 	agentv3 "skywalking.apache.org/repo/goapi/collect/language/agent/v3"
+	logv3 "skywalking.apache.org/repo/goapi/collect/logging/v3"
 )
 
 var authKey = "Authentication"
@@ -47,6 +48,8 @@ func WithCheckInterval(interval time.Duration) ReporterOption {
 func WithMaxSendQueueSize(maxSendQueueSize int) ReporterOption {
 	return func(r *gRPCReporter) {
 		r.tracingSendCh = make(chan *agentv3.SegmentObject, maxSendQueueSize)
+		r.metricsSendCh = make(chan []*agentv3.MeterData, maxSendQueueSize)
+		r.logSendCh = make(chan *logv3.LogData, maxSendQueueSize)
 	}
 }
 
