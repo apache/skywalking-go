@@ -37,9 +37,20 @@ jobs:
         uses: actions/setup-go@v2
         with:
           go-version: 1.18
-      - name: Setup Docker on macOS
+      - name: Setup docker (missing on MacOS)
         if: runner.os == 'macos'
-        uses: douglascamata/setup-docker-macos-action@v1-alpha
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+          HOMEBREW_NO_INSTALL_UPGRADE: "1"
+          HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: "1"
+        run: |
+          brew install docker
+          brew install colima
+          colima start
+
+          # For testcontainers to find the Colima socket
+          # https://github.com/abiosoft/colima/blob/main/docs/FAQ.md#cannot-connect-to-the-docker-daemon-at-unixvarrundockersock-is-the-docker-daemon-running
+          sudo ln -sf $HOME/.colima/default/docker.sock /var/run/docker.sock
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2
         with:
@@ -126,9 +137,20 @@ jobs:
         uses: actions/setup-go@v2
         with:
           go-version: 1.18
-      - name: Setup Docker on macOS
+      - name: Setup docker (missing on MacOS)
         if: runner.os == 'macos'
-        uses: douglascamata/setup-docker-macos-action@v1-alpha
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+          HOMEBREW_NO_INSTALL_UPGRADE: "1"
+          HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: "1"
+        run: |
+          brew install docker docker-compose
+          brew install colima
+          colima start
+
+          # For testcontainers to find the Colima socket
+          # https://github.com/abiosoft/colima/blob/main/docs/FAQ.md#cannot-connect-to-the-docker-daemon-at-unixvarrundockersock-is-the-docker-daemon-running
+          sudo ln -sf $HOME/.colima/default/docker.sock /var/run/docker.sock
       - name: Setup Tools
         run: |
           chmod +x test/plugins/dist/*
@@ -158,4 +180,3 @@ jobs:
           if [[ ${{ needs.test.result }} != 'success' || ${{ needs.test-on-macos.result }} != 'success' ]]; then
             exit -1
           fi
-
