@@ -158,3 +158,4 @@ jobs:
           if [[ ${{ needs.test.result }} != 'success' || ${{ needs.test-on-macos.result }} != 'success' ]]; then
             exit -1
           fi
+
