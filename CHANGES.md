@@ -9,6 +9,7 @@ Release Notes.
 #### Plugins
 * Support setting a discard type of reporter.
 * Add `redis.max_args_bytes` parameter for redis plugin.
+* Changing intercept point for gin, make sure interfaces could be grouped when params defined in relativePath.
 
 #### Documentation
 

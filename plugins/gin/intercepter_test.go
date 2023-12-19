@@ -19,8 +19,10 @@ package gin
 
 import (
 	"net/http"
+	"reflect"
 	"testing"
 	"time"
+	"unsafe"
 
 	"github.com/apache/skywalking-go/plugins/core"
 	"github.com/apache/skywalking-go/plugins/core/operator"
@@ -36,13 +38,18 @@ func init() {
 
 func TestInvoke(t *testing.T) {
 	defer core.ResetTracingContext()
-	interceptor := &HTTPInterceptor{}
-	request, err := http.NewRequest("GET", "http://localhost/", http.NoBody)
+	interceptor := &ContextInterceptor{}
+	request, err := http.NewRequest("GET", "http://localhost/skywalking/trace/f4dd2255-e3be-4636-b2e7-fc1d407a30d3", http.NoBody)
 	assert.Nil(t, err, "new request error should be nil")
-	invocation := operator.NewInvocation(nil, &gin.Context{
+	c := &gin.Context{
 		Request: request,
 		Writer:  &testWriter{},
-	})
+	}
+
+	fullPath := reflect.ValueOf(c).Elem().FieldByName("fullPath")
+	reflect.NewAt(fullPath.Type(), unsafe.Pointer(fullPath.UnsafeAddr())).Elem().Set(reflect.ValueOf("/skywalking/trace/:traceId"))
+
+	invocation := operator.NewInvocation(c)
 	err = interceptor.BeforeInvoke(invocation)
 	assert.Nil(t, err, "before invoke error should be nil")
 	assert.NotNil(t, invocation.GetContext(), "context should not be nil")
@@ -56,7 +63,7 @@ func TestInvoke(t *testing.T) {
 	spans := core.GetReportedSpans()
 	assert.NotNil(t, spans, "spans should not be nil")
 	assert.Equal(t, 1, len(spans), "spans length should be 1")
-	assert.Equal(t, "GET:/", spans[0].OperationName(), "operation name should be GET:/")
+	assert.Equal(t, "GET:/skywalking/trace/:traceId", spans[0].OperationName(), "operation name should be GET:/skywalking/trace/:traceId")
 	assert.Nil(t, spans[0].Refs(), "refs should be nil")
 	assert.Greater(t, spans[0].EndTime(), spans[0].StartTime(), "end time should be greater than start time")
 }

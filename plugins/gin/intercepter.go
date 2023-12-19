@@ -26,13 +26,13 @@ import (
 	"github.com/apache/skywalking-go/plugins/core/tracing"
 )
 
-type HTTPInterceptor struct {
+type ContextInterceptor struct {
 }
 
-func (h *HTTPInterceptor) BeforeInvoke(invocation operator.Invocation) error {
-	context := invocation.Args()[0].(*gin.Context)
+func (h *ContextInterceptor) BeforeInvoke(invocation operator.Invocation) error {
+	context := invocation.CallerInstance().(*gin.Context)
 	s, err := tracing.CreateEntrySpan(
-		fmt.Sprintf("%s:%s", context.Request.Method, context.Request.URL.Path), func(headerKey string) (string, error) {
+		fmt.Sprintf("%s:%s", context.Request.Method, context.FullPath()), func(headerKey string) (string, error) {
 			return context.Request.Header.Get(headerKey), nil
 		},
 		tracing.WithLayer(tracing.SpanLayerHTTP),
@@ -46,11 +46,11 @@ func (h *HTTPInterceptor) BeforeInvoke(invocation operator.Invocation) error {
 	return nil
 }
 
-func (h *HTTPInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {
+func (h *ContextInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {
 	if invocation.GetContext() == nil {
 		return nil
 	}
-	context := invocation.Args()[0].(*gin.Context)
+	context := invocation.CallerInstance().(*gin.Context)
 	span := invocation.GetContext().(tracing.Span)
 	span.Tag(tracing.TagStatusCode, fmt.Sprintf("%d", context.Writer.Status()))
 	if len(context.Errors) > 0 {
