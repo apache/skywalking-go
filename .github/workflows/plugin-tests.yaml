@@ -37,16 +37,9 @@ jobs:
         uses: actions/setup-go@v2
         with:
           go-version: 1.18
-      - name: Setup docker (missing on MacOS)
+      - name: Setup Docker on macOS
         if: runner.os == 'macos'
-        run: |
-          brew install docker
-          brew install colima
-          colima start
-
-          # For testcontainers to find the Colima socket
-          # https://github.com/abiosoft/colima/blob/main/docs/FAQ.md#cannot-connect-to-the-docker-daemon-at-unixvarrundockersock-is-the-docker-daemon-running
-          sudo ln -sf $HOME/.colima/default/docker.sock /var/run/docker.sock
+        uses: douglascamata/setup-docker-macos-action@v1-alpha
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2
         with:
@@ -133,16 +126,9 @@ jobs:
         uses: actions/setup-go@v2
         with:
           go-version: 1.18
-      - name: Setup docker (missing on MacOS)
+      - name: Setup Docker on macOS
         if: runner.os == 'macos'
-        run: |
-          brew install docker docker-compose
-          brew install colima
-          colima start
-
-          # For testcontainers to find the Colima socket
-          # https://github.com/abiosoft/colima/blob/main/docs/FAQ.md#cannot-connect-to-the-docker-daemon-at-unixvarrundockersock-is-the-docker-daemon-running
-          sudo ln -sf $HOME/.colima/default/docker.sock /var/run/docker.sock
+        uses: douglascamata/setup-docker-macos-action@v1-alpha
       - name: Setup Tools
         run: |
           chmod +x test/plugins/dist/*
