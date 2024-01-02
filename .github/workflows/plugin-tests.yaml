@@ -95,6 +95,7 @@ jobs:
           - fasthttp
           - discard-reporter
           - fiber
+          - echov4
     steps:
       - uses: actions/checkout@v2
         with:

@@ -22,6 +22,7 @@ use (
 	./plugins/trace-activation
 	./plugins/fasthttp
 	./plugins/fiber
+	./plugins/echov4
 
 	./test/benchmark-codebase/consumer
 	./test/benchmark-codebase/provider
@@ -50,6 +51,7 @@ use (
 
 	./test/plugins/scenarios/plugin_exclusion
 	./test/plugins/scenarios/runtime_metrics
+	./test/plugins/scenarios/echov4
 
 	./tools/go-agent
 
