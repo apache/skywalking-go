@@ -23,7 +23,7 @@ build:
 	mkdir -p dist
 	# go agent
 	@make -C ../../tools/go-agent linux
-	cp ../../bin/skywalking-go-agent--linux-amd64 dist/skywalking-go-agent
+	cp ../../bin/skywalking-go-agent--linux-$(shell go env GOARCH) dist/skywalking-go-agent
 	# runner helper
 	cd runner-helper && $(GO_BUILD) -o ../dist/runner-helper
 	# validator container

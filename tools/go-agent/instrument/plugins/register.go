@@ -21,6 +21,7 @@ import (
 	traceactivation "github.com/apache/skywalking-go/plugin/trace"
 	"github.com/apache/skywalking-go/plugins/core/instrument"
 	"github.com/apache/skywalking-go/plugins/dubbo"
+	"github.com/apache/skywalking-go/plugins/echov4"
 	fasthttp_client "github.com/apache/skywalking-go/plugins/fasthttp/hostclient"
 	fasthttp_router "github.com/apache/skywalking-go/plugins/fasthttp/router"
 	"github.com/apache/skywalking-go/plugins/fiber"
@@ -71,6 +72,9 @@ func init() {
 	// sql related instruments
 	registerFramework(sql_entry.NewInstrument())
 	registerFramework(sql_mysql.NewInstrument())
+
+	// echov4 related instruments
+	registerFramework(echov4.NewInstrument())
 }
 
 func registerFramework(ins instrument.Instrument) {

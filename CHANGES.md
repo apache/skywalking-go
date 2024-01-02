@@ -33,6 +33,7 @@ Release Notes.
 * Support [iris](https://github.com/kataras/iris) framework.
 * Support [fasthttp](https://github.com/valyala/fasthttp) framework.
 * Support [fiber](https://github.com/gofiber/fiber) framework.
+* support [Echov4](https://github.com/labstack/echo) framework.
 
 #### Documentation
 * Add `Tracing APIs` document into `Manual APIs`.
