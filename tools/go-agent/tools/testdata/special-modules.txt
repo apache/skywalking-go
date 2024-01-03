@@ -1,4 +1,4 @@
-# github.com/abc/def v0.3.0
+# github.com/abc/def v0.2.0
 ## explicit; go 1.18
 github.com/abc/def/aa
 github.com/abc/def/bb/cc
