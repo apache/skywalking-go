@@ -92,6 +92,19 @@ func TestParseVendorModule(t *testing.T) {
 				return nil
 			},
 		},
+		{
+			path:         "./testdata/special-modules.txt",
+			hasError:     false,
+			packageCount: 3,
+			validate: func(modules VendorModules) error {
+				if m := modules["github.com/abc/def"]; m == nil {
+					return fmt.Errorf("module missing")
+				} else if m.Version != "v0.3.0" {
+					return fmt.Errorf("version not correct")
+				}
+				return nil
+			},
+		},
 	}
 
 	for _, test := range tests {

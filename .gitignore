@@ -8,3 +8,4 @@ coverage.txt
 /test/plugins/workspace
 /test/plugins/dist/
 *.pb.go
+vendor/
