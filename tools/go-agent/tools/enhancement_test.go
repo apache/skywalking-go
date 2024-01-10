@@ -23,11 +23,10 @@ import (
 	"github.com/dave/dst"
 )
 
-func buildParameterValidateInfo(name, typeName, defaultValue string) *ParameterInfo {
+func buildParameterValidateInfo(name, typeName string) *ParameterInfo {
 	return &ParameterInfo{
-		Name:                 name,
-		TypeName:             typeName,
-		DefaultValueAsString: defaultValue,
+		Name:     name,
+		TypeName: typeName,
 	}
 }
 
@@ -43,13 +42,13 @@ func TestEnhanceParameterNames(t *testing.T) {
 				return false
 			}`,
 			recvs: []*ParameterInfo{
-				buildParameterValidateInfo("skywalking_recv_0", "*Example", "nil"),
+				buildParameterValidateInfo("skywalking_recv_0", "*Example"),
 			},
 			params: []*ParameterInfo{
-				buildParameterValidateInfo("skywalking_param_0", "int", "0"),
+				buildParameterValidateInfo("skywalking_param_0", "int"),
 			},
 			results: []*ParameterInfo{
-				buildParameterValidateInfo("skywalking_result_0", "bool", "false"),
+				buildParameterValidateInfo("skywalking_result_0", "bool"),
 			},
 		},
 		{
@@ -57,13 +56,13 @@ func TestEnhanceParameterNames(t *testing.T) {
 				return false
 }`,
 			recvs: []*ParameterInfo{
-				buildParameterValidateInfo("e", "*Example", "nil"),
+				buildParameterValidateInfo("e", "*Example"),
 			},
 			params: []*ParameterInfo{
-				buildParameterValidateInfo("i", "int", "0"),
+				buildParameterValidateInfo("i", "int"),
 			},
 			results: []*ParameterInfo{
-				buildParameterValidateInfo("b", "bool", "false"),
+				buildParameterValidateInfo("b", "bool"),
 			},
 		},
 	}
@@ -94,9 +93,6 @@ func validateParameterInfo(t *testing.T, inx int, flistType FieldListType, actua
 		}
 		if exp.TypeName != act.TypeName {
 			t.Errorf("case %d:%s: expected type %s , actual %s", inx, flistType, exp.TypeName, act.TypeName)
-		}
-		if exp.DefaultValueAsString != act.DefaultValueAsString {
-			t.Errorf("case %d:%s: expected default value %s , actual %s", inx, flistType, exp.DefaultValueAsString, act.DefaultValueAsString)
 		}
 	}
 }

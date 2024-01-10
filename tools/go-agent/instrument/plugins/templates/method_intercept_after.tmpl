@@ -21,7 +21,8 @@ if (invocation.isContinue) {
 	if invocation.returnValues[{{$index}}] != nil {
         *ret_{{$index}} = (invocation.returnValues[{{$index}}]).({{$value.PackagedTypeName}})
     } else {
-        *ret_{{$index}} = {{$value.DefaultValueAsString}}
+        var tmp_{{$index}} {{$value.PackagedTypeName}}
+        *ret_{{$index}} = tmp_{{$index}}
     }
     {{- end }}
 }

@@ -16,6 +16,7 @@ Release Notes.
 * Fix users can not use async api in toolkit-trace.
 * Fix cannot enhance the vendor management project.
 * Fix SW_AGENT_REPORTER_GRPC_MAX_SEND_QUEUE not working on metricsSendCh & logSendCh chans of gRPC reporter.
+* Fix enhance method error when unknown parameter type.
 
 #### Issues and PR
 - All issues are [here](https://github.com/apache/skywalking/milestone/197?closed=1)
