@@ -19,8 +19,6 @@ package tools
 
 import (
 	"fmt"
-	"go/token"
-	"strings"
 
 	"github.com/dave/dst"
 	"github.com/dave/dst/decorator"
@@ -31,10 +29,9 @@ const OtherPackageRefPrefix = "swref_"
 const parameterAppender = ", "
 
 type ParameterInfo struct {
-	Name                 string
-	Type                 dst.Expr
-	DefaultValueAsString string
-	TypeName             string
+	Name     string
+	Type     dst.Expr
+	TypeName string
 }
 
 type PackagedParameterInfo struct {
@@ -141,24 +138,6 @@ func newParameterInfo(name string, tp dst.Expr) *ParameterInfo {
 		Type:     tp,
 		TypeName: GenerateTypeNameByExp(tp),
 	}
-	var defaultNil = "nil"
-	switch n := tp.(type) {
-	case *dst.Ident:
-		if n.Name == "string" {
-			defaultNil = `""`
-		} else if n.Name == "bool" {
-			defaultNil = "false"
-		} else if strings.HasPrefix(n.Name, "int") || strings.HasPrefix(n.Name, "uint") ||
-			strings.HasPrefix(n.Name, "float") || n.Name == "byte" || n.Name == "rune" {
-			defaultNil = "0"
-		}
-	case *dst.UnaryExpr:
-		if n.Op == token.INT || n.Op == token.FLOAT {
-			defaultNil = "0"
-		}
-	}
-	result.DefaultValueAsString = defaultNil
-
 	return result
 }
 

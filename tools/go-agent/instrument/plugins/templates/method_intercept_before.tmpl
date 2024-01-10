@@ -25,18 +25,21 @@ invocation.changeArgCallback = func(index int, value interface{}) {
     panic("cannot found the argument index")
 }
 
+{{- range $index, $value := .Results }}
+var def_res_{{$index}} {{$value.PackagedTypeName}}
+{{- end}}
 // real invoke
 if err := {{.InterceptorVarName}}.BeforeInvoke(invocation); err != nil {
 	// using go2sky log error
 	log.Warnf("execute interceptor before invoke error, instrument name: %s, interceptor name: %s, function ID: %s, error: %v",
     		    "{{.InstrumentName}}", "{{.InterceptorDefineName}}", "{{.FuncID}}", err)
+
 	return {{ range $index, $value := .Results -}}
-{{$value.DefaultValueAsString}},
+def_res_{{$index}},
 {{- end}}invocation, false
 }
 if (invocation.isContinue) {
     {{- range $index, $value := .Results }}
-    var def_res_{{$index}} {{$value.PackagedTypeName}}
     if invocation.returnValues[{{$index}}] != nil {
         def_res_{{$index}} = (invocation.returnValues[{{$index}}]).({{$value.PackagedTypeName}})
     }
@@ -46,5 +49,5 @@ if (invocation.isContinue) {
 {{- end}}invocation, true
 }
 return {{ range $index, $value := .Results -}}
-{{- if ne $index 0}}, {{end}}{{$value.DefaultValueAsString }}
-{{- end}}{{if .Results}}, {{- end}}invocation, false
+def_res_{{$index}},
+{{- end}}invocation, false
