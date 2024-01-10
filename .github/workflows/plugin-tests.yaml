@@ -39,6 +39,10 @@ jobs:
           go-version: 1.18
       - name: Setup docker (missing on MacOS)
         if: runner.os == 'macos'
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+          HOMEBREW_NO_INSTALL_UPGRADE: "1"
+          HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: "1"
         run: |
           brew install docker
           brew install colima
@@ -91,6 +95,7 @@ jobs:
           - fasthttp
           - discard-reporter
           - fiber
+          - echov4
     steps:
       - uses: actions/checkout@v2
         with:
@@ -135,6 +140,10 @@ jobs:
           go-version: 1.18
       - name: Setup docker (missing on MacOS)
         if: runner.os == 'macos'
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+          HOMEBREW_NO_INSTALL_UPGRADE: "1"
+          HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: "1"
         run: |
           brew install docker docker-compose
           brew install colima

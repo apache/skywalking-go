@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package gin
+package echov4
 
 import (
 	"embed"
@@ -28,31 +28,34 @@ import (
 var fs embed.FS
 
 //skywalking:nocopy
-type Instrument struct {
-}
+type Instrument struct{}
 
 func NewInstrument() *Instrument {
 	return &Instrument{}
 }
 
 func (i *Instrument) Name() string {
-	return "gin"
+	return "echov4"
 }
 
 func (i *Instrument) BasePackage() string {
-	return "github.com/gin-gonic/gin"
+	return "github.com/labstack/echo/v4"
 }
 
 func (i *Instrument) VersionChecker(version string) bool {
-	return strings.HasPrefix(version, "v1.")
+	return strings.HasPrefix(version, "v4.")
 }
 
 func (i *Instrument) Points() []*instrument.Point {
 	return []*instrument.Point{
 		{
+			PackageName: "echo",
 			PackagePath: "",
-			At:          instrument.NewMethodEnhance("*Context", "Next"),
-			Interceptor: "ContextInterceptor",
+			At: instrument.NewStaticMethodEnhance("New",
+				instrument.WithResultCount(1),
+				instrument.WithResultType(0, "*Echo"),
+			),
+			Interceptor: "EchoInterceptor",
 		},
 	}
 }

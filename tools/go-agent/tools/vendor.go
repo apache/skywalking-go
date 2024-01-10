@@ -58,9 +58,10 @@ func ParseVendorModule(path string) (VendorModules, error) {
 				return nil, fmt.Errorf("module data cannot be analyzed")
 			}
 			module = &VendorModule{
-				Name:    moduleInfo[1],
+				Name:    strings.TrimSpace(moduleInfo[1]),
 				Version: moduleInfo[2],
 			}
+			modules[module.Name] = module
 			continue
 		} else if strings.HasPrefix(moduleString, "#") {
 			// go version required, ignore

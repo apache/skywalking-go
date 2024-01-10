@@ -9,6 +9,7 @@ Release Notes.
 #### Plugins
 * Support setting a discard type of reporter.
 * Add `redis.max_args_bytes` parameter for redis plugin.
+* Changing intercept point for gin, make sure interfaces could be grouped when params defined in relativePath.
 
 #### Documentation
 
@@ -16,6 +17,7 @@ Release Notes.
 * Fix users can not use async api in toolkit-trace.
 * Fix cannot enhance the vendor management project.
 * Fix SW_AGENT_REPORTER_GRPC_MAX_SEND_QUEUE not working on metricsSendCh & logSendCh chans of gRPC reporter.
+* Fix ParseVendorModule error for special case in vendor/modules.txt.
 * Fix enhance method error when unknown parameter type.
 
 #### Issues and PR
@@ -33,6 +35,7 @@ Release Notes.
 * Support [iris](https://github.com/kataras/iris) framework.
 * Support [fasthttp](https://github.com/valyala/fasthttp) framework.
 * Support [fiber](https://github.com/gofiber/fiber) framework.
+* support [Echov4](https://github.com/labstack/echo) framework.
 
 #### Documentation
 * Add `Tracing APIs` document into `Manual APIs`.

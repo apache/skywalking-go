@@ -10,6 +10,7 @@ metrics based on the tracing data.
   * `iris`: [Iris](https://github.com/kataras/iris) tested v12.1.0 to 12.2.5.
   * `fasthttp`: [FastHttp](https://github.com/valyala/fasthttp) tested v1.10.0 to v1.50.0.
   * `fiber`: [Fiber](https://github.com/gofiber/fiber) tested v2.49.0 to v2.50.0.
+  * `echov4`: [Echov4](https://github.com/labstack/echo) tested v4.0.0 to v4.11.4
 * HTTP Client
   * `http`: [Native HTTP](https://pkg.go.dev/net/http) tested go v1.17 to go v1.20.
   * `fasthttp`: [FastHttp](https://github.com/valyala/fasthttp) tested v1.10.0 to v1.50.0.
