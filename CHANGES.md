@@ -19,6 +19,7 @@ Release Notes.
 * Fix SW_AGENT_REPORTER_GRPC_MAX_SEND_QUEUE not working on metricsSendCh & logSendCh chans of gRPC reporter.
 * Fix ParseVendorModule error for special case in vendor/modules.txt.
 * Fix enhance method error when unknown parameter type.
+* Fix wrong tracing context when trace have been sampled.
 
 #### Issues and PR
 - All issues are [here](https://github.com/apache/skywalking/milestone/197?closed=1)
