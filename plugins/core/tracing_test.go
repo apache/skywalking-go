@@ -419,6 +419,42 @@ func TestContext(t *testing.T) {
 	assert.Nil(t, tracing.ActiveSpan(), "active span should be nil")
 }
 
+func TestNoopSpan(t *testing.T) {
+	defer ResetTracingContext()
+	Tracing.Sampler = NewConstSampler(false)
+	var err error
+	// create multiple noop span
+	span, err := tracing.CreateLocalSpan("test")
+	assert.Nil(t, err, "create span error")
+	assert.NotNil(t, span, "span should not be nil")
+	span1, err := tracing.CreateLocalSpan("test2")
+	assert.Nil(t, err, "create span error")
+	assert.NotNil(t, span, "span should not be nil")
+	activeSpan := tracing.ActiveSpan()
+	assert.NotNil(t, activeSpan, "active span should not be nil")
+	context := tracing.CaptureContext()
+	assert.NotNil(t, context, "context should not be nil")
+	oldGLS := GetGLS()
+
+	// switch to a new GLS(continue context and create span test)
+	SetAsNewGoroutine()
+	tracing.ContinueContext(context)
+	assert.NotNil(t, tracing.ActiveSpan(), "active span should not be nil")
+	test3span, err := tracing.CreateLocalSpan("test3")
+	assert.Nil(t, err, "create span error")
+	assert.NotNil(t, test3span, "span should not be nil")
+	test3span.End()
+	activeSpan = tracing.ActiveSpan()
+	assert.Nil(t, activeSpan, "active span should be nil")
+
+	// switch back to the GLS(check the active span should be nil, make sure context is clean)
+	SetGLS(oldGLS)
+	span1.End()
+	span.End()
+	activeSpan = tracing.ActiveSpan()
+	assert.Nil(t, activeSpan, "active span should be nil")
+}
+
 func validateSpanOperation(t *testing.T, cases []spanOperationTestCase) {
 	for _, tt := range cases {
 		spans := make([]tracing.Span, 0)

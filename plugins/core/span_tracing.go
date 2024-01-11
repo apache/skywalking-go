@@ -368,9 +368,12 @@ func newSegmentRoot(segmentSpan *SegmentSpanImpl) *RootSegmentSpan {
 	return s
 }
 
-func newSnapshotSpan(current TracingSpan) *SnapshotSpan {
+func newSnapshotSpan(current TracingSpan) TracingSpan {
 	if current == nil {
 		return nil
+	}
+	if _, isNoop := current.(*NoopSpan); isNoop {
+		return newSnapshotNoopSpan()
 	}
 	segmentSpan, ok := current.(SegmentSpan)
 	if !ok || !segmentSpan.IsValid() { // is not segment span or segment is invalid(Executed End() method

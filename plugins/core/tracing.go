@@ -227,12 +227,16 @@ func (s *ContextSnapshot) IsValid() bool {
 
 func (t *Tracer) createNoop() (*TracingContext, TracingSpan, bool) {
 	if !t.InitSuccess() || t.Reporter.ConnectionStatus() == reporter.ConnectionStatusDisconnect {
-		return nil, &NoopSpan{}, true
+		return nil, newNoopSpan(), true
 	}
 	ctx := getTracingContext()
 	if ctx != nil {
 		span := ctx.ActiveSpan()
-		_, ok := span.(*NoopSpan)
+		noop, ok := span.(*NoopSpan)
+		if ok {
+			// increase the stack count for ensure the noop span can be clear in the context
+			noop.enterNoSpan()
+		}
 		return ctx, span, ok
 	}
 	ctx = NewTracingContext()
@@ -255,8 +259,7 @@ func (t *Tracer) createSpan0(ctx *TracingContext, parent TracingSpan, pluginOpts
 		sampled := t.Sampler.IsSampled(ds.OperationName)
 		if !sampled {
 			// Filter by sample just return noop span
-			s = &NoopSpan{}
-			return s, nil
+			return newNoopSpan(), nil
 		}
 	}
 	// process the opts from agent core for prepare building segment span

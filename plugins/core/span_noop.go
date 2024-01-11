@@ -24,6 +24,20 @@ import (
 const noopContextValue = "N/A"
 
 type NoopSpan struct {
+	stackCount int
+}
+
+func newSnapshotNoopSpan() *NoopSpan {
+	// snapshot noop span is not a real span
+	return &NoopSpan{
+		stackCount: 0,
+	}
+}
+
+func newNoopSpan() *NoopSpan {
+	return &NoopSpan{
+		stackCount: 1,
+	}
 }
 
 func (*NoopSpan) GetTraceID() string {
@@ -75,7 +89,17 @@ func (*NoopSpan) Log(...string) {
 func (*NoopSpan) Error(...string) {
 }
 
-func (*NoopSpan) End() {
+func (n *NoopSpan) enterNoSpan() {
+	n.stackCount++
+}
+
+func (n *NoopSpan) End() {
+	n.stackCount--
+	if n.stackCount == 0 {
+		if ctx := getTracingContext(); ctx != nil {
+			ctx.SaveActiveSpan(nil)
+		}
+	}
 }
 
 func (*NoopSpan) IsEntry() bool {
