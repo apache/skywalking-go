@@ -50,6 +50,7 @@ type Agent struct {
 	Sampler         StringValue `yaml:"sampler"`
 	Meter           Meter       `yaml:"meter"`
 	Correlation     Correlation `yaml:"correlation"`
+	IgnoreSuffix    StringValue `yaml:"ignore_suffix"`
 }
 
 type Reporter struct {

@@ -5,6 +5,7 @@ Release Notes.
 0.4.0
 ------------------
 #### Features
+* Add support ignore suffix.
 
 #### Plugins
 * Support setting a discard type of reporter.
