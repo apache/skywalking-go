@@ -88,7 +88,6 @@ func EnhanceParameterNames(fields *dst.FieldList, fieldType FieldListType) []*Pa
 
 			for _, n := range f.Names {
 				result = append(result, newParameterInfo(n.Name, f.Type))
-				break
 			}
 		}
 	}
