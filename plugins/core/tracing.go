@@ -20,6 +20,7 @@ package core
 import (
 	"reflect"
 	"runtime/debug"
+	"strings"
 
 	"github.com/pkg/errors"
 
@@ -42,7 +43,7 @@ func (t *Tracer) DebugStack() []byte {
 }
 
 func (t *Tracer) CreateEntrySpan(operationName string, extractor interface{}, opts ...interface{}) (s interface{}, err error) {
-	ctx, tracingSpan, noop := t.createNoop()
+	ctx, tracingSpan, noop := t.createNoop(operationName)
 	if noop {
 		return tracingSpan, nil
 	}
@@ -66,7 +67,7 @@ func (t *Tracer) CreateEntrySpan(operationName string, extractor interface{}, op
 }
 
 func (t *Tracer) CreateLocalSpan(operationName string, opts ...interface{}) (s interface{}, err error) {
-	ctx, tracingSpan, noop := t.createNoop()
+	ctx, tracingSpan, noop := t.createNoop(operationName)
 	if noop {
 		return tracingSpan, nil
 	}
@@ -78,7 +79,7 @@ func (t *Tracer) CreateLocalSpan(operationName string, opts ...interface{}) (s i
 }
 
 func (t *Tracer) CreateExitSpan(operationName, peer string, injector interface{}, opts ...interface{}) (s interface{}, err error) {
-	ctx, tracingSpan, noop := t.createNoop()
+	ctx, tracingSpan, noop := t.createNoop(operationName)
 	if noop {
 		return tracingSpan, nil
 	}
@@ -225,8 +226,11 @@ func (s *ContextSnapshot) IsValid() bool {
 	return s.activeSpan != nil && s.runtime != nil
 }
 
-func (t *Tracer) createNoop() (*TracingContext, TracingSpan, bool) {
+func (t *Tracer) createNoop(operationName string) (*TracingContext, TracingSpan, bool) {
 	if !t.InitSuccess() || t.Reporter.ConnectionStatus() == reporter.ConnectionStatusDisconnect {
+		return nil, newNoopSpan(), true
+	}
+	if ignoreSuffixFilter(operationName, t.ignoreSuffix) {
 		return nil, newNoopSpan(), true
 	}
 	ctx := getTracingContext()
@@ -336,4 +340,17 @@ func saveSpanToActiveIfNotError(ctx *TracingContext, span interface{}, err error
 	}
 	ctx.SaveActiveSpan(span.(TracingSpan))
 	SetGLS(ctx)
+}
+
+func ignoreSuffixFilter(operationName string, ignoreSuffix []string) bool {
+	suffixIdx := strings.LastIndex(operationName, ".")
+	if suffixIdx == -1 {
+		return false
+	}
+	for _, suffix := range ignoreSuffix {
+		if suffix == operationName[suffixIdx:] {
+			return true
+		}
+	}
+	return false
 }
