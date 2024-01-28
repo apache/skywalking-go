@@ -22,6 +22,7 @@ import (
 	defLog "log"
 	"os"
 	"reflect"
+	"strings"
 	"sync"
 
 	"github.com/apache/skywalking-go/plugins/core/operator"
@@ -52,10 +53,11 @@ type Tracer struct {
 	// for all metrics
 	meterMap              *sync.Map
 	meterCollectListeners []func()
+	ignoreSuffix          []string
 }
 
 func (t *Tracer) Init(entity *reporter.Entity, rep reporter.Reporter, samp Sampler, logger operator.LogOperator,
-	meterCollectSecond int, correlation *CorrelationConfig) error {
+	meterCollectSecond int, correlation *CorrelationConfig, ignoreSuffixStr string) error {
 	t.ServiceEntity = entity
 	t.Reporter = rep
 	t.Sampler = samp
@@ -66,6 +68,7 @@ func (t *Tracer) Init(entity *reporter.Entity, rep reporter.Reporter, samp Sampl
 	t.initFlag = 1
 	t.initMetricsCollect(meterCollectSecond)
 	t.correlation = correlation
+	t.ignoreSuffix = strings.Split(ignoreSuffixStr, ",")
 	// notify the tracer been init success
 	if len(GetInitNotify()) > 0 {
 		for _, fun := range GetInitNotify() {

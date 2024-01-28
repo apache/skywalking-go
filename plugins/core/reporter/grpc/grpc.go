@@ -259,7 +259,6 @@ func (r *gRPCReporter) SendLog(log *logv3.LogData) {
 	select {
 	case r.logSendCh <- log:
 	default:
-		r.logger.Errorf("reach max logger send buffer")
 	}
 }
 
@@ -298,7 +297,7 @@ func (r *gRPCReporter) closeGRPCConn() {
 	}
 }
 
-//nolint
+// nolint
 func (r *gRPCReporter) initSendPipeline() {
 	if r.traceClient == nil {
 		return

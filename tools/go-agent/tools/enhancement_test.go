@@ -30,13 +30,15 @@ func buildParameterValidateInfo(name, typeName string) *ParameterInfo {
 	}
 }
 
+type TestEnhanceParameterInfo struct {
+	funcCode string
+	recvs    []*ParameterInfo
+	params   []*ParameterInfo
+	results  []*ParameterInfo
+}
+
 func TestEnhanceParameterNames(t *testing.T) {
-	tests := []struct {
-		funcCode string
-		recvs    []*ParameterInfo
-		params   []*ParameterInfo
-		results  []*ParameterInfo
-	}{
+	tests := []TestEnhanceParameterInfo{
 		{
 			funcCode: `func (*Example) Test(int) bool {
 				return false
@@ -67,6 +69,47 @@ func TestEnhanceParameterNames(t *testing.T) {
 		},
 	}
 
+	validateParameterTestList(t, tests)
+}
+
+func TestEnhanceParameterNamesMultiParams(t *testing.T) {
+	tests := []TestEnhanceParameterInfo{
+		{
+			funcCode: `func (*Example) Test(n, m int) bool {
+				return false
+			}`,
+			recvs: []*ParameterInfo{
+				buildParameterValidateInfo("skywalking_recv_0", "*Example"),
+			},
+			params: []*ParameterInfo{
+				buildParameterValidateInfo("n", "int"),
+				buildParameterValidateInfo("m", "int"),
+			},
+			results: []*ParameterInfo{
+				buildParameterValidateInfo("skywalking_result_0", "bool"),
+			},
+		},
+		{
+			funcCode: `func (e *Example) Test(n, m int) (b bool) {
+				return false
+}`,
+			recvs: []*ParameterInfo{
+				buildParameterValidateInfo("e", "*Example"),
+			},
+			params: []*ParameterInfo{
+				buildParameterValidateInfo("n", "int"),
+				buildParameterValidateInfo("m", "int"),
+			},
+			results: []*ParameterInfo{
+				buildParameterValidateInfo("b", "bool"),
+			},
+		},
+	}
+
+	validateParameterTestList(t, tests)
+}
+
+func validateParameterTestList(t *testing.T, tests []TestEnhanceParameterInfo) {
 	for i, test := range tests {
 		fun := GoStringToDecls(test.funcCode)[0].(*dst.FuncDecl)
 		var actualRecv, actualParams, actualResults []*ParameterInfo

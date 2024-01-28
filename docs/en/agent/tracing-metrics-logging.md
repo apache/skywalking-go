@@ -22,9 +22,10 @@ If you wish to disable a particular plugin to prevent enhancements related to th
 
 The basic configuration is as follows:
 
-| Name                    | Environment Key   | Default Value         | Description                                                                                                                               |
-|-------------------------|-------------------|-----------------------|-------------------------------------------------------------------------------------------------------------------------------------------|
-| agent.sampler           | SW_AGENT_SAMPLER  | 1                     | Sampling rate of tracing data, which is a floating-point value that must be between 0 and 1.                                              |
+| Name                | Environment Key        | Default Value                                                | Description                                                                                                              |
+|---------------------|------------------------|--------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------|
+| agent.sampler       | SW_AGENT_SAMPLER       | 1                                                            | Sampling rate of tracing data, which is a floating-point value that must be between 0 and 1.                             |
+| agent.ignore_suffix | SW_AGENT_IGNORE_SUFFIX | .jpg,.jpeg,.js,.css,.png,.bmp,.gif,.ico,.mp3,.mp4,.html,.svg | If the operation name of the first span is included in this set, this segment should be ignored.(multiple split by ","). |
 
 ## Metrics
 
