@@ -20,11 +20,13 @@ package main
 import (
 	"context"
 	"fmt"
-	_ "github.com/apache/skywalking-go"
-	amqp "github.com/rabbitmq/amqp091-go"
 	"log"
 	"net/http"
 	"time"
+
+	amqp "github.com/rabbitmq/amqp091-go"
+
+	_ "github.com/apache/skywalking-go"
 )
 
 var (
