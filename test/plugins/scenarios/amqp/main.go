@@ -32,24 +32,16 @@ var (
 	defaultChannel *amqp.Channel
 )
 
-type (
-	Conf struct {
-		Addr string
-		Port string
-		User string
-		Pwd  string
-	}
+const (
+	URI          = "amqp://admin:123456@amqp-server:5672"
+	exchangeName = "sw-exchange"
+	queueName    = "sw-queue"
+	keyName      = "sw-key"
+	consumerName = "sw-consumer"
 )
 
-func Init(c Conf) (err error) {
-	if c.Addr == "" {
-		return nil
-	}
-	defaultConn, err = Dial(fmt.Sprintf("amqp://%s:%s@%s:%s/",
-		c.User,
-		c.Pwd,
-		c.Addr,
-		c.Port))
+func Init() (err error) {
+	defaultConn, err = Dial(URI)
 	if err != nil {
 		return fmt.Errorf("new mq conn err: %v", err)
 	}
@@ -62,22 +54,9 @@ func Init(c Conf) (err error) {
 }
 
 func main() {
-	var (
-		conf = Conf{
-			User: "admin",
-			Pwd:  "123456",
-			Addr: "amqp",
-			Port: "5672",
-		}
-
-		exchangeName = "sw-exchangeName"
-		queueName    = "sw-queueName"
-		keyName      = "sw-keyName"
-	)
-	if err := Init(conf); err != nil {
-		log.Fatalf("mq init err: %v", err)
+	if err := Init(); err != nil {
+		log.Fatalf("amqp init err: %v", err)
 	}
-
 	if err := defaultChannel.ExchangeDeclare(exchangeName, "direct", true, false, false, false, nil); err != nil {
 		log.Fatalf("create exchange err: %v", err)
 	}
@@ -87,34 +66,9 @@ func main() {
 	if err := defaultChannel.QueueBind(queueName, keyName, exchangeName, false, nil); err != nil {
 		log.Fatalf("bind queue err: %v", err)
 	}
+
 	route := http.NewServeMux()
-	route.HandleFunc("/execute", func(writer http.ResponseWriter, request *http.Request) {
-		_, err := defaultChannel.PublishWithDeferredConfirmWithContext(context.Background(), exchangeName, keyName, false, false,
-			amqp.Publishing{
-				Headers:         amqp.Table{},
-				ContentType:     "text/plain",
-				ContentEncoding: "",
-				DeliveryMode:    amqp.Persistent,
-				Priority:        0,
-				AppId:           "sequential-producer",
-				Body:            []byte("I love skywalking three thousand"),
-			},
-		)
-		if err != nil {
-			log.Fatalf("publish msg err: %v", err)
-		}
-
-		go func() {
-			if err := NewConsumer(context.Background(), queueName, func(body []byte) error {
-				fmt.Println("consume msg: " + string(body))
-				return nil
-			}); err != nil {
-				log.Fatalf("consume err: %v", err)
-			}
-		}()
-
-		_, _ = writer.Write([]byte("execute success"))
-	})
+	route.HandleFunc("/execute", handlerFunc)
 
 	route.HandleFunc("/health", func(writer http.ResponseWriter, request *http.Request) {
 		writer.Write([]byte("ok"))
@@ -125,13 +79,41 @@ func main() {
 	}
 }
 
+func handlerFunc(writer http.ResponseWriter, request *http.Request) {
+	_, err := defaultChannel.PublishWithDeferredConfirmWithContext(context.Background(), exchangeName, keyName, false, false,
+		amqp.Publishing{
+			Headers:         amqp.Table{},
+			ContentType:     "text/plain",
+			ContentEncoding: "",
+			DeliveryMode:    amqp.Persistent,
+			Priority:        0,
+			AppId:           "skywalking-go",
+			Body:            []byte("I love skywalking three thousand"),
+		},
+	)
+	if err != nil {
+		log.Fatalf("publish msg err: %v", err)
+	}
+
+	go func() {
+		if err := NewConsumer(context.Background(), queueName, func(body []byte) error {
+			fmt.Println("consume msg: " + string(body))
+			return nil
+		}); err != nil {
+			log.Fatalf("consume err: %v", err)
+		}
+	}()
+
+	_, _ = writer.Write([]byte("execute success"))
+}
+
 func NewConsumer(ctx context.Context, queue string, handler func([]byte) error) error {
 	ch, err := defaultConn.Channel()
 	if err != nil {
 		return fmt.Errorf("new mq channel err: %v", err)
 	}
 
-	deliveries, err := ch.Consume(queue, "sw-consumer", false, false, false, false, nil)
+	deliveries, err := ch.Consume(queue, consumerName, false, false, false, false, nil)
 	if err != nil {
 		return fmt.Errorf("consume err: %v, queue: %s", err, queue)
 	}

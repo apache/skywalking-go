@@ -18,9 +18,10 @@
 package amqp
 
 import (
+	"github.com/rabbitmq/amqp091-go"
+
 	"github.com/apache/skywalking-go/plugins/core/operator"
 	"github.com/apache/skywalking-go/plugins/core/tracing"
-	"github.com/rabbitmq/amqp091-go"
 )
 
 const (
@@ -31,10 +32,10 @@ type ConsumerInterceptor struct{}
 
 func (a *ConsumerInterceptor) BeforeInvoke(invocation operator.Invocation) error {
 	channel := invocation.CallerInstance().(*nativeChannel)
-	peer := channel.connection.RemoteAddr().String()
+	peer := getPeerInfo(channel.connection)
 	msg := invocation.Args()[6].(amqp091.Table)
 	queue, consumer := invocation.Args()[0].(string), invocation.Args()[1].(string)
-	operationName := "Amqp/" + queue + "/" + consumer + "Consumer"
+	operationName := "Amqp/" + queue + "/" + consumer + "/Consumer"
 
 	span, err := tracing.CreateEntrySpan(operationName, func(headerKey string) (string, error) {
 		if msg[headerKey] != nil {

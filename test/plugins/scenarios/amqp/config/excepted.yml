@@ -37,7 +37,7 @@ segmentItems:
               - {key: status_code, value: '200'}
       - segmentId: not null
         spans:
-          - operationName: Amqp/sw-exchangeName/sw-keyName/Producer
+          - operationName: Amqp/sw-exchange/sw-key/Producer
             parentSpanId: 0
             spanId: 1
             spanLayer: MQ
@@ -46,12 +46,12 @@ segmentItems:
             componentId: 144
             isError: false
             spanType: Exit
-            peer: amqp:5672
+            peer: amqp-server:5672
             skipAnalysis: false
             tags:
-              - {key: mq.broker, value: 'amqp:5672'}
-              - {key: mq.exchange, value: 'sw-exchangeName'}
-              - {key: mq.routing_key, value: 'sw-keyName'}
+              - {key: mq.broker, value: 'amqp-server:5672'}
+              - {key: mq.exchange, value: 'sw-exchange'}
+              - {key: mq.routing_key, value: 'sw-key'}
           - operationName: GET:/execute
             parentSpanId: -1
             spanId: 0
@@ -69,7 +69,7 @@ segmentItems:
               - {key: status_code, value: '200'}
       - segmentId: not null
         spans:
-          - operationName: Amqp/sw-queueName/sw-consumerConsumer
+          - operationName: Amqp/sw-queue/sw-consumer/Consumer
             parentSpanId: -1
             spanId: 0
             spanLayer: MQ
@@ -78,11 +78,11 @@ segmentItems:
             componentId: 145
             isError: false
             spanType: Entry
-            peer: amqp:5672
+            peer: amqp-server:5672
             skipAnalysis: false
             tags:
-              - {key: mq.broker, value: 'amqp:5672'}
-              - {key: mq.queue, value: 'sw-queueName'}
+              - {key: mq.broker, value: 'amqp-server:5672'}
+              - {key: mq.queue, value: 'sw-queue'}
               - {key: mq.consumer, value: 'sw-consumer'}
 meterItems: []
 logItems: []

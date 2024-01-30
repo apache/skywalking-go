@@ -76,6 +76,24 @@ func (i *Instrument) Points() []*instrument.Point {
 			),
 			Interceptor: "ConsumerInterceptor",
 		},
+		{
+			PackagePath: "",
+			PackageName: "amqp091",
+			At: instrument.NewStaticMethodEnhance("DialConfig",
+				instrument.WithArgsCount(2),
+				instrument.WithArgType(0, "string"),
+				instrument.WithArgType(1, "Config"),
+				instrument.WithResultCount(2),
+				instrument.WithResultType(0, "*Connection"),
+				instrument.WithResultType(1, "error"),
+			),
+			Interceptor: "DialInterceptor",
+		},
+		{
+			PackagePath: "",
+			PackageName: "amqp091",
+			At:          instrument.NewStructEnhance("Connection"),
+		},
 	}
 }
 

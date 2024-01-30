@@ -19,7 +19,6 @@ package amqp
 
 import (
 	"io"
-	"net"
 )
 
 //skywalking:native github.com/rabbitmq/amqp091-go Channel
@@ -30,13 +29,4 @@ type nativeChannel struct {
 //skywalking:native github.com/rabbitmq/amqp091-go Connection
 type nativeConnection struct {
 	conn io.ReadWriteCloser
-}
-
-func (c *nativeConnection) RemoteAddr() net.Addr {
-	if conn, ok := c.conn.(interface {
-		RemoteAddr() net.Addr
-	}); ok {
-		return conn.RemoteAddr()
-	}
-	return &net.TCPAddr{}
 }

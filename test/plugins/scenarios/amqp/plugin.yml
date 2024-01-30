@@ -24,18 +24,14 @@ support-version:
     framework:
       - v1.9.0
 dependencies:
-  amqp:
+  amqp-server:
     image: rabbitmq:3.11.14-management
-    hostname: amqp
+    hostname: amqp-server
     ports:
-      - "5672:5672"
-      - "15672:15672"
-    expose:
       - "5672"
-      - "15672"
     environment:
-      RABBITMQ_DEFAULT_PASS: "123456"
       RABBITMQ_DEFAULT_USER: "admin"
+      RABBITMQ_DEFAULT_PASS: "123456"
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 5s

@@ -18,9 +18,10 @@
 package amqp
 
 import (
+	"github.com/rabbitmq/amqp091-go"
+
 	"github.com/apache/skywalking-go/plugins/core/operator"
 	"github.com/apache/skywalking-go/plugins/core/tracing"
-	"github.com/rabbitmq/amqp091-go"
 )
 
 const (
@@ -31,7 +32,7 @@ type ProducerInterceptor struct{}
 
 func (a *ProducerInterceptor) BeforeInvoke(invocation operator.Invocation) error {
 	channel := invocation.CallerInstance().(*nativeChannel)
-	peer := channel.connection.RemoteAddr().String()
+	peer := getPeerInfo(channel.connection)
 	exchange, routingKey := invocation.Args()[1].(string), invocation.Args()[2].(string)
 	msg := invocation.Args()[5].(amqp091.Publishing)
 	operationName := "Amqp/" + exchange + "/" + routingKey + "/Producer"

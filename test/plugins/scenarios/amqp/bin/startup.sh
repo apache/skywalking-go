@@ -19,5 +19,4 @@
 home="$(cd "$(dirname $0)"; pwd)"
 go build ${GO_BUILD_OPTS} -o amqp main.go
 
-export SW_AGENT_PLUGIN_CONFIG_SQL_COLLECT_PARAMETER=true
 ./amqp
