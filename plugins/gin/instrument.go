@@ -54,6 +54,10 @@ func (i *Instrument) Points() []*instrument.Point {
 			At:          instrument.NewMethodEnhance("*Context", "Next"),
 			Interceptor: "ContextInterceptor",
 		},
+		{
+			PackagePath: "",
+			At:          instrument.NewStructEnhance("Context"),
+		},
 	}
 }
 

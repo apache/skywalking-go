@@ -30,6 +30,9 @@ type ContextInterceptor struct {
 }
 
 func (h *ContextInterceptor) BeforeInvoke(invocation operator.Invocation) error {
+	if hasVisited(invocation.CallerInstance()) {
+		return nil
+	}
 	context := invocation.CallerInstance().(*gin.Context)
 	s, err := tracing.CreateEntrySpan(
 		fmt.Sprintf("%s:%s", context.Request.Method, context.FullPath()), func(headerKey string) (string, error) {
@@ -58,4 +61,14 @@ func (h *ContextInterceptor) AfterInvoke(invocation operator.Invocation, result 
 	}
 	span.End()
 	return nil
+}
+
+func hasVisited(c interface{}) bool {
+	if instance, ok := c.(operator.EnhancedInstance); ok {
+		if instance.GetSkyWalkingDynamicField() != nil {
+			return instance.GetSkyWalkingDynamicField() == true
+		}
+		instance.SetSkyWalkingDynamicField(true)
+	}
+	return false
 }
