@@ -54,6 +54,13 @@ func getInstanceInfo(caller interface{}) InstanceInfo {
 	if !ok || instance == nil {
 		return nil
 	}
-	info := instance.GetSkyWalkingDynamicField().(InstanceInfo)
+	df := instance.GetSkyWalkingDynamicField()
+	if df == nil {
+		return nil
+	}
+	info, ok := df.(InstanceInfo)
+	if !ok {
+		return nil
+	}
 	return info
 }
