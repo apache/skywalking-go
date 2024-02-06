@@ -26,6 +26,20 @@ type nativeChannel struct {
 	connection *nativeConnection
 }
 
+//skywalking:native github.com/rabbitmq/amqp091-go Delivery
+type Delivery struct {
+	Headers       Table
+	MessageId     string
+	ConsumerTag   string
+	Exchange      string
+	RoutingKey    string
+	DeliveryTag   uint64
+	CorrelationId string
+	ReplyTo       string
+}
+
+type Table map[string]interface{}
+
 //skywalking:native github.com/rabbitmq/amqp091-go Connection
 type nativeConnection struct {
 	conn io.ReadWriteCloser

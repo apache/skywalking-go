@@ -30,21 +30,15 @@ const (
 
 type ProducerInterceptor struct{}
 
-func (a *ProducerInterceptor) BeforeInvoke(invocation operator.Invocation) error {
+func (p *ProducerInterceptor) BeforeInvoke(invocation operator.Invocation) error {
 	channel := invocation.CallerInstance().(*nativeChannel)
 	peer := getPeerInfo(channel.connection)
 	exchange, routingKey := invocation.Args()[1].(string), invocation.Args()[2].(string)
-	msg := invocation.Args()[5].(amqp091.Publishing)
 	operationName := "Amqp/" + exchange + "/" + routingKey + "/Producer"
+	publishing := invocation.Args()[5].(amqp091.Publishing)
 
 	span, err := tracing.CreateExitSpan(operationName, peer, func(headerKey, headerValue string) error {
-		if msg.Headers == nil {
-			msg.Headers = amqp091.Table{
-				headerKey: headerValue,
-			}
-			return nil
-		}
-		msg.Headers[headerKey] = headerValue
+		publishing.Headers[headerKey] = headerValue
 		return nil
 	}, tracing.WithComponent(ProducerComponentID),
 		tracing.WithLayer(tracing.SpanLayerMQ),
@@ -59,7 +53,10 @@ func (a *ProducerInterceptor) BeforeInvoke(invocation operator.Invocation) error
 	return nil
 }
 
-func (a *ProducerInterceptor) AfterInvoke(invocation operator.Invocation, results ...interface{}) error {
+func (p *ProducerInterceptor) AfterInvoke(invocation operator.Invocation, results ...interface{}) error {
+	if invocation.GetContext() == nil {
+		return nil
+	}
 	span := invocation.GetContext().(tracing.Span)
 	if err, ok := results[1].(error); ok && err != nil {
 		span.Error(err.Error())
