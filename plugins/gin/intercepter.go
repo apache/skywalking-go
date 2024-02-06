@@ -30,6 +30,9 @@ type ContextInterceptor struct {
 }
 
 func (h *ContextInterceptor) BeforeInvoke(invocation operator.Invocation) error {
+	if !isFirstHandle(invocation.CallerInstance()) {
+		return nil
+	}
 	context := invocation.CallerInstance().(*gin.Context)
 	s, err := tracing.CreateEntrySpan(
 		fmt.Sprintf("%s:%s", context.Request.Method, context.FullPath()), func(headerKey string) (string, error) {
@@ -58,4 +61,12 @@ func (h *ContextInterceptor) AfterInvoke(invocation operator.Invocation, result 
 	}
 	span.End()
 	return nil
+}
+
+func isFirstHandle(c interface{}) bool {
+	// index of HandlersChain, incremented in #Next(), -1 indicates that no handler has been executed
+	if context, ok := c.(*nativeContext); ok {
+		return context.index < 0
+	}
+	return true
 }
