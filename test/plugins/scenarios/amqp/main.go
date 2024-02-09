@@ -50,14 +50,23 @@ var (
 
 func main() {
 	route := http.NewServeMux()
-	route.HandleFunc("/execute", func(res http.ResponseWriter, req *http.Request) {
+	route.HandleFunc("/provider", func(res http.ResponseWriter, req *http.Request) {
 		producer()
+		_, _ = res.Write([]byte("provider success"))
 	})
 	route.HandleFunc("/consumer", func(res http.ResponseWriter, req *http.Request) {
+		resp, err := http.Get("http://localhost:8080/provider")
+		if err != nil {
+			log.Print(err)
+			res.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		defer resp.Body.Close()
 		consumer()
+		_, _ = res.Write([]byte("consumer success"))
 	})
 	route.HandleFunc("/health", func(res http.ResponseWriter, req *http.Request) {
-		res.Write([]byte("ok"))
+		_, _ = res.Write([]byte("ok"))
 	})
 	err := http.ListenAndServe(":8080", route)
 	if err != nil {
@@ -89,7 +98,6 @@ func consumer() {
 	time.Sleep(lifetime)
 
 	Log.Printf("shutting down")
-
 	if err := c.Shutdown(); err != nil {
 		ErrLog.Fatalf("error during shutdown: %s", err)
 	}
@@ -222,7 +230,6 @@ func handle(deliveries <-chan amqp.Delivery, done chan error) {
 		Log.Printf("handle: deliveries channel closed")
 		done <- nil
 	}
-
 	defer cleanup()
 
 	for d := range deliveries {
@@ -370,7 +377,7 @@ func publish(ctx context.Context, publishOkCh <-chan struct{}, confirmsCh chan<-
 			case <-confirmsDoneCh:
 				Log.Println("producer: stopping, all confirms seen")
 				return
-			case <-time.After(time.Second * 10):
+			case <-time.After(time.Second * 5):
 				WarnLog.Println("producer: may be stopping with outstanding confirmations")
 				return
 			}

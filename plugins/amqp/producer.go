@@ -40,8 +40,8 @@ func (p *ProducerInterceptor) BeforeInvoke(invocation operator.Invocation) error
 	span, err := tracing.CreateExitSpan(operationName, peer, func(headerKey, headerValue string) error {
 		publishing.Headers[headerKey] = headerValue
 		return nil
-	}, tracing.WithComponent(ProducerComponentID),
-		tracing.WithLayer(tracing.SpanLayerMQ),
+	}, tracing.WithLayer(tracing.SpanLayerMQ),
+		tracing.WithComponent(ProducerComponentID),
 		tracing.WithTag(tracing.TagMQBroker, peer),
 		tracing.WithTag(tracing.TagMQExchange, exchange),
 		tracing.WithTag(tracing.TagMQRoutingKey, routingKey),

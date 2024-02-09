@@ -48,8 +48,7 @@ func (c *ConsumerInterceptor) AfterInvoke(invocation operator.Invocation, result
 
 	span, err := tracing.CreateEntrySpan(operationName, func(headerKey string) (string, error) {
 		return deliveries.Headers[headerKey].(string), nil
-	},
-		tracing.WithLayer(tracing.SpanLayerMQ),
+	}, tracing.WithLayer(tracing.SpanLayerMQ),
 		tracing.WithComponent(ConsumerComponentID),
 		tracing.WithTag(tracing.TagMQBroker, peer),
 		tracing.WithTag(tracing.TagMQQueue, queue),
