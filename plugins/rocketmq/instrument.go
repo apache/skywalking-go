@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package rocketMQ
+package rocketmq
 
 import (
 	"embed"
@@ -35,7 +35,7 @@ func NewInstrument() *Instrument {
 }
 
 func (i *Instrument) Name() string {
-	return "rocketMQ"
+	return "rocketmq"
 }
 
 func (i *Instrument) BasePackage() string {

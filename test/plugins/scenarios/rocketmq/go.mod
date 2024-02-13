@@ -1,4 +1,4 @@
-module test/plugins/scenarios/rocketMQ
+module test/plugins/scenarios/rocketmq
 
 go 1.18
 

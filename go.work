@@ -23,7 +23,7 @@ use (
 	./plugins/fasthttp
 	./plugins/fiber
 	./plugins/echov4
-	./plugins/rocketMQ
+	./plugins/rocketmq
 
 	./test/benchmark-codebase/consumer
 	./test/benchmark-codebase/provider
@@ -53,7 +53,7 @@ use (
 	./test/plugins/scenarios/plugin_exclusion
 	./test/plugins/scenarios/runtime_metrics
 	./test/plugins/scenarios/echov4
-	./test/plugins/scenarios/rocketMQ
+	./test/plugins/scenarios/rocketmq
 
 	./tools/go-agent
 

@@ -15,7 +15,7 @@
 # limitations under the License.
 
 segmentItems:
-  - serviceName: rocketMQ
+  - serviceName: rocketmq
     segmentSize: ge 9
     segments:
       - segmentId: not null
@@ -60,7 +60,7 @@ segmentItems:
             refs:
               - { parentEndpoint: RocketMQ/sw-topic/Producer, networkAddress: 'http://mqnamesrv:9876',
                   refType: CrossProcess, parentSpanId: 0, parentTraceSegmentId: not null,
-                  parentServiceInstance: not null, parentService: rocketMQ,
+                  parentServiceInstance: not null, parentService: rocketmq,
                   traceId: not null }
       - segmentId: not null
         spans:
@@ -119,7 +119,7 @@ segmentItems:
             refs:
               - { parentEndpoint: RocketMQ/sw-topic/Producer/Callback, networkAddress: 'http://mqnamesrv:9876',
                   refType: CrossProcess, parentSpanId: 0, parentTraceSegmentId: not null,
-                  parentServiceInstance: not null, parentService: rocketMQ,
+                  parentServiceInstance: not null, parentService: rocketmq,
                   traceId: not null }
       - segmentId: not null
         spans:
@@ -158,7 +158,7 @@ segmentItems:
             refs:
               - { parentEndpoint: RocketMQ/sw-topic/Producer, networkAddress: 'http://mqnamesrv:9876',
                   refType: CrossProcess, parentSpanId: 0, parentTraceSegmentId: not null,
-                  parentServiceInstance: not null, parentService: rocketMQ,
+                  parentServiceInstance: not null, parentService: rocketmq,
                   traceId: not null }
       - segmentId: not null
         spans:
