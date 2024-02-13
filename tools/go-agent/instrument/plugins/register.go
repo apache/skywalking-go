@@ -37,6 +37,7 @@ import (
 	"github.com/apache/skywalking-go/plugins/microv4"
 	"github.com/apache/skywalking-go/plugins/mongo"
 	"github.com/apache/skywalking-go/plugins/mux"
+	"github.com/apache/skywalking-go/plugins/rocketMQ"
 	runtime_metrics "github.com/apache/skywalking-go/plugins/runtimemetrics"
 	sql_entry "github.com/apache/skywalking-go/plugins/sql/entry"
 	sql_mysql "github.com/apache/skywalking-go/plugins/sql/mysql"
@@ -60,6 +61,7 @@ func init() {
 	registerFramework(irisv12.NewInstrument())
 	registerFramework(traceactivation.NewInstrument())
 	registerFramework(fiber.NewInstrument())
+	registerFramework(rocketMQ.NewInstrument())
 
 	// fasthttp related instruments
 	registerFramework(fasthttp_client.NewInstrument())

@@ -60,6 +60,8 @@ const (
 	TagMQQueue         = "mq.queue"
 	TagMQBroker        = "mq.broker"
 	TagMQTopic         = "mq.topic"
+	TagMQStatus        = "mq.status"
+	TagMQMsgID         = "mq.msg.id"
 	TagCacheType       = "cache.type"
 	TagCacheOp         = "cache.op"
 	TagCacheCmd        = "cache.cmd"
