@@ -62,6 +62,8 @@ func (sa *SendASyncInterceptor) BeforeInvoke(invocation operator.Invocation) err
 
 	continueSnapShot := tracing.CaptureContext()
 	zuper := invocation.Args()[1].(func(ctx context.Context, result *primitive.SendResult, err error))
+	
+	// enhanced async callback method
 	callbackFunc := func(ctx context.Context, sendResult *primitive.SendResult, err error) {
 		defer tracing.CleanContext()
 		tracing.ContinueContext(continueSnapShot)

@@ -33,7 +33,7 @@ const (
 	rmqSyncComponentID = 38
 )
 
-func SimpleProducerInterceptor(invocation operator.Invocation) error {
+func GeneralProducerBeforeInvoke(invocation operator.Invocation) error {
 	defaultProducer := invocation.CallerInstance().(*nativedefaultProducer)
 	peer := strings.Join(defaultProducer.client.GetNameSrv().AddrList(), semicolon)
 	msgList := invocation.Args()[1].([]*primitive.Message)

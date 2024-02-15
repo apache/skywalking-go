@@ -34,7 +34,7 @@ type SendSyncInterceptor struct {
 }
 
 func (s *SendSyncInterceptor) BeforeInvoke(invocation operator.Invocation) error {
-	return SimpleProducerInterceptor(invocation)
+	return GeneralProducerBeforeInvoke(invocation)
 }
 
 func (s *SendSyncInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {

@@ -22,9 +22,9 @@ import (
 
 	"github.com/apache/rocketmq-client-go/v2/consumer"
 	"github.com/apache/rocketmq-client-go/v2/primitive"
-	"github.com/apache/skywalking-go/plugins/core/tracing"
 
 	"github.com/apache/skywalking-go/plugins/core/operator"
+	"github.com/apache/skywalking-go/plugins/core/tracing"
 )
 
 const (
@@ -59,6 +59,7 @@ func (c *SwConsumerInterceptor) BeforeInvoke(invocation operator.Invocation) err
 		},
 			tracing.WithLayer(tracing.SpanLayerMQ),
 			tracing.WithComponent(rmqConsumerComponentID),
+			tracing.WithTag(tracing.TagMQTopic, topic),
 			tracing.WithTag(tagMQMsgID, msg.MsgId),
 			tracing.WithTag(tagMQOffsetMsgID, msg.OffsetMsgId),
 		)
@@ -66,7 +67,6 @@ func (c *SwConsumerInterceptor) BeforeInvoke(invocation operator.Invocation) err
 			return err
 		}
 	}
-	span.Tag(tracing.TagMQTopic, topic)
 	span.Tag(tracing.TagMQBroker, addr)
 	span.SetPeer(peer)
 	invocation.SetContext(span)

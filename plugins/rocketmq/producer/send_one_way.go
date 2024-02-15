@@ -26,7 +26,7 @@ type SendOneWayInterceptor struct {
 }
 
 func (s *SendOneWayInterceptor) BeforeInvoke(invocation operator.Invocation) error {
-	return SimpleProducerInterceptor(invocation)
+	return GeneralProducerBeforeInvoke(invocation)
 }
 
 func (s *SendOneWayInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {

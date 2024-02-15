@@ -23,7 +23,6 @@ import (
 	"net/http"
 	"strconv"
 	"sync"
-	"time"
 
 	"github.com/apache/rocketmq-client-go/v2"
 	"github.com/apache/rocketmq-client-go/v2/consumer"
@@ -46,13 +45,12 @@ const (
 func main() {
 	route := http.NewServeMux()
 	route.HandleFunc("/execute", func(res http.ResponseWriter, req *http.Request) {
+		TestProCon()
 		_, _ = res.Write([]byte("execute success"))
 	})
 	route.HandleFunc("/health", func(writer http.ResponseWriter, request *http.Request) {
 		_, _ = writer.Write([]byte("ok"))
 	})
-
-	TestProCon()
 	fmt.Println("start client")
 	err := http.ListenAndServe(":8080", route)
 	if err != nil {
@@ -112,11 +110,7 @@ func sendSyncMsg() error {
 		fmt.Printf("shutdown producer error: %s\n", err.Error())
 		return err
 	}
-	err = consumerMsg()
-	if err != nil {
-		fmt.Printf("consumer message error: %s\n", err.Error())
-		return err
-	}
+	consumerMsg()
 	return nil
 }
 
@@ -124,7 +118,8 @@ func sendAsyncMsg() error {
 	p, err := rocketmq.NewProducer(
 		producer.WithNsResolver(primitive.NewPassthroughResolver([]string{uri})),
 		producer.WithRetry(retry),
-		producer.WithGroupName(group))
+		producer.WithGroupName(group),
+	)
 
 	if err != nil {
 		fmt.Printf("new producer error: %s\n", err.Error())
@@ -157,11 +152,6 @@ func sendAsyncMsg() error {
 	err = p.Shutdown()
 	if err != nil {
 		fmt.Printf("shutdown producer error: %s\n", err.Error())
-		return err
-	}
-	err = consumerMsg()
-	if err != nil {
-		fmt.Printf("consumer message error: %s\n", err.Error())
 		return err
 	}
 	return nil
@@ -200,16 +190,10 @@ func sendOneWayMsg() error {
 		fmt.Printf("shutdown producer error: %s\n", err.Error())
 		return err
 	}
-
-	err = consumerMsg()
-	if err != nil {
-		fmt.Printf("consumer message error: %s\n", err.Error())
-		return err
-	}
 	return nil
 }
 
-func consumerMsg() error {
+func consumerMsg() {
 	var err error
 	c, err := rocketmq.NewPushConsumer(
 		consumer.WithGroupName(group),
@@ -217,7 +201,6 @@ func consumerMsg() error {
 	)
 	if err != nil {
 		fmt.Printf("new consumer error: %s\n", err.Error())
-		return err
 	}
 	err = c.Subscribe(topic, consumer.MessageSelector{}, func(ctx context.Context,
 		msgs ...*primitive.MessageExt) (consumer.ConsumeResult, error) {
@@ -228,19 +211,9 @@ func consumerMsg() error {
 	})
 	if err != nil {
 		fmt.Println(err.Error())
-		return err
 	}
-
 	err = c.Start()
 	if err != nil {
 		fmt.Println(err.Error())
-		return err
 	}
-	time.Sleep(3 * time.Second)
-	err = c.Shutdown()
-	if err != nil {
-		fmt.Printf("shutdown Consumer error: %s\n", err.Error())
-		return err
-	}
-	return nil
 }
