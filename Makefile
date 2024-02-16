@@ -96,7 +96,7 @@ release:
 	/bin/sh tools/release/create_bin_release.sh
 	/bin/sh tools/release/create_source_release.sh
 
-base.all := go1.16 go1.17 go1.18 go1.19 go1.20
+base.all := go1.16 go1.17 go1.18 go1.19 go1.20 go1.21 go1.22
 base.each = $(word 1, $@)
 
 base.image.go1.16 := golang:1.16
@@ -104,6 +104,8 @@ base.image.go1.17 := golang:1.17
 base.image.go1.18 := golang:1.18
 base.image.go1.19 := golang:1.19
 base.image.go1.20 := golang:1.20
+base.image.go1.21 := golang:1.21
+base.image.go1.22 := golang:1.22
 
 docker.%: PLATFORMS =
 docker.%: LOAD_OR_PUSH = --load
