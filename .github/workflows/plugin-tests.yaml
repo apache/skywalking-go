@@ -96,6 +96,7 @@ jobs:
           - discard-reporter
           - fiber
           - echov4
+          - rocketmq
     steps:
       - uses: actions/checkout@v2
         with:

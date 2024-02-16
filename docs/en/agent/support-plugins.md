@@ -27,6 +27,8 @@ metrics based on the tracing data.
     * [MySQL Driver](https://github.com/go-sql-driver/mysql) tested v1.4.0 to v1.7.1.
 * Cache Client
   * `go-redisv9`: [go-redis](https://github.com/redis/go-redis) tested v9.0.3 to v9.0.5.
+* MQ Client
+  * `rocketMQ`: [rocketmq-client-go](https://github.com/apache/rocketmq-client-go) tested v2.1.2.
 
 # Metrics Plugins
 The meter plugin provides the advanced metrics collections.
