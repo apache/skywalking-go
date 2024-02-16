@@ -23,6 +23,7 @@ import (
 	"net/http"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/apache/rocketmq-client-go/v2"
 	"github.com/apache/rocketmq-client-go/v2/consumer"
@@ -154,6 +155,7 @@ func sendAsyncMsg() error {
 		fmt.Printf("shutdown producer error: %s\n", err.Error())
 		return err
 	}
+	consumerMsg()
 	return nil
 }
 
@@ -167,7 +169,6 @@ func sendOneWayMsg() error {
 		fmt.Printf("new producer error: %s\n", err.Error())
 		return err
 	}
-
 	err = p.Start()
 	if err != nil {
 		fmt.Printf("start producer error: %s\n", err.Error())
@@ -190,6 +191,7 @@ func sendOneWayMsg() error {
 		fmt.Printf("shutdown producer error: %s\n", err.Error())
 		return err
 	}
+	consumerMsg()
 	return nil
 }
 
@@ -216,4 +218,5 @@ func consumerMsg() {
 	if err != nil {
 		fmt.Println(err.Error())
 	}
+	time.Sleep(time.Second)
 }

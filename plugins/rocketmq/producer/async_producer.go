@@ -30,6 +30,7 @@ import (
 
 const (
 	rmqASyncSendPrefix    = "RocketMQ/"
+	rmqASyncSuffix        = "/AsyncProducer"
 	rmqCallbackSuffix     = "/Producer/Callback"
 	rmqASyncComponentID   = 38
 	aSyncSemicolon        = ";"
@@ -44,7 +45,7 @@ func (sa *SendASyncInterceptor) BeforeInvoke(invocation operator.Invocation) err
 	peer := strings.Join(defaultProducer.client.GetNameSrv().AddrList(), aSyncSemicolon)
 	msgList := invocation.Args()[2].([]*primitive.Message)
 	topic := msgList[0].Topic
-	operationName := rmqASyncSendPrefix + topic + rmqCallbackSuffix
+	operationName := rmqASyncSendPrefix + topic + rmqASyncSuffix
 
 	span, err := tracing.CreateExitSpan(operationName, peer, func(headerKey, headerValue string) error {
 		for _, message := range msgList {
@@ -62,8 +63,7 @@ func (sa *SendASyncInterceptor) BeforeInvoke(invocation operator.Invocation) err
 
 	continueSnapShot := tracing.CaptureContext()
 	zuper := invocation.Args()[1].(func(ctx context.Context, result *primitive.SendResult, err error))
-	
-	// enhanced async callback method
+	// enhance async callback method
 	callbackFunc := func(ctx context.Context, sendResult *primitive.SendResult, err error) {
 		defer tracing.CleanContext()
 		tracing.ContinueContext(continueSnapShot)
