@@ -100,6 +100,18 @@ services:
       - "{{.}}"
       {{- end }}
     {{- end }}
+    {{- if $service.Volumes }}
+    volumes:
+      {{- range $service.Volumes }}
+      - "{{.}}"
+      {{- end }}
+    {{- end }}
+    {{- if $service.DependsOn }}
+    depends_on:
+      {{- range $service.DependsOn }}
+      - "{{.}}"
+      {{- end }}
+    {{- end }}
     {{- if $service.HealthCheck }}
     healthcheck:
       test:

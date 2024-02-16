@@ -93,6 +93,8 @@ type DockerDependencyService struct {
 	Exports     []string            `yaml:"expose"`
 	Env         map[string]string   `yaml:"environment"`
 	Command     []string            `yaml:"command"`
+	Volumes     []string            `yaml:"volumes"`
+	DependsOn   []string            `yaml:"depends_on"`
 	HealthCheck *ServiceHealthCheck `yaml:"healthcheck"`
 }
 

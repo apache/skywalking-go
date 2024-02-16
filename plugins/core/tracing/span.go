@@ -60,6 +60,8 @@ const (
 	TagMQQueue         = "mq.queue"
 	TagMQBroker        = "mq.broker"
 	TagMQTopic         = "mq.topic"
+	TagMQStatus        = "mq.status"
+	TagMQMsgID         = "mq.msg.id"
 	TagMQExchange      = "mq.exchange"
 	TagMQRoutingKey    = "mq.routing_key"
 	TagMQConsumerTag   = "mq.consumer_tag"
