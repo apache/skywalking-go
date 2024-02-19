@@ -23,15 +23,15 @@ import (
 	"github.com/apache/skywalking-go/plugins/core/operator"
 )
 
-type ConsumerInterceptor struct {
+type ConsumerWithCtxInterceptor struct {
 }
 
-func (c *ConsumerInterceptor) BeforeInvoke(invocation operator.Invocation) error {
+func (cwi *ConsumerWithCtxInterceptor) BeforeInvoke(invocation operator.Invocation) error {
 	return nil
 }
 
-func (c *ConsumerInterceptor) AfterInvoke(invocation operator.Invocation, results ...interface{}) error {
-	queue, consumerTag, args := invocation.Args()[0].(string), invocation.Args()[1].(string),
-		invocation.Args()[6].(amqp091.Table)
+func (cwi *ConsumerWithCtxInterceptor) AfterInvoke(invocation operator.Invocation, results ...interface{}) error {
+	queue, consumerTag, args := invocation.Args()[1].(string), invocation.Args()[2].(string),
+		invocation.Args()[7].(amqp091.Table)
 	return GeneralConsumerAfterInvoke(invocation, queue, consumerTag, args, results...)
 }

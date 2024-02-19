@@ -25,7 +25,12 @@ import (
 )
 
 const (
+	amqpSendPrefix      = "Amqp"
+	amqpSendSuffix      = "/Producer"
+	delimiter           = "/"
 	ProducerComponentID = 144
+	tagMQExchange       = "mq.exchange"
+	tagMQRoutingKey     = "mq.routing_key"
 )
 
 type ProducerInterceptor struct{}
@@ -33,18 +38,32 @@ type ProducerInterceptor struct{}
 func (p *ProducerInterceptor) BeforeInvoke(invocation operator.Invocation) error {
 	channel := invocation.CallerInstance().(*nativeChannel)
 	peer := getPeerInfo(channel.connection)
-	exchange, routingKey := invocation.Args()[1].(string), invocation.Args()[2].(string)
-	operationName := "Amqp/" + exchange + "/" + routingKey + "/Producer"
+	exchange, routingKey, operationName := invocation.Args()[1].(string), invocation.Args()[2].(string), amqpSendPrefix
+	if exchange != "" {
+		exchange = invocation.Args()[1].(string)
+		operationName += delimiter + exchange
+	}
+	if routingKey != "" {
+		routingKey = invocation.Args()[2].(string)
+		operationName += delimiter + routingKey
+	}
 	publishing := invocation.Args()[5].(amqp091.Publishing)
+	operationName += amqpSendSuffix
 
 	span, err := tracing.CreateExitSpan(operationName, peer, func(headerKey, headerValue string) error {
+		if publishing.Headers == nil {
+			publishing.Headers = amqp091.Table{
+				headerKey: headerValue,
+			}
+			return nil
+		}
 		publishing.Headers[headerKey] = headerValue
 		return nil
 	}, tracing.WithLayer(tracing.SpanLayerMQ),
 		tracing.WithComponent(ProducerComponentID),
 		tracing.WithTag(tracing.TagMQBroker, peer),
-		tracing.WithTag(tracing.TagMQExchange, exchange),
-		tracing.WithTag(tracing.TagMQRoutingKey, routingKey),
+		tracing.WithTag(tagMQExchange, exchange),
+		tracing.WithTag(tagMQRoutingKey, routingKey),
 	)
 	if err != nil {
 		return err

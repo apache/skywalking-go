@@ -29,12 +29,12 @@ type nativeChannel struct {
 //skywalking:native github.com/rabbitmq/amqp091-go Delivery
 type Delivery struct {
 	Headers       Table
-	MessageId     string
+	MessageId     string //nolint
 	ConsumerTag   string
 	Exchange      string
 	RoutingKey    string
 	DeliveryTag   uint64
-	CorrelationId string
+	CorrelationId string //nolint
 	ReplyTo       string
 }
 

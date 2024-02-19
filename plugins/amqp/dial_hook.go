@@ -20,7 +20,6 @@ package amqp
 import (
 	"fmt"
 	"net/url"
-	"strings"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 
@@ -43,13 +42,9 @@ func (d *DialInterceptor) AfterInvoke(invocation operator.Invocation, result ...
 }
 
 func parseURI(uri string) string {
-	var ret = ""
-	if strings.Contains(uri, " ") {
-		return ret
-	}
 	u, err := url.Parse(uri)
 	if err != nil {
-		return ret
+		return ""
 	}
 	return fmt.Sprintf("%s:%s", u.Hostname(), u.Port())
 }

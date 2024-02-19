@@ -16,45 +16,45 @@
 
 segmentItems:
   - serviceName: amqp
-    segmentSize: ge 2
+    segmentSize: 2
     segments:
       - segmentId: not null
         spans:
-          - operationName: Amqp/sw-exchange/sw-key/Producer
-            parentSpanId: 0
-            spanId: 1
-            spanLayer: MQ
-            startTime: gt 0
-            endTime: gt 0
-            componentId: 144
-            isError: false
-            spanType: Exit
-            peer: amqp-server:5672
-            skipAnalysis: false
-            tags:
-              - {key: mq.broker, value: 'amqp-server:5672'}
-              - {key: mq.exchange, value: 'sw-exchange'}
-              - {key: mq.routing_key, value: 'sw-key'}
-          - operationName: GET:/execute
+          - operationName: GET:/health
             parentSpanId: -1
             spanId: 0
             spanLayer: Http
-            startTime: gt 0
-            endTime: gt 0
+            startTime: nq 0
+            endTime: nq 0
             componentId: 5004
             isError: false
             spanType: Entry
             peer: ''
             skipAnalysis: false
             tags:
-              - {key: http.method, value: GET}
-              - {key: url, value: 'service:8080/execute'}
-              - {key: status_code, value: '200'}
+              - { key: http.method, value: GET }
+              - { key: url, value: 'service:8080/health' }
+              - { key: status_code, value: '200' }
       - segmentId: not null
         spans:
-          - operationName: Amqp/sw-queue/sw-consumer/Consumer
-            parentSpanId: -1
-            spanId: 0
+          - operationName: Amqp/sw-queue-1/Producer
+            parentSpanId: 0
+            spanId: 1
+            spanLayer: MQ
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 144
+            isError: false
+            spanType: Exit
+            peer: amqp-server:5672
+            skipAnalysis: false
+            tags:
+              - { key: mq.broker, value: 'amqp-server:5672' }
+              - { key: mq.exchange, value: not null }
+              - { key: mq.routing_key, value: sw-queue-1 }
+          - operationName: Amqp/sw-queue-1/sw-consumer-1/Consumer
+            parentSpanId: 0
+            spanId: 2
             spanLayer: MQ
             startTime: nq 0
             endTime: nq 0
@@ -64,12 +64,72 @@ segmentItems:
             peer: amqp-server:5672
             skipAnalysis: false
             tags:
-              - {key: mq.broker, value: 'amqp-server:5672'}
-              - {key: mq.queue, value: 'sw-queue'}
-              - {key: mq.consumer, value: 'sw-consumer'}
+              - { key: mq.broker, value: 'amqp-server:5672' }
+              - { key: mq.queue, value: sw-queue-1 }
+              - { key: mq.msg.id, value: not null }
+              - { key: mq.consumer_tag, value: sw-consumer-1 }
+              - { key: mq.correlation_id, value: not null }
+              - { key: mq.reply_to, value: not null }
+              - { key: mq.args, value: not null }
             refs:
-              - {parentEndpoint: 'Amqp/sw-exchange/sw-key/Producer', networkAddress: 'localhost:8080', refType: CrossProcess,
-                 parentSpanId: 1, parentTraceSegmentId: not null, parentServiceInstance: not null,
-                 parentService: amqp-server, traceId: not null}
-meterItems: []
-logItems: []
+              - { parentEndpoint: 'GET:/execute', networkAddress: 'amqp-server:5672', refType: CrossProcess,
+                  parentSpanId: 1, parentTraceSegmentId: not null,
+                  parentServiceInstance: not null, parentService: amqp,
+                  traceId: not null }
+          - operationName: Amqp/sw-queue-2/Producer
+            parentSpanId: 0
+            spanId: 3
+            spanLayer: MQ
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 144
+            isError: false
+            spanType: Exit
+            peer: amqp-server:5672
+            skipAnalysis: false
+            tags:
+              - { key: mq.broker, value: 'amqp-server:5672' }
+              - { key: mq.exchange, value: not null }
+              - { key: mq.routing_key, value: sw-queue-2 }
+          - operationName: Amqp/sw-queue-2/sw-consumer-2/Consumer
+            parentSpanId: 0
+            spanId: 4
+            spanLayer: MQ
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 145
+            isError: false
+            spanType: Entry
+            peer: amqp-server:5672
+            skipAnalysis: false
+            tags:
+              - { key: mq.broker, value: 'amqp-server:5672' }
+              - { key: mq.queue, value: sw-queue-2 }
+              - { key: mq.msg.id, value: not null }
+              - { key: mq.consumer_tag, value: sw-consumer-2 }
+              - { key: mq.correlation_id, value: not null }
+              - { key: mq.reply_to, value: not null }
+              - { key: mq.args, value: not null }
+            refs:
+              - { parentEndpoint: 'GET:/execute', networkAddress: 'amqp-server:5672', refType: CrossProcess,
+                  parentSpanId: 3, parentTraceSegmentId: not null,
+                  parentServiceInstance: not null, parentService: amqp,
+                  traceId: not null }
+          - operationName: GET:/execute
+            parentSpanId: -1
+            spanId: 0
+            spanLayer: Http
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 5004
+            isError: false
+            spanType: Entry
+            peer: ''
+            skipAnalysis: false
+            tags:
+              - { key: http.method, value: GET }
+              - { key: url, value: 'service:8080/execute' }
+              - { key: status_code, value: '200' }
+
+meterItems: [ ]
+logItems: [ ]

@@ -22,9 +22,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -32,435 +29,212 @@ import (
 	_ "github.com/apache/skywalking-go"
 )
 
-var (
-	uri           = "amqp://admin:123456@amqp-server:5672"
-	exchange      = "sw-exchange"
-	exchangeType  = "direct"
-	queue         = "sw-queue"
-	routingKey    = "sw-key"
-	body          = "I love skywalking three thousand"
-	consumerTag   = "sw-consumer"
-	lifetime      = 3 * time.Second
-	deliveryCount = 0
+type testFunc func(RabbitClient) error
 
-	WarnLog = log.New(os.Stderr, "[WARNING] ", log.LstdFlags|log.Lmsgprefix)
-	ErrLog  = log.New(os.Stderr, "[ERROR] ", log.LstdFlags|log.Lmsgprefix)
-	Log     = log.New(os.Stdout, "[INFO] ", log.LstdFlags|log.Lmsgprefix)
+var (
+	uri                    = "amqp://admin:123456@amqp-server:5672"
+	queue1                 = "sw-queue-1"
+	queue2                 = "sw-queue-2"
+	body                   = "I love skywalking 3 thousand"
+	consumerTag1           = "sw-consumer-1"
+	consumerTag2           = "sw-consumer-2"
+	consumerTrigger        = make(chan struct{})
+	consumerWithCtxTrigger = make(chan struct{})
 )
 
 func main() {
+	conn, err := amqp.Dial(uri)
+	if err != nil {
+		panic(err)
+	}
+	client, err := NewRabbitMQClient(conn)
+	if err != nil {
+		panic(err)
+	}
+
 	route := http.NewServeMux()
-	route.HandleFunc("/provider", func(res http.ResponseWriter, req *http.Request) {
-		producer()
-		_, _ = res.Write([]byte("provider success"))
-	})
-	route.HandleFunc("/consumer", func(res http.ResponseWriter, req *http.Request) {
-		resp, err := http.Get("http://localhost:8080/provider")
-		if err != nil {
-			log.Print(err)
-			res.WriteHeader(http.StatusInternalServerError)
-			return
+	route.HandleFunc("/execute", func(res http.ResponseWriter, req *http.Request) {
+		tests := []struct {
+			name string
+			fn   testFunc
+		}{
+			{"testSimpleConsumer", testSimpleConsumer},
+			{"testConsumerWithCtx", testConsumerWithCtx},
 		}
-		defer resp.Body.Close()
-		consumer()
-		_, _ = res.Write([]byte("consumer success"))
+		for _, test := range tests {
+			fmt.Printf("excute test case: %s\n", test.name)
+			if subErr := test.fn(client); subErr != nil {
+				fmt.Printf("test case %s failed: %v", test.name, subErr)
+			}
+		}
+		_, _ = res.Write([]byte("execute success"))
 	})
 	route.HandleFunc("/health", func(res http.ResponseWriter, req *http.Request) {
 		_, _ = res.Write([]byte("ok"))
 	})
-	err := http.ListenAndServe(":8080", route)
+
+	err = http.ListenAndServe(":8080", route)
 	if err != nil {
 		log.Fatalf("client start error: %v \n", err)
 	}
+	select {}
 }
 
-func producer() {
-	exitCh := make(chan struct{})
-	confirmsCh := make(chan *amqp.DeferredConfirmation)
-	confirmsDoneCh := make(chan struct{})
-	publishOkCh := make(chan struct{}, 1)
+func testSimpleConsumer(client RabbitClient) error {
+	producer(queue1, client)
+	go consumer()
+	consumerTrigger <- struct{}{}
+	time.Sleep(time.Second)
+	return nil
+}
 
-	setupCloseHandler(exitCh)
+func testConsumerWithCtx(client RabbitClient) error {
+	producer(queue2, client)
+	go consumerWithContext()
+	consumerWithCtxTrigger <- struct{}{}
+	time.Sleep(time.Second)
+	return nil
+}
 
-	startConfirmHandler(publishOkCh, confirmsCh, confirmsDoneCh, exitCh)
-
-	publish(context.Background(), publishOkCh, confirmsCh, confirmsDoneCh, exitCh)
+func producer(queue string, client RabbitClient) {
+	client.CreateQueue(queue, true, false)
+	if err := client.Send(context.Background(), "", queue, amqp.Publishing{
+		ContentType:   "text/plain",
+		Body:          []byte(body),
+		Headers:       amqp.Table{},
+		CorrelationId: "1",
+		MessageId:     "2",
+	}); err != nil {
+		fmt.Println("Failed to Send msg, err: ", err)
+	}
 }
 
 func consumer() {
-	c, err := NewConsumer(uri, exchange, exchangeType, queue, routingKey, consumerTag)
+	<-consumerTrigger
+	consumeConn, err := amqp.Dial(uri)
 	if err != nil {
-		ErrLog.Fatalf("%s", err)
+		fmt.Println("Failed to Dial Consume, err: ", err)
 	}
-	SetupCloseHandler(c)
-
-	Log.Printf("running for %s", lifetime)
-	time.Sleep(lifetime)
-
-	Log.Printf("shutting down")
-	if err := c.Shutdown(); err != nil {
-		ErrLog.Fatalf("error during shutdown: %s", err)
+	consumeClient, err := NewRabbitMQClient(consumeConn)
+	if err != nil {
+		fmt.Println("Failed to Channel Consume, err: ", err)
+	}
+	msgs, err := consumeClient.Consume(queue1, consumerTag1, false)
+	if err != nil {
+		fmt.Println("Failed to Consume msg, err: ", err)
+	}
+	log.Printf("[Consumer] Waiting for messages.\n")
+	for d := range msgs {
+		log.Printf("Received a message: %s\n", string(d.Body))
+		d.Ack(false)
+	}
+	err = consumeClient.Cancel(consumerTag1)
+	if err != nil {
+		fmt.Println("Failed to Cancel Consume, err: ", err)
+	}
+	err = consumeConn.Close()
+	if err != nil {
+		fmt.Println("Failed to Close Cancel, err: ", err)
 	}
 }
 
-type Consumer struct {
-	conn    *amqp.Connection
-	channel *amqp.Channel
-	tag     string
-	done    chan error
+func consumerWithContext() {
+	<-consumerWithCtxTrigger
+	consumeConn, err := amqp.Dial(uri)
+	if err != nil {
+		fmt.Println("Failed to Dial ConsumerWithContext, err: ", err)
+	}
+	consumeClient, err := NewRabbitMQClient(consumeConn)
+	if err != nil {
+		fmt.Println("Failed to Channel ConsumerWithContext, err: ", err)
+	}
+	msgs, err := consumeClient.Consume(queue2, consumerTag2, false)
+	if err != nil {
+		fmt.Println("Failed to Consume msg, err: ", err)
+	}
+	log.Printf("[ConsumerWithContext] Waiting for messages.\n")
+	for d := range msgs {
+		log.Printf("Received a message: %s", string(d.Body))
+		d.Ack(false)
+	}
+	err = consumeClient.Cancel(consumerTag2)
+	if err != nil {
+		fmt.Println("Failed to Cancel ConsumerWithContext, err: ", err)
+	}
+	err = consumeConn.Close()
+	if err != nil {
+		fmt.Println("Failed to Close ConsumerWithContext, err: ", err)
+	}
 }
 
-func SetupCloseHandler(consumer *Consumer) {
-	c := make(chan os.Signal, 2)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		<-c
-		Log.Printf("Ctrl+C pressed in Terminal")
-		if err := consumer.Shutdown(); err != nil {
-			ErrLog.Fatalf("error during shutdown: %s", err)
-		}
-		os.Exit(0)
-	}()
+// RabbitClient is used to keep track of the RabbitMQ connection
+type RabbitClient struct {
+	// The connection that is used
+	conn *amqp.Connection
+	// The channel that processes/sends Messages
+	ch *amqp.Channel
 }
 
-func NewConsumer(amqpURI, exchange, exchangeType, queueName, key, ctag string) (*Consumer, error) {
-	c := &Consumer{
-		conn:    nil,
-		channel: nil,
-		tag:     ctag,
-		done:    make(chan error),
-	}
-
-	var err error
-
-	config := amqp.Config{Properties: amqp.NewConnectionProperties()}
-	config.Properties.SetClientConnectionName("sample-consumer")
-	Log.Printf("dialing %q", amqpURI)
-	c.conn, err = amqp.DialConfig(amqpURI, config)
+func NewRabbitMQClient(conn *amqp.Connection) (RabbitClient, error) {
+	ch, err := conn.Channel()
 	if err != nil {
-		return nil, fmt.Errorf("dial: %s", err)
+		return RabbitClient{}, err
+	}
+	if err := ch.Confirm(false); err != nil {
+		return RabbitClient{}, err
 	}
 
-	go func() {
-		Log.Printf("closing: %s", <-c.conn.NotifyClose(make(chan *amqp.Error)))
-	}()
+	return RabbitClient{
+		conn: conn,
+		ch:   ch,
+	}, nil
+}
 
-	Log.Printf("got Connection, getting Channel")
-	c.channel, err = c.conn.Channel()
+func (rc RabbitClient) Close() error {
+	return rc.ch.Close()
+}
+
+func (rc RabbitClient) Cancel(consumerTag string) error {
+	return rc.ch.Cancel(consumerTag, false)
+}
+
+func (rc RabbitClient) CreateQueue(queueName string, durable, autoDelete bool) (amqp.Queue, error) {
+	q, err := rc.ch.QueueDeclare(queueName, durable, autoDelete, false, false, nil)
 	if err != nil {
-		return nil, fmt.Errorf("channel: %s", err)
+		return amqp.Queue{}, nil
 	}
+	return q, nil
+}
 
-	Log.Printf("got Channel, declaring Exchange (%q)", exchange)
-	if err = c.channel.ExchangeDeclare(
-		exchange,     // name of the exchange
-		exchangeType, // type
-		true,         // durable
-		false,        // delete when complete
-		false,        // internal
-		false,        // noWait
-		nil,          // arguments
-	); err != nil {
-		return nil, fmt.Errorf("exchange Declare: %s", err)
+func (rc RabbitClient) CreateExchange(exchangeName, kind string) {
+	err := rc.ch.ExchangeDeclare(exchangeName, kind, true, false, false, false, nil)
+	if err != nil {
+		fmt.Println("Failed to declare a exchange, err: ", err)
 	}
+}
 
-	Log.Printf("declared Exchange, declaring Queue %q", queueName)
-	queue, err := c.channel.QueueDeclare(
-		queueName, // name of the queue
-		true,      // durable
-		false,     // delete when unused
-		false,     // exclusive
-		false,     // noWait
-		nil,       // arguments
+func (rc RabbitClient) CreateBinding(name, binding, exchange string) error {
+	return rc.ch.QueueBind(name, binding, exchange, false, nil)
+}
+
+func (rc RabbitClient) Send(ctx context.Context, exchange, routingKey string, options amqp.Publishing) error {
+	_, err := rc.ch.PublishWithDeferredConfirmWithContext(ctx,
+		exchange,
+		routingKey,
+		true,
+		false,
+		options,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("queue Declare: %s", err)
+		return err
 	}
-
-	Log.Printf("declared Queue (%q %d messages, %d consumers), binding to Exchange (key %q)",
-		queue.Name, queue.Messages, queue.Consumers, key)
-
-	if err = c.channel.QueueBind(
-		queue.Name, // name of the queue
-		key,        // bindingKey
-		exchange,   // sourceExchange
-		false,      // noWait
-		nil,        // arguments
-	); err != nil {
-		return nil, fmt.Errorf("queue Bind: %s", err)
-	}
-
-	Log.Printf("Queue bound to Exchange, starting Consume (consumer tag %q)", c.tag)
-	deliveries, err := c.channel.Consume(
-		queue.Name, // name
-		c.tag,      // consumerTag,
-		true,       // autoAck
-		false,      // exclusive
-		false,      // noLocal
-		false,      // noWait
-		nil,        // arguments
-	)
-	if err != nil {
-		return nil, fmt.Errorf("queue Consume: %s", err)
-	}
-
-	go handle(deliveries, c.done)
-
-	return c, nil
+	return nil
 }
 
-func (c *Consumer) Shutdown() error {
-	// will close() the deliveries channel
-	if err := c.channel.Cancel(c.tag, true); err != nil {
-		return fmt.Errorf("consumer cancel failed: %s", err)
-	}
-
-	if err := c.conn.Close(); err != nil {
-		return fmt.Errorf("AMQP connection close error: %s", err)
-	}
-
-	defer Log.Printf("AMQP shutdown OK")
-
-	// wait for handle() to exit
-	return <-c.done
+func (rc RabbitClient) Consume(queue, consumer string, autoAck bool) (<-chan amqp.Delivery, error) {
+	return rc.ch.Consume(queue, consumer, autoAck, false, false, false, nil)
 }
 
-func handle(deliveries <-chan amqp.Delivery, done chan error) {
-	cleanup := func() {
-		Log.Printf("handle: deliveries channel closed")
-		done <- nil
-	}
-	defer cleanup()
-
-	for d := range deliveries {
-		deliveryCount++
-		Log.Printf(
-			"got %dB delivery: [%v] %q",
-			len(d.Body),
-			d.DeliveryTag,
-			d.Body,
-		)
-	}
-}
-
-func setupCloseHandler(exitCh chan struct{}) {
-	c := make(chan os.Signal, 2)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		<-c
-		Log.Printf("close handler: Ctrl+C pressed in Terminal")
-		close(exitCh)
-	}()
-}
-
-func publish(ctx context.Context, publishOkCh <-chan struct{}, confirmsCh chan<- *amqp.DeferredConfirmation, confirmsDoneCh <-chan struct{}, exitCh chan struct{}) {
-	config := amqp.Config{
-		Vhost:      "/",
-		Properties: amqp.NewConnectionProperties(),
-	}
-	config.Properties.SetClientConnectionName("producer-with-confirms")
-
-	Log.Printf("producer: dialing %s", uri)
-	conn, err := amqp.DialConfig(uri, config)
-	if err != nil {
-		ErrLog.Fatalf("producer: error in dial: %s", err)
-	}
-	defer conn.Close()
-
-	Log.Println("producer: got Connection, getting Channel")
-	channel, err := conn.Channel()
-	if err != nil {
-		ErrLog.Fatalf("error getting a channel: %s", err)
-	}
-	defer channel.Close()
-
-	Log.Printf("producer: declaring exchange")
-	if err := channel.ExchangeDeclare(
-		exchange,     // name
-		exchangeType, // type
-		true,         // durable
-		false,        // auto-delete
-		false,        // internal
-		false,        // noWait
-		nil,          // arguments
-	); err != nil {
-		ErrLog.Fatalf("producer: Exchange Declare: %s", err)
-	}
-
-	Log.Printf("producer: declaring queue '%s'", queue)
-	queue, err := channel.QueueDeclare(
-		queue, // name of the queue
-		true,  // durable
-		false, // delete when unused
-		false, // exclusive
-		false, // noWait
-		nil,   // arguments
-	)
-	if err == nil {
-		Log.Printf("producer: declared queue (%q %d messages, %d consumers), binding to Exchange (key %q)",
-			queue.Name, queue.Messages, queue.Consumers, routingKey)
-	} else {
-		ErrLog.Fatalf("producer: Queue Declare: %s", err)
-	}
-
-	Log.Printf("producer: declaring binding")
-	if err := channel.QueueBind(queue.Name, routingKey, exchange, false, nil); err != nil {
-		ErrLog.Fatalf("producer: Queue Bind: %s", err)
-	}
-
-	// Reliable publisher confirms require confirm.select support from the
-	// connection.
-	Log.Printf("producer: enabling publisher confirms.")
-	if err := channel.Confirm(false); err != nil {
-		ErrLog.Fatalf("producer: channel could not be put into confirm mode: %s", err)
-	}
-
-	for {
-		canPublish := false
-		Log.Println("producer: waiting on the OK to publish...")
-		for {
-			select {
-			case <-confirmsDoneCh:
-				Log.Println("producer: stopping, all confirms seen")
-				return
-			case <-publishOkCh:
-				Log.Println("producer: got the OK to publish")
-				canPublish = true
-				break
-			case <-time.After(time.Second):
-				WarnLog.Println("producer: still waiting on the OK to publish...")
-				continue
-			}
-			if canPublish {
-				break
-			}
-		}
-
-		Log.Printf("producer: publishing %dB body (%q)", len(body), body)
-		dConfirmation, err := channel.PublishWithDeferredConfirmWithContext(
-			ctx,
-			exchange,
-			routingKey,
-			true,
-			false,
-			amqp.Publishing{
-				Headers:         amqp.Table{},
-				ContentType:     "text/plain",
-				ContentEncoding: "",
-				DeliveryMode:    amqp.Persistent,
-				Priority:        0,
-				AppId:           "sequential-producer",
-				Body:            []byte(body),
-			},
-		)
-		if err != nil {
-			ErrLog.Fatalf("producer: error in publish: %s", err)
-		}
-
-		select {
-		case <-confirmsDoneCh:
-			Log.Println("producer: stopping, all confirms seen")
-			return
-		case confirmsCh <- dConfirmation:
-			Log.Println("producer: delivered deferred confirm to handler")
-			break
-		}
-
-		select {
-		case <-confirmsDoneCh:
-			Log.Println("producer: stopping, all confirms seen")
-			return
-		case <-time.After(time.Millisecond * 250):
-			Log.Println("producer: initiating stop")
-			close(exitCh)
-			select {
-			case <-confirmsDoneCh:
-				Log.Println("producer: stopping, all confirms seen")
-				return
-			case <-time.After(time.Second * 5):
-				WarnLog.Println("producer: may be stopping with outstanding confirmations")
-				return
-			}
-		}
-	}
-}
-
-func startConfirmHandler(publishOkCh chan<- struct{}, confirmsCh <-chan *amqp.DeferredConfirmation, confirmsDoneCh chan struct{}, exitCh <-chan struct{}) {
-	go func() {
-		confirms := make(map[uint64]*amqp.DeferredConfirmation)
-
-		for {
-			select {
-			case <-exitCh:
-				exitConfirmHandler(confirms, confirmsDoneCh)
-				return
-			default:
-				break
-			}
-
-			outstandingConfirmationCount := len(confirms)
-
-			if outstandingConfirmationCount <= 8 {
-				select {
-				case publishOkCh <- struct{}{}:
-					Log.Println("confirm handler: sent OK to publish")
-				case <-time.After(time.Second * 5):
-					WarnLog.Println("confirm handler: timeout indicating OK to publish (this should never happen!)")
-				}
-			} else {
-				WarnLog.Printf("confirm handler: waiting on %d outstanding confirmations, blocking publish", outstandingConfirmationCount)
-			}
-
-			select {
-			case confirmation := <-confirmsCh:
-				dtag := confirmation.DeliveryTag
-				confirms[dtag] = confirmation
-			case <-exitCh:
-				exitConfirmHandler(confirms, confirmsDoneCh)
-				return
-			}
-
-			checkConfirmations(confirms)
-		}
-	}()
-}
-
-func exitConfirmHandler(confirms map[uint64]*amqp.DeferredConfirmation, confirmsDoneCh chan struct{}) {
-	Log.Println("confirm handler: exit requested")
-	waitConfirmations(confirms)
-	close(confirmsDoneCh)
-	Log.Println("confirm handler: exiting")
-}
-
-func checkConfirmations(confirms map[uint64]*amqp.DeferredConfirmation) {
-	Log.Printf("confirm handler: checking %d outstanding confirmations", len(confirms))
-	for k, v := range confirms {
-		if v.Acked() {
-			Log.Printf("confirm handler: confirmed delivery with tag: %d", k)
-			delete(confirms, k)
-		}
-	}
-}
-
-func waitConfirmations(confirms map[uint64]*amqp.DeferredConfirmation) {
-	Log.Printf("confirm handler: waiting on %d outstanding confirmations", len(confirms))
-
-	checkConfirmations(confirms)
-
-	for k, v := range confirms {
-		select {
-		case <-v.Done():
-			Log.Printf("confirm handler: confirmed delivery with tag: %d", k)
-			delete(confirms, k)
-		case <-time.After(time.Second):
-			WarnLog.Printf("confirm handler: did not receive confirmation for tag %d", k)
-		}
-	}
-
-	outstandingConfirmationCount := len(confirms)
-	if outstandingConfirmationCount > 0 {
-		ErrLog.Printf("confirm handler: exiting with %d outstanding confirmations", outstandingConfirmationCount)
-	} else {
-		Log.Println("confirm handler: done waiting on outstanding confirmations")
-	}
+func (rc RabbitClient) ConsumeWithContext(ctx context.Context, queue, consumer string, autoAck bool) (<-chan amqp.Delivery, error) {
+	return rc.ch.ConsumeWithContext(ctx, queue, consumer, autoAck, false, false, false, nil)
 }
