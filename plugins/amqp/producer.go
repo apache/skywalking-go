@@ -25,7 +25,7 @@ import (
 )
 
 const (
-	amqpSendPrefix      = "Amqp"
+	amqpSendPrefix      = "AMQP"
 	amqpSendSuffix      = "/Producer"
 	delimiter           = "/"
 	ProducerComponentID = 144

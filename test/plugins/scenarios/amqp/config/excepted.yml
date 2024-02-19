@@ -37,7 +37,7 @@ segmentItems:
               - { key: status_code, value: '200' }
       - segmentId: not null
         spans:
-          - operationName: Amqp/sw-queue-1/Producer
+          - operationName: AMQP/sw-queue-1/Producer
             parentSpanId: 0
             spanId: 1
             spanLayer: MQ
@@ -52,7 +52,7 @@ segmentItems:
               - { key: mq.broker, value: 'amqp-server:5672' }
               - { key: mq.exchange, value: not null }
               - { key: mq.routing_key, value: sw-queue-1 }
-          - operationName: Amqp/sw-queue-1/sw-consumer-1/Consumer
+          - operationName: AMQP/sw-queue-1/sw-consumer-1/Consumer
             parentSpanId: 0
             spanId: 2
             spanLayer: MQ
@@ -76,7 +76,7 @@ segmentItems:
                   parentSpanId: 1, parentTraceSegmentId: not null,
                   parentServiceInstance: not null, parentService: amqp,
                   traceId: not null }
-          - operationName: Amqp/sw-queue-2/Producer
+          - operationName: AMQP/sw-queue-2/Producer
             parentSpanId: 0
             spanId: 3
             spanLayer: MQ
@@ -91,7 +91,7 @@ segmentItems:
               - { key: mq.broker, value: 'amqp-server:5672' }
               - { key: mq.exchange, value: not null }
               - { key: mq.routing_key, value: sw-queue-2 }
-          - operationName: Amqp/sw-queue-2/sw-consumer-2/Consumer
+          - operationName: AMQP/sw-queue-2/sw-consumer-2/Consumer
             parentSpanId: 0
             spanId: 4
             spanLayer: MQ

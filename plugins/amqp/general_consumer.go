@@ -28,6 +28,8 @@ import (
 
 const (
 	ConsumerComponentID = 145
+	amqpConsumerPrefix  = "AMQP/"
+	amqpConsumerSuffix  = "/Consumer"
 	tagMQConsumerTag    = "mq.consumer_tag"
 	tagMQReplyTo        = "mq.reply_to"
 	tagMQCorrelationID  = "mq.correlation_id"
@@ -39,7 +41,7 @@ func GeneralConsumerAfterInvoke(invocation operator.Invocation, queue, consumerT
 	if consumerTag == "" {
 		consumerTag = deliveries.ConsumerTag
 	}
-	operationName := "Amqp/" + queue + "/" + consumerTag + "/Consumer"
+	operationName := amqpConsumerPrefix + queue + "/" + consumerTag + amqpConsumerSuffix
 
 	channel := invocation.CallerInstance().(*nativeChannel)
 	peer := getPeerInfo(channel.connection)
