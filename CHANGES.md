@@ -25,6 +25,7 @@ Release Notes.
 * Fix wrong tracing context when trace have been sampled.
 * Fix enhance param error when there are multiple params.
 * Fix lost trace when multi middleware `handlerFunc` in `gin` plugin.
+* Fix DBQueryContext execute error in `sql` plugin.
 
 #### Issues and PR
 - All issues are [here](https://github.com/apache/skywalking/milestone/197?closed=1)
