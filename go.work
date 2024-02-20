@@ -24,6 +24,7 @@ use (
 	./plugins/fiber
 	./plugins/echov4
 	./plugins/rocketmq
+	./plugins/amqp
 
 	./test/benchmark-codebase/consumer
 	./test/benchmark-codebase/provider
@@ -54,6 +55,7 @@ use (
 	./test/plugins/scenarios/runtime_metrics
 	./test/plugins/scenarios/echov4
 	./test/plugins/scenarios/rocketmq
+	./test/plugins/scenarios/amqp
 
 	./tools/go-agent
 

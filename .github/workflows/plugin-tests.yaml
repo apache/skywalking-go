@@ -97,6 +97,7 @@ jobs:
           - fiber
           - echov4
           - rocketmq
+          - amqp
     steps:
       - uses: actions/checkout@v2
         with:

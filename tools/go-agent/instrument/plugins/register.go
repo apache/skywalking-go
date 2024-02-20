@@ -19,6 +19,7 @@ package plugins
 
 import (
 	traceactivation "github.com/apache/skywalking-go/plugin/trace"
+	"github.com/apache/skywalking-go/plugins/amqp"
 	"github.com/apache/skywalking-go/plugins/core/instrument"
 	"github.com/apache/skywalking-go/plugins/dubbo"
 	"github.com/apache/skywalking-go/plugins/echov4"
@@ -62,6 +63,7 @@ func init() {
 	registerFramework(traceactivation.NewInstrument())
 	registerFramework(fiber.NewInstrument())
 	registerFramework(rocketmq.NewInstrument())
+	registerFramework(amqp.NewInstrument())
 
 	// fasthttp related instruments
 	registerFramework(fasthttp_client.NewInstrument())

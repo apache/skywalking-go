@@ -29,6 +29,7 @@ metrics based on the tracing data.
   * `go-redisv9`: [go-redis](https://github.com/redis/go-redis) tested v9.0.3 to v9.0.5.
 * MQ Client
   * `rocketMQ`: [rocketmq-client-go](https://github.com/apache/rocketmq-client-go) tested v2.1.2.
+  * `amqp`: [AMQP](https://github.com/rabbitmq/amqp091-go) tested v1.9.0.
 
 # Metrics Plugins
 The meter plugin provides the advanced metrics collections.
