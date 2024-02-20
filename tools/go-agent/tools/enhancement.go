@@ -19,6 +19,7 @@ package tools
 
 import (
 	"fmt"
+	"go/token"
 
 	"github.com/dave/dst"
 	"github.com/dave/dst/decorator"
@@ -187,6 +188,16 @@ func GenerateTypeNameByExp(exp dst.Expr) string {
 			}
 			data += ")"
 		}
+	case *dst.ChanType:
+		if n.Dir == dst.SEND {
+			data += token.CHAN.String() + token.ARROW.String()
+		} else if n.Dir == dst.RECV {
+			data += token.ARROW.String() + token.CHAN.String()
+		} else {
+			data += token.CHAN.String()
+		}
+		data += " " + GenerateTypeNameByExp(n.Value)
+		return data
 	default:
 		return ""
 	}
@@ -221,6 +232,9 @@ func addPackagePrefixForArgsAndClone(pkg string, tp dst.Expr) dst.Expr {
 			exp.X = dst.NewIdent(OtherPackageRefPrefix + pkg)
 		}
 		return exp
+	case *dst.ChanType:
+		expr := dst.Clone(tp).(*dst.ChanType)
+		return expr
 	default:
 		return dst.Clone(tp).(dst.Expr)
 	}

@@ -12,6 +12,7 @@ Release Notes.
 * Add `redis.max_args_bytes` parameter for redis plugin.
 * Changing intercept point for gin, make sure interfaces could be grouped when params defined in relativePath.
 * Support [RocketMQ](https://github.com/apache/rocketmq-client-go) MQ.
+* Support [AMQP](https://github.com/rabbitmq/amqp091-go) MQ.
 
 #### Documentation
 
