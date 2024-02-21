@@ -5,7 +5,8 @@ Release Notes.
 0.4.0
 ------------------
 #### Features
-* Add support ignore suffix.
+* Add support ignore suffix for span name.
+* Adding go `1.21` and `1.22` in docker image.
 
 #### Plugins
 * Support setting a discard type of reporter.
@@ -13,6 +14,7 @@ Release Notes.
 * Changing intercept point for gin, make sure interfaces could be grouped when params defined in relativePath.
 * Support [RocketMQ](https://github.com/apache/rocketmq-client-go) MQ.
 * Support [AMQP](https://github.com/rabbitmq/amqp091-go) MQ.
+* support [Echov4](https://github.com/labstack/echo) framework.
 
 #### Documentation
 
@@ -26,6 +28,7 @@ Release Notes.
 * Fix enhance param error when there are multiple params.
 * Fix lost trace when multi middleware `handlerFunc` in `gin` plugin.
 * Fix DBQueryContext execute error in `sql` plugin.
+* Fix stack overflow as endless logs triggered.
 
 #### Issues and PR
 - All issues are [here](https://github.com/apache/skywalking/milestone/197?closed=1)
@@ -42,7 +45,6 @@ Release Notes.
 * Support [iris](https://github.com/kataras/iris) framework.
 * Support [fasthttp](https://github.com/valyala/fasthttp) framework.
 * Support [fiber](https://github.com/gofiber/fiber) framework.
-* support [Echov4](https://github.com/labstack/echo) framework.
 
 #### Documentation
 * Add `Tracing APIs` document into `Manual APIs`.
