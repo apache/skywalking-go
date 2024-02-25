@@ -2,6 +2,11 @@ Changes by Version
 ==================
 Release Notes.
 
+0.5.0
+------------------
+#### Plugins
+* Support [Pulsar](https://github.com/apache/pulsar-client-go) MQ.
+
 0.4.0
 ------------------
 #### Features
@@ -92,7 +97,6 @@ Release Notes.
 
 0.1.0
 ------------------
-
 #### Features
 * Initialize the agent core and user import library.
 * Support gRPC reporter for management, tracing protocols.
