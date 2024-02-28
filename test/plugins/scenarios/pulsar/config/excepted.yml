@@ -16,7 +16,7 @@
 
 segmentItems:
   - serviceName: pulsar
-    segmentSize: 2
+    segmentSize: 4
     segments:
       - segmentId: not null
         spans:
@@ -35,6 +35,56 @@ segmentItems:
               - { key: http.method, value: GET }
               - { key: url, value: 'service:8080/health' }
               - { key: status_code, value: '200' }
+      - segmentId: not null
+        spans:
+          - operationName: Pulsar/sw-topic-1/Producer
+            parentSpanId: 0
+            spanId: 1
+            spanLayer: MQ
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 73
+            isError: false
+            spanType: Exit
+            peer: pulsar://pulsar-server:6650
+            skipAnalysis: false
+            tags:
+              - { key: mq.broker, value: not null }
+              - { key: mq.topic, value: not null }
+              - { key: mq.msg.id, value: not null }
+          - operationName: Pulsar/sw-topic-1/Consumer
+            parentSpanId: 0
+            spanId: 2
+            spanLayer: MQ
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 74
+            isError: false
+            spanType: Entry
+            peer: pulsar://pulsar-server:6650
+            skipAnalysis: false
+            tags:
+              - { key: mq.broker, value: not null }
+              - { key: mq.topic, value: not null }
+            refs:
+              - { parentEndpoint: 'GET:/execute', networkAddress: 'pulsar://pulsar-server:6650',
+                  refType: CrossProcess, parentSpanId: 1, parentTraceSegmentId: not null,
+                  parentServiceInstance: not null, parentService: pulsar,
+                  traceId: not null }
+          - operationName: Pulsar/sw-topic-2/AsyncProducer
+            parentSpanId: 0
+            spanId: 3
+            spanLayer: MQ
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 73
+            isError: false
+            spanType: Exit
+            peer: pulsar://pulsar-server:6650
+            skipAnalysis: false
+            tags:
+              - { key: mq.broker, value: not null }
+              - { key: mq.topic, value: not null }
           - operationName: GET:/execute
             parentSpanId: -1
             spanId: 0
@@ -50,5 +100,43 @@ segmentItems:
               - { key: http.method, value: GET }
               - { key: url, value: 'service:8080/execute' }
               - { key: status_code, value: '200' }
+      - segmentId: not null
+        spans:
+          - operationName: Pulsar/sw-topic-2/Producer/Callback
+            parentSpanId: -1
+            spanId: 0
+            spanLayer: MQ
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 73
+            isError: false
+            spanType: Local
+            peer: pulsar://pulsar-server:6650
+            skipAnalysis: false
+            tags:
+              - { key: mq.topic, value: not null }
+              - { key: mq.broker, value: not null }
+              - { key: mq.msg.id, value: not null }
+      - segmentId: not null
+        spans:
+          - operationName: Pulsar/sw-topic-2/Consumer
+            parentSpanId: -1
+            spanId: 0
+            spanLayer: MQ
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 74
+            isError: false
+            spanType: Entry
+            peer: pulsar://pulsar-server:6650
+            skipAnalysis: false
+            tags:
+              - { key: mq.broker, value: not null }
+              - { key: mq.topic, value: not null }
+            refs:
+              - { parentEndpoint: 'GET:/execute', networkAddress: 'pulsar://pulsar-server:6650',
+                  refType: CrossProcess, parentSpanId: 3, parentTraceSegmentId: not null,
+                  parentServiceInstance: not null, parentService: pulsar,
+                  traceId: not null }
 meterItems: [ ]
 logItems: [ ]

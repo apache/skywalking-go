@@ -20,25 +20,23 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/apache/pulsar-client-go/pulsar"
+	_ "github.com/apache/skywalking-go"
 	"log"
 	"net/http"
 	"time"
-	
-	"github.com/apache/pulsar-client-go/pulsar"
-	
-	_ "github.com/apache/skywalking-go"
 )
 
 type testFunc func() error
 
 var (
-	url          = "pulsar://pulsar-server:6650"
-	msg          = "I love skywalking 3 thousand"
-	topic1       = "sw-topic-1"
-	topic2       = "sw-topic-2"
+	url           = "pulsar://pulsar-server:6650"
+	msg           = "I love skywalking 3 thousand"
+	topic1        = "sw-topic-1"
+	topic2        = "sw-topic-2"
 	subscription1 = "sw-subscription-1"
 	subscription2 = "sw-subscription-2"
-	client       pulsar.Client
+	client        pulsar.Client
 )
 
 func main() {
@@ -49,8 +47,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	defer client.Close()
-	
+
 	route := http.NewServeMux()
 	route.HandleFunc("/execute", func(res http.ResponseWriter, req *http.Request) {
 		testProCon()
@@ -60,10 +57,16 @@ func main() {
 		_, _ = writer.Write([]byte("ok"))
 	})
 	fmt.Println("start client")
+
 	err = http.ListenAndServe(":8080", route)
 	if err != nil {
 		fmt.Printf("client start error: %v \n", err)
 	}
+}
+
+func consumerHelper() {
+	go consumerMsg(context.Background(), topic1, subscription1)
+	go consumerMsg(context.Background(), topic2, subscription2)
 }
 
 func testProCon() {
@@ -83,27 +86,29 @@ func testProCon() {
 }
 
 func sendMsg() error {
+	go consumerHelper()
+	ctx := context.Background()
+
 	producer, err := client.CreateProducer(pulsar.ProducerOptions{
 		Topic: topic1,
 	})
 	if err != nil {
 		return err
 	}
-
-	if msgId, err := producer.Send(context.Background(), &pulsar.ProducerMessage{
+	if msgId, err := producer.Send(ctx, &pulsar.ProducerMessage{
 		Payload: []byte(msg),
 	}); err != nil {
 		return err
 	} else {
 		log.Println("Published message: ", msgId)
 	}
-	producer.Close()
 	time.Sleep(time.Second)
-	go consumerMsg(topic1, subscription1)
 	return nil
 }
 
 func sendAsyncMsg() error {
+	time.Sleep(time.Second)
+	ctx := context.Background()
 	producer, err := client.CreateProducer(pulsar.ProducerOptions{
 		Topic: topic2,
 	})
@@ -111,28 +116,24 @@ func sendAsyncMsg() error {
 		return err
 	}
 
-	producer.SendAsync(context.Background(), &pulsar.ProducerMessage{
+	producer.SendAsync(ctx, &pulsar.ProducerMessage{
 		Payload: []byte(msg),
 	}, func(id pulsar.MessageID, message *pulsar.ProducerMessage, err error) {
 		log.Printf("ID = %v, Properties = %v", id, message.Properties)
 	})
-	producer.Close()
-	time.Sleep(time.Second)
-	go consumerMsg(topic2, subscription2)
 	return nil
 }
 
-func consumerMsg(topic string, subscription string) {
+func consumerMsg(ctx context.Context, topic string, subscription string) {
 	consumer, err := client.Subscribe(pulsar.ConsumerOptions{
 		Topic:            topic,
 		SubscriptionName: subscription,
-		Type:             pulsar.Shared,
 	})
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	msg, err := consumer.Receive(context.Background())
+	msg, err := consumer.Receive(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -141,5 +142,4 @@ func consumerMsg(topic string, subscription string) {
 	if err := consumer.Unsubscribe(); err != nil {
 		log.Fatal(err)
 	}
-	time.Sleep(time.Second)
 }

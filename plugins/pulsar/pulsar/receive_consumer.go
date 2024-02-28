@@ -45,7 +45,7 @@ func (r *ReceiveInterceptor) AfterInvoke(invocation operator.Invocation, result 
 		return err
 	}
 	message := result[0].(pulsar.Message)
-	peer := lookup.LogicalAddr.String()
+	peer := lookup.PhysicalAddr.String()
 	operationName := pulsarReceivePrefix + topic + pulsarReceiveSuffix
 
 	span, err := tracing.CreateEntrySpan(operationName, func(headerKey string) (string, error) {

@@ -82,6 +82,7 @@ func (s *SendAsyncInterceptor) BeforeInvoke(invocation operator.Invocation) erro
 		if err != nil {
 			span.Error(err.Error())
 		}
+		localSpan.Tag(tracing.TagMQBroker, lookup.PhysicalAddr.String())
 		localSpan.Tag(tracing.TagMQMsgID, id.String())
 
 		zuper(id, message, err)

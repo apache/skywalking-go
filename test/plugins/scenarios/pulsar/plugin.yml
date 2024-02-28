@@ -25,7 +25,7 @@ support-version:
       - v0.12.0
 dependencies:
   pulsar-server:
-    image: apachepulsar/pulsar
+    image: apachepulsar/pulsar:3.2.0
     command: ["bash","-c", "bin/pulsar standalone"]
     ports:
       - 6650
