@@ -20,11 +20,13 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/apache/pulsar-client-go/pulsar"
-	_ "github.com/apache/skywalking-go"
 	"log"
 	"net/http"
 	"time"
+
+	"github.com/apache/pulsar-client-go/pulsar"
+
+	_ "github.com/apache/skywalking-go"
 )
 
 type testFunc func() error
