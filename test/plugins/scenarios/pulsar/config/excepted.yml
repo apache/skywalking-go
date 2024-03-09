@@ -16,28 +16,11 @@
 
 segmentItems:
   - serviceName: pulsar
-    segmentSize: 4
+    segmentSize: 2
     segments:
       - segmentId: not null
         spans:
-          - operationName: GET:/health
-            parentSpanId: -1
-            spanId: 0
-            spanLayer: Http
-            startTime: nq 0
-            endTime: nq 0
-            componentId: 5004
-            isError: false
-            spanType: Entry
-            peer: ''
-            skipAnalysis: false
-            tags:
-              - { key: http.method, value: GET }
-              - { key: url, value: 'service:8080/health' }
-              - { key: status_code, value: '200' }
-      - segmentId: not null
-        spans:
-          - operationName: Pulsar/sw-topic-1/Producer
+          - operationName: Pulsar/sw-topic/Producer
             parentSpanId: 0
             spanId: 1
             spanLayer: MQ
@@ -52,7 +35,7 @@ segmentItems:
               - { key: mq.broker, value: not null }
               - { key: mq.topic, value: not null }
               - { key: mq.msg.id, value: not null }
-          - operationName: Pulsar/sw-topic-1/Consumer
+          - operationName: Pulsar/sw-topic/Consumer
             parentSpanId: 0
             spanId: 2
             spanLayer: MQ
@@ -71,7 +54,7 @@ segmentItems:
                   refType: CrossProcess, parentSpanId: 1, parentTraceSegmentId: not null,
                   parentServiceInstance: not null, parentService: pulsar,
                   traceId: not null }
-          - operationName: Pulsar/sw-topic-2/AsyncProducer
+          - operationName: Pulsar/sw-topic/AsyncProducer
             parentSpanId: 0
             spanId: 3
             spanLayer: MQ
@@ -85,26 +68,9 @@ segmentItems:
             tags:
               - { key: mq.broker, value: not null }
               - { key: mq.topic, value: not null }
-          - operationName: GET:/execute
-            parentSpanId: -1
-            spanId: 0
-            spanLayer: Http
-            startTime: nq 0
-            endTime: nq 0
-            componentId: 5004
-            isError: false
-            spanType: Entry
-            peer: ''
-            skipAnalysis: false
-            tags:
-              - { key: http.method, value: GET }
-              - { key: url, value: 'service:8080/execute' }
-              - { key: status_code, value: '200' }
-      - segmentId: not null
-        spans:
-          - operationName: Pulsar/sw-topic-2/Producer/Callback
-            parentSpanId: -1
-            spanId: 0
+          - operationName: Pulsar/sw-topic/Producer/Callback
+            parentSpanId: 3
+            spanId: 4
             spanLayer: MQ
             startTime: nq 0
             endTime: nq 0
@@ -117,11 +83,9 @@ segmentItems:
               - { key: mq.topic, value: not null }
               - { key: mq.broker, value: not null }
               - { key: mq.msg.id, value: not null }
-      - segmentId: not null
-        spans:
-          - operationName: Pulsar/sw-topic-2/Consumer
-            parentSpanId: -1
-            spanId: 0
+          - operationName: Pulsar/sw-topic/Consumer
+            parentSpanId: 0
+            spanId: 5
             spanLayer: MQ
             startTime: nq 0
             endTime: nq 0
@@ -138,5 +102,20 @@ segmentItems:
                   refType: CrossProcess, parentSpanId: 3, parentTraceSegmentId: not null,
                   parentServiceInstance: not null, parentService: pulsar,
                   traceId: not null }
+          - operationName: GET:/execute
+            parentSpanId: -1
+            spanId: 0
+            spanLayer: Http
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 5004
+            isError: false
+            spanType: Entry
+            peer: ''
+            skipAnalysis: false
+            tags:
+              - { key: http.method, value: GET }
+              - { key: url, value: 'service:8080/execute' }
+              - { key: status_code, value: '200' }
 meterItems: [ ]
 logItems: [ ]
