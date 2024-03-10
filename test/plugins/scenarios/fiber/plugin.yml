@@ -20,9 +20,12 @@ start-script: ./bin/startup.sh
 framework: github.com/gofiber/fiber/v2
 export-port: 8080
 support-version:
-  - go: 1.18
+  - go: 1.20
     framework:
-      - v2.49.0
       - v2.49.1
       - v2.49.2
       - v2.50.0
+      - v2.51.0
+      - v2.52.0
+      - v2.52.1
+      - v2.52.2

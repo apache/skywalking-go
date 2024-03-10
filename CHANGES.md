@@ -2,6 +2,11 @@ Changes by Version
 ==================
 Release Notes.
 
+0.5.0
+------------------
+#### Plugins
+* Update the supported versions for fiber.
+
 0.4.0
 ------------------
 #### Features
