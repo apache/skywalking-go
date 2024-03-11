@@ -30,6 +30,7 @@ metrics based on the tracing data.
 * MQ Client
   * `rocketMQ`: [rocketmq-client-go](https://github.com/apache/rocketmq-client-go) tested v2.1.2.
   * `amqp`: [AMQP](https://github.com/rabbitmq/amqp091-go) tested v1.9.0.
+  * `pulsar`: [pulsar-client-go](https://github.com/apache/pulsar-client-go) tested v0.12.0.
 
 # Metrics Plugins
 The meter plugin provides the advanced metrics collections.

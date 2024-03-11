@@ -25,6 +25,7 @@ use (
 	./plugins/echov4
 	./plugins/rocketmq
 	./plugins/amqp
+	./plugins/pulsar
 
 	./test/benchmark-codebase/consumer
 	./test/benchmark-codebase/provider
@@ -56,6 +57,7 @@ use (
 	./test/plugins/scenarios/echov4
 	./test/plugins/scenarios/rocketmq
 	./test/plugins/scenarios/amqp
+	./test/plugins/scenarios/pulsar
 
 	./tools/go-agent
 
