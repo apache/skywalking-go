@@ -190,7 +190,7 @@ for framework_version in $frameworks; do
 
   # replace framework version
   if [[ "$framework_version" != "native" ]]; then
-    go get "$framework_name@$framework_version"
+    replace "s|$framework_name v.*|$framework_name $framework_version|" go.mod
   fi
 
   # run runner helper for prepare running docker-compose
