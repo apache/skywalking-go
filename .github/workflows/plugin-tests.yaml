@@ -29,7 +29,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [ubuntu-latest, macos-13]
+        os: [ubuntu-latest, macos-12]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     steps:
@@ -127,7 +127,7 @@ jobs:
     name: gin-macos
     needs:
       - build
-    runs-on: macos-13
+    runs-on: macos-12
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v2
@@ -135,7 +135,7 @@ jobs:
           submodules: true
       - uses: actions/download-artifact@v2
         with:
-          name: test-tools-macos-13
+          name: test-tools-macos-12
           path: test/plugins/dist
       - name: Set up Go 1.18
         uses: actions/setup-go@v2
