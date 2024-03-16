@@ -41,7 +41,7 @@ import (
 	"github.com/apache/skywalking-go/plugins/pulsar"
 	"github.com/apache/skywalking-go/plugins/rocketmq"
 	runtime_metrics "github.com/apache/skywalking-go/plugins/runtimemetrics"
-	"github.com/apache/skywalking-go/plugins/segmentio_kafka"
+	segmentiokafka "github.com/apache/skywalking-go/plugins/segmentio-kafka"
 	sql_entry "github.com/apache/skywalking-go/plugins/sql/entry"
 	sql_mysql "github.com/apache/skywalking-go/plugins/sql/mysql"
 )

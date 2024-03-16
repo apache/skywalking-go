@@ -1,4 +1,4 @@
-module github.com/apache/skywalking-go/plugins/segmentio_kafka
+module github.com/apache/skywalking-go/plugins/segmentio-kafka
 
 go 1.18
 
