@@ -35,7 +35,6 @@ dependencies:
     environment:
       KAFKA_ZOOKEEPER_CONNECT: "zookeeper-server:2181"
       KAFKA_BROKER_ID: 1
-      ALLOW_PLAINTEXT_LISTENER: yes
       KAFKA_LISTENERS: "PLAINTEXT://kafka-server:9092"
     depends_on:
       - zookeeper-server

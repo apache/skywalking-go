@@ -47,6 +47,7 @@ func main() {
 	defer writer.Close()
 	reader = newKafkaReader()
 	defer reader.Close()
+	consumerHelper()
 
 	route := http.NewServeMux()
 	route.HandleFunc("/execute", func(res http.ResponseWriter, req *http.Request) {
@@ -79,14 +80,12 @@ func testProduceConsume() {
 }
 
 func simpleMsg() error {
-	consumerHelper()
 	if err := writer.WriteMessages(ctx, kafka.Message{
 		Value: []byte(msg),
 	}); err != nil {
 		log.Println("simpleMsg WriteMessages error")
 		return err
 	}
-	time.Sleep(time.Second)
 	return nil
 }
 
