@@ -41,6 +41,7 @@ import (
 	"github.com/apache/skywalking-go/plugins/pulsar"
 	"github.com/apache/skywalking-go/plugins/rocketmq"
 	runtime_metrics "github.com/apache/skywalking-go/plugins/runtimemetrics"
+	segmentiokafka "github.com/apache/skywalking-go/plugins/segmentio-kafka"
 	sql_entry "github.com/apache/skywalking-go/plugins/sql/entry"
 	sql_mysql "github.com/apache/skywalking-go/plugins/sql/mysql"
 )
@@ -66,6 +67,7 @@ func init() {
 	registerFramework(rocketmq.NewInstrument())
 	registerFramework(amqp.NewInstrument())
 	registerFramework(pulsar.NewInstrument())
+	registerFramework(segmentiokafka.NewInstrument())
 
 	// fasthttp related instruments
 	registerFramework(fasthttp_client.NewInstrument())

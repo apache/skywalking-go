@@ -26,6 +26,7 @@ use (
 	./plugins/rocketmq
 	./plugins/amqp
 	./plugins/pulsar
+	./plugins/segmentio-kafka
 
 	./test/benchmark-codebase/consumer
 	./test/benchmark-codebase/provider
@@ -58,6 +59,7 @@ use (
 	./test/plugins/scenarios/rocketmq
 	./test/plugins/scenarios/amqp
 	./test/plugins/scenarios/pulsar
+	./test/plugins/scenarios/segmentio-kafka
 
 	./tools/go-agent
 

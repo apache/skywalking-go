@@ -99,6 +99,7 @@ jobs:
           - rocketmq
           - amqp
           - pulsar
+          - segmentio-kafka
     steps:
       - uses: actions/checkout@v2
         with:
