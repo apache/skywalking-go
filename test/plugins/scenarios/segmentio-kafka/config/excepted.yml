@@ -66,7 +66,7 @@ segmentItems:
               - { key: mq.broker, value: not null }
               - { key: mq.topic, value: not null }
             refs:
-              - { parentEndpoint: 'GET:/execute', networkAddress: ' kafka-server:9092',
+              - { parentEndpoint: 'GET:/execute', networkAddress: 'kafka-server:9092',
                   refType: CrossProcess, parentSpanId: 1, parentTraceSegmentId: not null,
                   parentServiceInstance: not null, parentService: segmentio-kafka,
                   traceId: not null }
