@@ -18,52 +18,64 @@
 package core
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
+func TestIgnoreSuffix(t *testing.T) {
+	ignoreSuffixStr := ".jpg,.jpeg,.js,.css,.png,.bmp,.gif,.ico,.mp3,.mp4,.html,.svg"
+	ignoreSuffixList := strings.Split(ignoreSuffixStr, ",")
+	assert.True(t, ignoreSuffix("GET:/favicon.ico", ignoreSuffixList))
+}
+
 func TestTraceIgnorePath(t *testing.T) {
 	ignorePath := []string{"/health/*"}
-	assert.True(t, traceIgnorePath("GET:/health/apps", ignorePath))
-	assert.True(t, traceIgnorePath("GET:/health/", ignorePath))
-	assert.True(t, traceIgnorePath("GET:/health/apps/", ignorePath))
+	assert.False(t, traceIgnorePath("", ignorePath))
+	assert.True(t, traceIgnorePath("/health/apps", ignorePath))
+	assert.True(t, traceIgnorePath("/health/", ignorePath))
+	assert.True(t, traceIgnorePath("/health/apps/", ignorePath))
 
 	ignorePath = []string{"/health/**"}
-	assert.True(t, traceIgnorePath("GET:/health/apps/", ignorePath))
+	assert.True(t, traceIgnorePath("/health/apps/", ignorePath))
+
+	ignorePath = []string{"/health/?"}
+	assert.True(t, traceIgnorePath("/health/a", ignorePath))
+	assert.False(t, traceIgnorePath("/health/ab", ignorePath))
 
 	ignorePath = []string{"/health/*/"}
-	assert.True(t, traceIgnorePath("GET:/health/apps/", ignorePath))
-	assert.False(t, traceIgnorePath("GET:/health/", ignorePath))
-	assert.False(t, traceIgnorePath("GET:/health/apps/list", ignorePath))
-	assert.False(t, traceIgnorePath("GET:/health/test", ignorePath))
+	assert.True(t, traceIgnorePath("/health/apps/", ignorePath))
+	assert.False(t, traceIgnorePath("/health/", ignorePath))
+	assert.False(t, traceIgnorePath("/health/apps/list", ignorePath))
+	assert.False(t, traceIgnorePath("/health/test", ignorePath))
 
 	ignorePath = []string{"/health/**"}
-	assert.True(t, traceIgnorePath("GET:/health/", ignorePath))
-	assert.True(t, traceIgnorePath("GET:/health/apps/test", ignorePath))
-	assert.True(t, traceIgnorePath("GET:/health/apps/test/", ignorePath))
+	assert.True(t, traceIgnorePath("/health/", ignorePath))
+	assert.True(t, traceIgnorePath("/health/apps/test", ignorePath))
+	assert.True(t, traceIgnorePath("/health/apps/test/", ignorePath))
 
 	ignorePath = []string{"health/apps/?"}
-	assert.False(t, traceIgnorePath("GET:health/apps/list", ignorePath))
-	assert.False(t, traceIgnorePath("GET:health/apps/", ignorePath))
-	assert.True(t, traceIgnorePath("GET:health/apps/a", ignorePath))
+	assert.False(t, traceIgnorePath("health/apps/list", ignorePath))
+	assert.False(t, traceIgnorePath("health/apps/", ignorePath))
+	assert.True(t, traceIgnorePath("health/apps/a", ignorePath))
 
 	ignorePath = []string{"health/**/lists"}
-	assert.True(t, traceIgnorePath("GET:health/apps/lists", ignorePath))
-	assert.True(t, traceIgnorePath("GET:health/apps/test/lists", ignorePath))
-	assert.False(t, traceIgnorePath("GET:health/apps/test/", ignorePath))
-	assert.False(t, traceIgnorePath("GET:health/apps/test", ignorePath))
+	assert.True(t, traceIgnorePath("health/apps/lists", ignorePath))
+	assert.True(t, traceIgnorePath("health/apps/test/lists", ignorePath))
+	assert.False(t, traceIgnorePath("health/apps/test/", ignorePath))
+	assert.False(t, traceIgnorePath("health/apps/test", ignorePath))
 
 	ignorePath = []string{"health/**/test/**"}
-	assert.True(t, traceIgnorePath("GET:health/apps/test/list", ignorePath))
-	assert.True(t, traceIgnorePath("GET:health/apps/foo/test/list/bar", ignorePath))
-	assert.True(t, traceIgnorePath("GET:health/apps/foo/test/list/bar/", ignorePath))
-	assert.True(t, traceIgnorePath("GET:health/apps/test/list", ignorePath))
-	assert.True(t, traceIgnorePath("GET:health/test/list", ignorePath))
+	assert.True(t, traceIgnorePath("health/apps/test/list", ignorePath))
+	assert.True(t, traceIgnorePath("health/apps/foo/test/list/bar", ignorePath))
+	assert.True(t, traceIgnorePath("health/apps/foo/test/list/bar/", ignorePath))
+	assert.True(t, traceIgnorePath("health/apps/test/list", ignorePath))
+	assert.True(t, traceIgnorePath("health/test/list", ignorePath))
 
 	ignorePath = []string{"/health/**/b/**/*.txt", "abc/*"}
-	assert.True(t, traceIgnorePath("GET:/health/a/aa/aaa/b/bb/bbb/xxxxxx.txt", ignorePath))
-	assert.False(t, traceIgnorePath("GET:/health/a/aa/aaa/b/bb/bbb/xxxxxx", ignorePath))
-	assert.False(t, traceIgnorePath("GET:abc/foo/bar", ignorePath))
-	assert.True(t, traceIgnorePath("GET:abc/foo", ignorePath))
+	assert.True(t, traceIgnorePath("/health/a/aa/aaa/b/bb/bbb/xxxxxx.txt", ignorePath))
+	assert.False(t, traceIgnorePath("/health/a/aa/aaa/b/bb/bbb/xxxxxx", ignorePath))
+	assert.False(t, traceIgnorePath("abc/foo/bar", ignorePath))
+	assert.True(t, traceIgnorePath("abc/foo", ignorePath))
 }

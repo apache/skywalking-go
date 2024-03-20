@@ -21,17 +21,12 @@ import (
 	"strings"
 )
 
-const (
-	PERIOD = "."
-	COLON  = ":"
-)
-
-func tracerIgnore(operationName string, ignoreSuffixList []string, ignorePath []string) bool {
+func tracerIgnore(operationName string, ignoreSuffixList, ignorePath []string) bool {
 	return ignoreSuffix(operationName, ignoreSuffixList) || traceIgnorePath(operationName, ignorePath)
 }
 
 func ignoreSuffix(operationName string, ignoreSuffix []string) bool {
-	suffixIdx := strings.LastIndex(operationName, PERIOD)
+	suffixIdx := strings.LastIndex(operationName, ".")
 	if suffixIdx == -1 {
 		return false
 	}
@@ -44,11 +39,6 @@ func ignoreSuffix(operationName string, ignoreSuffix []string) bool {
 }
 
 func traceIgnorePath(operationName string, ignorePath []string) bool {
-	op := strings.Index(operationName, COLON)
-	if op == -1 {
-		return false
-	}
-	operationName = operationName[op+1:]
 	for _, pattern := range ignorePath {
 		if normalMatch(pattern, 0, operationName, 0) {
 			return true
@@ -67,9 +57,8 @@ func normalMatch(pat string, p int, str string, s int) bool {
 			if safeCharAt(pat, p) == '*' {
 				p++
 				return multiWildcardMatch(pat, p, str, s)
-			} else {
-				return wildcardMatch(pat, p, str, s)
 			}
+			return wildcardMatch(pat, p, str, s)
 		}
 
 		if (pc == '?' && sc != 0 && sc != '/') || pc == sc {
