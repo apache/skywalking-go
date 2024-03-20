@@ -19,4 +19,7 @@
 home="$(cd "$(dirname $0)"; pwd)"
 go build ${GO_BUILD_OPTS} -o gin
 
+export SW_AGENT_PLUGIN_CONFIG_GIN_COLLECT_REQUEST_HEADERS=h1,h2
+export SW_AGENT_PLUGIN_CONFIG_GIN_HEADER_LENGTH_THRESHOLD=17
+
 ./gin

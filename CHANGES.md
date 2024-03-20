@@ -7,6 +7,7 @@ Release Notes.
 #### Plugins
 * Support [Pulsar](https://github.com/apache/pulsar-client-go) MQ.
 * Support [Segmentio-Kafka](https://github.com/segmentio/kafka-go) MQ.
+* Support http headers collection for Gin
 
 0.4.0
 ------------------
