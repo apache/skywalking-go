@@ -15,15 +15,10 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package operator
+package gin
 
-type ToolsOperator interface {
-	ReflectGetValue(instance interface{}, filters []interface{}) interface{}
-	GetEnvValue(key string) string
-	ParseFloat(val string, bitSize int) (float64, error)
-	ParseBool(val string) bool
-	ParseInt(val string, base, bitSize int) (int64, error)
-	ParseStringArray(val string) ([]string, error)
-	Atoi(val string) (int, error)
-	NewSyncMap() interface{}
+//skywalking:config gin
+var config struct {
+	CollectRequestHeaders []string `config:"collect_request_headers"`
+	HeaderLengthThreshold int      `config:"header_length_threshold"`
 }
