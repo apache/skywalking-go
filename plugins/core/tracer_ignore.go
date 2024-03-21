@@ -47,18 +47,20 @@ func traceIgnorePath(operationName string, ignorePath []string) bool {
 	return false
 }
 
-func normalMatch(pat string, p int, str string, s int) bool {
-	for p < len(pat) {
-		pc := pat[p]
-		sc := safeCharAt(str, s)
+// normalMatch determines whether the operation name matches the wildcard pattern.
+// The parameters `p` and `s` represent the current index in pattern and operationName respectively.
+func normalMatch(pattern string, p int, operationName string, s int) bool {
+	for p < len(pattern) {
+		pc := pattern[p]
+		sc := safeCharAt(operationName, s)
 
 		if pc == '*' {
 			p++
-			if safeCharAt(pat, p) == '*' {
+			if safeCharAt(pattern, p) == '*' {
 				p++
-				return multiWildcardMatch(pat, p, str, s)
+				return multiWildcardMatch(pattern, p, operationName, s)
 			}
-			return wildcardMatch(pat, p, str, s)
+			return wildcardMatch(pattern, p, operationName, s)
 		}
 
 		if (pc == '?' && sc != 0 && sc != '/') || pc == sc {
@@ -68,35 +70,35 @@ func normalMatch(pat string, p int, str string, s int) bool {
 		}
 		return false
 	}
-	return s == len(str)
+	return s == len(operationName)
 }
 
-func wildcardMatch(pat string, p int, str string, s int) bool {
-	pc := safeCharAt(pat, p)
+func wildcardMatch(pattern string, p int, operationName string, s int) bool {
+	pc := safeCharAt(pattern, p)
 
 	if pc == 0 {
 		for {
-			sc := safeCharAt(str, s)
+			sc := safeCharAt(operationName, s)
 			if sc == 0 {
 				return true
 			}
 			if sc == '/' {
-				return s == len(str)-1
+				return s == len(operationName)-1
 			}
 			s++
 		}
 	}
 
 	for {
-		sc := safeCharAt(str, s)
+		sc := safeCharAt(operationName, s)
 		if sc == '/' {
 			if pc == sc {
-				return normalMatch(pat, p+1, str, s+1)
+				return normalMatch(pattern, p+1, operationName, s+1)
 			}
 			return false
 		}
-		if !normalMatch(pat, p, str, s) {
-			if s >= len(str) {
+		if !normalMatch(pattern, p, operationName, s) {
+			if s >= len(operationName) {
 				return false
 			}
 			s++
@@ -106,16 +108,16 @@ func wildcardMatch(pat string, p int, str string, s int) bool {
 	}
 }
 
-func multiWildcardMatch(pat string, p int, str string, s int) bool {
-	switch safeCharAt(pat, p) {
+func multiWildcardMatch(pattern string, p int, operationName string, s int) bool {
+	switch safeCharAt(pattern, p) {
 	case 0:
 		return true
 	case '/':
 		p++
 	}
 	for {
-		if !normalMatch(pat, p, str, s) {
-			if s >= len(str) {
+		if !normalMatch(pattern, p, operationName, s) {
+			if s >= len(operationName) {
 				return false
 			}
 			s++
