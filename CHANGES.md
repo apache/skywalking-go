@@ -4,6 +4,9 @@ Release Notes.
 
 0.5.0
 ------------------
+#### Features
+* Add support trace ignore.
+
 #### Plugins
 * Support [Pulsar](https://github.com/apache/pulsar-client-go) MQ.
 * Support [Segmentio-Kafka](https://github.com/segmentio/kafka-go) MQ.
@@ -111,7 +114,7 @@ Release Notes.
 * Support [Kratos](github.com/go-kratos/kratos) v2 server and client framework.
 * Support [Go-Micro](https://github.com/go-micro/go-micro) v4 server and client framework.
 * Support [GORM](https://github.com/go-gorm/gorm) v2 database client framework.
-  * Support [MySQL Driver](https://github.com/go-gorm/mysql) detection.
+* Support [MySQL Driver](https://github.com/go-gorm/mysql) detection.
 
 #### Documentation
 * Initialize the documentation.
