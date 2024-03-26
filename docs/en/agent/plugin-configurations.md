@@ -7,3 +7,5 @@
 | sql.collect_parameter          | SW_AGENT_PLUGIN_CONFIG_SQL_COLLECT_PARAMETER          | false         | Collect the parameter of the SQL request.                      |
 | redis.max_args_bytes           | SW_AGENT_PLUGIN_CONFIG_REDIS_MAX_ARGS_BYTES           | 1024          | Limit the bytes size of redis args request.                    |
 | reporter.discard               | SW_AGENT_REPORTER_DISCARD                             | false         | Discard the reporter.                                          |
+| gin.collect_request_headers    | SW_AGENT_PLUGIN_CONFIG_GIN_COLLECT_REQUEST_HEADERS    |               | Collect the http header of gin request.                        |
+| gin.header_length_threshold    | SW_AGENT_PLUGIN_CONFIG_GIN_HEADER_LENGTH_THRESHOLD    | 2048          | Controlling the length limitation of all header values.        |

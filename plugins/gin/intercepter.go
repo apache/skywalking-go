@@ -19,11 +19,13 @@ package gin
 
 import (
 	"fmt"
-
-	"github.com/gin-gonic/gin"
+	"net/http"
+	"strings"
 
 	"github.com/apache/skywalking-go/plugins/core/operator"
 	"github.com/apache/skywalking-go/plugins/core/tracing"
+
+	"github.com/gin-gonic/gin"
 )
 
 type ContextInterceptor struct {
@@ -45,6 +47,11 @@ func (h *ContextInterceptor) BeforeInvoke(invocation operator.Invocation) error 
 	if err != nil {
 		return err
 	}
+
+	if len(config.CollectRequestHeaders) > 0 {
+		collectRequestHeaders(s, context.Request.Header)
+	}
+
 	invocation.SetContext(s)
 	return nil
 }
@@ -69,4 +76,26 @@ func isFirstHandle(c interface{}) bool {
 		return context.index < 0
 	}
 	return true
+}
+
+func collectRequestHeaders(span tracing.Span, requestHeaders http.Header) {
+	var headerTagValues []string
+	for _, header := range config.CollectRequestHeaders {
+		var headerValue = requestHeaders.Get(header)
+		if headerValue != "" {
+			headerTagValues = append(headerTagValues, header+"="+headerValue)
+		}
+	}
+
+	if len(headerTagValues) == 0 {
+		return
+	}
+
+	tagValue := strings.Join(headerTagValues, "\n")
+	if len(tagValue) > config.HeaderLengthThreshold {
+		maxLen := config.HeaderLengthThreshold
+		tagValue = tagValue[:maxLen]
+	}
+
+	span.Tag(tracing.TagHTTPHeaders, tagValue)
 }

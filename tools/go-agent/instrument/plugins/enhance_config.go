@@ -149,6 +149,8 @@ func NewConfigField(f *dst.Field) (*ConfigField, error) {
 	switch t := f.Type.(type) {
 	case *dst.Ident:
 		conf.Type = t.Name
+	case *dst.ArrayType:
+		conf.Type = tools.GenerateTypeNameByExp(t)
 	case *dst.StructType:
 		fs, err := NewConfigFields(t)
 		if err != nil {
@@ -235,6 +237,8 @@ func (f *ConfigField) GenerateAssignFieldValue(varName string, field, path []str
 		parseResStr = "if v, err := tools.ParseFloat(result, 64); err != nil { panic(" + parseErrorMessage + ") } else { return v }"
 	case "float":
 		parseResStr = "if v, err := tools.ParseFloat(result, 64); err != nil { panic(" + parseErrorMessage + ") } else { return v }"
+	case "[]string":
+		parseResStr = "if v, err := tools.ParseStringArray(result); err != nil { panic(" + parseErrorMessage + ") } else { return v }"
 	default:
 		panic("unsupported config type " + f.Type)
 	}

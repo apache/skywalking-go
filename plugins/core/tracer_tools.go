@@ -100,6 +100,11 @@ func (t *TracerTools) ParseInt(val string, base, bitSize int) (int64, error) {
 	return strconv.ParseInt(val, base, bitSize)
 }
 
+func (t *TracerTools) ParseStringArray(val string) ([]string, error) {
+	newVal := strings.ReplaceAll(val, " ", "")
+	return strings.Split(newVal, ","), nil
+}
+
 func (t *TracerTools) Atoi(val string) (int, error) {
 	return strconv.Atoi(val)
 }

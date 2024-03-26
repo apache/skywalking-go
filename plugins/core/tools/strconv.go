@@ -52,6 +52,17 @@ func ParseInt(val string, base, bitSize int) (int64, error) {
 	return op.Tools().(operator.ToolsOperator).ParseInt(val, base, bitSize)
 }
 
+func ParseStringArray(val string) ([]string, error) {
+	if val == "" {
+		return []string{}, nil
+	}
+	op := operator.GetOperator()
+	if op == nil {
+		return []string{}, nil
+	}
+	return op.Tools().(operator.ToolsOperator).ParseStringArray(val)
+}
+
 func Atoi(s string) (int, error) {
 	if s == "" {
 		return 0, nil

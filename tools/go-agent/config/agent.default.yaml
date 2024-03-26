@@ -103,3 +103,8 @@ plugin:
     redis:
       # Limit the bytes size of redis args request
       max_args_bytes: ${SW_AGENT_PLUGIN_CONFIG_REDIS_MAX_ARGS_BYTES:1024}
+    gin: 
+      # Collect the http header of gin request
+      collect_request_headers: ${SW_AGENT_PLUGIN_CONFIG_GIN_COLLECT_REQUEST_HEADERS:}
+      # Controlling the length limitation of all header values
+      header_length_threshold: ${SW_AGENT_PLUGIN_CONFIG_GIN_HEADER_LENGTH_THRESHOLD:2048}
