@@ -51,6 +51,7 @@ type Agent struct {
 	Meter           Meter       `yaml:"meter"`
 	Correlation     Correlation `yaml:"correlation"`
 	IgnoreSuffix    StringValue `yaml:"ignore_suffix"`
+	TraceIgnorePath StringValue `yaml:"trace_ignore_path"`
 }
 
 type Reporter struct {

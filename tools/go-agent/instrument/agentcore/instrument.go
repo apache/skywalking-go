@@ -163,7 +163,8 @@ func (t *Tracer) InitTracer(extend map[string]interface{}) {
 		MaxValueSize : {{.Config.Agent.Correlation.MaxValueSize.ToGoIntValue "loading the agent correlation maxValueSize error"}},
 	}
 	ignoreSuffixStr := {{.Config.Agent.IgnoreSuffix.ToGoStringValue}}
-	if err := t.Init(entity, rep, samp, logger, meterCollectInterval, correlation, ignoreSuffixStr); err != nil {
+	ignorePath := {{.Config.Agent.TraceIgnorePath.ToGoStringValue}}
+	if err := t.Init(entity, rep, samp, logger, meterCollectInterval, correlation, ignoreSuffixStr, ignorePath); err != nil {
 		t.Log.Errorf("cannot initialize the SkyWalking Tracer: %v", err)
 	}
 }`, struct {
