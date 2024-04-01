@@ -30,13 +30,25 @@ import (
 func main() {
 	engine := gin.New()
 	engine.Handle("GET", "/consumer", func(context *gin.Context) {
-		resp, err := http.Get("http://localhost:8080/provider")
+		request, err := http.NewRequest("GET", "http://localhost:8080/provider", nil)
+		if err != nil {
+			log.Print(err)
+			context.Status(http.StatusInternalServerError)
+			return
+		}
+
+		request.Header.Set("h1", "h1-value")
+		request.Header.Set("h2", "h2-value")
+
+		client := &http.Client{}
+		resp, err := client.Do(request)
 		if err != nil {
 			log.Print(err)
 			context.Status(http.StatusInternalServerError)
 			return
 		}
 		defer resp.Body.Close()
+
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			log.Print(err)
