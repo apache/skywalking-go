@@ -20,7 +20,6 @@ package core
 import (
 	"reflect"
 	"runtime/debug"
-	"strings"
 
 	"github.com/pkg/errors"
 
@@ -230,7 +229,7 @@ func (t *Tracer) createNoop(operationName string) (*TracingContext, TracingSpan,
 	if !t.InitSuccess() || t.Reporter.ConnectionStatus() == reporter.ConnectionStatusDisconnect {
 		return nil, newNoopSpan(), true
 	}
-	if ignoreSuffixFilter(operationName, t.ignoreSuffix) {
+	if tracerIgnore(operationName, t.ignoreSuffix, t.traceIgnorePath) {
 		return nil, newNoopSpan(), true
 	}
 	ctx := getTracingContext()
@@ -340,17 +339,4 @@ func saveSpanToActiveIfNotError(ctx *TracingContext, span interface{}, err error
 	}
 	ctx.SaveActiveSpan(span.(TracingSpan))
 	SetGLS(ctx)
-}
-
-func ignoreSuffixFilter(operationName string, ignoreSuffix []string) bool {
-	suffixIdx := strings.LastIndex(operationName, ".")
-	if suffixIdx == -1 {
-		return false
-	}
-	for _, suffix := range ignoreSuffix {
-		if suffix == operationName[suffixIdx:] {
-			return true
-		}
-	}
-	return false
 }
