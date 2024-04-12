@@ -12,6 +12,9 @@ Release Notes.
 * Support [Segmentio-Kafka](https://github.com/segmentio/kafka-go) MQ.
 * Support http headers collection for Gin
 
+#### Chore
+* Enhance the observability of makefile execution
+
 0.4.0
 ------------------
 #### Features
