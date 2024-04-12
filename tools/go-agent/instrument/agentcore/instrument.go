@@ -18,10 +18,12 @@
 package agentcore
 
 import (
+	"fmt"
 	"html"
 	"io/fs"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 
 	"github.com/apache/skywalking-go/plugins/core"
@@ -66,7 +68,21 @@ func (i *Instrument) FilterAndEdit(path string, curFile *dst.File, cursor *dstut
 	}
 	targetDir := filepath.Dir(path)
 	for _, sub := range CopiedSubPackages {
-		if regexp.MustCompile(filepath.Join(CopiedBasePackage, sub) + "$").MatchString(targetDir) {
+		// On os=windows, we need to escape the characters,
+		// and we can't just use "filepath.Join",
+		// which would cause the regex to throw an error
+		var prefix string
+		if runtime.GOOS == "windows" {
+			prefix = strings.ReplaceAll(CopiedBasePackage, `\/`, `\\`)
+			if len(sub) != 0 {
+				prefix = fmt.Sprintf(`%s\\%s`, prefix, sub)
+			}
+		} else {
+			prefix = filepath.Join(CopiedBasePackage, sub)
+		}
+
+		res := prefix + "$"
+		if regexp.MustCompile(res).MatchString(targetDir) {
 			i.needsCopyDir = sub
 			i.hasCopyPath = true
 			return true
