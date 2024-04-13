@@ -134,7 +134,7 @@ func instrumentFiles(buildDir string, inst api.Instrument, args []string) error 
 	for _, updateFileSrc := range instrumentedFiles {
 		info := parsedFiles[updateFileSrc]
 		filename := filepath.Base(updateFileSrc)
-		dest := filepath.Join(buildDir, filename)
+		dest := strings.ReplaceAll(filepath.Join(buildDir, filename), `\`, `/`)
 		debugInfo, err := tools.BuildDSTDebugInfo(updateFileSrc, nil)
 		if err != nil {
 			return err

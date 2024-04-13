@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"go/token"
 	"path/filepath"
+	"strings"
 
 	"github.com/apache/skywalking-go/tools/go-agent/instrument/agentcore"
 
@@ -33,7 +34,8 @@ func (c *Context) Import(imp *dst.ImportSpec, cursor *dstutil.Cursor) {
 	operatorCode := false
 	// delete the original import("agent/core/xxx")
 	for _, subPackageName := range OperatorDirs {
-		if imp.Path.Value == fmt.Sprintf("%q", filepath.Join(agentcore.EnhanceFromBasePackage, subPackageName)) {
+		path := strings.ReplaceAll(filepath.Join(agentcore.EnhanceFromBasePackage, subPackageName), `\`, `/`)
+		if imp.Path.Value == fmt.Sprintf("%q", path) {
 			shouldRemove = true
 			operatorCode = true
 			break

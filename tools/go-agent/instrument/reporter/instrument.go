@@ -89,7 +89,9 @@ func (i *GRPCInstrument) WriteExtraFiles(dir string) ([]string, error) {
 		file.Name = dst.NewIdent("reporter")
 		pkgUpdates := make(map[string]string)
 		for _, p := range agentcore.CopiedSubPackages {
-			pkgUpdates[filepath.Join(agentcore.EnhanceFromBasePackage, p)] = filepath.Join(agentcore.EnhanceBasePackage, p)
+			key := strings.ReplaceAll(filepath.Join(agentcore.EnhanceFromBasePackage, p), `\`, `/`)
+			val := strings.ReplaceAll(filepath.Join(agentcore.EnhanceBasePackage, p), `\`, `/`)
+			pkgUpdates[key] = val
 		}
 		tools.ChangePackageImportPath(file, pkgUpdates)
 		tools.DeletePackageImports(file, "github.com/apache/skywalking-go/plugins/core/reporter")

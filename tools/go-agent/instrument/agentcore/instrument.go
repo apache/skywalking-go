@@ -74,7 +74,7 @@ func (i *Instrument) FilterAndEdit(path string, curFile *dst.File, cursor *dstut
 		var prefix string
 		if runtime.GOOS == "windows" {
 			prefix = strings.ReplaceAll(CopiedBasePackage, `\/`, `\\`)
-			if len(sub) != 0 {
+			if sub != "" {
 				prefix = fmt.Sprintf(`%s\\%s`, prefix, sub)
 			}
 		} else {
@@ -110,6 +110,14 @@ func (i *Instrument) WriteExtraFiles(dir string) ([]string, error) {
 		pkgUpdates[filepath.Join(EnhanceFromBasePackage, p)] = filepath.Join(EnhanceBasePackage, p)
 	}
 	pkgUpdates[filepath.Join(EnhanceFromBasePackage, ReporterFromBasePackage)] = filepath.Join(ProjectBasePackage, ReporterBasePackage)
+
+	for k, v := range pkgUpdates {
+		newKey := strings.ReplaceAll(k, `\`, `/`)
+		newVal := strings.ReplaceAll(v, `\`, `/`)
+
+		pkgUpdates[newKey] = newVal
+	}
+
 	copiedFiles, err := tools.CopyGoFiles(core.FS, sub, dir, i.buildDSTDebugInfo, func(file *dst.File) {
 		tools.ChangePackageImportPath(file, pkgUpdates)
 	})
