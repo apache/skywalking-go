@@ -45,7 +45,9 @@ func CopyGoFiles(fromFS fs.ReadDirFS, fromDir, targetDir string,
 			continue
 		}
 
-		readFile, err := fs.ReadFile(fromFS, filepath.Join(fromDir, f.Name()))
+		// Force the use of '/' delimiter on all platforms
+		join := strings.ReplaceAll(filepath.Join(fromDir, f.Name()), `\`, `/`)
+		readFile, err := fs.ReadFile(fromFS, join)
 		if err != nil {
 			return nil, err
 		}

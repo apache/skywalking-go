@@ -21,6 +21,7 @@ import (
 	"html"
 	"io/fs"
 	"path/filepath"
+	"strings"
 
 	"github.com/apache/skywalking-go/plugins/core"
 	"github.com/apache/skywalking-go/tools/go-agent/config"
@@ -76,7 +77,8 @@ func (i *GRPCInstrument) WriteExtraFiles(dir string) ([]string, error) {
 	results = append(results, copiedFiles...)
 
 	// copy reporter implementations
-	reporterDirName := filepath.Join("reporter", "grpc")
+	// Force the use of '/' delimiter on all platforms
+	reporterDirName := strings.ReplaceAll(filepath.Join("reporter", "grpc"), `\`, `/`)
 	copiedFiles, err = tools.CopyGoFiles(core.FS, reporterDirName, dir, func(entry fs.DirEntry, f *dst.File) (*tools.DebugInfo, error) {
 		if i.compileOpts.DebugDir == "" {
 			return nil, nil
