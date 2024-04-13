@@ -35,14 +35,26 @@ HUB ?= docker.io/apache
 PROJECT ?= skywalking-go
 VERSION ?= $(shell git rev-parse --short HEAD)
 
+LOG_TARGET = echo -e "\033[0;32m===========> Running $@ ... \033[0m"
+
+##@ General
+
+.PHONY: help
+help: ## Display this help.
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+
 deps:
 	$(GO_GET) -v -t -d ./...
 
 linter:
 	$(GO_LINT) version || curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GO_PATH)/bin v1.50.0
 
+
+##@ Golang
+
 .PHONY: test
-test:
+test: ## Run E2E scenario tests
+	@$(LOG_TARGET)
 	echo "mode: atomic" > ${REPODIR}/coverage.txt;
 	@for dir in $$(find . -name go.mod -exec dirname {} \; ); do \
   		if [[ $$dir == "./test/plugins/scenarios/"* ]]; then \
@@ -64,7 +76,8 @@ test:
 	done
 
 .PHONY: lint
-lint: linter
+lint: linter ## Run golangci-lint linter
+	@$(LOG_TARGET)
 	@for dir in $$(find . -name go.mod -exec dirname {} \; ); do \
   		if [[ $$dir == "./test/plugins/scenarios/"* ]]; then \
 			continue; \
@@ -78,7 +91,8 @@ lint: linter
 	$(GO_LINT) run -v --timeout 5m ./...
 
 .PHONY: check
-check:
+check: ## Run consistency checks
+	@$(LOG_TARGET)
 	go mod tidy
 	@if [ ! -z "`git status -s`" ]; then \
 		echo "Following files are not consistent with CI:"; \
@@ -88,16 +102,21 @@ check:
 	fi
 
 .PHONY: build
-build:
+build: ## Build skywalking-go agent binary
+	@$(LOG_TARGET)
 	@make -C tools/go-agent build
 
 .PHONE: release
-release:
+release: ## Build skywalking-go agent release
+	@$(LOG_TARGET)
 	/bin/sh tools/release/create_bin_release.sh
 	/bin/sh tools/release/create_source_release.sh
 
 base.all := go1.16 go1.17 go1.18 go1.19 go1.20 go1.21 go1.22
 base.each = $(word 1, $@)
+
+
+##@ Docker
 
 base.image.go1.16 := golang:1.16
 base.image.go1.17 := golang:1.17
@@ -118,6 +137,7 @@ $(base.all:%=docker.%): FINAL_TAG=$(VERSION)-$(base.each:docker.%=%)
 $(base.all:%=docker.push.%): BASE_IMAGE=$($(base.each:docker.push.%=base.image.%))
 $(base.all:%=docker.push.%): FINAL_TAG=$(VERSION)-$(base.each:docker.push.%=%)
 $(base.all:%=docker.%) $(base.all:%=docker.push.%):
+	@$(LOG_TARGET)
 	docker buildx create --use --driver docker-container --name skywalking_go > /dev/null 2>&1 || true
 	docker buildx build $(PLATFORMS) $(LOAD_OR_PUSH) \
         --no-cache \
@@ -127,5 +147,5 @@ $(base.all:%=docker.%) $(base.all:%=docker.push.%):
 	docker buildx rm skywalking_go || true
 
 .PHONY: docker docker.push
-docker: $(base.all:%=docker.%)
+docker: $(base.all:%=docker.%) ## Build docker images for skywalking-go agent and Push docker images to registry
 docker.push: $(base.all:%=docker.push.%)
