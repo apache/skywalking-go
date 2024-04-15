@@ -33,6 +33,7 @@ func CopyGoFiles(fromFS fs.ReadDirFS, fromDir, targetDir string,
 	debugInfoBuilder func(entry fs.DirEntry, file *dst.File) (*DebugInfo, error),
 	peek func(file *dst.File)) ([]string, error) {
 	results := make([]string, 0)
+
 	files, err := fromFS.ReadDir(fromDir)
 	if err != nil {
 		return nil, err
@@ -45,7 +46,9 @@ func CopyGoFiles(fromFS fs.ReadDirFS, fromDir, targetDir string,
 			continue
 		}
 
-		readFile, err := fs.ReadFile(fromFS, filepath.Join(fromDir, f.Name()))
+		// Force the use of '/' delimiter on all platforms
+		join := strings.ReplaceAll(filepath.Join(fromDir, f.Name()), `\`, `/`)
+		readFile, err := fs.ReadFile(fromFS, join)
 		if err != nil {
 			return nil, err
 		}
@@ -65,7 +68,7 @@ func CopyGoFiles(fromFS fs.ReadDirFS, fromDir, targetDir string,
 		}
 
 		peek(parse)
-		copiedFilePath := filepath.Join(targetDir, f.Name())
+		copiedFilePath := strings.ReplaceAll(filepath.Join(targetDir, f.Name()), `\`, `/`)
 		if err := WriteDSTFile(copiedFilePath, parse, debugInfo); err != nil {
 			return nil, err
 		}

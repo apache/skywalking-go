@@ -358,7 +358,10 @@ func (i *Instrument) copyOperatorsFS(context *rewrite.Context, baseDir, packageN
 			if strings.HasSuffix(entry.Name(), "_test.go") || strings.HasSuffix(entry.Name(), "_test_base.go") {
 				continue
 			}
-			file, err1 := fs.ReadFile(core.FS, filepath.Join(dir, entry.Name()))
+
+			// Force the use of '/' delimiter on all platforms
+			path := strings.ReplaceAll(filepath.Join(dir, entry.Name()), `\`, `/`)
+			file, err1 := fs.ReadFile(core.FS, path)
 			if err1 != nil {
 				return nil, err1
 			}

@@ -27,6 +27,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 
 	"github.com/dave/dst"
@@ -172,6 +173,10 @@ func BuildDSTDebugInfo(srcPath string, file *dst.File) (*DebugInfo, error) {
 }
 
 func WriteDSTFile(path string, file *dst.File, debug *DebugInfo) error {
+	if runtime.GOOS == "windows" {
+		path = strings.ReplaceAll(path, `/`, `\`)
+	}
+
 	output, err := os.Create(path)
 	if err != nil {
 		return err
