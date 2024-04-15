@@ -24,6 +24,7 @@ import (
 	nativeHTTP "net/http"
 
 	nativeGRPC "google.golang.org/grpc"
+	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/go-kratos/examples/helloworld/helloworld"
@@ -66,20 +67,32 @@ func consumerHandler(w nativeHTTP.ResponseWriter, r *nativeHTTP.Request) {
 }
 
 func main() {
+	var (
+		grpcDial *nativeGRPC.ClientConn
+		err      error
+	)
+
 	httpSvr := http.NewServer(http.Address(":8000"))
 	grpcSvr := grpc.NewServer(grpc.Address(":9000"))
-	if c, err := http.NewClient(context.Background(), http.WithEndpoint("http://localhost:8000")); err != nil {
+	if httpClient, err = http.NewClient(context.Background(), http.WithEndpoint("http://localhost:8000")); err != nil {
 		log.Fatalf("creating HTTP client error: %v", err)
-	} else {
-		httpClient = c
 	}
-	if dial, err := grpc.Dial(context.Background(),
+	if grpcDial, err = grpc.Dial(context.Background(),
 		grpc.WithEndpoint("localhost:9000"),
 		grpc.WithOptions(nativeGRPC.WithTransportCredentials(insecure.NewCredentials()))); err != nil {
 		log.Fatalf("creating gRPC client error: %v", err)
 	} else {
-		gRPCClient = helloworld.NewGreeterClient(dial)
+		gRPCClient = helloworld.NewGreeterClient(grpcDial)
 	}
+
+	nativeHTTP.HandleFunc("/consumer", consumerHandler)
+	nativeHTTP.HandleFunc("/health", func(writer nativeHTTP.ResponseWriter, request *nativeHTTP.Request) {
+		if grpcDial.GetState() != connectivity.Idle && grpcDial.GetState() != connectivity.Ready {
+			writer.WriteHeader(nativeHTTP.StatusInternalServerError)
+			return
+		}
+		writer.WriteHeader(nativeHTTP.StatusOK)
+	})
 
 	s := &server{}
 	helloworld.RegisterGreeterHTTPServer(httpSvr, s)
@@ -88,16 +101,10 @@ func main() {
 	app := kratos.New(
 		kratos.Name("krago-test"),
 		kratos.Server(httpSvr, grpcSvr),
+		kratos.AfterStart(func(context.Context) error {
+			return nativeHTTP.ListenAndServe(":8080", nil)
+		}),
 	)
-
-	nativeHTTP.HandleFunc("/consumer", consumerHandler)
-	nativeHTTP.HandleFunc("/health", func(writer nativeHTTP.ResponseWriter, request *nativeHTTP.Request) {
-		writer.WriteHeader(nativeHTTP.StatusOK)
-	})
-
-	go func() {
-		_ = nativeHTTP.ListenAndServe(":8080", nil)
-	}()
 
 	if err := app.Run(); err != nil {
 		panic(err)

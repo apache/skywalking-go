@@ -163,7 +163,7 @@ jobs:
             docker load -i test/plugins/dist/skywalking-agent-test-validator-1.0.0.tgz
           fi
       - name: Run Test
-        run: bash test/plugins/run.sh gin
+        run: bash test/plugins/run.sh short_versions_gin
       - uses: actions/upload-artifact@v2
         name: Upload Agent
         if: ${{ failure() }}
