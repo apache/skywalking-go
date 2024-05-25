@@ -15,39 +15,48 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package http
+package goelasticsearchv8
 
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/apache/skywalking-go/plugins/core/operator"
 	"github.com/apache/skywalking-go/plugins/core/tracing"
+
+	"github.com/elastic/elastic-transport-go/v8/elastictransport"
+	"github.com/elastic/go-elasticsearch/v8"
 )
 
-type ClientInterceptor struct {
+type ESV8Interceptor struct {
 }
 
-func (h *ClientInterceptor) BeforeInvoke(invocation operator.Invocation) error {
-	request := invocation.Args()[0].(*http.Request)
-	if request.Host == "" {
-		return nil
+func (es *ESV8Interceptor) BeforeInvoke(invocation operator.Invocation) error {
+	client := invocation.CallerInstance().(*elasticsearch.BaseClient)
+	var addresses []string
+	for _, u := range client.Transport.(*elastictransport.Client).URLs() {
+		addresses = append(addresses, u.String())
 	}
-	s, err := tracing.CreateExitSpan(fmt.Sprintf("%s:%s", request.Method, request.URL.Path), request.Host, func(headerKey, headerValue string) error {
-		request.Header.Add(headerKey, headerValue)
+	url := strings.Join(addresses, ",")
+	req := invocation.Args()[0].(*http.Request)
+	span, err := tracing.CreateExitSpan("Elasticsearch/"+req.Method, url, func(headerKey, headerValue string) error {
+		req.Header.Add(headerKey, headerValue)
 		return nil
-	}, tracing.WithLayer(tracing.SpanLayerHTTP),
-		tracing.WithTag(tracing.TagHTTPMethod, request.Method),
-		tracing.WithTag(tracing.TagURL, request.Host+request.URL.Path),
-		tracing.WithComponent(5005))
+	},
+		tracing.WithLayer(tracing.SpanLayerDatabase),
+		tracing.WithTag(tracing.TagDBType, "Elasticsearch"),
+		tracing.WithTag(tracing.TagDBStatement, strings.TrimPrefix(req.URL.Path, "/")),
+		tracing.WithComponent(47),
+	)
 	if err != nil {
 		return err
 	}
-	invocation.SetContext(s)
+	invocation.SetContext(span)
 	return nil
 }
 
-func (h *ClientInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {
+func (es *ESV8Interceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {
 	if invocation.GetContext() == nil {
 		return nil
 	}

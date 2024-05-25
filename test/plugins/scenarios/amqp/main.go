@@ -77,7 +77,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("client start error: %v \n", err)
 	}
-	select {}
 }
 
 func testSimpleConsumer(client RabbitClient) error {

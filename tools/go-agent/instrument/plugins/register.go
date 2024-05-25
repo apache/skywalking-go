@@ -27,6 +27,7 @@ import (
 	fasthttp_router "github.com/apache/skywalking-go/plugins/fasthttp/router"
 	"github.com/apache/skywalking-go/plugins/fiber"
 	"github.com/apache/skywalking-go/plugins/gin"
+	goelasticsearchv8 "github.com/apache/skywalking-go/plugins/go-elasticsearchv8"
 	goredisv9 "github.com/apache/skywalking-go/plugins/go-redisv9"
 	"github.com/apache/skywalking-go/plugins/go-restfulv3"
 	gorm_entry "github.com/apache/skywalking-go/plugins/gorm/entry"
@@ -68,6 +69,7 @@ func init() {
 	registerFramework(amqp.NewInstrument())
 	registerFramework(pulsar.NewInstrument())
 	registerFramework(segmentiokafka.NewInstrument())
+	registerFramework(goelasticsearchv8.NewInstrument())
 
 	// fasthttp related instruments
 	registerFramework(fasthttp_client.NewInstrument())

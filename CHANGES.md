@@ -12,9 +12,7 @@ Release Notes.
 * Support [Segmentio-Kafka](https://github.com/segmentio/kafka-go) MQ.
 * Support http headers collection for Gin
 * Support higher versions of grpc.
-
-#### Chore
-* Enhance the observability of makefile execution
+* Support [go-elasticsearchv8](https://github.com/elastic/go-elasticsearch) database client framework.
 
 0.4.0
 ------------------

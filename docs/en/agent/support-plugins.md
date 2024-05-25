@@ -25,6 +25,7 @@ metrics based on the tracing data.
   * `mongo`: [Mongo](https://github.com/mongodb/mongo-go-driver) tested v1.11.1 to v1.11.7.
   * `sql`: [Native SQL](https://pkg.go.dev/database/sql) tested go v1.17 to go v1.20.
     * [MySQL Driver](https://github.com/go-sql-driver/mysql) tested v1.4.0 to v1.7.1.
+  * `go-elasticsearchv8`: [go-elasticsearch](https://github.com/elastic/go-elasticsearch) tested v8.10.0 to v8.11.1.
 * Cache Client
   * `go-redisv9`: [go-redis](https://github.com/redis/go-redis) tested v9.0.3 to v9.0.5.
 * MQ Client
