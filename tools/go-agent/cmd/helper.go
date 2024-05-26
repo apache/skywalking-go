@@ -35,7 +35,6 @@ type EnhancementToolFlags struct {
 }
 
 func PrintUsageWithExit() {
-
 	usageTmpl := template.New("UsageTmpl")
 	template.Must(usageTmpl.Parse(usage))
 
