@@ -20,6 +20,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"text/template"
 )
 
 var version string
@@ -34,24 +35,12 @@ type EnhancementToolFlags struct {
 }
 
 func PrintUsageWithExit() {
-	fmt.Printf(`Usage: go {build,install} -a [-work] -toolexec "%s" PACKAGE...
+	usageTmpl := template.New("UsageTmpl")
+	template.Must(usageTmpl.Parse(usage))
 
-The Go-agent-enhance tool is designed for automatic enhancement of Golang programs, or inject the agent code into the project.
-
-Options:
-		-h
-				Print the usage message.
-		-inject
-				Inject the agent code into the project, the value is the path of the project or single file.
-		-all
-				Inject the agent code into all the project in the current directory.
-		-debug
-				Helping to debug the enhance process, the value is the path of the debug file.
-		-config
-				The file path of the agent config file.
-		-version
-				Print current agent version.
-`, os.Args[0])
+	if err := usageTmpl.Execute(os.Stdout, os.Args[0]); err != nil {
+		fmt.Fprintln(os.Stdout, err)
+	}
 	os.Exit(1)
 }
 
@@ -64,3 +53,21 @@ func PrintVersion() {
 	}
 	fmt.Printf("skywalking-go agent version: %s\n", res)
 }
+
+var usage = `
+A command line utility for operating skywalking go-agent
+
+Describe:
+  The Go-agent-enhance tool is designed for automatic enhancement of Golang programs, or inject the agent code into the project.
+
+Usage:
+  go {build,install} -a [-work] -toolexec "{{ . }} [flags]" PACKAGE...
+
+Available Flags:
+  -h           Print the usage message.
+  -inject      Inject the agent code into the project, the value is the path of the project or single file.
+  -all         Inject the agent code into all the project in the current directory.
+  -debug       Helping to debug the enhance process, the value is the path of the debug file.
+  -config      The file path of the agent config file.
+  -version     Print current agent version.
+`
