@@ -11,6 +11,7 @@ Release Notes.
 * Support [Pulsar](https://github.com/apache/pulsar-client-go) MQ.
 * Support [Segmentio-Kafka](https://github.com/segmentio/kafka-go) MQ.
 * Support http headers collection for Gin
+* Support higher versions of grpc.
 
 #### Chore
 * Enhance the observability of makefile execution

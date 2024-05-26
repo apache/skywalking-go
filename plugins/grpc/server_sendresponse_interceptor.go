@@ -29,7 +29,15 @@ func (h *ServerSendResponseInterceptor) BeforeInvoke(invocation operator.Invocat
 	if tracing.ActiveSpan() == nil {
 		return nil
 	}
-	cs := invocation.Args()[1].(*nativeStream)
+	var cs *nativeStream
+	if arg1, ok := invocation.Args()[1].(*nativeStream); ok {
+		cs = arg1
+	} else if arg2, ok := invocation.Args()[2].(*nativeStream); ok {
+		cs = arg2
+	} else {
+		return nil
+	}
+
 	method := cs.Method()
 	s, err := tracing.CreateLocalSpan(formatOperationName(method, "/Server/Response/SendResponse"),
 		tracing.WithLayer(tracing.SpanLayerRPCFramework),
