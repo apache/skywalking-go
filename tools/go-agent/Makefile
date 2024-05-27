@@ -23,12 +23,16 @@ BINARY = skywalking-go-agent
 SH = sh
 GO = go
 GIT = git
+VERSION ?=
+GIT_COMMIT := $(shell $(GIT) rev-parse --short HEAD)
+GO_VERSION := $(shell $(GO) version | sed 's/go version go\([0-9.]*\).*/\1/')
+VERSION_PACKAGE := main
 PROTOC = protoc
 GO_PATH = $$($(GO) env GOPATH)
 GO_BUILD = $(GO) build
 GO_LINT = $(GO_PATH)/bin/golangci-lint
 GO_BUILD_FLAGS = -v
-GO_BUILD_LDFLAGS = -X main.version=$(VERSION)
+GO_BUILD_LDFLAGS = -X $(VERSION_PACKAGE).version=$(VERSION) -X $(VERSION_PACKAGE).goVersion=$(GO_VERSION) -X $(VERSION_PACKAGE).gitCommit=$(GIT_COMMIT)
 GO_TEST_LDFLAGS =
 GO_GET = $(GO) get
 
