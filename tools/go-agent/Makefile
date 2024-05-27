@@ -23,7 +23,6 @@ BINARY = skywalking-go-agent
 SH = sh
 GO = go
 GIT = git
-VERSION ?=
 GIT_COMMIT := $(shell $(GIT) rev-parse --short HEAD)
 GO_VERSION := $(shell $(GO) version | sed 's/go version go\([0-9.]*\).*/\1/')
 VERSION_PACKAGE := main

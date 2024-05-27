@@ -18,7 +18,6 @@
 SH = sh
 GO = go
 GIT = git
-AGENT_VERSION := $(shell cat VERSION)
 GO_PATH = $$($(GO) env GOPATH)
 GO_BUILD = $(GO) build
 GO_GET = $(GO) get
@@ -105,7 +104,7 @@ check: ## Run consistency checks
 .PHONY: build
 build: ## Build skywalking-go agent binary
 	@$(LOG_TARGET)
-	@make -C tools/go-agent build VERSION=$(AGENT_VERSION)
+	@make -C tools/go-agent build
 
 .PHONE: release
 release: ## Build skywalking-go agent release
