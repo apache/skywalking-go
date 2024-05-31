@@ -18,13 +18,15 @@
 REPODIR := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))/../../
 
 OUT_DIR = $(REPODIR)/bin
+VERSION_PATH = $(REPODIR)/VERSION
 BINARY = skywalking-go-agent
 
 SH = sh
 GO = go
 GIT = git
 GIT_COMMIT := $(shell $(GIT) rev-parse --short HEAD)
-GO_VERSION := $(shell $(GO) version | sed 's/go version go\([0-9.]*\).*/\1/')
+GO_VERSION := $(shell $(GO) env GOVERSION)
+VERSION := $(shell cat $(VERSION_PATH))
 VERSION_PACKAGE := main
 PROTOC = protoc
 GO_PATH = $$($(GO) env GOPATH)
