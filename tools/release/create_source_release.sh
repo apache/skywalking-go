@@ -55,6 +55,8 @@ fi
 
 git checkout ${TAG_NAME}
 
+make version-check
+
 cd ..
 
 tar -zcvf ${PRODUCT_NAME}-src.tgz \
