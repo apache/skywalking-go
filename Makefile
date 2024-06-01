@@ -35,7 +35,11 @@ SHELL = /bin/bash
 
 HUB ?= docker.io/apache
 PROJECT ?= skywalking-go
-GIT_VERSION ?= $(shell git rev-parse --short HEAD)
+
+GIT_VERSION := $(shell git rev-parse --short HEAD)
+ifeq ($(strip $(GIT_VERSION)),)
+    GIT_VERSION = $(shell grep gitCommit $(VERSION_FILE) | awk -F ': ' '{print $$2}')
+endif
 
 LOG_TARGET = echo -e "\033[0;32m===========> Running $@ ... \033[0m"
 
@@ -108,7 +112,8 @@ version-check: ## Version-Check Check skywalking-go VERSION files
 	@$(LOG_TARGET)
 	@if [ ! -f $(VERSION_FILE) ]; then \
         echo "$(VERSION_FILE) file does not exist and is currently being generated"; \
-        echo "$(VERSION)" > $(VERSION_FILE); \
+        echo "version: $(VERSION)" > $(VERSION_FILE); \
+        echo "gitCommit: $(GIT_VERSION)" >> $(VERSION_FILE); \
     fi
 
 .PHONY: build

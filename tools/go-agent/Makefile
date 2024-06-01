@@ -24,9 +24,14 @@ BINARY = skywalking-go-agent
 SH = sh
 GO = go
 GIT = git
+
 GIT_COMMIT := $(shell $(GIT) rev-parse --short HEAD)
+ifeq ($(strip $(GIT_COMMIT)),)
+    GIT_COMMIT = $(shell grep gitCommit $(VERSION_PATH) | awk -F ': ' '{print $$2}')
+endif
+VERSION := $(shell grep version $(VERSION_PATH) | awk -F ': ' '{print $$2}')
+
 GO_VERSION := $(shell $(GO) env GOVERSION)
-VERSION := $(shell cat $(VERSION_PATH))
 VERSION_PACKAGE := main
 PROTOC = protoc
 GO_PATH = $$($(GO) env GOPATH)
