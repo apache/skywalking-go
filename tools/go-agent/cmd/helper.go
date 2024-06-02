@@ -63,15 +63,13 @@ func PrintVersion() {
 	os.Exit(1)
 }
 
-var versionTemplate = `
-skywalking-go agent
+var versionTemplate = `skywalking-go agent
  Version: {{ or .Version "Unknown" }}
  Go version: {{ or .GoVersion "Unknown" }}
  Git commit: {{ or .GitCommit "Unknown" }}
 `
 
-var usageTemplate = `
-A command line utility for operating skywalking go-agent
+var usageTemplate = `A command line utility for operating skywalking go-agent
 
 Describe:
   The Go-agent-enhance tool is designed for automatic enhancement of Golang programs, or inject the agent code into the project.
