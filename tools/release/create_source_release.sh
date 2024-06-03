@@ -55,6 +55,9 @@ fi
 
 git checkout ${TAG_NAME}
 
+# We need to prepare VERSION file before generating src pkg
+make version-check
+
 cd ..
 
 tar -zcvf ${PRODUCT_NAME}-src.tgz \

@@ -9,3 +9,4 @@ coverage.txt
 /test/plugins/dist/
 *.pb.go
 vendor/
+VERSION

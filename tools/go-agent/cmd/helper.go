@@ -23,7 +23,11 @@ import (
 	"text/template"
 )
 
-var version string
+var (
+	version   string
+	goVersion string
+	gitCommit string
+)
 
 type EnhancementToolFlags struct {
 	Help        bool   `swflag:"-h"`
@@ -36,7 +40,7 @@ type EnhancementToolFlags struct {
 
 func PrintUsageWithExit() {
 	usageTmpl := template.New("UsageTmpl")
-	template.Must(usageTmpl.Parse(usage))
+	template.Must(usageTmpl.Parse(usageTemplate))
 
 	if err := usageTmpl.Execute(os.Stdout, os.Args[0]); err != nil {
 		fmt.Fprintln(os.Stdout, err)
@@ -45,17 +49,27 @@ func PrintUsageWithExit() {
 }
 
 func PrintVersion() {
-	res := version
-	if res == "" {
-		res = "unknown"
-	} else {
-		res = fmt.Sprintf("v%s", res)
+	versionTmpl := template.New("VersionTmpl")
+	template.Must(versionTmpl.Parse(versionTemplate))
+
+	versionInfo := map[string]any{
+		"Version":   version,
+		"GitCommit": gitCommit,
+		"GoVersion": goVersion,
 	}
-	fmt.Printf("skywalking-go agent version: %s\n", res)
+	if err := versionTmpl.Execute(os.Stdout, versionInfo); err != nil {
+		fmt.Fprintln(os.Stdout, err)
+	}
+	os.Exit(1)
 }
 
-var usage = `
-A command line utility for operating skywalking go-agent
+var versionTemplate = `skywalking-go agent
+ Version: {{ or .Version "Unknown" }}
+ Go version: {{ or .GoVersion "Unknown" }}
+ Git commit: {{ or .GitCommit "Unknown" }}
+`
+
+var usageTemplate = `A command line utility for operating skywalking go-agent
 
 Describe:
   The Go-agent-enhance tool is designed for automatic enhancement of Golang programs, or inject the agent code into the project.
