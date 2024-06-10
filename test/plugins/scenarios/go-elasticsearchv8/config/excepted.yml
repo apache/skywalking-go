@@ -33,7 +33,7 @@ segmentItems:
             skipAnalysis: false
             tags:
               - { key: db.type, value: Elasticsearch }
-              - { key: db.statement, value: not null }
+              - { key: db.statement, value: sw-index }
               - { key: status_code, value: '200' }
           - operationName: Elasticsearch/PUT
             parentSpanId: 0
@@ -48,7 +48,7 @@ segmentItems:
             skipAnalysis: false
             tags:
               - { key: db.type, value: Elasticsearch }
-              - { key: db.statement, value: not null }
+              - { key: db.statement, value: sw-index/_doc/1 }
               - { key: status_code, value: '201' }
           - operationName: Elasticsearch/GET
             parentSpanId: 0
@@ -63,7 +63,7 @@ segmentItems:
             skipAnalysis: false
             tags:
               - { key: db.type, value: Elasticsearch }
-              - { key: db.statement, value: not null }
+              - { key: db.statement, value: sw-index/_doc/1 }
               - { key: status_code, value: '200' }
           - operationName: Elasticsearch/POST
             parentSpanId: 0
@@ -78,7 +78,7 @@ segmentItems:
             skipAnalysis: false
             tags:
               - { key: db.type, value: Elasticsearch }
-              - { key: db.statement, value: not null }
+              - { key: db.statement, value: sw-index/_search }
               - { key: status_code, value: '200' }
           - operationName: GET:/execute
             parentSpanId: -1

@@ -6,11 +6,12 @@ Release Notes.
 ------------------
 #### Features
 * Add support trace ignore.
+* Enhance the observability of makefile execution.
 
 #### Plugins
 * Support [Pulsar](https://github.com/apache/pulsar-client-go) MQ.
 * Support [Segmentio-Kafka](https://github.com/segmentio/kafka-go) MQ.
-* Support http headers collection for Gin
+* Support http headers collection for Gin.
 * Support higher versions of grpc.
 * Support [go-elasticsearchv8](https://github.com/elastic/go-elasticsearch) database client framework.
 

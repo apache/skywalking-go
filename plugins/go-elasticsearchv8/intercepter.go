@@ -41,7 +41,6 @@ func (es *ESV8Interceptor) BeforeInvoke(invocation operator.Invocation) error {
 	url := strings.Join(addresses, ",")
 	req := invocation.Args()[0].(*http.Request)
 	span, err := tracing.CreateExitSpan("Elasticsearch/"+req.Method, url, func(headerKey, headerValue string) error {
-		req.Header.Add(headerKey, headerValue)
 		return nil
 	},
 		tracing.WithLayer(tracing.SpanLayerDatabase),
