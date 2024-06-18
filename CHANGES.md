@@ -6,12 +6,16 @@ Release Notes.
 ------------------
 #### Features
 * Add support trace ignore.
+* Update the error message if the peer address is empty when creating exit span.
 
 #### Plugins
 * Support [Pulsar](https://github.com/apache/pulsar-client-go) MQ.
 * Support [Segmentio-Kafka](https://github.com/segmentio/kafka-go) MQ.
 * Support http headers collection for Gin
 * Support higher versions of grpc.
+
+### Bug Fixes
+* Fix panic error when root span finished.
 
 #### Chore
 * Enhance the observability of makefile execution

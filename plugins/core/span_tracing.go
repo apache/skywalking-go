@@ -256,6 +256,9 @@ func (rs *RootSegmentSpan) AsyncFinish() {
 
 func (rs *RootSegmentSpan) end0() {
 	go func() {
+		defer func() {
+			_ = recover()
+		}()
 		rs.doneCh <- atomic.SwapInt32(rs.SegmentContext.refNum, -1)
 	}()
 }
