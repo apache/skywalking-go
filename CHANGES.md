@@ -13,6 +13,10 @@ Release Notes.
 * Support http headers collection for Gin
 * Support higher versions of grpc.
 
+### Bug Fixes
+* Fix panic error when root span finished.
+* Update the peer address is not required when creating exit span.
+
 #### Chore
 * Enhance the observability of makefile execution
 

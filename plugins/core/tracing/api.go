@@ -68,7 +68,7 @@ func CreateLocalSpan(operationName string, opts ...SpanOption) (s Span, err erro
 // injector is the injector to inject the context into the carrier.
 // opts is the options to create the span.
 func CreateExitSpan(operationName, peer string, injector Injector, opts ...SpanOption) (s Span, err error) {
-	if operationName == "" || peer == "" || injector == nil {
+	if operationName == "" || injector == nil {
 		return nil, errParameter
 	}
 	op := operator.GetOperator()
