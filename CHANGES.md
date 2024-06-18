@@ -6,6 +6,7 @@ Release Notes.
 ------------------
 #### Features
 * Add support trace ignore.
+* Update the error message if the peer address is empty when creating exit span.
 
 #### Plugins
 * Support [Pulsar](https://github.com/apache/pulsar-client-go) MQ.
@@ -15,7 +16,6 @@ Release Notes.
 
 ### Bug Fixes
 * Fix panic error when root span finished.
-* Update the peer address is not required when creating exit span.
 
 #### Chore
 * Enhance the observability of makefile execution

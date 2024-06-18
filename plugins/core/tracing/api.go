@@ -23,6 +23,7 @@ import (
 
 var (
 	errParameter = operator.NewError("parameter are nil")
+	errPeerEmpty = operator.NewError("peer is empty")
 )
 
 // CreateEntrySpan creates a new entry span.
@@ -70,6 +71,9 @@ func CreateLocalSpan(operationName string, opts ...SpanOption) (s Span, err erro
 func CreateExitSpan(operationName, peer string, injector Injector, opts ...SpanOption) (s Span, err error) {
 	if operationName == "" || injector == nil {
 		return nil, errParameter
+	}
+	if peer == "" {
+		return nil, errPeerEmpty
 	}
 	op := operator.GetOperator()
 	if op == nil {
