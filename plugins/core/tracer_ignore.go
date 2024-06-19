@@ -26,6 +26,9 @@ func tracerIgnore(operationName string, ignoreSuffixList, ignorePath []string) b
 }
 
 func ignoreSuffix(operationName string, ignoreSuffix []string) bool {
+	if len(ignoreSuffix) == 0 {
+		return false
+	}
 	suffixIdx := strings.LastIndex(operationName, ".")
 	if suffixIdx == -1 {
 		return false
@@ -39,6 +42,9 @@ func ignoreSuffix(operationName string, ignoreSuffix []string) bool {
 }
 
 func traceIgnorePath(operationName string, ignorePath []string) bool {
+	if len(ignorePath) == 0 {
+		return false
+	}
 	for _, pattern := range ignorePath {
 		if normalMatch(pattern, 0, operationName, 0) {
 			return true

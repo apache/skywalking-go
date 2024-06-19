@@ -27,6 +27,7 @@ use (
 	./plugins/amqp
 	./plugins/pulsar
 	./plugins/segmentio-kafka
+	./plugins/go-elasticsearchv8
 
 	./test/benchmark-codebase/consumer
 	./test/benchmark-codebase/provider
@@ -61,6 +62,7 @@ use (
 	./test/plugins/scenarios/amqp
 	./test/plugins/scenarios/pulsar
 	./test/plugins/scenarios/segmentio-kafka
+	./test/plugins/scenarios/go-elasticsearchv8
 
 	./tools/go-agent
 
