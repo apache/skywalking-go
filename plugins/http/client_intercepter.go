@@ -30,9 +30,6 @@ type ClientInterceptor struct {
 
 func (h *ClientInterceptor) BeforeInvoke(invocation operator.Invocation) error {
 	request := invocation.Args()[0].(*http.Request)
-	if request.Host == "" {
-		return nil
-	}
 	s, err := tracing.CreateExitSpan(fmt.Sprintf("%s:%s", request.Method, request.URL.Path), request.Host, func(headerKey, headerValue string) error {
 		request.Header.Add(headerKey, headerValue)
 		return nil
