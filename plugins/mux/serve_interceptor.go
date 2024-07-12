@@ -54,6 +54,9 @@ func (n *ServeHTTPInterceptor) AfterInvoke(invocation operator.Invocation, resul
 	if wrapped, ok := invocation.Args()[0].(*writerWrapper); ok {
 		span.Tag(tracing.TagStatusCode, fmt.Sprintf("%d", wrapped.statusCode))
 	}
+	if wrapped, ok := invocation.Args()[0].(*writerWrapperWithHijacker); ok {
+		span.Tag(tracing.TagStatusCode, fmt.Sprintf("%d", wrapped.writer.statusCode))
+	}
 	span.End()
 	return nil
 }
@@ -89,13 +92,16 @@ func (w *writerWrapper) WriteHeader(statusCode int) {
 }
 
 func newWriterWrapperWithHijacker(writer http.ResponseWriter, hijacker http.Hijacker) *writerWrapperWithHijacker {
+	wrapper := newWriterWrapper(writer)
 	return &writerWrapperWithHijacker{
-		ResponseWriter: newWriterWrapper(writer),
+		ResponseWriter: wrapper,
+		writer:         wrapper,
 		Hijacker:       hijacker,
 	}
 }
 
 type writerWrapperWithHijacker struct {
 	http.ResponseWriter
+	writer *writerWrapper // status code cache
 	http.Hijacker
 }
