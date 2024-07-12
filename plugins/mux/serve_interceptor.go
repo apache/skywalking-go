@@ -19,6 +19,7 @@ package mux
 
 import (
 	"fmt"
+	"github.com/apache/skywalking-go/plugins/core/log"
 	"net/http"
 
 	"github.com/apache/skywalking-go/plugins/core/operator"
@@ -60,10 +61,14 @@ func (n *ServeHTTPInterceptor) AfterInvoke(invocation operator.Invocation, resul
 
 func newWriterWrapper(rw interface{}) *writerWrapper {
 	writer := rw.(http.ResponseWriter)
-	controller := http.NewResponseController(writer)
+	hijacker, ok := rw.(http.Hijacker)
+	if !ok {
+		log.Errorf("http.ResponseWriter does not implement http.Hijacker")
+	}
+
 	return &writerWrapper{
 		ResponseWriter: writer,
-		Hijacker:       controller,
+		Hijacker:       hijacker,
 		statusCode:     http.StatusOK,
 	}
 }
