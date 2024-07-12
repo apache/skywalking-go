@@ -19,7 +19,6 @@ package mux
 
 import (
 	"embed"
-
 	"github.com/apache/skywalking-go/plugins/core/instrument"
 )
 

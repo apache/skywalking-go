@@ -40,8 +40,7 @@ func (n *ServeHTTPInterceptor) BeforeInvoke(invocation operator.Invocation) erro
 		return err
 	}
 
-	writer := invocation.Args()[0].(http.ResponseWriter)
-	invocation.ChangeArg(0, &writerWrapper{ResponseWriter: writer, statusCode: http.StatusOK})
+	invocation.ChangeArg(0, newWriterWrapper(invocation.Args()[0]))
 	invocation.SetContext(s)
 	return nil
 }
@@ -58,8 +57,20 @@ func (n *ServeHTTPInterceptor) AfterInvoke(invocation operator.Invocation, resul
 	return nil
 }
 
+func newWriterWrapper(rw interface{}) *writerWrapper {
+	writer := rw.(http.ResponseWriter)
+	hijacker := rw.(http.Hijacker)
+	return &writerWrapper{
+		ResponseWriter: writer,
+		Hijacker:       hijacker,
+		statusCode:     http.StatusOK,
+	}
+}
+
 type writerWrapper struct {
 	http.ResponseWriter
+	http.Hijacker
+	http.Flusher
 	statusCode int
 }
 
