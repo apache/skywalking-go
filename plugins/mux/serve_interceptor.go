@@ -90,13 +90,12 @@ func (w *writerWrapper) WriteHeader(statusCode int) {
 
 func newWriterWrapperWithHijacker(writer http.ResponseWriter, hijacker http.Hijacker) *writerWrapperWithHijacker {
 	return &writerWrapperWithHijacker{
-		w:        newWriterWrapper(writer),
-		Hijacker: hijacker,
+		ResponseWriter: newWriterWrapper(writer),
+		Hijacker:       hijacker,
 	}
 }
 
 type writerWrapperWithHijacker struct {
-	w *writerWrapper
 	http.ResponseWriter
 	http.Hijacker
 }
