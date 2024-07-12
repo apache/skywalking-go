@@ -63,7 +63,7 @@ func newWriterWrapper(rw interface{}) *writerWrapper {
 	writer := rw.(http.ResponseWriter)
 	hijacker, ok := rw.(http.Hijacker)
 	if !ok {
-		log.Errorf("http.ResponseWriter does not implement http.Hijacker")
+		log.Warnf("http.ResponseWriter does not implement http.Hijacker")
 	}
 
 	return &writerWrapper{
