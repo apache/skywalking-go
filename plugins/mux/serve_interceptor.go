@@ -58,7 +58,7 @@ func (n *ServeHTTPInterceptor) AfterInvoke(invocation operator.Invocation, resul
 	return nil
 }
 
-func newResponseWriter(val any) http.ResponseWriter {
+func newResponseWriter(val interface{}) http.ResponseWriter {
 	var rw http.ResponseWriter
 	sourceWriter := val.(http.ResponseWriter)
 	switch val.(type) {
