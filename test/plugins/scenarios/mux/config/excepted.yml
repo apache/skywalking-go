@@ -51,7 +51,7 @@ segmentItems:
             tags:
               - { key: http.method, value: GET }
               - { key: url, value: 'service:8080/health' }
-              - { key: status_code, value: '\''200'\'' }
+              - { key: status_code, value: '200' }
       - segmentId: not null
         spans:
           - operationName: GET:/provider/test
