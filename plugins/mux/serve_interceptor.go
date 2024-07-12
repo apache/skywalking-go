@@ -70,7 +70,6 @@ func newWriterWrapper(rw interface{}) *writerWrapper {
 type writerWrapper struct {
 	http.ResponseWriter
 	http.Hijacker
-	http.Flusher
 	statusCode int
 }
 
