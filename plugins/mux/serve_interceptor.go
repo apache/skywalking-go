@@ -19,7 +19,6 @@ package mux
 
 import (
 	"fmt"
-	"github.com/apache/skywalking-go/plugins/core/log"
 	"net/http"
 
 	"github.com/apache/skywalking-go/plugins/core/operator"
@@ -41,7 +40,7 @@ func (n *ServeHTTPInterceptor) BeforeInvoke(invocation operator.Invocation) erro
 		return err
 	}
 
-	rw := newWriterWrapper(invocation.Args()[0])
+	rw := newResponseWriter(invocation.Args()[0])
 	invocation.ChangeArg(0, rw)
 	invocation.SetContext(s)
 	return nil
@@ -59,23 +58,27 @@ func (n *ServeHTTPInterceptor) AfterInvoke(invocation operator.Invocation, resul
 	return nil
 }
 
-func newWriterWrapper(rw interface{}) *writerWrapper {
-	writer := rw.(http.ResponseWriter)
-	hijacker, ok := rw.(http.Hijacker)
-	if !ok {
-		log.Warnf("http.ResponseWriter does not implement http.Hijacker")
+func newResponseWriter(val any) http.ResponseWriter {
+	var rw http.ResponseWriter
+	sourceWriter := val.(http.ResponseWriter)
+	switch val.(type) {
+	case http.Hijacker:
+		rw = newWriterWrapperWithHijacker(sourceWriter, sourceWriter.(http.Hijacker))
+	default:
+		rw = newWriterWrapper(rw)
 	}
+	return rw
+}
 
+func newWriterWrapper(writer http.ResponseWriter) *writerWrapper {
 	return &writerWrapper{
 		ResponseWriter: writer,
-		Hijacker:       hijacker,
 		statusCode:     http.StatusOK,
 	}
 }
 
 type writerWrapper struct {
 	http.ResponseWriter
-	http.Hijacker
 	statusCode int
 }
 
@@ -83,4 +86,17 @@ func (w *writerWrapper) WriteHeader(statusCode int) {
 	// cache the status code
 	w.statusCode = statusCode
 	w.ResponseWriter.WriteHeader(statusCode)
+}
+
+func newWriterWrapperWithHijacker(writer http.ResponseWriter, hijacker http.Hijacker) *writerWrapperWithHijacker {
+	return &writerWrapperWithHijacker{
+		w:        newWriterWrapper(writer),
+		Hijacker: hijacker,
+	}
+}
+
+type writerWrapperWithHijacker struct {
+	w *writerWrapper
+	http.ResponseWriter
+	http.Hijacker
 }
