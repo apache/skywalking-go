@@ -40,7 +40,11 @@ func (n *ServeHTTPInterceptor) BeforeInvoke(invocation operator.Invocation) erro
 		return err
 	}
 
-	invocation.ChangeArg(0, newWriterWrapper(invocation.Args()[0]))
+	rw, err := newWriterWrapper(invocation.Args()[0])
+	if err != nil {
+		return err
+	}
+	invocation.ChangeArg(0, rw)
 	invocation.SetContext(s)
 	return nil
 }
@@ -57,14 +61,18 @@ func (n *ServeHTTPInterceptor) AfterInvoke(invocation operator.Invocation, resul
 	return nil
 }
 
-func newWriterWrapper(rw interface{}) *writerWrapper {
+func newWriterWrapper(rw interface{}) (*writerWrapper, error) {
 	writer := rw.(http.ResponseWriter)
-	hijacker := rw.(http.Hijacker)
+	hijacker, ok := rw.(http.Hijacker)
+	if !ok {
+		return nil, fmt.Errorf("http.ResponseWriter does not implement http.Hijacker")
+	}
+
 	return &writerWrapper{
 		ResponseWriter: writer,
 		Hijacker:       hijacker,
 		statusCode:     http.StatusOK,
-	}
+	}, nil
 }
 
 type writerWrapper struct {
