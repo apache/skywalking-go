@@ -51,8 +51,8 @@ func (n *ServeHTTPInterceptor) AfterInvoke(invocation operator.Invocation, resul
 		return nil
 	}
 	span := invocation.GetContext().(tracing.Span)
-	if wrapped, ok := invocation.Args()[0].(StatusCodeHolder); ok {
-		span.Tag(tracing.TagStatusCode, fmt.Sprintf("%d", wrapped.GetStatusCode()))
+	if wrapped, ok := invocation.Args()[0].(*writerWrapper); ok {
+		span.Tag(tracing.TagStatusCode, fmt.Sprintf("%d", wrapped.statusCode))
 	}
 	span.End()
 	return nil
@@ -70,20 +70,11 @@ func newResponseWriter(val interface{}) http.ResponseWriter {
 	return rw
 }
 
-func newWriterWrapper(writer http.ResponseWriter) WriterWrapper {
+func newWriterWrapper(writer http.ResponseWriter) *writerWrapper {
 	return &writerWrapper{
 		ResponseWriter: writer,
 		statusCode:     http.StatusOK,
 	}
-}
-
-type StatusCodeHolder interface {
-	GetStatusCode() int
-}
-
-type WriterWrapper interface {
-	http.ResponseWriter
-	StatusCodeHolder
 }
 
 type writerWrapper struct {
@@ -97,18 +88,14 @@ func (w *writerWrapper) WriteHeader(statusCode int) {
 	w.ResponseWriter.WriteHeader(statusCode)
 }
 
-func (w *writerWrapper) GetStatusCode() int {
-	return w.statusCode
-}
-
 func newWriterWrapperWithHijacker(writer http.ResponseWriter, hijacker http.Hijacker) *writerWrapperWithHijacker {
 	return &writerWrapperWithHijacker{
-		WriterWrapper: newWriterWrapper(writer),
-		Hijacker:      hijacker,
+		ResponseWriter: newWriterWrapper(writer),
+		Hijacker:       hijacker,
 	}
 }
 
 type writerWrapperWithHijacker struct {
-	WriterWrapper
+	http.ResponseWriter
 	http.Hijacker
 }
