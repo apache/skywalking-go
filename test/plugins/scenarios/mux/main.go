@@ -32,6 +32,8 @@ import (
 
 func provider(w http.ResponseWriter, r *http.Request) {
 	time.Sleep(time.Millisecond * 10)
+	// test ws
+	connectWs()
 	w.Write([]byte("success"))
 }
 
@@ -80,6 +82,18 @@ func ws(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func connectWs() {
+	u := url.URL{Scheme: "ws", Host: "localhost:8080", Path: "/ws"}
+	log.Printf("connecting to %s", u.String())
+	c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
+	if err != nil {
+		log.Fatal("dial:", err)
+	}
+	defer c.Close()
+	c.WriteMessage(websocket.TextMessage, []byte("hello from mux test"))
+	c.Close()
+}
+
 func main() {
 	r := mux.NewRouter()
 	r.Path("/health").HandlerFunc(health)
@@ -87,19 +101,6 @@ func main() {
 	r.PathPrefix("/provider").Path("/{var}").HandlerFunc(provider)
 	r.Path("/ws").HandlerFunc(ws)
 
-	go func() {
-		time.Sleep(3 * time.Second)
-
-		u := url.URL{Scheme: "ws", Host: "localhost:8080", Path: "/ws"}
-		log.Printf("connecting to %s", u.String())
-		c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
-		if err != nil {
-			log.Fatal("dial:", err)
-		}
-		defer c.Close()
-		c.WriteMessage(websocket.TextMessage, []byte("hello from mux test"))
-		c.Close()
-	}()
 	// Bind to a port and pass our router in
 	log.Fatal(http.ListenAndServe(":8080", r))
 }
