@@ -60,6 +60,9 @@ func health(w http.ResponseWriter, r *http.Request) {
 
 var upgrader = websocket.Upgrader{}
 
+// ws
+// ISSUE: https://github.com/apache/skywalking-go/pull/188
+// Test http.ResponseWriter cast to http.Hijacker
 func ws(w http.ResponseWriter, r *http.Request) {
 	c, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
