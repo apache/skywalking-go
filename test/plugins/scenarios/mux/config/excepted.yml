@@ -16,8 +16,25 @@
 
 segmentItems:
   - serviceName: mux
-    segmentSize: ge 3
+    segmentSize: ge 4
     segments:
+      - segmentId: not null
+        spans:
+          - operationName: GET:/ws
+            parentSpanId: -1
+            spanId: 0
+            spanLayer: Http
+            startTime: gt 0
+            endTime: gt 0
+            componentId: 5017
+            isError: false
+            spanType: Entry
+            peer: ''
+            skipAnalysis: false
+            tags:
+              - { key: http.method, value: GET }
+              - { key: url, value: 'localhost:8080/ws' }
+              - { key: status_code, value: '200' }
       - segmentId: not null
         spans:
           - operationName: GET:/provider/test
@@ -72,6 +89,5 @@ segmentItems:
                   parentSpanId: 1, parentTraceSegmentId: not null,
                   parentServiceInstance: not null, parentService: mux,
                   traceId: not null }
-
-meterItems: []
-logItems: []
+meterItems: [ ]
+logItems: [ ]
