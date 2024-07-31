@@ -42,12 +42,6 @@ var errConnectionExecute = fmt.Errorf("test error")
 
 const peerAddress = "localhost:3306"
 
-type User struct {
-	ID   uint
-	Name string
-	Age  uint8
-}
-
 func TestInterceptor(t *testing.T) {
 	defer core.ResetTracingContext()
 
