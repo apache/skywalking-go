@@ -19,4 +19,6 @@
 home="$(cd "$(dirname $0)"; pwd)"
 go build ${GO_BUILD_OPTS} -o gorm
 
+export SW_AGENT_PLUGIN_CONFIG_GORM_COLLECT_PARAMETER=true
+
 ./gorm

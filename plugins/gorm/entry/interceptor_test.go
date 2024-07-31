@@ -42,6 +42,12 @@ var errConnectionExecute = fmt.Errorf("test error")
 
 const peerAddress = "localhost:3306"
 
+type User struct {
+	ID   uint
+	Name string
+	Age  uint8
+}
+
 func TestInterceptor(t *testing.T) {
 	defer core.ResetTracingContext()
 
@@ -52,6 +58,7 @@ func TestInterceptor(t *testing.T) {
 	err = interceptor.AfterInvoke(nil, db, err)
 	assert.Nil(t, err, "failed to invoke AfterInvoke")
 
+	config.CollectParameter = true
 	id := "1"
 	name := "test"
 	sqlString := "select * from test where id = ? and name = ?"
