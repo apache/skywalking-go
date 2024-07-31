@@ -33,6 +33,7 @@ segmentItems:
             skipAnalysis: false
             tags:
               - { key: db.type, value: mysql }
+              - { key: db.statement, value: 'CREATE TABLE IF NOT EXISTS users (id char(255), name VARCHAR(255), age INTEGER)' }
           - operationName: Mysql/BeginTx
             parentSpanId: 0
             spanId: 2
@@ -59,6 +60,8 @@ segmentItems:
             skipAnalysis: false
             tags:
               - { key: db.type, value: mysql }
+              - { key: db.statement, value: 'INSERT INTO `users` (`name`,`age`) VALUES (?,?)' }
+              - { key: db.sql.parameters, value: 'Jinzhu, 18' }
           - operationName: Mysql/Tx/Commit
             parentSpanId: 0
             spanId: 4
@@ -85,6 +88,7 @@ segmentItems:
             skipAnalysis: false
             tags:
               - { key: db.type, value: mysql }
+              - { key: db.statement, value: 'SELECT * FROM `users` ORDER BY `users`.`id` LIMIT 1' }
           - operationName: users/row
             parentSpanId: 0
             spanId: 6
@@ -98,6 +102,8 @@ segmentItems:
             skipAnalysis: false
             tags:
               - { key: db.type, value: mysql }
+              - { key: db.statement, value: 'SELECT name,age FROM `users` WHERE name = ?' }
+              - { key: db.sql.parameters, value: 'jinzhu' }
           - operationName: Mysql/BeginTx
             parentSpanId: 0
             spanId: 7
@@ -124,6 +130,8 @@ segmentItems:
             skipAnalysis: false
             tags:
               - { key: db.type, value: mysql }
+              - { key: db.statement, value: 'UPDATE `users` SET `name`=? WHERE name = ?' }
+              - { key: db.sql.parameters, value: 'hello, jinzhu' }
           - operationName: Mysql/Tx/Commit
             parentSpanId: 0
             spanId: 9
@@ -163,6 +171,8 @@ segmentItems:
             skipAnalysis: false
             tags:
               - { key: db.type, value: mysql }
+              - { key: db.statement, value: 'DELETE FROM `users` WHERE `users`.`id` = ?' }
+              - { key: db.sql.parameters, value: '1' }
           - operationName: Mysql/Tx/Commit
             parentSpanId: 0
             spanId: 12

@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/apache/skywalking-go/plugins/core"
+	"github.com/apache/skywalking-go/plugins/core/tracing"
 	"github.com/apache/skywalking-go/plugins/gorm/mysql"
 
 	"github.com/stretchr/testify/assert"
@@ -51,7 +52,11 @@ func TestInterceptor(t *testing.T) {
 	err = interceptor.AfterInvoke(nil, db, err)
 	assert.Nil(t, err, "failed to invoke AfterInvoke")
 
-	res := db.Exec("select * from test")
+	config.CollectParameter = true
+	id := "1"
+	name := "test"
+	sqlString := "select * from test where id = ? and name = ?"
+	res := db.Exec(sqlString, id, name)
 
 	assert.Equal(t, errConnectionExecute, res.Error, "failed to invoke Rows")
 	time.Sleep(100 * time.Millisecond)
@@ -64,6 +69,16 @@ func TestInterceptor(t *testing.T) {
 	assert.Nil(t, spans[0].Refs(), "refs should be nil")
 	assert.Greater(t, spans[0].StartTime(), int64(0), "end time should be greater than zero")
 	assert.Greater(t, spans[0].EndTime(), int64(0), "end time should be greater than zero")
+	tagsKV := map[string]string{
+		tracing.TagDBType:          "mysql",
+		tracing.TagDBStatement:     sqlString,
+		tracing.TagDBSqlParameters: fmt.Sprintf("%s, %s", id, name),
+	}
+	for _, tag := range spans[0].Tags() {
+		if v, ok := tagsKV[tag.Key]; ok {
+			assert.Equal(t, v, tag.Value, fmt.Sprintf("%s should be %s, not %s", tag.Key, v, tag.Value))
+		}
+	}
 }
 
 type TestDialector struct {

@@ -97,6 +97,9 @@ plugin:
     mongo:
       # Collect the statement of the MongoDB request
       collect_statement: ${SW_AGENT_PLUGIN_CONFIG_MONGO_COLLECT_STATEMENT:false}
+    gorm:
+      # Collect the parameter of the gorm SQL request
+      collect_parameter: ${SW_AGENT_PLUGIN_CONFIG_GORM_COLLECT_PARAMETER:false}
     sql:
       # Collect the parameter of the SQL request
       collect_parameter: ${SW_AGENT_PLUGIN_CONFIG_SQL_COLLECT_PARAMETER:false}
