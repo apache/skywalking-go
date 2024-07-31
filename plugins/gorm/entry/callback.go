@@ -57,8 +57,25 @@ func afterCallback(dbInfo DatabaseInfo) func(db *gorm.DB) {
 
 		defer span.End()
 
+		span.Tag(tracing.TagDBStatement, db.Statement.SQL.String())
+		span.Tag(tracing.TagDBSqlParameters, argsToString(db.Statement.Vars))
 		if db.Statement.Error != nil {
 			span.Error(db.Statement.Error.Error())
 		}
 	}
+}
+
+func argsToString(args []interface{}) string {
+	switch len(args) {
+	case 0:
+		return ""
+	case 1:
+		return fmt.Sprintf("%v", args[0])
+	}
+
+	res := fmt.Sprintf("%v", args[0])
+	for _, arg := range args[1:] {
+		res += fmt.Sprintf(", %v", arg)
+	}
+	return res
 }
