@@ -60,7 +60,7 @@ segmentItems:
             skipAnalysis: false
             tags:
               - { key: db.type, value: mysql }
-              - { key: db.statement, value: 'INSERT INTO `users` (`name`,`age`) VALUES (?,?) RETURNING `id`' }
+              - { key: db.statement, value: 'INSERT INTO `users` (`name`,`age`) VALUES (?,?)' }
               - { key: db.sql.parameters, value: 'Jinzhu, 18' }
           - operationName: Mysql/Tx/Commit
             parentSpanId: 0
