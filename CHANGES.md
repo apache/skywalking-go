@@ -16,7 +16,7 @@ Release Notes.
 * Support higher versions of grpc.
 * Support [go-elasticsearchv8](https://github.com/elastic/go-elasticsearch) database client framework.
 * Support `http.Hijacker` interface for mux plugin.
-* Support `db.statement` and `db.sql.parameters(optional)` for Gorm.
+* Support collect statements and parameters in the Gorm plugin. 
 
 ### Bug Fixes
 * Fix panic error when root span finished.
