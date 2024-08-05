@@ -20,6 +20,7 @@ Release Notes.
 
 ### Bug Fixes
 * Fix panic error when root span finished.
+* Fix when not route is found, the gin operation name is "http.Method:", example: "GET:".
 
 0.4.0
 ------------------

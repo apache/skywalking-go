@@ -18,6 +18,7 @@
 package gin
 
 import (
+	"fmt"
 	"net/http"
 	"reflect"
 	"testing"
@@ -116,4 +117,42 @@ func TestCollectHeaders(t *testing.T) {
 	}
 	assert.Less(t, index, 4, "the index should be less than 4")
 	assert.Equal(t, "h1=h1-value\nh2=h2", spans[0].Tags()[index].Value, "the tag Value should be h1=h1-value\nh2=h2-value")
+}
+
+type notFoundWriter struct {
+	gin.ResponseWriter
+}
+
+func (i *notFoundWriter) Status() int {
+	return http.StatusNotFound
+}
+
+func TestPathNotFoundInvoke(t *testing.T) {
+	defer core.ResetTracingContext()
+
+	path := "/skywalking/trace/f4dd2255-e3be-4636-b2e7-fc1d407a30d3"
+	interceptor := &ContextInterceptor{}
+	request, err := http.NewRequest("GET", fmt.Sprintf("http://localhost%s", path), http.NoBody)
+	assert.Nil(t, err, "new request error should be nil")
+
+	c := &gin.Context{
+		Request: request,
+		Writer:  &notFoundWriter{},
+	}
+
+	invocation := operator.NewInvocation(c)
+	err = interceptor.BeforeInvoke(invocation)
+	assert.Nil(t, err, "before invoke error should be nil")
+	assert.NotNil(t, invocation.GetContext(), "context should not be nil")
+
+	time.Sleep(100 * time.Millisecond)
+
+	err = interceptor.AfterInvoke(invocation)
+	assert.Nil(t, err, "after invoke error should be nil")
+
+	time.Sleep(100 * time.Millisecond)
+	spans := core.GetReportedSpans()
+	assert.NotNil(t, spans, "spans should not be nil")
+	assert.Equal(t, 1, len(spans), "spans length should be 1")
+	assert.Equal(t, fmt.Sprintf("GET:%s", path), spans[0].OperationName(), fmt.Sprintf("operation name should be GET:%s", path))
 }

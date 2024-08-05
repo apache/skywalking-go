@@ -55,6 +55,20 @@ func main() {
 			context.Status(http.StatusInternalServerError)
 			return
 		}
+
+		notFoundRequest, err := http.NewRequest(http.MethodGet, "http://localhost:8080/notFound", nil)
+		if err != nil {
+			log.Print(err)
+			context.Status(http.StatusInternalServerError)
+			return
+		}
+		_, err = client.Do(notFoundRequest)
+		if err != nil {
+			log.Print(err)
+			context.Status(http.StatusInternalServerError)
+			return
+		}
+
 		context.String(200, string(body))
 	})
 
