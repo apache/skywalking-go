@@ -36,8 +36,12 @@ func (h *ContextInterceptor) BeforeInvoke(invocation operator.Invocation) error 
 		return nil
 	}
 	context := invocation.CallerInstance().(*gin.Context)
+	fullPath := context.FullPath()
+	if fullPath == "" {
+		fullPath = context.Request.URL.Path
+	}
 	s, err := tracing.CreateEntrySpan(
-		fmt.Sprintf("%s:%s", context.Request.Method, context.FullPath()), func(headerKey string) (string, error) {
+		fmt.Sprintf("%s:%s", context.Request.Method, fullPath), func(headerKey string) (string, error) {
 			return context.Request.Header.Get(headerKey), nil
 		},
 		tracing.WithLayer(tracing.SpanLayerHTTP),
