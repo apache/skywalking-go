@@ -63,21 +63,6 @@ segmentItems:
                  parentService: gin, traceId: not null}
       - segmentId: not null
         spans:
-          - operationName: GET:/notFound
-            parentSpanId: 0
-            spanId: 1
-            spanLayer: Http
-            startTime: gt 0
-            endTime: gt 0
-            componentId: 5005
-            isError: false
-            spanType: Exit
-            peer: localhost:8080
-            skipAnalysis: false
-            tags:
-              - {key: http.method, value: GET}
-              - {key: url, value: 'localhost:8080/notFound'}
-              - {key: status_code, value: '404'}
           - operationName: GET:/provider
             parentSpanId: 0
             spanId: 1
@@ -93,6 +78,21 @@ segmentItems:
               - {key: http.method, value: GET}
               - {key: url, value: 'localhost:8080/provider'}
               - {key: status_code, value: '200'}
+          - operationName: GET:/notFound
+            parentSpanId: 0
+            spanId: 1
+            spanLayer: Http
+            startTime: gt 0
+            endTime: gt 0
+            componentId: 5005
+            isError: false
+            spanType: Exit
+            peer: localhost:8080
+            skipAnalysis: false
+            tags:
+              - {key: http.method, value: GET}
+              - {key: url, value: 'localhost:8080/notFound'}
+              - {key: status_code, value: '404'}
           - operationName: GET:/consumer
             parentSpanId: -1
             spanId: 0
