@@ -115,6 +115,14 @@ jobs:
           if ls test/plugins/dist/skywalking-agent-test-validator-1.0.0.tgz; then
             docker load -i test/plugins/dist/skywalking-agent-test-validator-1.0.0.tgz
           fi
+      - name: Install docker-compose
+        shell: bash
+        run: |
+          if ! command docker-compose 2>&1 > /dev/null; then
+            echo "Installing docker-compose"
+            sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+            sudo chmod +x /usr/local/bin/docker-compose
+          fi
       - name: Run Test
         run: bash test/plugins/run.sh ${{ matrix.case }}
       - uses: actions/upload-artifact@v2
@@ -162,6 +170,14 @@ jobs:
           chmod +x test/plugins/dist/*
           if ls test/plugins/dist/skywalking-agent-test-validator-1.0.0.tgz; then
             docker load -i test/plugins/dist/skywalking-agent-test-validator-1.0.0.tgz
+          fi
+      - name: Install docker-compose
+        shell: bash
+        run: |
+          if ! command docker-compose 2>&1 > /dev/null; then
+            echo "Installing docker-compose"
+            sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+            sudo chmod +x /usr/local/bin/docker-compose
           fi
       - name: Run Test
         run: bash test/plugins/run.sh short_versions_gin
