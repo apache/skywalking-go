@@ -8,6 +8,7 @@ Release Notes.
 * Add support trace ignore.
 * Enhance the observability of makefile execution.
 * Update the error message if the peer address is empty when creating exit span.
+* Support enhancement go`1.23`.
 
 #### Plugins
 * Support [Pulsar](https://github.com/apache/pulsar-client-go) MQ.
