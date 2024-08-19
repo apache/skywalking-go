@@ -23,6 +23,7 @@ type CompileOptions struct {
 	Package string   `swflag:"-p"`
 	Output  string   `swflag:"-o"`
 	AllArgs []string `swflag:"all-args"`
+	Lang    string   `swflag:"-lang"`
 
 	DebugDir string `swflag:"-debug"` // from tools flag
 }

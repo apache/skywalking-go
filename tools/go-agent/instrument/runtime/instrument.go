@@ -18,6 +18,9 @@
 package runtime
 
 import (
+	"strconv"
+	"strings"
+
 	"github.com/dave/dst"
 	"github.com/dave/dst/dstutil"
 
@@ -26,8 +29,11 @@ import (
 	"github.com/apache/skywalking-go/tools/go-agent/tools"
 )
 
+var defaultInternalAtomicPath = "runtime/internal/atomic"
+
 type Instrument struct {
 	goIDType string
+	opts     *api.CompileOptions
 }
 
 func NewInstrument() *Instrument {
@@ -35,6 +41,7 @@ func NewInstrument() *Instrument {
 }
 
 func (r *Instrument) CouldHandle(opts *api.CompileOptions) bool {
+	r.opts = opts
 	return opts.Package == "runtime"
 }
 
@@ -98,6 +105,19 @@ func (r *Instrument) AfterEnhanceFile(fromPath, newPath string) error {
 	return nil
 }
 
+func (r *Instrument) parseInternalAtomicPath() string {
+	if strings.HasPrefix(r.opts.Lang, "go1.") {
+		_, after, found := strings.Cut(r.opts.Lang, ".")
+		if found {
+			i, err := strconv.ParseInt(after, 10, 64)
+			if err == nil && i >= 23 {
+				return "internal/runtime/atomic"
+			}
+		}
+	}
+	return defaultInternalAtomicPath
+}
+
 // nolint
 func (r *Instrument) WriteExtraFiles(dir string) ([]string, error) {
 	return tools.WriteMultipleFile(dir, map[string]string{
@@ -106,7 +126,7 @@ func (r *Instrument) WriteExtraFiles(dir string) ([]string, error) {
 import (
 	_ "unsafe"
 
-	atomic "runtime/internal/atomic"
+	atomic "{{.InternalAtomicPath}}"
 )
 
 var {{.GlobalTracerFieldName}} interface{}
@@ -271,6 +291,7 @@ func goroutineChange(tls interface{}) interface{} {
 			MetricsObtainMethodName             string
 			MetricsHookFieldName                string
 			MetricsHookAppendMethodName         string
+			InternalAtomicPath                  string
 		}{
 			TLSFiledName:                        consts.TLSFieldName,
 			TLSGetMethod:                        consts.TLSGetMethodName,
@@ -292,6 +313,7 @@ func goroutineChange(tls interface{}) interface{} {
 			MetricsObtainMethodName:             consts.MetricsObtainMethodName,
 			MetricsHookFieldName:                consts.MetricsHookFieldName,
 			MetricsHookAppendMethodName:         consts.MetricsHookAppendMethodName,
+			InternalAtomicPath:                  r.parseInternalAtomicPath(),
 		}),
 	})
 }
