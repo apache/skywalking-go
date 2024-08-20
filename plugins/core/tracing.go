@@ -18,6 +18,7 @@
 package core
 
 import (
+	"fmt"
 	"reflect"
 	"runtime/debug"
 
@@ -55,14 +56,15 @@ func (t *Tracer) CreateEntrySpan(operationName string, extractor interface{}, op
 		return tracingSpan, nil
 	}
 	var ref = &SpanContext{}
-	if err := ref.Decode(extractor.(tracing.ExtractorWrapper).Fun()); err != nil {
-		return nil, err
+	if err1 := ref.Decode(extractor.(tracing.ExtractorWrapper).Fun()); err1 != nil {
+		return nil, err1
 	}
 	if !ref.Valid {
 		ref = nil
 	}
 
-	return t.createSpan0(ctx, tracingSpan, opts, withRef(ref), withSpanType(SpanTypeEntry), withOperationName(operationName))
+	span, _, err := t.createSpan0(ctx, tracingSpan, opts, withRef(ref), withSpanType(SpanTypeEntry), withOperationName(operationName))
+	return span, err
 }
 
 func (t *Tracer) CreateLocalSpan(operationName string, opts ...interface{}) (s interface{}, err error) {
@@ -74,7 +76,8 @@ func (t *Tracer) CreateLocalSpan(operationName string, opts ...interface{}) (s i
 		saveSpanToActiveIfNotError(ctx, s, err)
 	}()
 
-	return t.createSpan0(ctx, tracingSpan, opts, withSpanType(SpanTypeLocal), withOperationName(operationName))
+	span, _, err := t.createSpan0(ctx, tracingSpan, opts, withSpanType(SpanTypeLocal), withOperationName(operationName))
+	return span, err
 }
 
 func (t *Tracer) CreateExitSpan(operationName, peer string, injector interface{}, opts ...interface{}) (s interface{}, err error) {
@@ -90,14 +93,17 @@ func (t *Tracer) CreateExitSpan(operationName, peer string, injector interface{}
 	if tracingSpan != nil && tracingSpan.IsExit() && reflect.ValueOf(tracingSpan).Type() != snapshotType {
 		return tracingSpan, nil
 	}
-	span, err := t.createSpan0(ctx, tracingSpan, opts, withSpanType(SpanTypeExit), withOperationName(operationName), withPeer(peer))
+	span, noop, err := t.createSpan0(ctx, tracingSpan, opts, withSpanType(SpanTypeExit), withOperationName(operationName), withPeer(peer))
 	if err != nil {
 		return nil, err
+	}
+	if noop {
+		return span, nil
 	}
 	spanContext := &SpanContext{}
 	reportedSpan, ok := span.(SegmentSpan)
 	if !ok {
-		return nil, errors.New("span type is wrong")
+		return nil, errors.New(fmt.Sprintf("span type is wrong: %T", span))
 	}
 
 	firstSpan := reportedSpan.GetSegmentContext().FirstSpan
@@ -246,7 +252,8 @@ func (t *Tracer) createNoop(operationName string) (*TracingContext, TracingSpan,
 	return ctx, nil, false
 }
 
-func (t *Tracer) createSpan0(ctx *TracingContext, parent TracingSpan, pluginOpts []interface{}, coreOpts ...interface{}) (s TracingSpan, err error) {
+func (t *Tracer) createSpan0(ctx *TracingContext, parent TracingSpan, pluginOpts []interface{},
+	coreOpts ...interface{}) (s TracingSpan, noop bool, err error) {
 	ds := NewDefaultSpan(t, parent)
 	var parentSpan SegmentSpan
 	if parent != nil {
@@ -262,7 +269,7 @@ func (t *Tracer) createSpan0(ctx *TracingContext, parent TracingSpan, pluginOpts
 		sampled := t.Sampler.IsSampled(ds.OperationName)
 		if !sampled {
 			// Filter by sample just return noop span
-			return newNoopSpan(), nil
+			return newNoopSpan(), true, nil
 		}
 	}
 	// process the opts from agent core for prepare building segment span
@@ -271,13 +278,13 @@ func (t *Tracer) createSpan0(ctx *TracingContext, parent TracingSpan, pluginOpts
 	}
 	s, err = NewSegmentSpan(ctx, ds, parentSpan)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	// process the opts from plugin, split opts because the DefaultSpan not contains the tracing context information(AdaptSpan)
 	for _, opt := range pluginOpts {
 		opt.(tracing.SpanOption).Apply(s)
 	}
-	return s, nil
+	return s, false, nil
 }
 
 func withSpanType(spanType SpanType) tracing.SpanOption {
