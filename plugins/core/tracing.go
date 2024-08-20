@@ -56,7 +56,7 @@ func (t *Tracer) CreateEntrySpan(operationName string, extractor interface{}, op
 		return tracingSpan, nil
 	}
 	var ref = &SpanContext{}
-	if err := ref.Decode(extractor.(tracing.ExtractorWrapper).Fun()); err != nil {
+	if err = ref.Decode(extractor.(tracing.ExtractorWrapper).Fun()); err != nil {
 		return nil, err
 	}
 	if !ref.Valid {
