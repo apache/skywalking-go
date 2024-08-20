@@ -252,7 +252,8 @@ func (t *Tracer) createNoop(operationName string) (*TracingContext, TracingSpan,
 	return ctx, nil, false
 }
 
-func (t *Tracer) createSpan0(ctx *TracingContext, parent TracingSpan, pluginOpts []interface{}, coreOpts ...interface{}) (s TracingSpan, noop bool, err error) {
+func (t *Tracer) createSpan0(ctx *TracingContext, parent TracingSpan, pluginOpts []interface{},
+	coreOpts ...interface{}) (s TracingSpan, noop bool, err error) {
 	ds := NewDefaultSpan(t, parent)
 	var parentSpan SegmentSpan
 	if parent != nil {
