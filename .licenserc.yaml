@@ -35,6 +35,7 @@ header:
     - 'dist/LICENSE.tpl'
     - '**/*.tmpl'
     - 'tools/go-agent/tools/testdata/*'
+    - 'VERSION'
 
   comment: on-failure
 
