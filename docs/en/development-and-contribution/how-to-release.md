@@ -87,8 +87,6 @@ Voting will start now and will remain open for at least 72 hours, all PMC member
 [ ] -1 Do not release this package because....
 
 Thanks.
-
-[1] https://github.com/apache/skywalking/blob/master/docs/en/guides/How-to-release.md#vote-check
 ```
 
 ## Vote Check
