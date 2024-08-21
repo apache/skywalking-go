@@ -1,6 +1,6 @@
 module test/plugins/scenarios/dubbo
 
-go 1.18
+go 1.19
 
 require (
 	dubbo.apache.org/dubbo-go/v3 v3.0.1

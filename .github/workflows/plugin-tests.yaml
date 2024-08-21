@@ -33,10 +33,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     steps:
-      - name: Set up Go 1.18
+      - name: Set up Go 1.19
         uses: actions/setup-go@v2
         with:
-          go-version: 1.18
+          go-version: 1.19
       - name: Setup docker (missing on MacOS)
         if: runner.os == 'macos'
         env:
@@ -147,7 +147,7 @@ jobs:
         with:
           name: test-tools-macos-12
           path: test/plugins/dist
-      - name: Set up Go 1.18
+      - name: Set up Go 1.19
         uses: actions/setup-go@v2
         with:
           go-version: 1.18

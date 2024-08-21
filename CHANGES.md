@@ -9,7 +9,7 @@ Release Notes.
 * Enhance the observability of makefile execution.
 * Update the error message if the peer address is empty when creating exit span.
 * Support enhancement go`1.23`.
-* Adding go `1.23` in docker image.
+* Adding go `1.23` in docker image and remove go `1.16`, `1.17` and `1.18` support.
 
 #### Plugins
 * Support [Pulsar](https://github.com/apache/pulsar-client-go) MQ.

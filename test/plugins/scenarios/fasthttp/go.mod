@@ -1,6 +1,6 @@
 module test/plugins/scenarios/fasthttp
 
-go 1.18
+go 1.19
 
 require (
 	github.com/fasthttp/router v1.0.2

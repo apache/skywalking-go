@@ -20,7 +20,5 @@ start-script: ./bin/startup.sh
 framework: go
 export-port: 8080
 support-version:
-  - go: 1.17
-  - go: 1.18
   - go: 1.19
   - go: 1.20
