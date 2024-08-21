@@ -12,7 +12,7 @@ metrics based on the tracing data.
   * `fiber`: [Fiber](https://github.com/gofiber/fiber) tested v2.49.0 to v2.50.0.
   * `echov4`: [Echov4](https://github.com/labstack/echo) tested v4.0.0 to v4.11.4
 * HTTP Client
-  * `http`: [Native HTTP](https://pkg.go.dev/net/http) tested go v1.17 to go v1.20.
+  * `http`: [Native HTTP](https://pkg.go.dev/net/http) tested go v1.19 to go v1.20.
   * `fasthttp`: [FastHttp](https://github.com/valyala/fasthttp) tested v1.10.0 to v1.50.0.
 * RPC Frameworks
   * `dubbo`: [Dubbo](https://github.com/apache/dubbo-go) tested v3.0.1 to v3.0.5.

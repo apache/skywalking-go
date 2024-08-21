@@ -20,7 +20,7 @@ start-script: ./bin/startup.sh
 framework: github.com/elastic/go-elasticsearch
 export-port: 8080
 support-version:
-  - go: 1.18
+  - go: 1.19
     framework:
       - v8.11.1
       - v8.11.0
