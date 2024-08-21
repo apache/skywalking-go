@@ -23,6 +23,7 @@ Release Notes.
 ### Bug Fixes
 * Fix panic error when root span finished.
 * Fix when not route is found, the gin operation name is "http.Method:", example: "GET:".
+* Fix got `span type is wrong` error when creating exit span with trace sampling. 
 
 0.4.0
 ------------------
