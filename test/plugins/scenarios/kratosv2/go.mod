@@ -1,6 +1,6 @@
 module test/plugins/scenarios/kratos
 
-go 1.18
+go 1.19
 
 require (
 	github.com/go-kratos/examples v0.0.0-20230210101903-c2d361cc712c

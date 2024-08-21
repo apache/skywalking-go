@@ -1,6 +1,6 @@
 module test/plugins/scenarios/irisv12
 
-go 1.18
+go 1.19
 
 require (
 	github.com/kataras/iris/v12 v12.2.0

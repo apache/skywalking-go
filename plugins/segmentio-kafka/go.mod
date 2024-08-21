@@ -1,6 +1,6 @@
 module github.com/apache/skywalking-go/plugins/segmentio-kafka
 
-go 1.18
+go 1.19
 
 require (
 	github.com/klauspost/compress v1.15.9 // indirect

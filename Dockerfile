@@ -17,7 +17,7 @@
 # User used targeting base image
 ARG BASE_GO_IMAGE
 # Build the agent base image
-ARG BASE_BUILDER_IMAGE='golang:1.18'
+ARG BASE_BUILDER_IMAGE='golang:1.19'
 
 FROM ${BASE_BUILDER_IMAGE} as builder
 # Go Agent Version

@@ -20,7 +20,7 @@ start-script: ./bin/startup.sh
 framework: github.com/emicklei/go-restful/v3
 export-port: 8080
 support-version:
-  - go: 1.18
+  - go: 1.19
     framework:
       - v3.7.1
       - v3.7.2

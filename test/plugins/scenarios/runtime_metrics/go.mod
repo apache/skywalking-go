@@ -1,3 +1,3 @@
 module test/plugins/scenarios/runtime_metrics
 
-go 1.18
+go 1.19

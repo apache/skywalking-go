@@ -1,6 +1,6 @@
 module github.com/apache/skywalking-go/plugins/kratosv2
 
-go 1.18
+go 1.19
 
 require (
 	github.com/go-kratos/kratos/v2 v2.6.2 // indirect

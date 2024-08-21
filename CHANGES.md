@@ -4,11 +4,14 @@ Release Notes.
 
 0.5.0
 ------------------
+* **Add go `1.23` support**.
+* **Remove go `1.16`, `1.17`, and `1.18` support**.
+
 #### Features
 * Add support trace ignore.
 * Enhance the observability of makefile execution.
-* Update the error message if the peer address is empty when creating exit span.
-* Support enhancement go`1.23`.
+* Update the error message if the peer address is empty when creating an exit span.
+* Support enhancement go `1.23`.
 
 #### Plugins
 * Support [Pulsar](https://github.com/apache/pulsar-client-go) MQ.

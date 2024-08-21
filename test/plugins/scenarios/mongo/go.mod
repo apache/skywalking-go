@@ -1,6 +1,6 @@
 module test/plugins/scenarios/mongo
 
-go 1.18
+go 1.19
 
 require (
 	github.com/golang/snappy v0.0.1 // indirect

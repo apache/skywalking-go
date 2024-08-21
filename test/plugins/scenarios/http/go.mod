@@ -1,3 +1,3 @@
 module test/plugins/scenarios/http
 
-go 1.18
+go 1.19

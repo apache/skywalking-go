@@ -1,6 +1,6 @@
 module github.com/apache/skywalking-go/plugins/go-redisv9
 
-go 1.18
+go 1.19
 
 require github.com/redis/go-redis/v9 v9.0.5
 

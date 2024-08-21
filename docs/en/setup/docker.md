@@ -23,7 +23,7 @@ RUN go build -toolexec="skywalking-go-agent" -a /path/to/project
 
 In the above code, we have performed the following actions:
 
-1. Used the SkyWalking Go provided image as the base image, which currently supports the following Go versions: **1.16, 1.17, 1.18, 1.19, 1.20**.
+1. Used the SkyWalking Go provided image as the base image, which currently supports the following Go versions: **1.19, 1.20, 1.21, 1.22, 1.23**.
 2. Copied the project into the Docker image.
 3. Installed SkyWalking Go and compiled the project, [read this documentation for more detail](./gobuild.md). 
 The SkyWalking Go agent is already installed in the `/usr/local/bin` directory with the name **skywalking-go-agent**.

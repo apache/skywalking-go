@@ -20,7 +20,7 @@ start-script: ./bin/startup.sh
 framework: github.com/segmentio/kafka-go
 export-port: 8080
 support-version:
-  - go: 1.18
+  - go: 1.19
     framework:
       - v0.4.47
 dependencies:
