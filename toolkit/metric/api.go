@@ -6,7 +6,7 @@
 // not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//	http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing,
 // software distributed under the License is distributed on an
@@ -15,37 +15,19 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package trace
+package metric
 
-type EventType string
-
-const (
-	// DebugEventType Indicates the event type is "debug"
-	DebugEventType EventType = "debug"
-
-	// InfoEventType Indicates the event type is "info"
-	InfoEventType EventType = "info"
-
-	// WarnEventType Indicates the event type is "warn"
-	WarnEventType EventType = "warn"
-
-	// ErrorEventType Indicates the event type is "error"
-	ErrorEventType EventType = "error"
-)
-
-func (*SpanRef) PrepareAsync() {
+// NewCounter creates a new counter metrics.
+func NewCounter(name string, opt ...MeterOpt) *CounterRef {
+	return &CounterRef{}
 }
 
-func (*SpanRef) AsyncFinish() {
+// NewGauge creates a new gauge metrics.
+func NewGauge(name string, watcher func() float64, opts ...MeterOpt) *GaugeRef {
+	return &GaugeRef{}
 }
 
-// nolint
-func (*SpanRef) SetTag(key string, value string) {
-}
-
-func (*SpanRef) AddLog(...string) {
-}
-
-// AddEvent Add an event of the specified type to SpanRef.
-func (*SpanRef) AddEvent(et EventType, event string) {
+// NewHistogram creates a new histogram metrics.
+func NewHistogram(name string, steps []float64, opts ...MeterOpt) *Histogram {
+	return &Histogram{}
 }
