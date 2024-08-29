@@ -48,10 +48,10 @@ func (h *Histogram) ObserveWithCount(val float64, count int64) {
 
 }
 
-type meterOpt struct {
+type MeterOpt struct {
 }
 
 // WithLabels Add labels for metric
-func WithLabels(key, val string) meterOpt {
-	return meterOpt{}
+func WithLabels(key, val string) MeterOpt {
+	return MeterOpt{}
 }
