@@ -20,12 +20,12 @@ package main
 import (
 	"fmt"
 	"os"
+	"runtime"
 	"text/template"
 )
 
 var (
 	version   string
-	goVersion string
 	gitCommit string
 )
 
@@ -55,7 +55,7 @@ func PrintVersion() {
 	versionInfo := map[string]any{
 		"Version":   version,
 		"GitCommit": gitCommit,
-		"GoVersion": goVersion,
+		"GoVersion": runtime.Version(),
 	}
 	if err := versionTmpl.Execute(os.Stdout, versionInfo); err != nil {
 		fmt.Fprintln(os.Stdout, err)

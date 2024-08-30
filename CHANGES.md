@@ -9,6 +9,7 @@ Release Notes.
 #### Plugins
 
 #### Bug Fixes
+* Fix wrong docker image name and `-version` command.
 
 #### Issues and PR
 - All issues are [here](https://github.com/apache/skywalking/milestone/219?closed=1)

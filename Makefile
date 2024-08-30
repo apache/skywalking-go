@@ -29,7 +29,7 @@ GO_TEST_LDFLAGS =
 REPODIR := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))/
 LINT_FILE_PATH = $(REPODIR).golangci.yml
 
-VERSION_FILE=VERSION
+VERSION_FILE=$(REPODIR)VERSION
 
 SHELL = /bin/bash
 
@@ -40,6 +40,8 @@ GIT_VERSION := $(shell git rev-parse --short HEAD)
 ifeq ($(strip $(GIT_VERSION)),)
     GIT_VERSION = $(shell grep gitCommit $(VERSION_FILE) | awk -F ': ' '{print $$2}')
 endif
+
+VERSION ?= $(GIT_VERSION)
 
 LOG_TARGET = echo -e "\033[0;32m===========> Running $@ ... \033[0m"
 
@@ -146,16 +148,18 @@ docker.push.%: LOAD_OR_PUSH = --push
 
 .PHONY: $(base.all)
 $(base.all:%=docker.%): BASE_IMAGE=$($(base.each:docker.%=base.image.%))
-$(base.all:%=docker.%): FINAL_TAG=$(GIT_VERSION)-$(base.each:docker.%=%)
+$(base.all:%=docker.%): FINAL_TAG=$(VERSION)-$(base.each:docker.%=%)
 $(base.all:%=docker.push.%): BASE_IMAGE=$($(base.each:docker.push.%=base.image.%))
-$(base.all:%=docker.push.%): FINAL_TAG=$(GIT_VERSION)-$(base.each:docker.push.%=%)
-$(base.all:%=docker.%) $(base.all:%=docker.push.%):
+$(base.all:%=docker.push.%): FINAL_TAG=$(VERSION)-$(base.each:docker.push.%=%)
+$(base.all:%=docker.%) $(base.all:%=docker.push.%): version-check
+	@$(version-check)
 	@$(LOG_TARGET)
 	docker buildx create --use --driver docker-container --name skywalking_go > /dev/null 2>&1 || true
 	docker buildx build $(PLATFORMS) $(LOAD_OR_PUSH) \
         --no-cache \
         --build-arg "BASE_GO_IMAGE=$(BASE_IMAGE)" \
-        --build-arg "VERSION=$(GIT_VERSION)" \
+        --build-arg "BASE_BUILDER_IMAGE=$(BASE_IMAGE)" \
+        --build-arg "VERSION=$(VERSION)" \
         . -t $(HUB)/$(PROJECT):$(FINAL_TAG)
 	docker buildx rm skywalking_go || true
 

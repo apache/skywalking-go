@@ -29,7 +29,7 @@ GIT_COMMIT := $(shell $(GIT) rev-parse --short HEAD)
 ifeq ($(strip $(GIT_COMMIT)),)
     GIT_COMMIT = $(shell grep gitCommit $(VERSION_PATH) | awk -F ': ' '{print $$2}')
 endif
-VERSION := $(shell grep version $(VERSION_PATH) | awk -F ': ' '{print $$2}')
+VERSION ?= $(shell grep version $(VERSION_PATH) | awk -F ': ' '{print $$2}')
 
 GO_VERSION := $(shell $(GO) env GOVERSION)
 VERSION_PACKAGE := main
@@ -38,7 +38,7 @@ GO_PATH = $$($(GO) env GOPATH)
 GO_BUILD = $(GO) build
 GO_LINT = $(GO_PATH)/bin/golangci-lint
 GO_BUILD_FLAGS = -v
-GO_BUILD_LDFLAGS = -X $(VERSION_PACKAGE).version=$(VERSION) -X $(VERSION_PACKAGE).goVersion=$(GO_VERSION) -X $(VERSION_PACKAGE).gitCommit=$(GIT_COMMIT)
+GO_BUILD_LDFLAGS = -X $(VERSION_PACKAGE).version=$(VERSION) -X $(VERSION_PACKAGE).gitCommit=$(GIT_COMMIT)
 GO_TEST_LDFLAGS =
 GO_GET = $(GO) get
 
