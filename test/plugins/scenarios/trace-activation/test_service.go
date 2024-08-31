@@ -30,6 +30,12 @@ func testTag() {
 	trace.StopSpan()
 }
 
+func testEvent() {
+	trace.CreateLocalSpan("testAddEvent")
+	trace.AddEvent(trace.DebugEventType, "foo,bar!")
+	trace.StopSpan()
+}
+
 func testLog() {
 	trace.CreateLocalSpan("testAddLog")
 	trace.AddLog("AddLog", "success")

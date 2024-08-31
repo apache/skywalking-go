@@ -42,6 +42,7 @@ func consumerHandler(w http.ResponseWriter, r *http.Request) {
 	testContextCarrier()
 	testComponent()
 	testAsyncInCrossGoroutine()
+	testEvent()
 }
 
 func main() {

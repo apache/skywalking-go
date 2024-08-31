@@ -201,6 +201,20 @@ segmentItems:
             logs:
               - logEvent:
                   - { key: testAsyncLog, value: success }
+          - operationName: testAddEvent
+            parentSpanId: 0
+            spanId: 14
+            spanLayer: Unknown
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 0
+            isError: false
+            spanType: Local
+            peer: ''
+            skipAnalysis: false
+            logs:
+              - logEvent:
+                  - { key: debug, value: foo,bar! }
           - operationName: GET:/consumer
             parentSpanId: -1
             spanId: 0

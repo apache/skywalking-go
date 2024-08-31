@@ -96,6 +96,14 @@ func (i *Instrument) Points() []*instrument.Point {
 			Interceptor: "AsyncLogInterceptor",
 		},
 		{
+			PackagePath: "trace", At: instrument.NewMethodEnhance("*SpanRef", "AddEvent"),
+			Interceptor: "AsyncAddEventInterceptor",
+		},
+		{
+			PackagePath: "trace", At: instrument.NewStaticMethodEnhance("AddEvent"),
+			Interceptor: "AddEventInterceptor",
+		},
+		{
 			PackagePath: "trace", At: instrument.NewStaticMethodEnhance("AddLog"),
 			Interceptor: "AddLogInterceptor",
 		},

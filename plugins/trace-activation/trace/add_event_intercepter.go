@@ -15,38 +15,37 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package trace
+package traceactivation
 
-// EventType Defines the type of Span event
-type EventType string
-
-const (
-	// DebugEventType Indicates the event type is "debug"
-	DebugEventType EventType = "debug"
-
-	// InfoEventType Indicates the event type is "info"
-	InfoEventType EventType = "info"
-
-	// WarnEventType Indicates the event type is "warn"
-	WarnEventType EventType = "warn"
-
-	// ErrorEventType Indicates the event type is "error"
-	ErrorEventType EventType = "error"
+import (
+	"github.com/apache/skywalking-go/plugins/core/operator"
+	"github.com/apache/skywalking-go/plugins/core/tracing"
 )
 
-func (*SpanRef) PrepareAsync() {
+type AddEventInterceptor struct {
 }
 
-func (*SpanRef) AsyncFinish() {
+func (h *AddEventInterceptor) BeforeInvoke(invocation operator.Invocation) error {
+	var (
+		defaultEventType  tracing.EventType = "info"
+		defaultEmptyEvent                   = "unknown"
+	)
+
+	span := tracing.ActiveSpan()
+	if span != nil {
+		et := invocation.Args()[0].(tracing.EventType)
+		if len(et) == 0 {
+			et = defaultEventType
+		}
+		event := invocation.Args()[1].(string)
+		if len(event) == 0 {
+			event = defaultEmptyEvent
+		}
+		span.Log(string(et), event)
+	}
+	return nil
 }
 
-// nolint
-func (*SpanRef) SetTag(key string, value string) {
-}
-
-func (*SpanRef) AddLog(...string) {
-}
-
-// AddEvent Add an event of the specified type to SpanRef.
-func (*SpanRef) AddEvent(et EventType, event string) {
+func (h *AddEventInterceptor) AfterInvoke(_ operator.Invocation, _ ...interface{}) error {
+	return nil
 }
