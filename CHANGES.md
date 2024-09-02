@@ -6,7 +6,7 @@ Release Notes.
 ------------------
 #### Features
 
-* support attaching events to span
+* support attaching events to span in the toolkit.
 
 #### Plugins
 
