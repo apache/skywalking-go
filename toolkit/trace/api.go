@@ -72,6 +72,10 @@ func SetTag(key string, value string) {
 func AddLog(...string) {
 }
 
+func AddEvent(et EventType, event string) {
+
+}
+
 func GetCorrelation(key string) string {
 	return ""
 }

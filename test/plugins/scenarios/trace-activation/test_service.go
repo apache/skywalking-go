@@ -30,6 +30,12 @@ func testTag() {
 	trace.StopSpan()
 }
 
+func testEvent() {
+	trace.CreateLocalSpan("testAddEvent")
+	trace.AddEvent(trace.DebugEventType, "foo")
+	trace.StopSpan()
+}
+
 func testLog() {
 	trace.CreateLocalSpan("testAddLog")
 	trace.AddLog("AddLog", "success")
@@ -112,6 +118,7 @@ func testAsyncInCrossGoroutine() {
 	go func() {
 		s.SetTag("testAsyncTag", "success")
 		s.AddLog("testAsyncLog", "success")
+		s.AddEvent(trace.WarnEventType, "bar")
 		s.AsyncFinish()
 		ch <- ""
 	}()

@@ -131,7 +131,7 @@ func (c *Context) rewriteTopLevelNames(files map[*FileInfo]*dst.File) {
 			case *dst.ImportSpec:
 			case *dst.TypeSpec:
 			case *dst.GenDecl:
-				if n.Tok == token.VAR && cursor.Parent() == f {
+				if (n.Tok == token.VAR || n.Tok == token.CONST) && cursor.Parent() == f {
 					for _, spec := range n.Specs {
 						if valueSpec, ok := spec.(*dst.ValueSpec); ok {
 							c.Var(valueSpec, true)

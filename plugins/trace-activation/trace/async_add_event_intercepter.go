@@ -15,44 +15,33 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package main
+package traceactivation
 
 import (
-	"net/http"
-
-	_ "github.com/apache/skywalking-go"
+	"github.com/apache/skywalking-go/plugins/core/operator"
+	"github.com/apache/skywalking-go/plugins/core/tracing"
 	"github.com/apache/skywalking-go/toolkit/trace"
 )
 
-func providerHandler(w http.ResponseWriter, r *http.Request) {
-	trace.CreateLocalSpan("testSetCorrelation")
-	trace.SetTag("testCorrelation", trace.GetCorrelation("testCorrelation"))
-	trace.StopSpan()
+type AsyncAddEventInterceptor struct {
 }
 
-func consumerHandler(w http.ResponseWriter, r *http.Request) {
-	testTag()
-	testLog()
-	testGetSegmentID()
-	testGetSpanID()
-	testGetTraceID()
-	testSetOperationName()
-	testCorrelation()
-	testContext()
-	testContextCarrier()
-	testComponent()
-	testAsyncInCrossGoroutine()
-	testEvent()
+func (h *AsyncAddEventInterceptor) BeforeInvoke(_ operator.Invocation) error {
+	return nil
 }
 
-func main() {
-	http.HandleFunc("/provider", providerHandler)
-
-	http.HandleFunc("/consumer", consumerHandler)
-
-	http.HandleFunc("/health", func(writer http.ResponseWriter, request *http.Request) {
-		writer.WriteHeader(http.StatusOK)
-	})
-
-	_ = http.ListenAndServe(":8080", nil)
+func (h *AsyncAddEventInterceptor) AfterInvoke(invocation operator.Invocation, _ ...interface{}) error {
+	enhanced, ok := invocation.CallerInstance().(operator.EnhancedInstance)
+	if !ok {
+		return nil
+	}
+	s := enhanced.GetSkyWalkingDynamicField().(tracing.Span)
+	et := invocation.Args()[0].(trace.EventType)
+	event := invocation.Args()[1].(string)
+	if event == "" {
+		event = defaultEventMsg
+	}
+	s.Log(string(et), event)
+	enhanced.SetSkyWalkingDynamicField(s)
+	return nil
 }

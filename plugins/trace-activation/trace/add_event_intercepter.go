@@ -15,44 +15,30 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package main
+package traceactivation
 
 import (
-	"net/http"
-
-	_ "github.com/apache/skywalking-go"
+	"github.com/apache/skywalking-go/plugins/core/operator"
+	"github.com/apache/skywalking-go/plugins/core/tracing"
 	"github.com/apache/skywalking-go/toolkit/trace"
 )
 
-func providerHandler(w http.ResponseWriter, r *http.Request) {
-	trace.CreateLocalSpan("testSetCorrelation")
-	trace.SetTag("testCorrelation", trace.GetCorrelation("testCorrelation"))
-	trace.StopSpan()
+type AddEventInterceptor struct {
 }
 
-func consumerHandler(w http.ResponseWriter, r *http.Request) {
-	testTag()
-	testLog()
-	testGetSegmentID()
-	testGetSpanID()
-	testGetTraceID()
-	testSetOperationName()
-	testCorrelation()
-	testContext()
-	testContextCarrier()
-	testComponent()
-	testAsyncInCrossGoroutine()
-	testEvent()
+func (h *AddEventInterceptor) BeforeInvoke(invocation operator.Invocation) error {
+	span := tracing.ActiveSpan()
+	if span != nil {
+		et := invocation.Args()[0].(trace.EventType)
+		event := invocation.Args()[1].(string)
+		if event == "" {
+			event = defaultEventMsg
+		}
+		span.Log(string(et), event)
+	}
+	return nil
 }
 
-func main() {
-	http.HandleFunc("/provider", providerHandler)
-
-	http.HandleFunc("/consumer", consumerHandler)
-
-	http.HandleFunc("/health", func(writer http.ResponseWriter, request *http.Request) {
-		writer.WriteHeader(http.StatusOK)
-	})
-
-	_ = http.ListenAndServe(":8080", nil)
+func (h *AddEventInterceptor) AfterInvoke(_ operator.Invocation, _ ...interface{}) error {
+	return nil
 }
