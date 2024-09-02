@@ -20,26 +20,19 @@ package traceactivation
 import (
 	"github.com/apache/skywalking-go/plugins/core/operator"
 	"github.com/apache/skywalking-go/plugins/core/tracing"
+	"github.com/apache/skywalking-go/toolkit/trace"
 )
 
 type AddEventInterceptor struct {
 }
 
 func (h *AddEventInterceptor) BeforeInvoke(invocation operator.Invocation) error {
-	var (
-		defaultEventType  tracing.EventType = "info"
-		defaultEmptyEvent                   = "unknown"
-	)
-
 	span := tracing.ActiveSpan()
 	if span != nil {
-		et := invocation.Args()[0].(tracing.EventType)
-		if len(et) == 0 {
-			et = defaultEventType
-		}
+		et := invocation.Args()[0].(trace.EventType)
 		event := invocation.Args()[1].(string)
-		if len(event) == 0 {
-			event = defaultEmptyEvent
+		if event == "" {
+			event = defaultEventMsg
 		}
 		span.Log(string(et), event)
 	}

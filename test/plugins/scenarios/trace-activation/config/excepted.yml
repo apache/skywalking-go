@@ -201,8 +201,10 @@ segmentItems:
             logs:
               - logEvent:
                   - { key: testAsyncLog, value: success }
+              - logEvent:
+                  - { key: warn, value: bar }
           - operationName: testAddEvent
-            parentSpanId: 0
+            parentSpanId: 8
             spanId: 14
             spanLayer: Unknown
             startTime: nq 0
@@ -214,7 +216,7 @@ segmentItems:
             skipAnalysis: false
             logs:
               - logEvent:
-                  - { key: debug, value: foo,bar! }
+                  - { key: debug, value: foo }
           - operationName: GET:/consumer
             parentSpanId: -1
             spanId: 0

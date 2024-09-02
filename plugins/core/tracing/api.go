@@ -238,9 +238,3 @@ func (n *NoopSpan) PrepareAsync() {
 }
 func (n *NoopSpan) AsyncFinish() {
 }
-
-// EventType Defines the type of Span event
-//
-// NOTE: To avoid dependency introduction problems, the duplicate definition here is
-// used in the implementation. It should be aligned with "skywalking-go/toolkit/trace/span.go"
-type EventType string

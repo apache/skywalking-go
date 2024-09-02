@@ -6,6 +6,8 @@ Release Notes.
 ------------------
 #### Features
 
+* support attaching events to span
+
 #### Plugins
 
 #### Bug Fixes

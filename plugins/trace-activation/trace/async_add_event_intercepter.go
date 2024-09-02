@@ -20,6 +20,7 @@ package traceactivation
 import (
 	"github.com/apache/skywalking-go/plugins/core/operator"
 	"github.com/apache/skywalking-go/plugins/core/tracing"
+	"github.com/apache/skywalking-go/toolkit/trace"
 )
 
 type AsyncAddEventInterceptor struct {
@@ -30,23 +31,15 @@ func (h *AsyncAddEventInterceptor) BeforeInvoke(_ operator.Invocation) error {
 }
 
 func (h *AsyncAddEventInterceptor) AfterInvoke(invocation operator.Invocation, _ ...interface{}) error {
-	var (
-		defaultEventType  tracing.EventType = "info"
-		defaultEmptyEvent                   = "unknown"
-	)
-
 	enhanced, ok := invocation.CallerInstance().(operator.EnhancedInstance)
 	if !ok {
 		return nil
 	}
 	s := enhanced.GetSkyWalkingDynamicField().(tracing.Span)
-	et := invocation.Args()[0].(tracing.EventType)
-	if len(et) == 0 {
-		et = defaultEventType
-	}
+	et := invocation.Args()[0].(trace.EventType)
 	event := invocation.Args()[1].(string)
 	if len(event) == 0 {
-		event = defaultEmptyEvent
+		event = defaultEventMsg
 	}
 	s.Log(string(et), event)
 	enhanced.SetSkyWalkingDynamicField(s)
