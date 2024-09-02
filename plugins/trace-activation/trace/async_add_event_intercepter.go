@@ -38,7 +38,7 @@ func (h *AsyncAddEventInterceptor) AfterInvoke(invocation operator.Invocation, _
 	s := enhanced.GetSkyWalkingDynamicField().(tracing.Span)
 	et := invocation.Args()[0].(trace.EventType)
 	event := invocation.Args()[1].(string)
-	if len(event) == 0 {
+	if event == "" {
 		event = defaultEventMsg
 	}
 	s.Log(string(et), event)
