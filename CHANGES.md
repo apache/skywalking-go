@@ -12,6 +12,7 @@ Release Notes.
 
 #### Bug Fixes
 * Fix wrong docker image name and `-version` command.
+* Fix redis plugin cannot work in cluster mode.
 
 #### Issues and PR
 - All issues are [here](https://github.com/apache/skywalking/milestone/219?closed=1)
