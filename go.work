@@ -52,6 +52,7 @@ use (
 	./test/plugins/scenarios/grpc
   	./test/plugins/scenarios/irisv12
 	./test/plugins/scenarios/trace-activation
+	./test/plugins/scenarios/logging-activation
   	./test/plugins/scenarios/fasthttp
   	./test/plugins/scenarios/fiber
 
