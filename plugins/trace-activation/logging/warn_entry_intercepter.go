@@ -15,20 +15,17 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package operator
+package log
 
-// LogOperator should be same with the log.Logger from the API of the library
-type LogOperator interface {
-	WithField(key string, value interface{}) interface{}
-	Info(args ...interface{})
-	Infof(format string, args ...interface{})
-	Warn(args ...interface{})
-	Warnf(format string, args ...interface{})
-	Error(args ...interface{})
-	Errorf(format string, args ...interface{})
+import "github.com/apache/skywalking-go/plugins/core/operator"
+
+type WarnEntryInterceptor struct{}
+
+func (h *WarnEntryInterceptor) BeforeInvoke(invocation operator.Invocation) error {
+	sendLogEntry(warnLevel, invocation.Args()...)
+	return nil
 }
 
-type LogReporter interface {
-	ReportLog(ctx, time interface{}, level, msg string, labels map[string]string)
-	GetLogContext(withEndpoint bool) interface{}
+func (h *WarnEntryInterceptor) AfterInvoke(_ operator.Invocation, _ ...interface{}) error {
+	return nil
 }

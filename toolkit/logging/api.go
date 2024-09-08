@@ -15,20 +15,23 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package operator
+package logging
 
-// LogOperator should be same with the log.Logger from the API of the library
-type LogOperator interface {
-	WithField(key string, value interface{}) interface{}
-	Info(args ...interface{})
-	Infof(format string, args ...interface{})
-	Warn(args ...interface{})
-	Warnf(format string, args ...interface{})
-	Error(args ...interface{})
-	Errorf(format string, args ...interface{})
+// Debug logs a message at DebugLevel
+func Debug(msg string, keyValues ...string) {
+
 }
 
-type LogReporter interface {
-	ReportLog(ctx, time interface{}, level, msg string, labels map[string]string)
-	GetLogContext(withEndpoint bool) interface{}
+// Info logs a message at InfoLevel
+func Info(msg string, keyValues ...string) {
+
+}
+
+// Warn logs a message at DebugLevel
+func Warn(msg string, keyValues ...string) {
+
+}
+
+// Error logs a message at ErrorLevel
+func Error(msg string, keyValues ...string) {
 }

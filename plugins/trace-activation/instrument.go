@@ -47,6 +47,17 @@ func (i *Instrument) VersionChecker(version string) bool {
 }
 
 func (i *Instrument) Points() []*instrument.Point {
+	var instPoints []*instrument.Point
+	// append toolkit/trace related enhancements Point
+	instPoints = append(instPoints, tracePoint()...)
+
+	// append toolkit/logging related enhancements Point
+	instPoints = append(instPoints, loggingPoint()...)
+
+	return instPoints
+}
+
+func tracePoint() []*instrument.Point {
 	return []*instrument.Point{
 		{
 			PackagePath: "trace", At: instrument.NewStructEnhance("SpanRef"),
@@ -134,6 +145,27 @@ func (i *Instrument) Points() []*instrument.Point {
 		{
 			PackagePath: "trace", At: instrument.NewStaticMethodEnhance("SetComponent"),
 			Interceptor: "SetComponentInterceptor",
+		},
+	}
+}
+
+func loggingPoint() []*instrument.Point {
+	return []*instrument.Point{
+		{
+			PackagePath: "logging", At: instrument.NewStaticMethodEnhance("Debug"),
+			Interceptor: "DebugEntryInterceptor",
+		},
+		{
+			PackagePath: "logging", At: instrument.NewStaticMethodEnhance("Info"),
+			Interceptor: "InfoEntryInterceptor",
+		},
+		{
+			PackagePath: "logging", At: instrument.NewStaticMethodEnhance("Warn"),
+			Interceptor: "WarnEntryInterceptor",
+		},
+		{
+			PackagePath: "logging", At: instrument.NewStaticMethodEnhance("Error"),
+			Interceptor: "ErrorEntryInterceptor",
 		},
 	}
 }

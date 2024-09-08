@@ -18,8 +18,10 @@
 package core
 
 import (
+	"fmt"
 	"time"
 
+	"github.com/apache/skywalking-go/plugins/core/operator"
 	commonv3 "skywalking.apache.org/repo/goapi/collect/common/v3"
 	logv3 "skywalking.apache.org/repo/goapi/collect/logging/v3"
 )
@@ -37,6 +39,15 @@ type logTracingContext interface {
 	GetEndPointName() string
 }
 
+type logTracingSpan interface {
+	TracingSpan
+
+	GetEndPointName() string
+	GetParentSpan() interface{}
+}
+
+var noopContext = &NoopSpan{}
+
 func (t *Tracer) ReportLog(ctx, timeObj interface{}, level, msg string, labels map[string]string) {
 	tracingContext, ok := ctx.(logTracingContext)
 	if !ok || tracingContext == nil {
@@ -46,7 +57,12 @@ func (t *Tracer) ReportLog(ctx, timeObj interface{}, level, msg string, labels m
 	if entity == nil {
 		return
 	}
-	timeData := timeObj.(time.Time)
+	timeData, ok := timeObj.(time.Time)
+	if !ok {
+		// as a fallback strategy to solve some plugins that
+		// cannot be introduced into the standard library
+		timeData = time.Now()
+	}
 
 	tags := &logv3.LogTags{
 		Data: []*commonv3.KeyStringValuePair{
@@ -62,7 +78,6 @@ func (t *Tracer) ReportLog(ctx, timeObj interface{}, level, msg string, labels m
 			Value: v,
 		})
 	}
-
 	logData := &logv3.LogData{
 		Timestamp:       Millisecond(timeData),
 		Service:         tracingContext.GetServiceName(),
@@ -84,4 +99,89 @@ func (t *Tracer) ReportLog(ctx, timeObj interface{}, level, msg string, labels m
 	}
 
 	t.Reporter.SendLog(logData)
+}
+
+func (t *Tracer) GetLogContext(withEndpoint bool) interface{} {
+	var (
+		serviceName  string
+		instanceName string
+		endpoint     string
+
+		activeSpan TracingSpan = noopContext
+	)
+
+	if s, ok := t.ActiveSpan().(logTracingSpan); ok && s != nil {
+		activeSpan = s
+		if withEndpoint {
+			endpoint = findEndpointNameBySpan(s)
+		}
+	}
+	entity := t.Entity()
+	if entity != nil {
+		if e, ok := entity.(operator.Entity); ok && e != nil {
+			serviceName, instanceName = e.GetServiceName(), e.GetInstanceName()
+		}
+	}
+	return &SkyWalkingLogContext{
+		ServiceName:    serviceName,
+		InstanceName:   instanceName,
+		TraceID:        activeSpan.GetTraceID(),
+		TraceSegmentID: activeSpan.GetSegmentID(),
+		SpanID:         activeSpan.GetSpanID(),
+		EndPoint:       endpoint,
+	}
+}
+
+func findEndpointNameBySpan(s logTracingSpan) string {
+	tmp := s
+	for tmp != nil {
+		if name := tmp.GetEndPointName(); name != "" {
+			return name
+		}
+		parent := tmp.GetParentSpan()
+		if parentTmp, ok := parent.(logTracingSpan); ok && parentTmp != nil {
+			tmp = parentTmp
+		} else {
+			tmp = nil
+		}
+	}
+	return ""
+}
+
+type SkyWalkingLogContext struct {
+	ServiceName    string
+	InstanceName   string
+	TraceID        string
+	EndPoint       string
+	TraceSegmentID string
+	SpanID         int32
+}
+
+func (s *SkyWalkingLogContext) GetServiceName() string {
+	return s.ServiceName
+}
+
+func (s *SkyWalkingLogContext) GetInstanceName() string {
+	return s.InstanceName
+}
+
+func (s *SkyWalkingLogContext) GetTraceID() string {
+	return s.TraceID
+}
+
+func (s *SkyWalkingLogContext) GetTraceSegmentID() string {
+	return s.TraceSegmentID
+}
+
+func (s *SkyWalkingLogContext) GetSpanID() int32 {
+	return s.SpanID
+}
+
+func (s *SkyWalkingLogContext) GetEndPointName() string {
+	return s.EndPoint
+}
+
+func (s *SkyWalkingLogContext) String() string {
+	return fmt.Sprintf("[%s,%s,%s,%s,%d]", s.ServiceName, s.InstanceName,
+		s.TraceID, s.TraceSegmentID, s.SpanID)
 }
