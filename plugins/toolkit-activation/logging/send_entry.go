@@ -32,7 +32,11 @@ func sendLogEntry(level string, args ...interface{}) {
 	if len(args) == 0 {
 		return
 	}
-	logReporter := operator.GetOperator().LogReporter().(operator.LogReporter)
+	logReporter, ok := operator.GetOperator().LogReporter().(operator.LogReporter)
+	if !ok || logReporter == nil {
+		return
+	}
+
 	msg := args[0].(string)
 	labels := parseLabels(args[1])
 	logReporter.ReportLog(logReporter.GetLogContext(true), args[1], level, msg, labels)

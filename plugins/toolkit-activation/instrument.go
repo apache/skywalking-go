@@ -35,7 +35,7 @@ func NewInstrument() *Instrument {
 }
 
 func (i *Instrument) Name() string {
-	return "trace-activation"
+	return "toolkit-activation"
 }
 
 func (i *Instrument) BasePackage() string {

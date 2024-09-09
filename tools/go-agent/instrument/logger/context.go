@@ -17,6 +17,11 @@
 
 package logger
 
+import (
+	"github.com/apache/skywalking-go/plugins/core"
+	"github.com/apache/skywalking-go/plugins/core/operator"
+)
+
 var GetOperator = func() Operator { return nil }
 var ChangeLogger = func(v interface{}) {}
 
@@ -46,22 +51,6 @@ type Entity interface {
 	GetInstanceName() string
 }
 
-type LogReporter interface {
-	ReportLog(ctx, time interface{}, level, msg string, labels map[string]string)
-	GetLogContext(withEndpoint bool) interface{}
-}
-
-type LogTraceContext interface {
-	GetServiceName() string
-	GetInstanceName() string
-	GetTraceID() string
-	GetTraceSegmentID() string
-	GetSpanID() int32
-	GetEndPointName() string
-
-	String() string
-}
-
 type NoopSpan struct {
 }
 
@@ -85,9 +74,17 @@ func (span *NoopSpan) GetEndPointName() string {
 	return ""
 }
 
-func GetLogContext(withEndpoint bool) LogTraceContext {
-	logReporter := GetOperator().LogReporter().(LogReporter)
-	return logReporter.GetLogContext(withEndpoint).(LogTraceContext)
+func GetLogContext(withEndpoint bool) *core.SkyWalkingLogContext {
+	logReporter, ok := GetOperator().LogReporter().(operator.LogReporter)
+	if !ok || logReporter == nil {
+		return nil
+	}
+
+	ctx := logReporter.GetLogContext(withEndpoint)
+	if ctx == nil {
+		return nil
+	}
+	return ctx.(*core.SkyWalkingLogContext)
 }
 
 func GetLogContextString() string {

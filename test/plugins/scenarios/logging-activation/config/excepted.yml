@@ -18,19 +18,8 @@ segmentItems: []
 meterItems: []
 logItems:
   - serviceName: logging-activation
-    logSize: ge 5
+    logSize: ge 4
     logs:
-      - timestamp: nq 0
-        endpoint: ''
-        body:
-          type: TEXT
-          content: { text: 'fetch dynamic configuration error rpc error: code = Unimplemented
-              desc = Method not found: skywalking.v3.ConfigurationDiscoveryService/fetchConfigurations' }
-        traceContext: { traceId: N/A, traceSegmentId: N/A, spanId: -1 }
-        tags:
-          data:
-            - { key: LEVEL, value: error }
-        layer: GENERAL
       - timestamp: nq 0
         endpoint: GET:/provider
         body:

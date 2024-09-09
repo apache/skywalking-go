@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/apache/skywalking-go/plugins/core/operator"
+
 	commonv3 "skywalking.apache.org/repo/goapi/collect/common/v3"
 	logv3 "skywalking.apache.org/repo/goapi/collect/logging/v3"
 )
@@ -37,13 +38,6 @@ type logTracingContext interface {
 	GetTraceSegmentID() string
 	GetSpanID() int32
 	GetEndPointName() string
-}
-
-type logTracingSpan interface {
-	TracingSpan
-
-	GetEndPointName() string
-	GetParentSpan() interface{}
 }
 
 var noopContext = &NoopSpan{}
@@ -110,17 +104,15 @@ func (t *Tracer) GetLogContext(withEndpoint bool) interface{} {
 		activeSpan TracingSpan = noopContext
 	)
 
-	if s, ok := t.ActiveSpan().(logTracingSpan); ok && s != nil {
+	if s, ok := t.ActiveSpan().(TracingSpan); ok && s != nil {
 		activeSpan = s
 		if withEndpoint {
 			endpoint = findEndpointNameBySpan(s)
 		}
 	}
 	entity := t.Entity()
-	if entity != nil {
-		if e, ok := entity.(operator.Entity); ok && e != nil {
-			serviceName, instanceName = e.GetServiceName(), e.GetInstanceName()
-		}
+	if e, ok := entity.(operator.Entity); ok && e != nil {
+		serviceName, instanceName = e.GetServiceName(), e.GetInstanceName()
 	}
 	return &SkyWalkingLogContext{
 		ServiceName:    serviceName,
@@ -132,18 +124,13 @@ func (t *Tracer) GetLogContext(withEndpoint bool) interface{} {
 	}
 }
 
-func findEndpointNameBySpan(s logTracingSpan) string {
+func findEndpointNameBySpan(s TracingSpan) string {
 	tmp := s
 	for tmp != nil {
-		if name := tmp.GetEndPointName(); name != "" {
+		if name := tmp.GetOperationName(); name != "" {
 			return name
 		}
-		parent := tmp.GetParentSpan()
-		if parentTmp, ok := parent.(logTracingSpan); ok && parentTmp != nil {
-			tmp = parentTmp
-		} else {
-			tmp = nil
-		}
+		tmp = tmp.ParentSpan()
 	}
 	return ""
 }

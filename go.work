@@ -19,7 +19,7 @@ use (
 	./plugins/mux
 	./plugins/grpc
 	./plugins/irisv12
-	./plugins/trace-activation
+	./plugins/toolkit-activation
 	./plugins/fasthttp
 	./plugins/fiber
 	./plugins/echov4
@@ -52,7 +52,6 @@ use (
 	./test/plugins/scenarios/grpc
   	./test/plugins/scenarios/irisv12
 	./test/plugins/scenarios/trace-activation
-	./test/plugins/scenarios/logging-activation
   	./test/plugins/scenarios/fasthttp
   	./test/plugins/scenarios/fiber
 
@@ -64,6 +63,8 @@ use (
 	./test/plugins/scenarios/pulsar
 	./test/plugins/scenarios/segmentio-kafka
 	./test/plugins/scenarios/go-elasticsearchv8
+
+	./test/plugins/scenarios/logging-activation
 
 	./tools/go-agent
 
