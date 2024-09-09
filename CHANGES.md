@@ -7,7 +7,7 @@ Release Notes.
 #### Features
 
 * support attaching events to span in the toolkit.
-* support record log entry in the toolkit.
+* support record log in the toolkit.
 
 #### Plugins
 

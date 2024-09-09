@@ -63,7 +63,6 @@ use (
 	./test/plugins/scenarios/pulsar
 	./test/plugins/scenarios/segmentio-kafka
 	./test/plugins/scenarios/go-elasticsearchv8
-
 	./test/plugins/scenarios/logging-activation
 
 	./tools/go-agent
