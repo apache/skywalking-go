@@ -80,34 +80,38 @@ func (r *redisHook) DialHook(next redis.DialHook) redis.DialHook {
 
 func (r *redisHook) ProcessHook(next redis.ProcessHook) redis.ProcessHook {
 	return func(ctx context.Context, cmd redis.Cmder) error {
-		s, err := tracing.CreateExitSpan(
-			// operationName
-			GoRedisCacheType+"/"+cmd.FullName(),
+		var s tracing.Span
+		var err error
+		if r.Addr != "" {
+			s, err = tracing.CreateExitSpan(
+				// operationName
+				GoRedisCacheType+"/"+cmd.FullName(),
 
-			// peer
-			r.Addr,
+				// peer
+				r.Addr,
 
-			// injector
-			func(k, v string) error {
-				return nil
-			},
+				// injector
+				func(k, v string) error {
+					return nil
+				},
 
-			// opts
-			tracing.WithComponent(GoRedisComponentID),
-			tracing.WithLayer(tracing.SpanLayerCache),
-			tracing.WithTag(tracing.TagCacheType, GoRedisCacheType),
-			tracing.WithTag(tracing.TagCacheOp, getCacheOp(cmd.FullName())),
-			tracing.WithTag(tracing.TagCacheCmd, cmd.FullName()),
-			tracing.WithTag(tracing.TagCacheKey, getKey(cmd.Args())),
-			tracing.WithTag(tracing.TagCacheArgs, maxString(cmd.String(), config.MaxArgsBytes)),
-		)
+				// opts
+				tracing.WithComponent(GoRedisComponentID),
+				tracing.WithLayer(tracing.SpanLayerCache),
+				tracing.WithTag(tracing.TagCacheType, GoRedisCacheType),
+				tracing.WithTag(tracing.TagCacheOp, getCacheOp(cmd.FullName())),
+				tracing.WithTag(tracing.TagCacheCmd, cmd.FullName()),
+				tracing.WithTag(tracing.TagCacheKey, getKey(cmd.Args())),
+				tracing.WithTag(tracing.TagCacheArgs, maxString(cmd.String(), config.MaxArgsBytes)),
+			)
 
-		if err != nil {
-			err = fmt.Errorf("go-redis :skyWalking failed to create exit span, got error: %v", err)
-			return err
+			if err != nil {
+				err = fmt.Errorf("go-redis :skyWalking failed to create exit span, got error: %v", err)
+				return err
+			}
+
+			defer s.End()
 		}
-
-		defer s.End()
 
 		if err = next(ctx, cmd); err != nil {
 			recordError(s, err)
@@ -132,30 +136,33 @@ func (r *redisHook) ProcessPipelineHook(next redis.ProcessPipelineHook) redis.Pr
 			summary += "..."
 		}
 
-		s, err := tracing.CreateExitSpan(
-			// operationName
-			"redis/pipeline",
+		var s tracing.Span
+		var err error
+		if r.Addr != "" {
+			s, err = tracing.CreateExitSpan(
+				// operationName
+				"redis/pipeline",
 
-			// peer
-			r.Addr,
+				// peer
+				r.Addr,
 
-			// injector
-			func(k, v string) error {
-				return nil
-			},
+				// injector
+				func(k, v string) error {
+					return nil
+				},
 
-			// opts
-			tracing.WithComponent(GoRedisComponentID),
-			tracing.WithLayer(tracing.SpanLayerCache),
-			tracing.WithTag(tracing.TagCacheType, GoRedisCacheType),
-			tracing.WithTag(tracing.TagCacheCmd, "pipeline:"+strings.TrimRight(summary, "/")),
-		)
-		if err != nil {
-			err = fmt.Errorf("go-redis :skyWalking failed to create exit span, got error: %v", err)
-			return err
+				// opts
+				tracing.WithComponent(GoRedisComponentID),
+				tracing.WithLayer(tracing.SpanLayerCache),
+				tracing.WithTag(tracing.TagCacheType, GoRedisCacheType),
+				tracing.WithTag(tracing.TagCacheCmd, "pipeline:"+strings.TrimRight(summary, "/")),
+			)
+			if err != nil {
+				err = fmt.Errorf("go-redis :skyWalking failed to create exit span, got error: %v", err)
+				return err
+			}
+			defer s.End()
 		}
-
-		defer s.End()
 
 		if err = next(ctx, cmds); err != nil {
 			recordError(s, err)
@@ -167,7 +174,7 @@ func (r *redisHook) ProcessPipelineHook(next redis.ProcessPipelineHook) redis.Pr
 }
 
 func recordError(span tracing.Span, err error) {
-	if err != redis.Nil {
+	if err != redis.Nil && span != nil {
 		span.Error(err.Error())
 	}
 }
