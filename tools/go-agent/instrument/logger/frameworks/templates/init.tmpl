@@ -29,6 +29,7 @@ type logReporter interface {
     ReportLog(ctx, time interface{}, level, msg string, labels map[string]string)
     GetLogContext(withEndpoint bool) interface{}
 }
+
 var {{.LogReportFuncName}} = func(ctx interface{}, time time.Time, level, msg string, labels map[string]string) {
     op := {{.GetOperatorMethodName}}()
     if op == nil {
