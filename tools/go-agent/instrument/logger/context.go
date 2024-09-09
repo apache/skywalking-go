@@ -18,8 +18,7 @@
 package logger
 
 import (
-	"github.com/apache/skywalking-go/plugins/core"
-	"github.com/apache/skywalking-go/plugins/core/operator"
+	"fmt"
 )
 
 var GetOperator = func() Operator { return nil }
@@ -44,6 +43,11 @@ type TracingSpan interface {
 	GetSpanID() int32
 	GetEndPointName() string
 	GetParentSpan() interface{}
+}
+
+type LogReporter interface {
+	ReportLog(ctx, time interface{}, level, msg string, labels map[string]string)
+	GetLogContext(withEndpoint bool) interface{}
 }
 
 type Entity interface {
@@ -74,19 +78,20 @@ func (span *NoopSpan) GetEndPointName() string {
 	return ""
 }
 
-func GetLogContext(withEndpoint bool) *core.SkyWalkingLogContext {
-	logReporter, ok := GetOperator().LogReporter().(operator.LogReporter)
+func GetLogContext(withEndpoint bool) interface{} {
+	logReporter, ok := GetOperator().LogReporter().(LogReporter)
 	if !ok || logReporter == nil {
 		return nil
 	}
 
-	ctx := logReporter.GetLogContext(withEndpoint)
-	if ctx == nil {
-		return nil
-	}
-	return ctx.(*core.SkyWalkingLogContext)
+	return logReporter.GetLogContext(withEndpoint)
 }
 
 func GetLogContextString() string {
-	return GetLogContext(false).String()
+	stringer, ok := GetLogContext(false).(fmt.Stringer)
+	if !ok {
+		return ""
+	}
+
+	return stringer.String()
 }

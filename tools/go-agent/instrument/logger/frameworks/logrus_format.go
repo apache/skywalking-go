@@ -48,7 +48,9 @@ func (format *WrapFormat) Format(entry *logrus.Entry) ([]byte, error) {
 		if ctx == nil {
 			return format.Base.Format(entry)
 		}
-		logContext = ctx
+		if stringer, ok := ctx.(fmt.Stringer); ok {
+			logContext = stringer
+		}
 		labels := make(map[string]string, len(keys))
 		for _, key := range keys {
 			for k, v := range entry.Data {
