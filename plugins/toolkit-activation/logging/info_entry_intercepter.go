@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package log
+package logging
 
 import "github.com/apache/skywalking-go/plugins/core/operator"
 
