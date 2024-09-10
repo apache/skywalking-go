@@ -39,8 +39,10 @@ func TracingContextEnhance(entry *zapcore.CheckedEntry) (interface{}, *zapcore.F
 	var getEndpoint = LogReporterEnable
 	if LogReporterEnable || LogTracingContextEnable {
 		ctx := GetLogContext(getEndpoint)
-		f := zap.String(LogTracingContextKey, ctx.String())
-		return ctx, &f
+		if c, ok := ctx.(fmt.Stringer); ok {
+			f := zap.String(LogTracingContextKey, c.String())
+			return ctx, &f
+		}
 	}
 	return nil, nil
 }

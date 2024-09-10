@@ -15,22 +15,16 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package logger
+package core
 
 import (
+	"fmt"
 	"testing"
 
-	"github.com/apache/skywalking-go/plugins/core"
 	"github.com/apache/skywalking-go/plugins/core/reporter"
 
 	"github.com/stretchr/testify/assert"
 )
-
-func init() {
-	GetOperator = func() Operator {
-		return core.Tracing
-	}
-}
 
 type ExtractorWrapper struct {
 	F func(headerKey string) (string, error)
@@ -41,37 +35,46 @@ func (e *ExtractorWrapper) Fun() func(headerKey string) (string, error) {
 }
 
 func TestGetLogContext(t *testing.T) {
+	defer ResetTracingContext()
 	serviceName := "test-service"
 	serviceInstanceName := "test-instance"
-	core.Tracing.ServiceEntity = &reporter.Entity{ServiceName: serviceName, ServiceInstanceName: serviceInstanceName}
-	s, err := core.Tracing.CreateEntrySpan("/test", &ExtractorWrapper{
+	Tracing.ServiceEntity = &reporter.Entity{ServiceName: serviceName, ServiceInstanceName: serviceInstanceName}
+	s, err := Tracing.CreateEntrySpan("/test", &ExtractorWrapper{
 		F: func(headerKey string) (string, error) {
 			return "", nil
 		},
 	})
 	assert.Nil(t, err, "err should be nil")
 	assert.NotNil(t, s, "span cannot be nil")
-	context := GetLogContext(true)
+	context := Tracing.GetLogContext(true)
 	assert.NotNil(t, context, "context cannot be nil")
-	rootSpan, ok := s.(*core.RootSegmentSpan)
+	rootSpan, ok := s.(*RootSegmentSpan)
 	assert.True(t, ok, "span should be root span")
-	assert.Equal(t, serviceName, context.ServiceName, "service name should be equal")
+	swCtx, ok := context.(*SkyWalkingLogContext)
+	assert.True(t, ok)
+	assert.NotNil(t, swCtx, "skywalkingContext cannot be nil")
+	assert.Equal(t, serviceName, swCtx.ServiceName, "service name should be equal")
 	assert.Equal(t, serviceInstanceName, serviceInstanceName, "service instance name should be equal")
-	assert.Equal(t, "/test", context.GetEndPointName(), "endpoint name should be equal")
-	assert.Equal(t, rootSpan.Context().GetTraceID(), context.TraceID, "trace id should be equal")
-	assert.Equal(t, rootSpan.Context().GetSegmentID(), context.TraceSegmentID, "trace segment id should be equal")
-	assert.Equal(t, rootSpan.Context().GetSpanID(), context.SpanID, "span id should be equal")
-	assert.NotEqualf(t, "", context.String(), "context string should not be empty")
+	assert.Equal(t, "/test", swCtx.GetEndPointName(), "endpoint name should be equal")
+	assert.Equal(t, rootSpan.Context().GetTraceID(), swCtx.TraceID, "trace id should be equal")
+	assert.Equal(t, rootSpan.Context().GetSegmentID(), swCtx.TraceSegmentID, "trace segment id should be equal")
+	assert.Equal(t, rootSpan.Context().GetSpanID(), swCtx.SpanID, "span id should be equal")
+	assert.NotEqualf(t, "", swCtx.String(), "context string should not be empty")
 	rootSpan.End()
 }
 
 func TestGetLogContextString(t *testing.T) {
-	s, err := core.Tracing.CreateLocalSpan("/test")
+	defer ResetTracingContext()
+	s, err := Tracing.CreateLocalSpan("/test")
 	assert.Nil(t, err, "err should be nil")
 	assert.NotNil(t, s, "span cannot be nil")
-	contextString := GetLogContextString()
-	assert.NotEqualf(t, "", contextString, "context string should not be empty")
-	rootSpan, ok := s.(*core.RootSegmentSpan)
+	context := Tracing.GetLogContext(false)
+	assert.NotNil(t, context, "context cannot be nil")
+	stringCtx, ok := context.(fmt.Stringer)
+	assert.True(t, ok)
+	assert.NotNil(t, stringCtx, "stringCtx cannot be nil")
+	assert.NotEqualf(t, "", stringCtx.String(), "context string should not be empty")
+	rootSpan, ok := s.(*RootSegmentSpan)
 	assert.True(t, ok, "span should be root span")
 	rootSpan.End()
 }

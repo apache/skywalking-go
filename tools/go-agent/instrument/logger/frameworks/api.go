@@ -19,7 +19,6 @@ package frameworks
 
 import (
 	"embed"
-	"fmt"
 	"time"
 
 	"github.com/apache/skywalking-go/plugins/core/operator"
@@ -52,7 +51,7 @@ var LogReporterLabelKeys []string
 var LogTracingContextKey = "SW_CTX"
 
 // GetLogContext get the tracing context
-var GetLogContext = func(withEndpoint bool) fmt.Stringer {
+var GetLogContext = func(withEndpoint bool) interface{} {
 	return nil
 }
 

@@ -92,6 +92,7 @@ jobs:
           - grpc
           - irisv12
           - trace-activation
+          - logging-activation
           - fasthttp
           - discard-reporter
           - fiber

@@ -15,23 +15,17 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package log
+package logging
 
-// Debug logs a message at DebugLevel
-func Debug(msg string, keyValues ...string) {
+import "github.com/apache/skywalking-go/plugins/core/operator"
 
+type WarnEntryInterceptor struct{}
+
+func (h *WarnEntryInterceptor) BeforeInvoke(invocation operator.Invocation) error {
+	sendLogEntry(warnLevel, invocation.Args()...)
+	return nil
 }
 
-// Info logs a message at InfoLevel
-func Info(msg string, keyValues ...string) {
-
-}
-
-// Warn logs a message at DebugLevel
-func Warn(msg string, keyValues ...string) {
-
-}
-
-// Error logs a message at ErrorLevel
-func Error(msg string, keyValues ...string) {
+func (h *WarnEntryInterceptor) AfterInvoke(_ operator.Invocation, _ ...interface{}) error {
+	return nil
 }
