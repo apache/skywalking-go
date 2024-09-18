@@ -1,0 +1,51 @@
+// Licensed to Apache Software Foundation (ASF) under one or more contributor
+// license agreements. See the NOTICE file distributed with
+// this work for additional information regarding copyright
+// ownership. Apache Software Foundation (ASF) licenses this file to you under
+// the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
+package main
+
+//go:nolint
+import (
+	"context"
+	_ "github.com/apache/skywalking-go"
+	"github.com/gogf/gf/v2/frame/g"
+	"github.com/gogf/gf/v2/net/ghttp"
+	"github.com/gogf/gf/v2/os/gcmd"
+	"github.com/gogf/gf/v2/os/gctx"
+	"net/http"
+)
+
+func main() {
+	command := gcmd.Command{
+		Name:  "goframe",
+		Usage: "goframe",
+		Brief: "start http server",
+		Func: func(ctx context.Context, parser *gcmd.Parser) (err error) {
+			s := g.Server()
+			s.SetPort(8080)
+			s.BindHandler("/provider", func(r *ghttp.Request) {
+				r.Response.Write("success")
+			})
+			s.BindHandler("/health", func(r *ghttp.Request) {
+				r.Response.WriteHeader(http.StatusOK)
+				r.Response.Write("success")
+			})
+			s.Run()
+			return nil
+		},
+	}
+	command.Run(gctx.New())
+}

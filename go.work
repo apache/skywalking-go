@@ -69,4 +69,5 @@ use (
 	./tools/go-agent
 
 	./toolkit
+	test/plugins/scenarios/goframe
 )
