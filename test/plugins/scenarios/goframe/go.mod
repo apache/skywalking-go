@@ -2,10 +2,7 @@ module test/plugins/scenarios/goframe
 
 go 1.19
 
-require (
-	github.com/apache/skywalking-go v0.5.0
-	github.com/gogf/gf/v2 v2.7.3
-)
+require github.com/gogf/gf/v2 v2.7.3
 
 require (
 	github.com/BurntSushi/toml v1.3.2 // indirect
