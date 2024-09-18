@@ -28,6 +28,7 @@ use (
 	./plugins/pulsar
 	./plugins/segmentio-kafka
 	./plugins/go-elasticsearchv8
+	./plugins/goframe
 
 	./test/benchmark-codebase/consumer
 	./test/benchmark-codebase/provider
