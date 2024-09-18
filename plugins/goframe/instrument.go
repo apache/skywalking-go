@@ -17,6 +17,7 @@
 
 package goframe
 
+//go:nolint
 import (
 	"embed"
 	"github.com/apache/skywalking-go/plugins/core/instrument"

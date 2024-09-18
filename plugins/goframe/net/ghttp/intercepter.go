@@ -17,6 +17,7 @@
 
 package ghttp
 
+//go:nolint
 import (
 	"fmt"
 	"github.com/apache/skywalking-go/plugins/core/operator"
@@ -50,7 +51,6 @@ func (h *GoFrameServerInterceptor) BeforeInvoke(invocation operator.Invocation) 
 
 // AfterInvoke processes after the HTTP request has been handled.
 func (h *GoFrameServerInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {
-	fmt.Printf("goframe 拦截请求前 AfterInvoke\n")
 	if invocation.GetContext() == nil {
 		return nil
 	}
