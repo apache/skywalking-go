@@ -29,7 +29,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [ubuntu-latest, macos-12]
+        os: [ubuntu-latest, macos-14]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     steps:
@@ -44,9 +44,9 @@ jobs:
           HOMEBREW_NO_INSTALL_UPGRADE: "1"
           HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: "1"
         run: |
-          brew install docker
-          brew install colima
-          colima start
+          brew install docker colima
+          colima delete
+          colima start --memory 4 --arch arm64
 
           # For testcontainers to find the Colima socket
           # https://github.com/abiosoft/colima/blob/main/docs/FAQ.md#cannot-connect-to-the-docker-daemon-at-unixvarrundockersock-is-the-docker-daemon-running
@@ -138,7 +138,7 @@ jobs:
     name: gin-macos
     needs:
       - build
-    runs-on: macos-12
+    runs-on: macos-14
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v2
@@ -146,7 +146,7 @@ jobs:
           submodules: true
       - uses: actions/download-artifact@v4
         with:
-          name: test-tools-macos-12
+          name: test-tools-macos-14
           path: test/plugins/dist
       - name: Set up Go 1.19
         uses: actions/setup-go@v2
@@ -159,9 +159,9 @@ jobs:
           HOMEBREW_NO_INSTALL_UPGRADE: "1"
           HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: "1"
         run: |
-          brew install docker docker-compose
-          brew install colima
-          colima start
+          brew install docker colima
+          colima delete
+          colima start --memory 4 --arch arm64
 
           # For testcontainers to find the Colima socket
           # https://github.com/abiosoft/colima/blob/main/docs/FAQ.md#cannot-connect-to-the-docker-daemon-at-unixvarrundockersock-is-the-docker-daemon-running
