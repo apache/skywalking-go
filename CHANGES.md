@@ -8,7 +8,6 @@ Release Notes.
 
 * support attaching events to span in the toolkit.
 * support record log in the toolkit.
-* support goframev2
 
 #### Plugins
 * Support [goframev2](https://github.com/gogf/gf) goframev2.

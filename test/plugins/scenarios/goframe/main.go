@@ -20,14 +20,16 @@ package main
 //go:nolint
 import (
 	"context"
-	_ "github.com/apache/skywalking-go"
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/net/ghttp"
 	"github.com/gogf/gf/v2/os/gcmd"
 	"github.com/gogf/gf/v2/os/gctx"
 	"net/http"
+
+	_ "github.com/apache/skywalking-go"
 )
 
+//go:nolint
 func main() {
 	command := gcmd.Command{
 		Name:  "goframe",
@@ -39,6 +41,16 @@ func main() {
 			s.BindHandler("/provider", func(r *ghttp.Request) {
 				r.Response.Write("success")
 			})
+			s.BindHandler("/consumer", func(r *ghttp.Request) {
+				var resp, err = g.Client().Get(gctx.GetInitCtx(), "http://localhost:8080/provider?test=1")
+				if err != nil {
+					r.Response.Write(err.Error())
+					return
+				}
+				defer resp.Close()
+				var str = resp.ReadAllString()
+				r.Response.Write(str)
+			})
 			s.BindHandler("/health", func(r *ghttp.Request) {
 				r.Response.WriteHeader(http.StatusOK)
 				r.Response.Write("success")
@@ -48,4 +60,5 @@ func main() {
 		},
 	}
 	command.Run(gctx.New())
+
 }

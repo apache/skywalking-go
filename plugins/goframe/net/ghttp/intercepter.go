@@ -36,7 +36,7 @@ func (h *GoFrameServerInterceptor) BeforeInvoke(invocation operator.Invocation) 
 	}, tracing.WithLayer(tracing.SpanLayerHTTP),
 		tracing.WithTag(tracing.TagHTTPMethod, request.Method),
 		tracing.WithTag(tracing.TagURL, request.Host+request.URL.Path),
-		tracing.WithComponent(5004))
+		tracing.WithComponent(5022))
 	if err != nil {
 		return err
 	}

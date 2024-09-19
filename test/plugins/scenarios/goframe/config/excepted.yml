@@ -26,7 +26,7 @@ segmentItems:
             spanLayer: Http
             startTime: nq 0
             endTime: nq 0
-            componentId: 5004
+            componentId: 5022
             isError: false
             spanType: Entry
             peer: ''
@@ -36,6 +36,10 @@ segmentItems:
               - {key: url, value: 'localhost:8080/provider'}
               - {key: http.params, value: 'test=1'}
               - {key: status_code, value: '200'}
+            refs:
+              - {parentEndpoint: 'GET:/consumer', networkAddress: 'localhost:8080', refType: CrossProcess,
+                 parentSpanId: 1, parentTraceSegmentId: not null, parentServiceInstance: not null,
+                 parentService: http, traceId: not null}
       - segmentId: not null
         spans:
           - operationName: GET:/provider
@@ -64,5 +68,10 @@ segmentItems:
             spanType: Entry
             peer: ''
             skipAnalysis: false
+            tags:
+              - {key: http.method, value: GET}
+              - {key: url, value: 'service:8080/consumer'}
+              - {key: http.params, value: ''}
+              - {key: status_code, value: '200'}
 meterItems: []
 logItems: []

@@ -14,15 +14,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-entry-service: http://${HTTP_HOST}:${HTTP_PORT}/provider
+entry-service: http://${HTTP_HOST}:${HTTP_PORT}/consumer
 health-checker: http://${HTTP_HOST}:${HTTP_PORT}/health
 start-script: ./bin/startup.sh
 framework: github.com/gogf/gf
 export-port: 8080
 support-version:
   - go: 1.18
-  - go: 1.19
-  - go: 1.20
-  - go: 1.21
-  - go: 1.22
+    framework:
+      - v2.7.3
+      - v2.7.2
+      - v2.7.1
+      - v2.7.0
+      - v2.6.4
+      - v2.6.3
+      - v2.6.2
+      - v2.6.1
+      - v2.6.0
   - go: 1.23
+    framework:
+      - v2.7.3
+      - v2.7.2
+      - v2.7.1
+      - v2.7.0
+      - v2.6.4
+      - v2.6.3
+      - v2.6.2
+      - v2.6.1
+      - v2.6.0
