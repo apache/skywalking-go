@@ -20,11 +20,12 @@ package main
 //go:nolint
 import (
 	"context"
+	"net/http"
+
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/net/ghttp"
 	"github.com/gogf/gf/v2/os/gcmd"
 	"github.com/gogf/gf/v2/os/gctx"
-	"net/http"
 
 	_ "github.com/apache/skywalking-go"
 )
