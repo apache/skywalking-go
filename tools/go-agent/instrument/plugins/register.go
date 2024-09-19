@@ -87,7 +87,7 @@ func init() {
 	// echov4 related instruments
 	registerFramework(echov4.NewInstrument())
 
-	//goframe
+	// goframe
 	registerFramework(goframe.NewInstrument())
 }
 
