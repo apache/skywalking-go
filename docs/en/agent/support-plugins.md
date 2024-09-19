@@ -15,7 +15,6 @@ metrics based on the tracing data.
 * HTTP Client
   * `http`: [Native HTTP](https://pkg.go.dev/net/http) tested go v1.19 to go v1.23.
   * `fasthttp`: [FastHttp](https://github.com/valyala/fasthttp) tested v1.10.0 to v1.50.0.
-  * `goframe`: [GoFrame](https://github.com/gogf/gf/) tested v2.6.0 to v2.7.3
 * RPC Frameworks
   * `dubbo`: [Dubbo](https://github.com/apache/dubbo-go) tested v3.0.1 to v3.0.5.
   * `kratosv2`: [Kratos](https://github.com/go-kratos/kratos) tested v2.3.1 to v2.6.2.
