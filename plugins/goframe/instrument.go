@@ -20,8 +20,9 @@ package goframe
 //go:nolint
 import (
 	"embed"
-	"github.com/apache/skywalking-go/plugins/core/instrument"
 	"strings"
+
+	"github.com/apache/skywalking-go/plugins/core/instrument"
 )
 
 //go:embed *
