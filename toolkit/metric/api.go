@@ -18,16 +18,21 @@
 package metric
 
 // NewCounter creates a new counter metrics.
-func NewCounter(name string, opt ...MeterOpt) *CounterRef {
+func NewCounter(name string, opt ...interface{}) *CounterRef {
 	return &CounterRef{}
 }
 
 // NewGauge creates a new gauge metrics.
-func NewGauge(name string, watcher func() float64, opts ...MeterOpt) *GaugeRef {
+func NewGauge(name string, getter func() float64, opts ...interface{}) *GaugeRef {
 	return &GaugeRef{}
 }
 
 // NewHistogram creates a new histogram metrics.
-func NewHistogram(name string, steps []float64, opts ...MeterOpt) *Histogram {
+func NewHistogram(name string, steps []float64, opts ...interface{}) *Histogram {
 	return &Histogram{}
+}
+
+// WithLabels Add labels for metric
+func WithLabels(key, val string) interface{} {
+	return nil
 }
