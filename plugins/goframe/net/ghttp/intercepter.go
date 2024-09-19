@@ -17,12 +17,13 @@
 
 package ghttp
 
-//go:nolint
+// nolint
 import (
 	"fmt"
+	"net/http"
+
 	"github.com/apache/skywalking-go/plugins/core/operator"
 	"github.com/apache/skywalking-go/plugins/core/tracing"
-	"net/http"
 )
 
 // GoFrameServerInterceptor is used to intercept and trace HTTP requests.
