@@ -30,6 +30,7 @@ import (
 	goelasticsearchv8 "github.com/apache/skywalking-go/plugins/go-elasticsearchv8"
 	goredisv9 "github.com/apache/skywalking-go/plugins/go-redisv9"
 	"github.com/apache/skywalking-go/plugins/go-restfulv3"
+	"github.com/apache/skywalking-go/plugins/goframe"
 	gorm_entry "github.com/apache/skywalking-go/plugins/gorm/entry"
 	gorm_mysql "github.com/apache/skywalking-go/plugins/gorm/mysql"
 	"github.com/apache/skywalking-go/plugins/grpc"
@@ -85,6 +86,9 @@ func init() {
 
 	// echov4 related instruments
 	registerFramework(echov4.NewInstrument())
+
+	// goframe
+	registerFramework(goframe.NewInstrument())
 }
 
 func registerFramework(ins instrument.Instrument) {

@@ -10,6 +10,7 @@ Release Notes.
 * support record log in the toolkit.
 
 #### Plugins
+* Support [goframev2](https://github.com/gogf/gf) goframev2.
 
 #### Bug Fixes
 * Fix wrong docker image name and `-version` command.

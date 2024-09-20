@@ -102,6 +102,7 @@ jobs:
           - pulsar
           - segmentio-kafka
           - go-elasticsearchv8
+          - goframe
     steps:
       - uses: actions/checkout@v2
         with:
