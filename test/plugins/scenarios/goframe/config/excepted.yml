@@ -34,8 +34,8 @@ segmentItems:
             tags:
               - {key: http.method, value: GET}
               - {key: url, value: 'localhost:8080/provider'}
-              - {key: http.headers, value: "h1=h1-value\nh2=h2"}
               - {key: http.params, value: 'test=1'}
+              - {key: http.headers, value: "h1=h1-value\nh2=h2"}
               - {key: status_code, value: '200'}
             refs:
               - {parentEndpoint: 'GET:/consumer', networkAddress: 'localhost:8080', refType: CrossProcess,
@@ -57,8 +57,8 @@ segmentItems:
             tags:
               - {key: http.method, value: GET}
               - {key: url, value: 'localhost:8080/provider'}
-              - {key: http.headers, value: "h1=h1-value\nh2=h2"}
               - {key: http.params, value: 'test=1'}
+              - {key: http.headers, value: "h1=h1-value\nh2=h2"}
               - {key: status_code, value: '200'}
           - operationName: GET:/consumer
             parentSpanId: -1
