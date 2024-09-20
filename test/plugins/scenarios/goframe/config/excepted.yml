@@ -63,7 +63,7 @@ segmentItems:
             spanLayer: Http
             startTime: gt 0
             endTime: gt 0
-            componentId: 5004
+            componentId: 5022
             isError: false
             spanType: Entry
             peer: ''
