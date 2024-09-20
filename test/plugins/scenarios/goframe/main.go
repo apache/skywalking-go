@@ -44,8 +44,8 @@ func main() {
 			})
 			s.BindHandler("/consumer", func(r *ghttp.Request) {
 				client := g.Client()
-				client.SetHeader("h1", "h1")
-				client.SetHeader("h2", "h2")
+				client.SetHeader("h1", "h1-value")
+				client.SetHeader("h2", "h2-value")
 				var resp, err = client.Get(gctx.GetInitCtx(), "http://localhost:8080/provider?test=1")
 				if err != nil {
 					r.Response.Write(err.Error())
