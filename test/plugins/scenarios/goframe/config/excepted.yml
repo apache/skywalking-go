@@ -15,7 +15,7 @@
 # limitations under the License.
 
 segmentItems:
-  - serviceName: http
+  - serviceName: goframe
     segmentSize: ge 3
     segments:
       - segmentId: not null
@@ -39,7 +39,7 @@ segmentItems:
             refs:
               - {parentEndpoint: 'GET:/consumer', networkAddress: 'localhost:8080', refType: CrossProcess,
                  parentSpanId: 1, parentTraceSegmentId: not null, parentServiceInstance: not null,
-                 parentService: http, traceId: not null}
+                 parentService: goframe, traceId: not null}
       - segmentId: not null
         spans:
           - operationName: GET:/provider
