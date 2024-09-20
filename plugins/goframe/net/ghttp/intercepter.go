@@ -21,6 +21,7 @@ package ghttp
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/apache/skywalking-go/plugins/core/operator"
 	"github.com/apache/skywalking-go/plugins/core/tracing"
@@ -42,7 +43,12 @@ func (h *GoFrameServerInterceptor) BeforeInvoke(invocation operator.Invocation) 
 		return err
 	}
 
-	s.Tag(tracing.TagHTTPParams, request.URL.RawQuery)
+	if config.CollectRequestParameters && request.URL != nil {
+		s.Tag(tracing.TagHTTPParams, request.URL.RawQuery)
+	}
+	if len(config.CollectRequestHeaders) > 0 {
+		collectRequestHeaders(s, request.Header)
+	}
 
 	writer := invocation.Args()[0].(http.ResponseWriter)
 	invocation.ChangeArg(0, &writerWrapper{ResponseWriter: writer, statusCode: http.StatusOK})
@@ -66,4 +72,26 @@ func (h *GoFrameServerInterceptor) AfterInvoke(invocation operator.Invocation, r
 type writerWrapper struct {
 	http.ResponseWriter
 	statusCode int
+}
+
+func collectRequestHeaders(span tracing.Span, requestHeaders http.Header) {
+	var headerTagValues []string
+	for _, header := range config.CollectRequestHeaders {
+		var headerValue = requestHeaders.Get(header)
+		if headerValue != "" {
+			headerTagValues = append(headerTagValues, header+"="+headerValue)
+		}
+	}
+
+	if len(headerTagValues) == 0 {
+		return
+	}
+
+	tagValue := strings.Join(headerTagValues, "\n")
+	if len(tagValue) > config.HeaderLengthThreshold {
+		maxLen := config.HeaderLengthThreshold
+		tagValue = tagValue[:maxLen]
+	}
+
+	span.Tag(tracing.TagHTTPHeaders, tagValue)
 }

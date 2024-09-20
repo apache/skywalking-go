@@ -43,7 +43,10 @@ func main() {
 				r.Response.Write("success")
 			})
 			s.BindHandler("/consumer", func(r *ghttp.Request) {
-				var resp, err = g.Client().Get(gctx.GetInitCtx(), "http://localhost:8080/provider?test=1")
+				client := g.Client()
+				client.SetHeader("h1", "h1")
+				client.SetHeader("h2", "h2")
+				var resp, err = client.Get(gctx.GetInitCtx(), "http://localhost:8080/provider?test=1")
 				if err != nil {
 					r.Response.Write(err.Error())
 					return
