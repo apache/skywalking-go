@@ -24,7 +24,11 @@ import (
 
 type CounterIncInterceptor struct{}
 
-func (h *CounterIncInterceptor) BeforeInvoke(invocation operator.Invocation) error {
+func (h *CounterIncInterceptor) BeforeInvoke(_ operator.Invocation) error {
+	return nil
+}
+
+func (h *CounterIncInterceptor) AfterInvoke(invocation operator.Invocation, _ ...interface{}) error {
 	enhanced, ok := invocation.CallerInstance().(operator.EnhancedInstance)
 	if !ok {
 		return nil
@@ -34,9 +38,5 @@ func (h *CounterIncInterceptor) BeforeInvoke(invocation operator.Invocation) err
 	if ok && counter != nil {
 		counter.Inc(invocation.Args()[0].(float64))
 	}
-	return nil
-}
-
-func (h *CounterIncInterceptor) AfterInvoke(_ operator.Invocation, _ ...interface{}) error {
 	return nil
 }

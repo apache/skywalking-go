@@ -20,6 +20,7 @@ package metric
 import (
 	"github.com/apache/skywalking-go/plugins/core/metrics"
 	"github.com/apache/skywalking-go/plugins/core/operator"
+	"github.com/apache/skywalking-go/toolkit/metric"
 )
 
 type NewHistogramInterceptor struct{}
@@ -33,7 +34,7 @@ func (h *NewHistogramInterceptor) AfterInvoke(invocation operator.Invocation, re
 	metricName := invocation.Args()[0].(string)
 	steps := invocation.Args()[1].([]float64)
 	var opts []metrics.Opt
-	for _, o := range invocation.Args()[2].([]interface{}) {
+	for _, o := range invocation.Args()[2].([]metric.MeterOpt) {
 		opt := o.(metrics.Opt)
 		opts = append(opts, opt)
 	}

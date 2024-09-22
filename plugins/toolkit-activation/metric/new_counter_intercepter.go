@@ -20,6 +20,7 @@ package metric
 import (
 	"github.com/apache/skywalking-go/plugins/core/metrics"
 	"github.com/apache/skywalking-go/plugins/core/operator"
+	"github.com/apache/skywalking-go/toolkit/metric"
 )
 
 type NewCounterInterceptor struct{}
@@ -32,7 +33,7 @@ func (h *NewCounterInterceptor) AfterInvoke(invocation operator.Invocation, resu
 	enhanced := result[0].(operator.EnhancedInstance)
 	metricName := invocation.Args()[0].(string)
 	var opts []metrics.Opt
-	for _, o := range invocation.Args()[1].([]interface{}) {
+	for _, o := range invocation.Args()[1].([]metric.MeterOpt) {
 		opt := o.(metrics.Opt)
 		opts = append(opts, opt)
 	}

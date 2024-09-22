@@ -18,21 +18,26 @@
 package metric
 
 // NewCounter creates a new counter metrics.
-func NewCounter(name string, opt ...interface{}) *CounterRef {
+func NewCounter(name string, opt ...MeterOpt) *CounterRef {
 	return &CounterRef{}
 }
 
 // NewGauge creates a new gauge metrics.
-func NewGauge(name string, getter func() float64, opts ...interface{}) *GaugeRef {
+func NewGauge(name string, getter func() float64, opts ...MeterOpt) *GaugeRef {
 	return &GaugeRef{}
 }
 
 // NewHistogram creates a new histogram metrics.
-func NewHistogram(name string, steps []float64, opts ...interface{}) *HistogramRef {
+func NewHistogram(name string, steps []float64, opts ...MeterOpt) *HistogramRef {
 	return &HistogramRef{}
 }
 
+// MeterOpt Defines common options apply for Meter.
+// This is implemented in core/metrics package and converted in interceptors.
+type MeterOpt interface {
+}
+
 // WithLabels Add labels for metric
-func WithLabels(key, val string) interface{} {
+func WithLabels(key, val string) MeterOpt {
 	return nil
 }

@@ -20,6 +20,7 @@ package metric
 import (
 	"github.com/apache/skywalking-go/plugins/core/metrics"
 	"github.com/apache/skywalking-go/plugins/core/operator"
+	"github.com/apache/skywalking-go/toolkit/metric"
 )
 
 type NewGaugeInterceptor struct{}
@@ -33,7 +34,7 @@ func (h *NewGaugeInterceptor) AfterInvoke(invocation operator.Invocation, result
 	metricName := invocation.Args()[0].(string)
 	getterFn := invocation.Args()[1].(func() float64)
 	var opts []metrics.Opt
-	for _, o := range invocation.Args()[2].([]interface{}) {
+	for _, o := range invocation.Args()[2].([]metric.MeterOpt) {
 		opt := o.(metrics.Opt)
 		opts = append(opts, opt)
 	}

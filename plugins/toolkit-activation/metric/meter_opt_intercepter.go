@@ -24,14 +24,14 @@ import (
 
 type WithLabelsInterceptor struct{}
 
-func (h *WithLabelsInterceptor) BeforeInvoke(invocation operator.Invocation) error {
+func (h *WithLabelsInterceptor) BeforeInvoke(_ operator.Invocation) error {
+	return nil
+}
+
+func (h *WithLabelsInterceptor) AfterInvoke(invocation operator.Invocation, _ ...interface{}) error {
 	key := invocation.Args()[0].(string)
 	val := invocation.Args()[1].(string)
 	withLabelOpt := metrics.WithLabel(key, val)
 	invocation.DefineReturnValues(withLabelOpt)
-	return nil
-}
-
-func (h *WithLabelsInterceptor) AfterInvoke(_ operator.Invocation, _ ...interface{}) error {
 	return nil
 }
