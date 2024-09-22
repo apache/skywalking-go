@@ -93,6 +93,7 @@ jobs:
           - irisv12
           - trace-activation
           - logging-activation
+          - metric-activation
           - fasthttp
           - discard-reporter
           - fiber

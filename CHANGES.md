@@ -8,6 +8,7 @@ Release Notes.
 
 * support attaching events to span in the toolkit.
 * support record log in the toolkit.
+* support manually report metrics in the toolkit.
 
 #### Plugins
 
