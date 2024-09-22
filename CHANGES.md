@@ -11,6 +11,7 @@ Release Notes.
 * support manually report metrics in the toolkit.
 
 #### Plugins
+* Support [goframev2](https://github.com/gogf/gf) goframev2.
 
 #### Bug Fixes
 * Fix wrong docker image name and `-version` command.
