@@ -28,8 +28,8 @@ func NewGauge(name string, getter func() float64, opts ...interface{}) *GaugeRef
 }
 
 // NewHistogram creates a new histogram metrics.
-func NewHistogram(name string, steps []float64, opts ...interface{}) *Histogram {
-	return &Histogram{}
+func NewHistogram(name string, steps []float64, opts ...interface{}) *HistogramRef {
+	return &HistogramRef{}
 }
 
 // WithLabels Add labels for metric

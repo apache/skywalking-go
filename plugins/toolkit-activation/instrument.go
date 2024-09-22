@@ -78,7 +78,7 @@ func metricPoint() []*instrument.Point {
 			PackagePath: "metric", At: instrument.NewMethodEnhance("*CounterRef", "Inc"),
 			Interceptor: "CounterIncInterceptor",
 		},
-		// Counter metric type related enhancement point
+		// Gauge metric type related enhancement point
 		{
 			PackagePath: "metric", At: instrument.NewStructEnhance("GaugeRef"),
 		},
@@ -89,6 +89,22 @@ func metricPoint() []*instrument.Point {
 		{
 			PackagePath: "metric", At: instrument.NewMethodEnhance("*GaugeRef", "Get"),
 			Interceptor: "GaugeGetInterceptor",
+		},
+		// Histogram metric type related enhancement point
+		{
+			PackagePath: "metric", At: instrument.NewStructEnhance("HistogramRef"),
+		},
+		{
+			PackagePath: "metric", At: instrument.NewStaticMethodEnhance("NewHistogram"),
+			Interceptor: "NewHistogramInterceptor",
+		},
+		{
+			PackagePath: "metric", At: instrument.NewMethodEnhance("*HistogramRef", "Observe"),
+			Interceptor: "HistogramObserveInterceptor",
+		},
+		{
+			PackagePath: "metric", At: instrument.NewMethodEnhance("*HistogramRef", "ObserveWithCount"),
+			Interceptor: "HistogramObserveWithCountInterceptor",
 		},
 		// metric options related enhancement point
 		{
