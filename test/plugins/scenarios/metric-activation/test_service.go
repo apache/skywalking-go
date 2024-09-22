@@ -38,3 +38,20 @@ func testGauge() {
 		return 30
 	}, metric.WithLabels("foo", "bar"))
 }
+
+func testHistogram() {
+	steps := []float64{5, 20, 50, 100, 500, 1000}
+	histogram := metric.NewHistogram("request_duration", steps)
+	histogram.Observe(10)
+	histogram.Observe(200)
+	histogram.Observe(1500)
+	histogram.ObserveWithCount(20, 1)
+	histogram.ObserveWithCount(20, 2)
+
+	histogramWithLabel := metric.NewHistogram("request_duration_with_label", steps, metric.WithLabels("foo", "bar"))
+	histogramWithLabel.Observe(10)
+	histogramWithLabel.Observe(200)
+	histogramWithLabel.Observe(1500)
+	histogramWithLabel.ObserveWithCount(100, 1)
+	histogramWithLabel.ObserveWithCount(500, 2)
+}

@@ -29,6 +29,7 @@ import (
 func providerHandler(w http.ResponseWriter, r *http.Request) {
 	testCounter()
 	testGauge()
+	testHistogram()
 
 	time.Sleep(2 * time.Second) // make sure the meter already uploaded
 	_, _ = w.Write([]byte("success"))

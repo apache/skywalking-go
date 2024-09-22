@@ -37,4 +37,25 @@ meterItems:
           tags:
             - { name: foo, value: bar }
         singleValue: ge 30
+      - meterId:
+          name: request_duration
+          tags: []
+        histogramBuckets:
+          - 5
+          - 20
+          - 50
+          - 100
+          - 500
+          - 1000
+      - meterId:
+          name: request_duration_with_label
+          tags:
+            - { name: foo, value: bar }
+        histogramBuckets:
+            - 5
+            - 20
+            - 50
+            - 100
+            - 500
+            - 1000
 logItems: []
