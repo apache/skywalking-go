@@ -54,7 +54,64 @@ func (i *Instrument) Points() []*instrument.Point {
 	// append toolkit/logging related enhancements Point
 	instPoints = append(instPoints, loggingPoint()...)
 
+	// append toolkit/metric related enhancements Point
+	instPoints = append(instPoints, metricPoint()...)
+
 	return instPoints
+}
+
+func metricPoint() []*instrument.Point {
+	return []*instrument.Point{
+		// Counter metric type related enhancement point
+		{
+			PackagePath: "metric", At: instrument.NewStructEnhance("CounterRef"),
+		},
+		{
+			PackagePath: "metric", At: instrument.NewStaticMethodEnhance("NewCounter"),
+			Interceptor: "NewCounterInterceptor",
+		},
+		{
+			PackagePath: "metric", At: instrument.NewMethodEnhance("*CounterRef", "Get"),
+			Interceptor: "CounterGetInterceptor",
+		},
+		{
+			PackagePath: "metric", At: instrument.NewMethodEnhance("*CounterRef", "Inc"),
+			Interceptor: "CounterIncInterceptor",
+		},
+		// Gauge metric type related enhancement point
+		{
+			PackagePath: "metric", At: instrument.NewStructEnhance("GaugeRef"),
+		},
+		{
+			PackagePath: "metric", At: instrument.NewStaticMethodEnhance("NewGauge"),
+			Interceptor: "NewGaugeInterceptor",
+		},
+		{
+			PackagePath: "metric", At: instrument.NewMethodEnhance("*GaugeRef", "Get"),
+			Interceptor: "GaugeGetInterceptor",
+		},
+		// Histogram metric type related enhancement point
+		{
+			PackagePath: "metric", At: instrument.NewStructEnhance("HistogramRef"),
+		},
+		{
+			PackagePath: "metric", At: instrument.NewStaticMethodEnhance("NewHistogram"),
+			Interceptor: "NewHistogramInterceptor",
+		},
+		{
+			PackagePath: "metric", At: instrument.NewMethodEnhance("*HistogramRef", "Observe"),
+			Interceptor: "HistogramObserveInterceptor",
+		},
+		{
+			PackagePath: "metric", At: instrument.NewMethodEnhance("*HistogramRef", "ObserveWithCount"),
+			Interceptor: "HistogramObserveWithCountInterceptor",
+		},
+		// metric options related enhancement point
+		{
+			PackagePath: "metric", At: instrument.NewStaticMethodEnhance("WithLabels"),
+			Interceptor: "WithLabelsInterceptor",
+		},
+	}
 }
 
 func tracePoint() []*instrument.Point {

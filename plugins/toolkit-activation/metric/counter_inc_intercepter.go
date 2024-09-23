@@ -17,33 +17,26 @@
 
 package metric
 
-type CounterRef struct{}
+import (
+	"github.com/apache/skywalking-go/plugins/core/metrics"
+	"github.com/apache/skywalking-go/plugins/core/operator"
+)
 
-// Get returns the current value of the counter.
-func (c *CounterRef) Get() float64 {
-	return -1
+type CounterIncInterceptor struct{}
+
+func (h *CounterIncInterceptor) BeforeInvoke(_ operator.Invocation) error {
+	return nil
 }
 
-// Inc increments the counter with value.
-func (c *CounterRef) Inc(val float64) {}
+func (h *CounterIncInterceptor) AfterInvoke(invocation operator.Invocation, _ ...interface{}) error {
+	enhanced, ok := invocation.CallerInstance().(operator.EnhancedInstance)
+	if !ok {
+		return nil
+	}
 
-type GaugeRef struct {
-}
-
-// Get returns the current value of the gauge.
-func (g *GaugeRef) Get() float64 {
-	return -1
-}
-
-type HistogramRef struct {
-}
-
-// Observe find the value associate bucket and add 1.
-func (h *HistogramRef) Observe(val float64) {
-
-}
-
-// ObserveWithCount find the value associate bucket and add specific count.
-func (h *HistogramRef) ObserveWithCount(val float64, count int64) {
-
+	counter, ok := enhanced.GetSkyWalkingDynamicField().(metrics.Counter)
+	if ok && counter != nil {
+		counter.Inc(invocation.Args()[0].(float64))
+	}
+	return nil
 }
