@@ -92,3 +92,7 @@ MeterOpt is a common Option for metric types. Currently, only `WithLabels` is su
 // WithLabels Add labels for metric
 func WithLabels(key, val string) MeterOpt
 ```
+
+### More Information
+
+Custom metrics may be collected by the Manual Meter API. Custom metrics collected cannot be used directly; they should be configured in the meter-analyzer-config configuration files. [see reference for details](https://skywalking.apache.org/docs/main/latest/en/setup/backend/backend-meter/#report-meter-telemetry-data)

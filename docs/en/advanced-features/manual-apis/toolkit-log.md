@@ -45,3 +45,7 @@ func main() {
     logging.Debug("this is debug info", "foo", "bar")
 }
 ```
+
+### More Information
+
+Log analyzer of OAP server supports native log data. OAP could use Log Analysis Language to structure log content through parsing, extracting and saving logs. The analyzer also uses Meter Analysis Language Engine for further metrics calculation. [see reference for details](https://skywalking.apache.org/docs/main/latest/en/setup/backend/log-analyzer/#log-analysis)
