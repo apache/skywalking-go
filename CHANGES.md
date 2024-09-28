@@ -13,6 +13,11 @@ Release Notes.
 #### Plugins
 * Support [goframev2](https://github.com/gogf/gf) goframev2.
 
+#### Documentation
+* Add docs for `AddEvent` in `Tracing APIs`
+* Add `Logging APIs` document into Manual APIs.
+* Add `Metric APIs` document into Manual APIs.
+
 #### Bug Fixes
 * Fix wrong docker image name and `-version` command.
 * Fix redis plugin cannot work in cluster mode.
