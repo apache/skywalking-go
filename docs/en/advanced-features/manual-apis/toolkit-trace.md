@@ -3,7 +3,7 @@
 ## Add trace Toolkit
 
 toolkit/trace provides the APIs to enhance the trace context, such as createLocalSpan, createExitSpan, createEntrySpan, log, tag, prepareForAsync and asyncFinish. 
-Add the toolkit dependency to your project.
+Add the toolkit/trace dependency to your project.
 
 ```go
 import "github.com/apache/skywalking-go/toolkit/trace"
@@ -96,6 +96,32 @@ trace.SetComponent(ComponentID)
 ```
 
 The Component ID in Span is used to identify the current component, which is declared in the [component libraries YAML](https://github.com/apache/skywalking/blob/master/oap-server/server-starter/src/main/resources/component-libraries.yml) from the OAP server side.
+
+### Attach an event to a span
+
+Use the `trace.AddEvent(et EventType, event string)` API to attach an event to the Span
+
+Currently, we support the following four types of events:
+
+```go
+// DebugEventType Indicates the event type is "debug"
+DebugEventType EventType = "debug"
+
+// InfoEventType Indicates the event type is "info"
+InfoEventType EventType = "info"
+
+// WarnEventType Indicates the event type is "warn"
+WarnEventType EventType = "warn"
+
+// ErrorEventType Indicates the event type is "error"
+ErrorEventType EventType = "error"
+```
+
+For example, we can add a "request timeout" event:
+
+```go
+trace.AddEvent(WarnEventType, "current request has timed out!")
+```
 
 ### Async Prepare/Finish
 
