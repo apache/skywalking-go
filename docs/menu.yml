@@ -46,6 +46,10 @@ catalog:
           catalog:
             - name: Tracing APIs
               path: /en/advanced-features/manual-apis/toolkit-trace
+            - name: Logging APIs
+              path: /en/advanced-features/manual-apis/toolkit-log
+            - name: Metric APIs
+              path: /en/advanced-features/manual-apis/toolkit-metric
     - name: Plugins
       catalog:
         - name: Supported Libraries
