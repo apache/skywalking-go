@@ -12,6 +12,7 @@ metrics based on the tracing data.
   * `fiber`: [Fiber](https://github.com/gofiber/fiber) tested v2.49.0 to v2.50.0.
   * `echov4`: [Echov4](https://github.com/labstack/echo) tested v4.0.0 to v4.11.4
   * `goframe`: [GoFrame](https://github.com/gogf/gf/) tested v2.6.0 to v2.7.3
+  * `gozero`: [GoZero](https://github.com/zeromicro/go-zero) tested v1.6.0 to v1.7.2
 * HTTP Client
   * `http`: [Native HTTP](https://pkg.go.dev/net/http) tested go v1.19 to go v1.23.
   * `fasthttp`: [FastHttp](https://github.com/valyala/fasthttp) tested v1.10.0 to v1.50.0.

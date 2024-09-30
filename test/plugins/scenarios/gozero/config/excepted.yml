@@ -1,0 +1,156 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+segmentItems:
+  - serviceName: gozero
+    segmentSize: ge 2
+    segments:
+      - segmentId: not null
+        spans:
+          - operationName: GET:/user/info
+            parentSpanId: -1
+            spanId: 1
+            spanLayer: Http
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 5023
+            isError: false
+            spanType: Entry
+            peer: ''
+            skipAnalysis: false
+            tags:
+              - {key: http.method, value: GET}
+              - {key: url, value: 'localhost:8888/user/info'}
+              - {key: http.params, value: not null}
+              - {key: status_code, value: '200'}
+            refs:
+              - {parentEndpoint: 'GET:/user/info?id=1', networkAddress: 'localhost:8080', refType: CrossProcess,
+                 parentSpanId: 1, parentTraceSegmentId: not null, parentServiceInstance: not null,
+                 parentService: gozero, traceId: not null}
+          - operationName: logx.info
+            parentSpanId: 1
+            spanId: 2
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 5023
+            isError: false
+            spanType: Local
+            tags:
+              - {key: content, value: 'user api find: &{Id:0 Uuid:}'}
+          - operationName: logx.error
+            parentSpanId: 1
+            spanId: 3
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 5023
+            isError: false
+            spanType: Local
+            tags:
+              - {key: content, value: 'test error log'}
+          - operationName: user.User.UserFind
+            parentSpanId: 1
+            spanId: 4
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 23
+            isError: false
+            spanType: Exit
+            tags:
+              - { key: url, value: not null }
+              - { key: rpc.type, value: Unary }
+          - operationName: user.User.UserFind/Client/Request/SendMsg
+            parentSpanId: 4
+            spanId: 5
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 23
+            isError: false
+            spanType: Local
+            tags:
+              - { key: url, value: not null }
+          - operationName: user.User.UserFind/Client/Response/RecvMsg
+            parentSpanId: 4
+            spanId: 6
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 23
+            isError: false
+            spanType: Local
+            tags:
+              - { key: url, value: not null }
+          - operationName: user.User.UserFind
+            parentSpanId: 4
+            spanId: 7
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 23
+            isError: false
+            spanType: Entry
+            tags:
+              - { key: url, value: not null }
+              - { key: rpc.type, value: Unary }
+          - operationName: /user.User/UserFind
+            parentSpanId: 7
+            spanId: 8
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 5023
+            isError: false
+            spanType: Local
+            tags:
+              - { key: url, value: not null }
+          - operationName: logx.info
+            parentSpanId: 7
+            spanId: 9
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 5023
+            isError: false
+            spanType: Local
+            tags:
+              - { key: content, value: not null }
+          - operationName: user.User.UserFind/Server/Response/SendResponse
+            parentSpanId: 4
+            spanId: 10
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 23
+            isError: false
+            spanType: Local
+            tags:
+              - { key: url, value: not null }
+      - segmentId: not null
+        spans:
+          - operationName: user.User.UserFind
+            parentSpanId: 0
+            spanId: 1
+            spanLayer: RPCFramework
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 23
+            isError: false
+            spanType: Exit
+            peer: localhost:8889
+            skipAnalysis: false
+            tags:
+              - { key: url, value: not null }
+              - { key: rpc.type, value: Unary }
+            refs:
+              - { parentEndpoint: 'GET:/user/info', networkAddress: 'localhost:8889', refType: CrossProcess,
+                    parentSpanId: 2, parentTraceSegmentId: not null, parentServiceInstance: not null,
+                    parentService: gozero, traceId: not null }
+meterItems: []
+logItems: []

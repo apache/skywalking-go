@@ -34,7 +34,7 @@ agent:
   ignore_suffix: ${SW_AGENT_IGNORE_SUFFIX:.jpg,.jpeg,.js,.css,.png,.bmp,.gif,.ico,.mp3,.mp4,.html,.svg}
   # If the operation name of the first span is matching, this segment should be ignored.(multiple split by ",").
   # Matching rules follow Ant Path match style, like /path/*, /path/**, /path/?.
-  #       "/path/*" means matching any path that starts with "/path/".  
+  #       "/path/*" means matching any path that starts with "/path/".
   #       "/path/**" means matching any path that starts with "/path/" and includes its subpaths.
   #       "/path/?" means matching any path that starts with "/path/" and has any single character as a wildcard.
   trace_ignore_path: ${SW_AGENT_TRACE_IGNORE_PATH:}
@@ -106,7 +106,7 @@ plugin:
     redis:
       # Limit the bytes size of redis args request
       max_args_bytes: ${SW_AGENT_PLUGIN_CONFIG_REDIS_MAX_ARGS_BYTES:1024}
-    gin: 
+    gin:
       # Collect the http header of gin request
       collect_request_headers: ${SW_AGENT_PLUGIN_CONFIG_GIN_COLLECT_REQUEST_HEADERS:}
       # Controlling the length limitation of all header values
@@ -118,5 +118,9 @@ plugin:
       collect_request_headers: ${SW_AGENT_PLUGIN_CONFIG_GOFRAME_COLLECT_REQUEST_HEADERS:}
       # Controlling the length limitation of all header values
       header_length_threshold: ${SW_AGENT_PLUGIN_CONFIG_GOFRAME_HEADER_LENGTH_THRESHOLD:2048}
-
+    gozero:
+      # Collect the parameters of gozero request
+      collect_request_parameters: ${SW_AGENT_PLUGIN_CONFIG_GOZERO_COLLECT_REQUEST_PARAMETERS:false}
+      # Collect the parameters of the gozero logx
+      collect_logx: ${SW_AGENT_PLUGIN_CONFIG_GOZERO_COLLECT_LOGX:false}
 

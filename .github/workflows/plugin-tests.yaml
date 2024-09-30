@@ -104,6 +104,7 @@ jobs:
           - segmentio-kafka
           - go-elasticsearchv8
           - goframe
+          - gozero
     steps:
       - uses: actions/checkout@v2
         with:

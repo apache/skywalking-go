@@ -33,6 +33,7 @@ import (
 	"github.com/apache/skywalking-go/plugins/goframe"
 	gorm_entry "github.com/apache/skywalking-go/plugins/gorm/entry"
 	gorm_mysql "github.com/apache/skywalking-go/plugins/gorm/mysql"
+	"github.com/apache/skywalking-go/plugins/gozero"
 	"github.com/apache/skywalking-go/plugins/grpc"
 	"github.com/apache/skywalking-go/plugins/http"
 	"github.com/apache/skywalking-go/plugins/irisv12"
@@ -89,6 +90,9 @@ func init() {
 
 	// goframe
 	registerFramework(goframe.NewInstrument())
+
+	//gozero
+	registerFramework(gozero.NewInstrument())
 }
 
 func registerFramework(ins instrument.Instrument) {

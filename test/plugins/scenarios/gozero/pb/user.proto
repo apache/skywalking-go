@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package user;
+
+option go_package = "./userpb";
+
+service User {
+    //user find
+    rpc UserFind (UserFindReq) returns (UserInfo);
+    //user save
+    rpc UserSave (UserSaveReq) returns (UserInfo);
+}
+
+message Empty {}
+//user info
+message UserInfo {
+    int64 id = 1;
+    string uuid = 2;
+    string name = 3;
+    string mobile = 4;
+    string email = 5;
+    string created_at = 7;
+    string updated_at = 8;
+}
+//find user request
+message UserFindReq {
+    int64 id = 1;
+}
+//save user request
+message UserSaveReq {
+    int64 id = 1;
+    string uuid = 2;
+    string name = 3;
+    string mobile = 4;
+    string email = 5;
+}

@@ -29,6 +29,7 @@ use (
 	./plugins/segmentio-kafka
 	./plugins/go-elasticsearchv8
 	./plugins/goframe
+	./plugins/gozero
 
 	./test/benchmark-codebase/consumer
 	./test/benchmark-codebase/provider
@@ -67,6 +68,7 @@ use (
 	./test/plugins/scenarios/logging-activation
 	./test/plugins/scenarios/metric-activation
 	./test/plugins/scenarios/goframe
+	./test/plugins/scenarios/gozero
 
 	./tools/go-agent
 
