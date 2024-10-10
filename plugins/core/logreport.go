@@ -19,6 +19,7 @@ package core
 
 import (
 	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/apache/skywalking-go/plugins/core/operator"
@@ -111,7 +112,7 @@ func (t *Tracer) GetLogContext(withEndpoint bool) interface{} {
 		}
 	}
 	entity := t.Entity()
-	if e, ok := entity.(operator.Entity); ok && e != nil {
+	if e, ok := entity.(operator.Entity); ok && e != nil && !reflect.ValueOf(e).IsNil() {
 		serviceName, instanceName = e.GetServiceName(), e.GetInstanceName()
 	}
 	return &SkyWalkingLogContext{
