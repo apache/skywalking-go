@@ -19,52 +19,90 @@ package amqp
 
 import (
 	"fmt"
-
-	"github.com/rabbitmq/amqp091-go"
-
 	"github.com/apache/skywalking-go/plugins/core/operator"
 	"github.com/apache/skywalking-go/plugins/core/tracing"
+	"os"
+	"strconv"
+	"sync/atomic"
 )
 
 const (
-	ConsumerComponentID = 145
-	amqpConsumerPrefix  = "AMQP/"
-	amqpConsumerSuffix  = "/Consumer"
-	tagMQConsumerTag    = "mq.consumer_tag"
-	tagMQReplyTo        = "mq.reply_to"
-	tagMQCorrelationID  = "mq.correlation_id"
-	tagMQArgs           = "mq.args"
+	ConsumerComponentID  = 145
+	amqpConsumerPrefix   = "AMQP/"
+	amqpConsumerSuffix   = "/Consumer"
+	tagMQConsumerTag     = "mq.consumer_tag"
+	tagMQReplyTo         = "mq.reply_to"
+	tagMQCorrelationID   = "mq.correlation_id"
+	tagMQArgs            = "mq.args"
+	consumerTagLengthMax = 0xFF
 )
 
-func GeneralConsumerAfterInvoke(invocation operator.Invocation, queue, consumerTag string, args amqp091.Table, results ...interface{}) error {
-	deliveries := <-results[0].(<-chan Delivery)
-	if consumerTag == "" {
-		consumerTag = deliveries.ConsumerTag
-	}
-	operationName := amqpConsumerPrefix + queue + "/" + consumerTag + amqpConsumerSuffix
+var consumerSeq uint64
+var queueConsumerTagMapping = make(map[string]string)
 
-	channel := invocation.CallerInstance().(*nativeChannel)
+func GeneralConsumersSendAfterInvoke(invocation operator.Invocation, results ...interface{}) error {
+	if foundConsumer := results[0].(bool); !foundConsumer {
+		return nil
+	}
+	consumerTag, _ := invocation.Args()[0].(string)
+	delivery, _ := invocation.Args()[1].(*Delivery)
+	operationName := amqpConsumerPrefix + queueConsumerTagMapping[consumerTag] + "/" + consumerTag + amqpConsumerSuffix
+	channel, _ := delivery.Acknowledger.(*nativeChannel)
 	peer := getPeerInfo(channel.connection)
 
 	span, err := tracing.CreateEntrySpan(operationName, func(headerKey string) (string, error) {
-		return deliveries.Headers[headerKey].(string), nil
+		header, _ := delivery.Headers[headerKey].(string)
+		return header, nil
 	}, tracing.WithLayer(tracing.SpanLayerMQ),
 		tracing.WithComponent(ConsumerComponentID),
 		tracing.WithTag(tracing.TagMQBroker, peer),
-		tracing.WithTag(tracing.TagMQQueue, queue),
-		tracing.WithTag(tracing.TagMQMsgID, deliveries.MessageId),
+		tracing.WithTag(tracing.TagMQQueue, queueConsumerTagMapping[consumerTag]),
+		tracing.WithTag(tracing.TagMQMsgID, delivery.MessageId),
 		tracing.WithTag(tagMQConsumerTag, consumerTag),
-		tracing.WithTag(tagMQCorrelationID, deliveries.CorrelationId),
-		tracing.WithTag(tagMQReplyTo, deliveries.ReplyTo),
-		tracing.WithTag(tagMQArgs, fmt.Sprintf("%v", args)),
+		tracing.WithTag(tagMQCorrelationID, delivery.CorrelationId),
+		tracing.WithTag(tagMQReplyTo, delivery.ReplyTo),
+		tracing.WithTag(tagMQArgs, fmt.Sprintf("%v", delivery.Headers)),
 	)
 	if err != nil {
 		return err
 	}
 	span.SetPeer(peer)
-	if err, ok := results[1].(error); ok && err != nil {
-		span.Error(err.Error())
-	}
 	span.End()
 	return nil
+}
+
+func GeneralConsumerBeforeInvoke(invocation operator.Invocation) error {
+	queue := invocation.Args()[0].(string)
+	consumerTag := invocation.Args()[1].(string)
+	if consumerTag == "" {
+		consumerTag = uniqueConsumerTag()
+	}
+	queueConsumerTagMapping[consumerTag] = queue
+	return nil
+}
+
+func GeneralConsumerCloseBeforeInvoke(invocation operator.Invocation) error {
+	consumers, _ := invocation.CallerInstance().(*nativeConsumers)
+	consumers.Lock()
+	defer consumers.Unlock()
+	for consumerTag := range consumers.chans {
+		delete(queueConsumerTagMapping, consumerTag)
+	}
+	return nil
+}
+
+func uniqueConsumerTag() string {
+	return commandNameBasedUniqueConsumerTag(os.Args[0])
+}
+
+func commandNameBasedUniqueConsumerTag(commandName string) string {
+	tagPrefix := "ctag-"
+	tagInfix := commandName
+	tagSuffix := "-" + strconv.FormatUint(atomic.AddUint64(&consumerSeq, 1), 10)
+
+	if len(tagPrefix)+len(tagInfix)+len(tagSuffix) > consumerTagLengthMax {
+		tagInfix = "streadway/amqp"
+	}
+
+	return tagPrefix + tagInfix + tagSuffix
 }

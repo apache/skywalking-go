@@ -19,6 +19,7 @@ package amqp
 
 import (
 	"io"
+	"sync"
 )
 
 //skywalking:native github.com/rabbitmq/amqp091-go Channel
@@ -26,8 +27,19 @@ type nativeChannel struct {
 	connection *nativeConnection
 }
 
+func (ch *nativeChannel) Ack(tag uint64, multiple bool) error {
+	return nil
+}
+func (ch *nativeChannel) Nack(tag uint64, multiple bool, requeue bool) error {
+	return nil
+}
+func (ch *nativeChannel) Reject(tag uint64, requeue bool) error {
+	return nil
+}
+
 //skywalking:native github.com/rabbitmq/amqp091-go Delivery
 type Delivery struct {
+	Acknowledger  nativeAcknowledger
 	Headers       Table
 	MessageId     string //nolint
 	ConsumerTag   string
@@ -43,4 +55,17 @@ type Table map[string]interface{}
 //skywalking:native github.com/rabbitmq/amqp091-go Connection
 type nativeConnection struct {
 	conn io.ReadWriteCloser
+}
+
+//skywalking:native github.com/rabbitmq/amqp091-go Acknowledger
+type nativeAcknowledger interface {
+	Ack(tag uint64, multiple bool) error
+	Nack(tag uint64, multiple bool, requeue bool) error
+	Reject(tag uint64, requeue bool) error
+}
+
+//skywalking:native github.com/rabbitmq/amqp091-go consumers
+type nativeConsumers struct {
+	sync.Mutex
+	chans map[string]chan *Delivery
 }
