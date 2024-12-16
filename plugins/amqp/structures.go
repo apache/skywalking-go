@@ -30,7 +30,7 @@ type nativeChannel struct {
 func (ch *nativeChannel) Ack(tag uint64, multiple bool) error {
 	return nil
 }
-func (ch *nativeChannel) Nack(tag uint64, multiple bool, requeue bool) error {
+func (ch *nativeChannel) Nack(tag uint64, multiple, requeue bool) error {
 	return nil
 }
 func (ch *nativeChannel) Reject(tag uint64, requeue bool) error {
