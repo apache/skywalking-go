@@ -67,5 +67,7 @@ type nativeAcknowledger interface {
 //skywalking:native github.com/rabbitmq/amqp091-go consumers
 type nativeConsumers struct {
 	sync.Mutex
-	chans map[string]chan *Delivery
+	chans consumerBuffers
 }
+
+type consumerBuffers map[string]chan *Delivery

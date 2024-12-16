@@ -19,6 +19,7 @@ package amqp
 
 import (
 	"github.com/apache/skywalking-go/plugins/core/operator"
+	"github.com/rabbitmq/amqp091-go"
 )
 
 type ConsumersSendInterceptor struct {
@@ -36,7 +37,8 @@ type ConsumerInterceptor struct {
 }
 
 func (c *ConsumerInterceptor) BeforeInvoke(invocation operator.Invocation) error {
-	return GeneralConsumerBeforeInvoke(invocation)
+	args := invocation.Args()[6].(amqp091.Table)
+	return GeneralConsumerBeforeInvoke(invocation, args)
 }
 
 func (c *ConsumerInterceptor) AfterInvoke(operator.Invocation, ...interface{}) error {

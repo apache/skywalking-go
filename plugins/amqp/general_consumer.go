@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"github.com/apache/skywalking-go/plugins/core/operator"
 	"github.com/apache/skywalking-go/plugins/core/tracing"
+	"github.com/rabbitmq/amqp091-go"
 	"os"
 	"strconv"
 	"sync/atomic"
@@ -71,7 +72,7 @@ func GeneralConsumersSendAfterInvoke(invocation operator.Invocation, results ...
 	return nil
 }
 
-func GeneralConsumerBeforeInvoke(invocation operator.Invocation) error {
+func GeneralConsumerBeforeInvoke(invocation operator.Invocation, args amqp091.Table) error {
 	queue := invocation.Args()[0].(string)
 	consumerTag := invocation.Args()[1].(string)
 	if consumerTag == "" {
