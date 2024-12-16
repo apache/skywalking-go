@@ -18,8 +18,9 @@
 package amqp
 
 import (
-	"github.com/apache/skywalking-go/plugins/core/operator"
 	"github.com/rabbitmq/amqp091-go"
+
+	"github.com/apache/skywalking-go/plugins/core/operator"
 )
 
 type ConsumersSendInterceptor struct {
