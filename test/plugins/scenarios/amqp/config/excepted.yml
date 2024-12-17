@@ -35,6 +35,21 @@ segmentItems:
               - { key: mq.broker, value: 'amqp-server:5672' }
               - { key: mq.exchange, value: not null }
               - { key: mq.routing_key, value: sw-queue-1 }
+          - operationName: AMQP/sw-queue-1/Producer
+            parentSpanId: 0
+            spanId: 2
+            spanLayer: MQ
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 144
+            isError: false
+            spanType: Exit
+            peer: amqp-server:5672
+            skipAnalysis: false
+            tags:
+              - { key: mq.broker, value: 'amqp-server:5672' }
+              - { key: mq.exchange, value: not null }
+              - { key: mq.routing_key, value: sw-queue-1 }
           - operationName: AMQP/sw-queue-1/sw-consumer-1/Consumer
             parentSpanId: 0
             spanId: 3
@@ -59,21 +74,6 @@ segmentItems:
                   parentSpanId: 1, parentTraceSegmentId: not null,
                   parentServiceInstance: not null, parentService: amqp,
                   traceId: not null }
-          - operationName: AMQP/sw-queue-1/Producer
-            parentSpanId: 0
-            spanId: 2
-            spanLayer: MQ
-            startTime: nq 0
-            endTime: nq 0
-            componentId: 144
-            isError: false
-            spanType: Exit
-            peer: amqp-server:5672
-            skipAnalysis: false
-            tags:
-              - { key: mq.broker, value: 'amqp-server:5672' }
-              - { key: mq.exchange, value: not null }
-              - { key: mq.routing_key, value: sw-queue-1 }
           - operationName: AMQP/sw-queue-1/sw-consumer-1/Consumer
             parentSpanId: 0
             spanId: 4
@@ -95,7 +95,7 @@ segmentItems:
               - { key: mq.args, value: not null }
             refs:
               - { parentEndpoint: 'GET:/execute', networkAddress: 'amqp-server:5672', refType: CrossProcess,
-                  parentSpanId: 3, parentTraceSegmentId: not null,
+                  parentSpanId: 2, parentTraceSegmentId: not null,
                   parentServiceInstance: not null, parentService: amqp,
                   traceId: not null }
           - operationName: GET:/execute
