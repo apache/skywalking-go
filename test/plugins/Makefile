@@ -18,12 +18,18 @@
 GO = go
 GO_BUILD = $(GO) build
 
+GIT_VERSION := $(shell git rev-parse --short HEAD)
+ifeq ($(strip $(GIT_VERSION)),)
+    GIT_VERSION = $(shell grep gitCommit $(VERSION_FILE) | awk -F ': ' '{print $$2}')
+endif
+VERSION ?= $(GIT_VERSION)
+
 .PHONY: build
 build:
 	mkdir -p dist
 	# go agent
 	@make -C ../../tools/go-agent linux
-	cp ../../bin/skywalking-go-agent--linux-$(shell go env GOARCH) dist/skywalking-go-agent
+	cp ../../bin/skywalking-go-agent-$(VERSION)-linux-$(shell go env GOARCH) dist/skywalking-go-agent
 	# runner helper
 	cd runner-helper && $(GO_BUILD) -o ../dist/runner-helper
 	# validator container
