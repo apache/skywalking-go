@@ -59,7 +59,7 @@ segmentItems:
                   parentSpanId: 1, parentTraceSegmentId: not null,
                   parentServiceInstance: not null, parentService: amqp,
                   traceId: not null }
-          - operationName: AMQP/sw-queue-2/Producer
+          - operationName: AMQP/sw-queue-1/Producer
             parentSpanId: 0
             spanId: 3
             spanLayer: MQ
@@ -73,8 +73,8 @@ segmentItems:
             tags:
               - { key: mq.broker, value: 'amqp-server:5672' }
               - { key: mq.exchange, value: not null }
-              - { key: mq.routing_key, value: sw-queue-2 }
-          - operationName: AMQP/sw-queue-2/sw-consumer-2/Consumer
+              - { key: mq.routing_key, value: sw-queue-1 }
+          - operationName: AMQP/sw-queue-1/sw-consumer-1/Consumer
             parentSpanId: 0
             spanId: 4
             spanLayer: MQ
@@ -87,9 +87,9 @@ segmentItems:
             skipAnalysis: false
             tags:
               - { key: mq.broker, value: 'amqp-server:5672' }
-              - { key: mq.queue, value: sw-queue-2 }
+              - { key: mq.queue, value: sw-queue-1 }
               - { key: mq.msg.id, value: not null }
-              - { key: mq.consumer_tag, value: sw-consumer-2 }
+              - { key: mq.consumer_tag, value: sw-consumer-1 }
               - { key: mq.correlation_id, value: not null }
               - { key: mq.reply_to, value: not null }
               - { key: mq.args, value: not null }
