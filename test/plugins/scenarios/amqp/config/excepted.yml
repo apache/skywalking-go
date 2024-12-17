@@ -37,7 +37,7 @@ segmentItems:
               - { key: mq.routing_key, value: sw-queue-1 }
           - operationName: AMQP/sw-queue-1/sw-consumer-1/Consumer
             parentSpanId: 0
-            spanId: 2
+            spanId: 3
             spanLayer: MQ
             startTime: nq 0
             endTime: nq 0
@@ -61,7 +61,7 @@ segmentItems:
                   traceId: not null }
           - operationName: AMQP/sw-queue-1/Producer
             parentSpanId: 0
-            spanId: 3
+            spanId: 2
             spanLayer: MQ
             startTime: nq 0
             endTime: nq 0
