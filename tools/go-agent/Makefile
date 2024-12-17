@@ -30,6 +30,9 @@ ifeq ($(strip $(GIT_COMMIT)),)
     GIT_COMMIT = $(shell grep gitCommit $(VERSION_PATH) | awk -F ': ' '{print $$2}')
 endif
 VERSION ?= $(shell grep version $(VERSION_PATH) | awk -F ': ' '{print $$2}')
+ifeq ($(strip $(VERSION)),)
+    VERSION = $(GIT_COMMIT)
+endif
 
 GO_VERSION := $(shell $(GO) env GOVERSION)
 VERSION_PACKAGE := main
