@@ -341,7 +341,7 @@ func (c *Context) enhanceTypeNameWhenRewrite(fieldType dst.Expr, parent dst.Node
 
 func (c *Context) typeIsBasicTypeValueOrEnhanceName(name string) bool {
 	if strings.HasPrefix(name, OperatePrefix) || strings.HasPrefix(name, GenerateMethodPrefix) || tools.IsBasicDataType(name) ||
-		name == "nil" || name == "true" || name == "false" || name == "append" || name == "panic" || name == "new" {
+		name == "nil" || name == "true" || name == "false" || name == "append" || name == "panic" || name == "new" || name == "delete" {
 		return true
 	}
 	if _, valErr := strconv.ParseFloat(name, 64); valErr == nil {

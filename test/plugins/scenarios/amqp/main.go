@@ -32,14 +32,11 @@ import (
 type testFunc func(RabbitClient) error
 
 var (
-	uri                    = "amqp://admin:123456@amqp-server:5672"
-	queue1                 = "sw-queue-1"
-	queue2                 = "sw-queue-2"
-	body                   = "I love skywalking 3 thousand"
-	consumerTag1           = "sw-consumer-1"
-	consumerTag2           = "sw-consumer-2"
-	consumerTrigger        = make(chan struct{})
-	consumerWithCtxTrigger = make(chan struct{})
+	uri             = "amqp://admin:123456@amqp-server:5672"
+	queue           = "sw-queue-1"
+	body            = "I love skywalking 3 thousand"
+	consumerTag     = "sw-consumer-1"
+	consumerTrigger = make(chan struct{})
 )
 
 func main() {
@@ -59,7 +56,6 @@ func main() {
 			fn   testFunc
 		}{
 			{"testSimpleConsumer", testSimpleConsumer},
-			{"testConsumerWithCtx", testConsumerWithCtx},
 		}
 		for _, test := range tests {
 			fmt.Printf("excute test case: %s\n", test.name)
@@ -80,31 +76,35 @@ func main() {
 }
 
 func testSimpleConsumer(client RabbitClient) error {
-	producer(queue1, client)
+	producer(queue, client)
 	go consumer()
 	consumerTrigger <- struct{}{}
 	time.Sleep(time.Second)
 	return nil
 }
 
-func testConsumerWithCtx(client RabbitClient) error {
-	producer(queue2, client)
-	go consumerWithContext()
-	consumerWithCtxTrigger <- struct{}{}
-	time.Sleep(time.Second)
-	return nil
-}
-
 func producer(queue string, client RabbitClient) {
-	client.CreateQueue(queue, true, false)
-	if err := client.Send(context.Background(), "", queue, amqp.Publishing{
+	_, err := client.CreateQueue(queue, true, false)
+	if err != nil {
+		fmt.Println("Failed to Create Queue, err: ", err)
+	}
+	if err = client.Send(context.Background(), "", queue, amqp.Publishing{
 		ContentType:   "text/plain",
 		Body:          []byte(body),
 		Headers:       amqp.Table{},
 		CorrelationId: "1",
-		MessageId:     "2",
+		MessageId:     "1",
 	}); err != nil {
 		fmt.Println("Failed to Send msg, err: ", err)
+	}
+	if err = client.Send(context.Background(), "", queue, amqp.Publishing{
+		ContentType:   "text/plain",
+		Body:          []byte(body),
+		Headers:       amqp.Table{},
+		CorrelationId: "2",
+		MessageId:     "2",
+	}); err != nil {
+		fmt.Println("Failed to Send msg second time, err: ", err)
 	}
 }
 
@@ -118,51 +118,25 @@ func consumer() {
 	if err != nil {
 		fmt.Println("Failed to Channel Consume, err: ", err)
 	}
-	msgs, err := consumeClient.Consume(queue1, consumerTag1, false)
+	msgs, err := consumeClient.Consume(queue, consumerTag, false)
 	if err != nil {
 		fmt.Println("Failed to Consume msg, err: ", err)
 	}
 	log.Printf("[Consumer] Waiting for messages.\n")
 	for d := range msgs {
 		log.Printf("Received a message: %s\n", string(d.Body))
-		d.Ack(false)
+		err = d.Ack(false)
+		if err != nil {
+			fmt.Println("Failed to ACK msg, err: ", err)
+		}
 	}
-	err = consumeClient.Cancel(consumerTag1)
+	err = consumeClient.Cancel(consumerTag)
 	if err != nil {
 		fmt.Println("Failed to Cancel Consume, err: ", err)
 	}
 	err = consumeConn.Close()
 	if err != nil {
 		fmt.Println("Failed to Close Cancel, err: ", err)
-	}
-}
-
-func consumerWithContext() {
-	<-consumerWithCtxTrigger
-	consumeConn, err := amqp.Dial(uri)
-	if err != nil {
-		fmt.Println("Failed to Dial ConsumerWithContext, err: ", err)
-	}
-	consumeClient, err := NewRabbitMQClient(consumeConn)
-	if err != nil {
-		fmt.Println("Failed to Channel ConsumerWithContext, err: ", err)
-	}
-	msgs, err := consumeClient.Consume(queue2, consumerTag2, false)
-	if err != nil {
-		fmt.Println("Failed to Consume msg, err: ", err)
-	}
-	log.Printf("[ConsumerWithContext] Waiting for messages.\n")
-	for d := range msgs {
-		log.Printf("Received a message: %s", string(d.Body))
-		d.Ack(false)
-	}
-	err = consumeClient.Cancel(consumerTag2)
-	if err != nil {
-		fmt.Println("Failed to Cancel ConsumerWithContext, err: ", err)
-	}
-	err = consumeConn.Close()
-	if err != nil {
-		fmt.Println("Failed to Close ConsumerWithContext, err: ", err)
 	}
 }
 
@@ -232,8 +206,4 @@ func (rc RabbitClient) Send(ctx context.Context, exchange, routingKey string, op
 
 func (rc RabbitClient) Consume(queue, consumer string, autoAck bool) (<-chan amqp.Delivery, error) {
 	return rc.ch.Consume(queue, consumer, autoAck, false, false, false, nil)
-}
-
-func (rc RabbitClient) ConsumeWithContext(ctx context.Context, queue, consumer string, autoAck bool) (<-chan amqp.Delivery, error) {
-	return rc.ch.ConsumeWithContext(ctx, queue, consumer, autoAck, false, false, false, nil)
 }
