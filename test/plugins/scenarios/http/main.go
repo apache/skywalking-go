@@ -44,11 +44,32 @@ func consumerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_, _ = w.Write(body)
+
+	resp, err = http.Get("http://localhost:8080/errortest")
+	if err != nil {
+		log.Printf("request errortest error: %v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+	body, err = io.ReadAll(resp.Body)
+	if err != nil {
+		log.Print(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	_, _ = w.Write(body)
+}
+
+func errorHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusInternalServerError)
+	w.Write([]byte("internal server error"))
 }
 
 func main() {
 	http.HandleFunc("/provider", providerHandler)
 	http.HandleFunc("/consumer", consumerHandler)
+	http.HandleFunc("/errortest", errorHandler)
 
 	http.HandleFunc("/health", func(writer http.ResponseWriter, request *http.Request) {
 		writer.WriteHeader(http.StatusOK)
