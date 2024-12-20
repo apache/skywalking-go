@@ -59,6 +59,9 @@ func (h *ServerInterceptor) AfterInvoke(invocation operator.Invocation, result .
 	span := invocation.GetContext().(tracing.Span)
 	if wrapped, ok := invocation.Args()[0].(*writerWrapper); ok {
 		span.Tag(tracing.TagStatusCode, fmt.Sprintf("%d", wrapped.statusCode))
+		if wrapped.statusCode >= 400 {
+			span.Error(string(wrapped.body))
+		}
 	}
 	span.End()
 	return nil
@@ -67,12 +70,19 @@ func (h *ServerInterceptor) AfterInvoke(invocation operator.Invocation, result .
 type writerWrapper struct {
 	http.ResponseWriter
 	statusCode int
+	body       []byte
 }
 
 func (w *writerWrapper) WriteHeader(statusCode int) {
 	// cache the status code
 	w.statusCode = statusCode
 	w.ResponseWriter.WriteHeader(statusCode)
+}
+
+func (w *writerWrapper) Write(b []byte) (int, error) {
+	// cache the response body
+	w.body = append(w.body, b...)
+	return w.ResponseWriter.Write(b)
 }
 
 func (w *writerWrapper) Hijack() (rwc net.Conn, buf *bufio.ReadWriter, err error) {
