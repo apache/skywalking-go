@@ -121,6 +121,9 @@ func (ds *DefaultSpan) Tag(key, value string) {
 }
 
 func (ds *DefaultSpan) Log(ll ...string) {
+	if len(ll) == 0 {
+		return
+	}
 	if ds.InAsyncMode {
 		ds.AsyncOpLocker.Lock()
 		defer ds.AsyncOpLocker.Unlock()
