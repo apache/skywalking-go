@@ -57,6 +57,21 @@ segmentItems:
               - {key: http.method, value: GET}
               - {key: url, value: 'localhost:8080/provider'}
               - {key: status_code, value: '200'}
+          - operationName: GET:/errortest
+            parentSpanId: 0
+            spanId: 2
+            spanLayer: Http
+            startTime: gt 0
+            endTime: gt 0
+            componentId: 5005
+            isError: false
+            spanType: Exit
+            peer: localhost:8080
+            skipAnalysis: false
+            tags:
+              - {key: http.method, value: GET}
+              - {key: url, value: 'localhost:8080/errortest'}
+              - {key: status_code, value: '500'}
           - operationName: GET:/consumer
             parentSpanId: -1
             spanId: 0
@@ -73,21 +88,6 @@ segmentItems:
               - {key: url, value: 'service:8080/consumer'}
               - {key: http.params, value: ''}
               - {key: status_code, value: '200'}
-          - operationName: GET:/errortest
-            parentSpanId: 0
-            spanId: 2
-            spanLayer: Http
-            startTime: gt 0
-            endTime: gt 0
-            componentId: 5005
-            isError: false
-            spanType: Exit
-            peer: localhost:8080
-            skipAnalysis: false
-            tags:
-              - {key: http.method, value: GET}
-              - {key: url, value: 'localhost:8080/errortest'}
-              - {key: status_code, value: '500'}
       - segmentId: not null
         spans:
           - operationName: GET:/errortest
@@ -104,6 +104,7 @@ segmentItems:
             tags:
               - {key: http.method, value: GET}
               - {key: url, value: 'localhost:8080/errortest'}
+              - {key: http.params, value: ''}
               - {key: status_code, value: '500'}
             refs:
               - {parentEndpoint: 'GET:/consumer', networkAddress: 'localhost:8080', refType: CrossProcess,
