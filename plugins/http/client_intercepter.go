@@ -51,6 +51,9 @@ func (h *ClientInterceptor) AfterInvoke(invocation operator.Invocation, result .
 	span := invocation.GetContext().(tracing.Span)
 	if resp, ok := result[0].(*http.Response); ok && resp != nil {
 		span.Tag(tracing.TagStatusCode, fmt.Sprintf("%d", resp.StatusCode))
+		if resp.StatusCode >= 400 {
+			span.ErrorOccured()
+		}
 	}
 	if err, ok := result[1].(error); ok && err != nil {
 		span.Error(err.Error())
