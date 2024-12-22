@@ -80,7 +80,7 @@ segmentItems:
             startTime: gt 0
             endTime: gt 0
             componentId: 5005
-            isError: true
+            isError: false
             spanType: Exit
             peer: localhost:8080
             skipAnalysis: false
