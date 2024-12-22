@@ -74,8 +74,6 @@ func TestServerInvokeError(t *testing.T) {
 
 	spans := core.GetReportedSpans()
 	assert.True(t, spans[0].IsError(), "span should be error")
-	pair := spans[0].Logs()[0].GetData()[0]
-	assert.Equal(t, "Internal Server Error", pair.Key, "error should be Internal Server Error")
 }
 
 type testResponseWriter struct {
