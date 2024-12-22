@@ -97,7 +97,7 @@ segmentItems:
             startTime: nq 0
             endTime: nq 0
             componentId: 5004
-            isError: false
+            isError: true
             spanType: Entry
             peer: ''
             skipAnalysis: false
