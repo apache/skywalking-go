@@ -66,7 +66,6 @@ func TestServerInvokeError(t *testing.T) {
 	wrapped, _ := invocation.Args()[0].(*writerWrapper)
 
 	wrapped.WriteHeader(http.StatusInternalServerError)
-	wrapped.Write([]byte("Internal Server Error"))
 
 	time.Sleep(100 * time.Millisecond)
 	_ = interceptor.AfterInvoke(invocation)
