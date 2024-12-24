@@ -67,6 +67,9 @@ func (h *ContextInterceptor) AfterInvoke(invocation operator.Invocation, result 
 	context := invocation.CallerInstance().(*gin.Context)
 	span := invocation.GetContext().(tracing.Span)
 	span.Tag(tracing.TagStatusCode, fmt.Sprintf("%d", context.Writer.Status()))
+	if context.Writer.Status() >= 400 {
+		span.ErrorOccured()
+	}
 	if len(context.Errors) > 0 {
 		span.Error(context.Errors.String())
 	}
