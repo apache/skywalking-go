@@ -59,6 +59,9 @@ func (h *ServerInterceptor) AfterInvoke(invocation operator.Invocation, result .
 	span := invocation.GetContext().(tracing.Span)
 	if wrapped, ok := invocation.Args()[0].(*writerWrapper); ok {
 		span.Tag(tracing.TagStatusCode, fmt.Sprintf("%d", wrapped.statusCode))
+		if wrapped.statusCode >= 400 {
+			span.ErrorOccured()
+		}
 	}
 	span.End()
 	return nil

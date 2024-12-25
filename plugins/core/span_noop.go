@@ -89,6 +89,9 @@ func (*NoopSpan) Log(...string) {
 func (*NoopSpan) Error(...string) {
 }
 
+func (*NoopSpan) ErrorOccured() {
+}
+
 func (n *NoopSpan) enterNoSpan() {
 	n.stackCount++
 }

@@ -232,6 +232,8 @@ func (n *NoopSpan) Log(...string) {
 }
 func (n *NoopSpan) Error(...string) {
 }
+func (n *NoopSpan) ErrorOccured() {
+}
 func (n *NoopSpan) End() {
 }
 func (n *NoopSpan) PrepareAsync() {

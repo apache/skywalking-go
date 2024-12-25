@@ -148,6 +148,14 @@ func (ds *DefaultSpan) Error(ll ...string) {
 	ds.Log(ll...)
 }
 
+func (ds *DefaultSpan) ErrorOccured() {
+	if ds.InAsyncMode {
+		ds.AsyncOpLocker.Lock()
+		defer ds.AsyncOpLocker.Unlock()
+	}
+	ds.IsError = true
+}
+
 func (ds *DefaultSpan) End(changeParent bool) {
 	ds.EndTime = time.Now()
 	if changeParent {

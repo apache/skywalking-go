@@ -38,6 +38,7 @@ type AdaptSpan interface {
 	Tag(string, string)
 	Log(...string)
 	Error(...string)
+	ErrorOccured()
 	End()
 }
 
@@ -87,6 +88,10 @@ func (s *SpanWrapper) SetComponent(v int32) {
 
 func (s *SpanWrapper) Error(v ...string) {
 	s.Span.Error(v...)
+}
+
+func (s *SpanWrapper) ErrorOccured() {
+	s.Span.ErrorOccured()
 }
 
 func (s *SpanWrapper) End() {
