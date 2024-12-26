@@ -32,8 +32,7 @@ func (h *ClientInterceptor) BeforeInvoke(invocation operator.Invocation) error {
 	request := invocation.Args()[0].(*http.Request)
 	host := request.Host
 	if host == "" && request.URL != nil {
-			host = request.URL.Host
-		}
+		host = request.URL.Host
 	}
 	s, err := tracing.CreateExitSpan(fmt.Sprintf("%s:%s", request.Method, request.URL.Path), host, func(headerKey, headerValue string) error {
 		request.Header.Add(headerKey, headerValue)
