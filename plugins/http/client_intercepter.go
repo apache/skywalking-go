@@ -31,8 +31,7 @@ type ClientInterceptor struct {
 func (h *ClientInterceptor) BeforeInvoke(invocation operator.Invocation) error {
 	request := invocation.Args()[0].(*http.Request)
 	host := request.Host
-	if host == "" {
-		if request.URL != nil {
+	if host == "" && request.URL != nil {
 			host = request.URL.Host
 		}
 	}
