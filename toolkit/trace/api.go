@@ -86,3 +86,6 @@ func SetCorrelation(key string, value string) {
 
 func SetComponent(componentID int32) {
 }
+
+func Error(...string) {
+}

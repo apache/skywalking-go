@@ -137,6 +137,8 @@ type Span interface {
 	Log(...string)
 	// Error add error log to the Span
 	Error(...string)
+	// Error and no log to the Span
+	ErrorOccured()
 	// End end the Span
 	End()
 }

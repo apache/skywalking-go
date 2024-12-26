@@ -203,6 +203,10 @@ func tracePoint() []*instrument.Point {
 			PackagePath: "trace", At: instrument.NewStaticMethodEnhance("SetComponent"),
 			Interceptor: "SetComponentInterceptor",
 		},
+		{
+			PackagePath: "trace", At: instrument.NewStaticMethodEnhance("Error"),
+			Interceptor: "ErrorIntercepter",
+		},
 	}
 }
 

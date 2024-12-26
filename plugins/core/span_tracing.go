@@ -312,6 +312,10 @@ func (s *SnapshotSpan) Error(_ ...string) {
 	panic(fmt.Errorf("cannot add error of span in other goroutine"))
 }
 
+func (s *SnapshotSpan) ErrorOccured() {
+	panic(fmt.Errorf("cannot add error of span in other goroutine"))
+}
+
 func (s *SnapshotSpan) GetSegmentContext() SegmentContext {
 	return s.SegmentContext
 }
