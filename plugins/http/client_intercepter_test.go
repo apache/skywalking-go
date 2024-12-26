@@ -53,7 +53,7 @@ func TestClientInvoke(t *testing.T) {
 
 	reqWithoutHost, err := http.NewRequest("GET", "/api/hello", http.NoBody) // Create request with path only, will result empty Request.Host
 	// Set URL after is valid behavior
-	reqWithoutHost.URL.Scheme = "http"
+	reqWithoutHost.URL.Scheme = "https"
 	reqWithoutHost.URL.Host = "localhost"
 	assert.Nil(t, err, "new request with no host in url should be no error")
 	invocationWithoutHost := operator.NewInvocation(nil, reqWithoutHost)
