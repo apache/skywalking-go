@@ -24,6 +24,7 @@ Release Notes.
 * Fix redis plugin cannot work in cluster mode.
 * Fix cannot find file when exec build in test/plugins.
 * Fix not set span error when http status code >= 400
+* Fix http plugin cannot provide peer name when optional Host is empty.
 
 #### Issues and PR
 - All issues are [here](https://github.com/apache/skywalking/milestone/219?closed=1)
