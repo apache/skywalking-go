@@ -25,6 +25,7 @@ const noopContextValue = "N/A"
 
 type NoopSpan struct {
 	stackCount int
+	tracer     *Tracer
 }
 
 func newSnapshotNoopSpan() *NoopSpan {
@@ -34,9 +35,10 @@ func newSnapshotNoopSpan() *NoopSpan {
 	}
 }
 
-func newNoopSpan() *NoopSpan {
+func newNoopSpan(tracer *Tracer) *NoopSpan {
 	return &NoopSpan{
 		stackCount: 1,
+		tracer:     tracer,
 	}
 }
 
@@ -99,6 +101,7 @@ func (n *NoopSpan) enterNoSpan() {
 func (n *NoopSpan) End() {
 	n.stackCount--
 	if n.stackCount == 0 {
+		GetSo11y().MeasureTracingContextCompletion(n.tracer, true)
 		if ctx := getTracingContext(); ctx != nil {
 			ctx.SaveActiveSpan(nil)
 		}

@@ -1,0 +1,100 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+segmentItems:
+  - serviceName: so11y
+    segmentSize: gt 1
+    segments:
+      - segmentId: not null
+        spans:
+          - operationName: GET:/propagated
+            parentSpanId: -1
+            spanId: 0
+            spanLayer: Http
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 5004
+            isError: false
+            spanType: Entry
+            peer: ''
+            skipAnalysis: false
+            tags:
+              - { key: http.method, value: GET }
+              - { key: url, value: 'localhost:8080/propagated' }
+              - { key: status_code, value: '200' }
+            refs:
+              - { parentEndpoint: 'GET:/so11y', networkAddress: 'localhost:8080', refType: CrossProcess,
+                  parentSpanId: 1, parentTraceSegmentId: not null, parentServiceInstance: not null,
+                  parentService: so11y, traceId: not null }
+      - segmentId: not null
+        spans:
+          - operationName: GET:/propagated
+            parentSpanId: 0
+            spanId: 1
+            spanLayer: Http
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 5005
+            isError: false
+            spanType: Exit
+            peer: localhost:8080
+            skipAnalysis: false
+            tags:
+              - { key: http.method, value: GET }
+              - { key: url, value: 'localhost:8080/propagated' }
+              - { key: status_code, value: '200' }
+          - operationName: GET:/so11y
+            parentSpanId: -1
+            spanId: 0
+            spanLayer: Http
+            startTime: gt 0
+            endTime: gt 0
+            componentId: 5004
+            isError: false
+            spanType: Entry
+            peer: ''
+            skipAnalysis: false
+            tags:
+              - { key: http.method, value: GET }
+              - { key: url, value: 'service:8080/so11y' }
+              - { key: status_code, value: '200' }
+meterItems:
+  - serviceName: so11y
+    meterSize: 5
+    meters:
+      - meterId:
+          name: sw_go_finished_tracing_context_counter
+          tags: [ ]
+        singleValue: 4.0
+      - meterId:
+          name: sw_go_finished_ignored_context_counter
+          tags: [ ]
+        singleValue: 2.0
+      - meterId:
+          name: sw_go_created_ignored_context_counter
+          tags:
+            - { name: created_by, value: sampler }
+        singleValue: 2.0
+      - meterId:
+          name: sw_go_created_tracing_context_counter
+          tags:
+            - { name: created_by, value: sampler }
+        singleValue: 4.0
+      - meterId:
+          name: sw_go_tracing_context_performance
+          tags: [ ]
+        histogramBuckets: [0.0, 1000.0, 10000.0, 50000.0, 100000.0, 300000.0, 500000.0, 1000000.0, 5000000.0, 1.0E7, 2.0E7, 5.0E7, 1.0E8]
+logItems: [ ]
