@@ -73,28 +73,48 @@ segmentItems:
               - { key: status_code, value: '200' }
 meterItems:
   - serviceName: so11y
-    meterSize: 5
+    meterSize: 9
     meters:
       - meterId:
+          name: sw_go_possible_leaked_context_counter
+          tags:
+            - {name: source, value: ignore}
+        singleValue: 0.0
+      - meterId:
           name: sw_go_finished_tracing_context_counter
-          tags: [ ]
+          tags: []
         singleValue: 4.0
       - meterId:
           name: sw_go_finished_ignored_context_counter
-          tags: [ ]
+          tags: []
         singleValue: 2.0
+      - meterId:
+          name: sw_go_tracing_context_performance
+          tags: []
+        histogramBuckets: [0.0, 1000.0, 10000.0, 50000.0, 100000.0, 300000.0, 500000.0, 1000000.0, 5000000.0, 1.0E7, 2.0E7, 5.0E7, 1.0E8]
       - meterId:
           name: sw_go_created_ignored_context_counter
           tags:
-            - { name: created_by, value: sampler }
-        singleValue: 2.0
+            - {name: created_by, value: propagated}
+        singleValue: 0.0
       - meterId:
           name: sw_go_created_tracing_context_counter
           tags:
-            - { name: created_by, value: sampler }
-        singleValue: 4.0
+            - {name: created_by, value: propagated}
+        singleValue: 0.0
       - meterId:
-          name: sw_go_tracing_context_performance
-          tags: [ ]
-        histogramBuckets: [0.0, 1000.0, 10000.0, 50000.0, 100000.0, 300000.0, 500000.0, 1000000.0, 5000000.0, 1.0E7, 2.0E7, 5.0E7, 1.0E8]
+          name: sw_go_created_ignored_context_counter
+          tags:
+            - {name: created_by, value: sampler}
+        singleValue: 2.0
+      - meterId:
+          name: sw_go_possible_leaked_context_counter
+          tags:
+            - {name: created_by, value: tracing}
+        singleValue: 0.0
+      - meterId:
+          name: sw_go_created_tracing_context_counter
+          tags:
+            - {name: created_by, value: sampler}
+        singleValue: 4.0
 logItems: [ ]

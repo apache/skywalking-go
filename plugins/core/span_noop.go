@@ -101,7 +101,7 @@ func (n *NoopSpan) enterNoSpan() {
 func (n *NoopSpan) End() {
 	n.stackCount--
 	if n.stackCount == 0 {
-		GetSo11y().MeasureTracingContextCompletion(n.tracer, true)
+		GetSo11y(n.tracer).MeasureTracingContextCompletion(true)
 		if ctx := getTracingContext(); ctx != nil {
 			ctx.SaveActiveSpan(nil)
 		}

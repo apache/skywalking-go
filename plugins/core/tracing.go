@@ -233,11 +233,11 @@ func (s *ContextSnapshot) IsValid() bool {
 
 func (t *Tracer) createNoop(operationName string) (*TracingContext, TracingSpan, bool) {
 	if !t.InitSuccess() || t.Reporter.ConnectionStatus() == reporter.ConnectionStatusDisconnect {
-		GetSo11y().MeasureTracingContextCreation(t, false, true)
+		GetSo11y(t).MeasureTracingContextCreation(false, true)
 		return nil, newNoopSpan(t), true
 	}
 	if tracerIgnore(operationName, t.ignoreSuffix, t.traceIgnorePath) {
-		GetSo11y().MeasureTracingContextCreation(t, false, true)
+		GetSo11y(t).MeasureTracingContextCreation(false, true)
 		return nil, newNoopSpan(t), true
 	}
 	ctx := getTracingContext()
@@ -269,8 +269,8 @@ func (t *Tracer) createSpan0(ctx *TracingContext, parent TracingSpan, pluginOpts
 	if parentSpan == nil && !isForceSample {
 		isSampled := t.Sampler.IsSampled(ds.OperationName)
 		if !isSampled {
-			GetSo11y().MeasureTracingContextCreation(t, false, true)
-			GetSo11y().MeasureLeakedTracingContext(t, true)
+			GetSo11y(t).MeasureTracingContextCreation(false, true)
+			GetSo11y(t).MeasureLeakedTracingContext(true)
 			// Filter by sample just return noop span
 			return newNoopSpan(t), true, nil
 		}
@@ -287,7 +287,7 @@ func (t *Tracer) createSpan0(ctx *TracingContext, parent TracingSpan, pluginOpts
 	for _, opt := range pluginOpts {
 		opt.(tracing.SpanOption).Apply(s)
 	}
-	GetSo11y().MeasureTracingContextCreation(t, isForceSample, false)
+	GetSo11y(t).MeasureTracingContextCreation(isForceSample, false)
 	return s, false, nil
 }
 
