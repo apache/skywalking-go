@@ -21,5 +21,5 @@ Please locate the following two paths:
 
 Then, please enter the following command in the **tool arguments** section of the debug configuration:
 ```
--toolexec '/path/to/skywalking-go-agent -debug /path/to/current-project-path' -a".
+-toolexec '/path/to/skywalking-go-agent -debug /path/to/current-project-path' -a .
 ```
