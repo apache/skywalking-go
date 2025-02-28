@@ -44,7 +44,7 @@ var (
 	ReporterBasePackage     = "agent/reporter"
 
 	CopiedBasePackage = `skywalking-go(@[\d\w\.\-]+)?\/agent\/core`
-	CopiedSubPackages = []string{"", "tracing", "operator"}
+	CopiedSubPackages = []string{"", "tracing", "operator", "metrics"}
 )
 
 type Instrument struct {

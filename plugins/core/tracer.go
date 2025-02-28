@@ -55,6 +55,7 @@ type Tracer struct {
 	meterCollectListeners []func()
 	ignoreSuffix          []string
 	traceIgnorePath       []string
+	mu                    sync.Mutex
 }
 
 func (t *Tracer) Init(entity *reporter.Entity, rep reporter.Reporter, samp Sampler, logger operator.LogOperator,

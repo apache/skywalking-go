@@ -22,13 +22,13 @@ import "github.com/apache/skywalking-go/plugins/core/operator"
 type Opt func(opts *Opts)
 
 type Opts struct {
-	labels map[string]string
+	Labels map[string]string
 }
 
 // WithLabel adds a label to the metrics.
 func WithLabel(key, value string) Opt {
 	return func(meter *Opts) {
-		meter.labels[key] = value
+		meter.Labels[key] = value
 	}
 }
 

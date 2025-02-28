@@ -45,6 +45,7 @@ var OperatePrefix = GenerateCommonPrefix + "operator"
 var TypePrefix = OperatePrefix + "Type"
 var VarPrefix = OperatePrefix + "Var"
 var StaticMethodPrefix = OperatePrefix + "StaticMethod"
+var BeforeInterStart = "beforeInterStart"
 
 type Context struct {
 	pkgFullPath   string
@@ -192,7 +193,9 @@ func (c *Context) enhanceTypeNameWhenRewrite(fieldType dst.Expr, parent dst.Node
 		if _, ok := parent.(*dst.CallExpr); ok {
 			t.Name = fmt.Sprintf("%s%s%s", StaticMethodPrefix, c.currentPackageTitle, name)
 		} else {
-			t.Name = fmt.Sprintf("%s%s%s", TypePrefix, c.currentPackageTitle, name)
+			if !strings.Contains(name, BeforeInterStart) {
+				t.Name = fmt.Sprintf("%s%s%s", TypePrefix, c.currentPackageTitle, name)
+			}
 		}
 		return name, t.Name
 	case *dst.SelectorExpr:
