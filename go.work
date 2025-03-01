@@ -67,6 +67,7 @@ use (
 	./test/plugins/scenarios/logging-activation
 	./test/plugins/scenarios/metric-activation
 	./test/plugins/scenarios/goframe
+	./test/plugins/scenarios/so11y
 
 	./tools/go-agent
 

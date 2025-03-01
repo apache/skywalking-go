@@ -158,6 +158,7 @@ func (ds *DefaultSpan) ErrorOccured() {
 
 func (ds *DefaultSpan) End(changeParent bool) {
 	ds.EndTime = time.Now()
+	GetSo11y(ds.tracer).MeasureTracingContextCompletion(false)
 	if changeParent {
 		if ctx := getTracingContext(); ctx != nil {
 			ctx.SaveActiveSpan(ds.Parent)

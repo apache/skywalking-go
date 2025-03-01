@@ -18,11 +18,11 @@
 package metrics
 
 func newMeterOpts() *Opts {
-	return &Opts{labels: make(map[string]string)}
+	return &Opts{Labels: make(map[string]string)}
 }
 
 func (b *Opts) GetLabels() map[string]string {
-	return b.labels
+	return b.Labels
 }
 
 type counterImpl struct {
