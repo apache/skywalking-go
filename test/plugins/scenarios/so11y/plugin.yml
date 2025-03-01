@@ -23,3 +23,15 @@ support-version:
   - go: 1.19
     framework:
       - v1.9.0
+  - go: 1.20
+    framework:
+      - v1.9.0
+  - go: 1.21
+    framework:
+      - v1.9.0
+  - go: 1.22
+    framework:
+      - v1.9.0
+  - go: 1.23
+    framework:
+      - v1.9.0
