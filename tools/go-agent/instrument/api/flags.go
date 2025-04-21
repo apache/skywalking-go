@@ -67,10 +67,10 @@ func (c *CompileOptions) CheckGoVersionGreaterOrEqual(requiredMajor, requiredMin
 	}
 	currentMinor := int(currentMinor64)
 
-	if currentMajor > requiredMinor {
+	if currentMajor > requiredMajor {
 		return true
 	}
-	if currentMajor == requiredMajor && currentMinor >= requiredMajor {
+	if currentMajor == requiredMajor && currentMinor >= requiredMinor {
 		return true
 	}
 	return false
