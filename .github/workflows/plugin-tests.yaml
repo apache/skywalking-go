@@ -105,6 +105,7 @@ jobs:
           - go-elasticsearchv8
           - goframe
           - so11y
+          - cross-goroutine
     steps:
       - uses: actions/checkout@v2
         with:
