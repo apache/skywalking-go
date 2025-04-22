@@ -104,6 +104,7 @@ jobs:
           - segmentio-kafka
           - go-elasticsearchv8
           - goframe
+          - so11y
     steps:
       - uses: actions/checkout@v2
         with:

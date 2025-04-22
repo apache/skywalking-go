@@ -55,6 +55,26 @@ func TestServerInvoke(t *testing.T) {
 	assert.Greater(t, spans[0].EndTime(), spans[0].StartTime(), "end time should be greater than start time")
 }
 
+func TestServerInvokeError(t *testing.T) {
+	defer core.ResetTracingContext()
+	interceptor := &ServerInterceptor{}
+	request, _ := http.NewRequest("GET", "http://localhost/", http.NoBody)
+	responseWriter := &testResponseWriter{}
+	invocation := operator.NewInvocation(nil, responseWriter, request)
+	_ = interceptor.BeforeInvoke(invocation)
+
+	wrapped, _ := invocation.Args()[0].(*writerWrapper)
+
+	wrapped.WriteHeader(http.StatusInternalServerError)
+
+	time.Sleep(100 * time.Millisecond)
+	_ = interceptor.AfterInvoke(invocation)
+	time.Sleep(100 * time.Millisecond)
+
+	spans := core.GetReportedSpans()
+	assert.True(t, spans[0].IsError(), "span should be error")
+}
+
 type testResponseWriter struct {
 	http.ResponseWriter
 }
@@ -70,4 +90,11 @@ func (t *testResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 		return nil, nil, err
 	}
 	return dial, nil, nil
+}
+
+func (t *testResponseWriter) WriteHeader(code int) {
+}
+
+func (t *testResponseWriter) Write(b []byte) (int, error) {
+	return len(b), nil
 }

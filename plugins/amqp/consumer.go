@@ -23,15 +23,36 @@ import (
 	"github.com/apache/skywalking-go/plugins/core/operator"
 )
 
+type ConsumersSendInterceptor struct {
+}
+
+func (c *ConsumersSendInterceptor) BeforeInvoke(invocation operator.Invocation) error {
+	return nil
+}
+
+func (c *ConsumersSendInterceptor) AfterInvoke(invocation operator.Invocation, results ...interface{}) error {
+	return GeneralConsumersSendAfterInvoke(invocation, results...)
+}
+
 type ConsumerInterceptor struct {
 }
 
 func (c *ConsumerInterceptor) BeforeInvoke(invocation operator.Invocation) error {
+	args := invocation.Args()[6].(amqp091.Table)
+	return GeneralConsumerBeforeInvoke(invocation, args)
+}
+
+func (c *ConsumerInterceptor) AfterInvoke(operator.Invocation, ...interface{}) error {
 	return nil
 }
 
-func (c *ConsumerInterceptor) AfterInvoke(invocation operator.Invocation, results ...interface{}) error {
-	queue, consumerTag, args := invocation.Args()[0].(string), invocation.Args()[1].(string),
-		invocation.Args()[6].(amqp091.Table)
-	return GeneralConsumerAfterInvoke(invocation, queue, consumerTag, args, results...)
+type ConsumersCloseInterceptor struct {
+}
+
+func (c *ConsumersCloseInterceptor) BeforeInvoke(invocation operator.Invocation) error {
+	return GeneralConsumerCloseBeforeInvoke(invocation)
+}
+
+func (c *ConsumersCloseInterceptor) AfterInvoke(operator.Invocation, ...interface{}) error {
+	return nil
 }

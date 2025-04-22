@@ -15,23 +15,13 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package amqp
+package metrics
 
 import (
-	"github.com/rabbitmq/amqp091-go"
+	//go:nolint
+	_ "fmt"
+	_ "sync"
 
-	"github.com/apache/skywalking-go/plugins/core/operator"
+	//go:nolint
+	_ "github.com/apache/skywalking-go/agent/core/operator"
 )
-
-type ConsumerWithCtxInterceptor struct {
-}
-
-func (cwi *ConsumerWithCtxInterceptor) BeforeInvoke(invocation operator.Invocation) error {
-	return nil
-}
-
-func (cwi *ConsumerWithCtxInterceptor) AfterInvoke(invocation operator.Invocation, results ...interface{}) error {
-	queue, consumerTag, args := invocation.Args()[1].(string), invocation.Args()[2].(string),
-		invocation.Args()[7].(amqp091.Table)
-	return GeneralConsumerAfterInvoke(invocation, queue, consumerTag, args, results...)
-}

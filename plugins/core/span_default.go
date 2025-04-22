@@ -148,8 +148,17 @@ func (ds *DefaultSpan) Error(ll ...string) {
 	ds.Log(ll...)
 }
 
+func (ds *DefaultSpan) ErrorOccured() {
+	if ds.InAsyncMode {
+		ds.AsyncOpLocker.Lock()
+		defer ds.AsyncOpLocker.Unlock()
+	}
+	ds.IsError = true
+}
+
 func (ds *DefaultSpan) End(changeParent bool) {
 	ds.EndTime = time.Now()
+	GetSo11y(ds.tracer).MeasureTracingContextCompletion(false)
 	if changeParent {
 		if ctx := getTracingContext(); ctx != nil {
 			ctx.SaveActiveSpan(ds.Parent)

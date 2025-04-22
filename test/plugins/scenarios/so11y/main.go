@@ -21,37 +21,43 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"time"
 
 	_ "github.com/apache/skywalking-go"
 )
 
-func providerHandler(w http.ResponseWriter, r *http.Request) {
-	_, _ = w.Write([]byte("success"))
+func main() {
+	http.HandleFunc("/so11y", so11yHandler)
+	http.HandleFunc("/propagated", propagatedHandler)
+	http.HandleFunc("/ignored.html", ignoredHandler)
+
+	http.HandleFunc("/health", func(writer http.ResponseWriter, request *http.Request) {
+		writer.WriteHeader(http.StatusOK)
+	})
+
+	_ = http.ListenAndServe(":8080", nil)
 }
 
-func consumerHandler(w http.ResponseWriter, r *http.Request) {
-	resp, err := http.Get("http://localhost:8080/provider?test=1")
+func so11yHandler(w http.ResponseWriter, r *http.Request) {
+	resp, err := http.Get("http://localhost:8080/propagated")
 	if err != nil {
-		log.Printf("request provider error: %v", err)
+		log.Printf("request propagated error: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Print(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	_, _ = w.Write(body)
 
-	resp, err = http.Get("http://localhost:8080/errortest")
+	resp, err = http.Get("http://localhost:8080/ignored.html")
 	if err != nil {
-		log.Printf("request errortest error: %v", err)
+		log.Printf("request ignored.html error: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	defer resp.Body.Close()
 	body, err = io.ReadAll(resp.Body)
 	if err != nil {
 		log.Print(err)
@@ -59,21 +65,15 @@ func consumerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_, _ = w.Write(body)
+	time.Sleep(2 * time.Second) // make sure the meter already uploaded
 }
 
-func errorHandler(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusInternalServerError)
-	w.Write([]byte("internal server error"))
+func propagatedHandler(w http.ResponseWriter, r *http.Request) {
+	time.Sleep(2 * time.Second) // make sure the meter already uploaded
+	_, _ = w.Write([]byte("success"))
 }
 
-func main() {
-	http.HandleFunc("/provider", providerHandler)
-	http.HandleFunc("/consumer", consumerHandler)
-	http.HandleFunc("/errortest", errorHandler)
-
-	http.HandleFunc("/health", func(writer http.ResponseWriter, request *http.Request) {
-		writer.WriteHeader(http.StatusOK)
-	})
-
-	_ = http.ListenAndServe(":8080", nil)
+func ignoredHandler(w http.ResponseWriter, r *http.Request) {
+	time.Sleep(2 * time.Second) // make sure the meter already uploaded
+	_, _ = w.Write([]byte("Nobody cares me."))
 }

@@ -30,12 +30,16 @@ type ClientInterceptor struct {
 
 func (h *ClientInterceptor) BeforeInvoke(invocation operator.Invocation) error {
 	request := invocation.Args()[0].(*http.Request)
-	s, err := tracing.CreateExitSpan(fmt.Sprintf("%s:%s", request.Method, request.URL.Path), request.Host, func(headerKey, headerValue string) error {
+	host := request.Host
+	if host == "" && request.URL != nil {
+		host = request.URL.Host
+	}
+	s, err := tracing.CreateExitSpan(fmt.Sprintf("%s:%s", request.Method, request.URL.Path), host, func(headerKey, headerValue string) error {
 		request.Header.Add(headerKey, headerValue)
 		return nil
 	}, tracing.WithLayer(tracing.SpanLayerHTTP),
 		tracing.WithTag(tracing.TagHTTPMethod, request.Method),
-		tracing.WithTag(tracing.TagURL, request.Host+request.URL.Path),
+		tracing.WithTag(tracing.TagURL, host+request.URL.Path),
 		tracing.WithComponent(5005))
 	if err != nil {
 		return err
@@ -51,6 +55,9 @@ func (h *ClientInterceptor) AfterInvoke(invocation operator.Invocation, result .
 	span := invocation.GetContext().(tracing.Span)
 	if resp, ok := result[0].(*http.Response); ok && resp != nil {
 		span.Tag(tracing.TagStatusCode, fmt.Sprintf("%d", resp.StatusCode))
+		if resp.StatusCode >= 400 {
+			span.ErrorOccured()
+		}
 	}
 	if err, ok := result[1].(error); ok && err != nil {
 		span.Error(err.Error())
