@@ -23,9 +23,7 @@ support-version:
   - go: 1.19
     framework:
       - v12.2.0
-      - v12.1.0
   - go: 1.21
     framework:
       - v12.2.5
       - v12.2.0
-      - v12.1.0
