@@ -26,7 +26,9 @@ type ContinueContextInterceptor struct {
 }
 
 func (h *ContinueContextInterceptor) BeforeInvoke(invocation operator.Invocation) error {
-	tracing.ContinueContext(invocation.Args()[0].(tracing.ContextSnapshot))
+	if invocation.Args()[0] != nil {
+		tracing.ContinueContext(invocation.Args()[0].(tracing.ContextSnapshot))
+	}
 	return nil
 }
 
