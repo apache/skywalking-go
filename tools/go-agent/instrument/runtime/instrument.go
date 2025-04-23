@@ -18,9 +18,6 @@
 package runtime
 
 import (
-	"strconv"
-	"strings"
-
 	"github.com/dave/dst"
 	"github.com/dave/dst/dstutil"
 
@@ -73,7 +70,11 @@ func (r *Instrument) FilterAndEdit(path string, curFile *dst.File, cursor *dstut
 		if len(n.Type.Results.List) != 1 {
 			return false
 		}
-		if len(n.Type.Params.List) != 3 {
+		expectedParamCount := 3
+		if r.opts.CheckGoVersionGreaterOrEqual(1, 23) {
+			expectedParamCount = 5
+		}
+		if len(n.Type.Params.List) != expectedParamCount {
 			return false
 		}
 		parameters := tools.EnhanceParameterNames(n.Type.Params, tools.FieldListTypeParam)
@@ -106,14 +107,8 @@ func (r *Instrument) AfterEnhanceFile(fromPath, newPath string) error {
 }
 
 func (r *Instrument) parseInternalAtomicPath() string {
-	if strings.HasPrefix(r.opts.Lang, "go1.") {
-		_, after, found := strings.Cut(r.opts.Lang, ".")
-		if found {
-			i, err := strconv.ParseInt(after, 10, 64)
-			if err == nil && i >= 23 {
-				return "internal/runtime/atomic"
-			}
-		}
+	if r.opts.CheckGoVersionGreaterOrEqual(1, 23) {
+		return "internal/runtime/atomic"
 	}
 	return defaultInternalAtomicPath
 }

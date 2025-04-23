@@ -1,3 +1,5 @@
+#!/bin/bash
+#
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -14,16 +16,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-entry-service: http://${HTTP_HOST}:${HTTP_PORT}/consumer
-health-checker: http://${HTTP_HOST}:${HTTP_PORT}/health
-start-script: ./bin/startup.sh
-framework: github.com/kataras/iris/v12
-export-port: 8080
-support-version:
-  - go: 1.19
-    framework:
-      - v12.2.0
-  - go: 1.21
-    framework:
-      - v12.2.5
-      - v12.2.0
+home="$(cd "$(dirname $0)"; pwd)"
+go build ${GO_BUILD_OPTS} -o cross-goroutine
+
+./cross-goroutine
