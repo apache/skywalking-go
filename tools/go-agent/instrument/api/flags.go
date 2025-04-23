@@ -17,7 +17,11 @@
 
 package api
 
-import "path/filepath"
+import (
+	"path/filepath"
+	"strconv"
+	"strings"
+)
 
 type CompileOptions struct {
 	Package string   `swflag:"-p"`
@@ -34,4 +38,40 @@ func (c *CompileOptions) IsValid() bool {
 
 func (c *CompileOptions) CompileBaseDir() string {
 	return filepath.Dir(filepath.Dir(c.Output))
+}
+
+func (c *CompileOptions) CheckGoVersionGreaterOrEqual(requiredMajor, requiredMinor int) bool {
+	if c.Lang == "" {
+		return false
+	}
+	if !strings.HasPrefix(c.Lang, "go") {
+		return false
+	}
+	versionStr := strings.TrimPrefix(c.Lang, "go")
+	parts := strings.SplitN(versionStr, ".", 3)
+	if len(parts) < 2 {
+		return false
+	}
+
+	majorStr := parts[0]
+	currentMajor64, err := strconv.ParseInt(majorStr, 10, 64)
+	if err != nil {
+		return false
+	}
+	currentMajor := int(currentMajor64)
+
+	minorStr := parts[1]
+	currentMinor64, err := strconv.ParseInt(minorStr, 10, 64)
+	if err != nil {
+		return false
+	}
+	currentMinor := int(currentMinor64)
+
+	if currentMajor > requiredMajor {
+		return true
+	}
+	if currentMajor == requiredMajor && currentMinor >= requiredMinor {
+		return true
+	}
+	return false
 }
