@@ -26,6 +26,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"golang.org/x/mod/module"
@@ -179,6 +180,9 @@ func (i *Instrument) enhanceMethod(inst instrument.Instrument, matcher *instrume
 
 func (i *Instrument) verifyPackageIsMatch(_ string, point *instrument.Point) bool {
 	pointPackagePath := filepath.Join(i.realInst.BasePackage(), point.PackagePath)
+	if runtime.GOOS == "windows" {
+		pointPackagePath = strings.ReplaceAll(pointPackagePath, `\`, `/`)
+	}
 	// check the package path
 	return i.compileOpts.Package == pointPackagePath
 }
