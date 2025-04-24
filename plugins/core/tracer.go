@@ -27,8 +27,6 @@ import (
 
 	"github.com/apache/skywalking-go/plugins/core/operator"
 	"github.com/apache/skywalking-go/plugins/core/reporter"
-
-	logv3 "skywalking.apache.org/repo/goapi/collect/logging/v3"
 )
 
 // nolint
@@ -111,7 +109,7 @@ func NewEntity(service, instanceEnvName string) *reporter.Entity {
 func newTracer() *Tracer {
 	return &Tracer{
 		initFlag:    0,
-		Reporter:    &emptyReporter{},
+		Reporter:    reporter.NewDiscardReporter(),
 		Sampler:     NewConstSampler(false),
 		Log:         &LogWrapper{newDefaultLogger()},
 		cdsWatchers: make([]reporter.AgentConfigChangeWatcher, 0),
@@ -127,33 +125,6 @@ func (t *Tracer) InitSuccess() bool {
 
 func (t *Tracer) ChangeLogger(logger interface{}) {
 	t.Log.ChangeLogger(logger.(operator.LogOperator))
-}
-
-// nolint
-type emptyReporter struct{}
-
-// nolint
-func (e *emptyReporter) Boot(entity *reporter.Entity, cdsWatchers []reporter.AgentConfigChangeWatcher) {
-}
-
-// nolint
-func (e *emptyReporter) SendTracing(spans []reporter.ReportedSpan) {
-}
-
-// nolint
-func (e *emptyReporter) SendMetrics(metrics []reporter.ReportedMeter) {
-}
-
-// nolint
-func (e *emptyReporter) SendLog(log *logv3.LogData) {
-}
-
-func (e *emptyReporter) ConnectionStatus() reporter.ConnectionStatus {
-	return reporter.ConnectionStatusDisconnect
-}
-
-// nolint
-func (e *emptyReporter) Close() {
 }
 
 type LogWrapper struct {
