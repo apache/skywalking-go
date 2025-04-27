@@ -180,7 +180,7 @@ func (i *Instrument) enhanceMethod(inst instrument.Instrument, matcher *instrume
 
 func (i *Instrument) verifyPackageIsMatch(_ string, point *instrument.Point) bool {
 	pointPackagePath := filepath.Join(i.realInst.BasePackage(), point.PackagePath)
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == consts.WindowsGOOS {
 		pointPackagePath = strings.ReplaceAll(pointPackagePath, `\`, `/`)
 	}
 	// check the package path

@@ -23,6 +23,8 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/apache/skywalking-go/tools/go-agent/instrument/consts"
+
 	"github.com/apache/skywalking-go/plugins/core/instrument"
 	"github.com/apache/skywalking-go/tools/go-agent/instrument/agentcore"
 	"github.com/apache/skywalking-go/tools/go-agent/instrument/plugins/rewrite"
@@ -67,7 +69,7 @@ type MethodEnhance struct {
 func NewMethodEnhance(inst instrument.Instrument, matcher *instrument.Point, f *dst.FuncDecl, path string,
 	importAnalyzer *tools.ImportAnalyzer) *MethodEnhance {
 	fullPackage := filepath.Join(inst.BasePackage(), matcher.PackagePath)
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == consts.WindowsGOOS {
 		fullPackage = strings.ReplaceAll(fullPackage, `\`, `/`)
 	}
 	pkgName := filepath.Base(fullPackage)
@@ -99,7 +101,7 @@ func NewMethodEnhance(inst instrument.Instrument, matcher *instrument.Point, f *
 	// the interceptor name needs to add the function id ensure there no conflict in the framework package
 	titleCase := cases.Title(language.English)
 	packageTitle := filepath.Base(titleCase.String(filepath.Join(inst.BasePackage(), pkgName)))
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == consts.WindowsGOOS {
 		packageTitle = strings.ReplaceAll(packageTitle, `\`, `/`)
 	}
 	enhance.InterceptorGeneratedName = fmt.Sprintf("%s%s%s", rewrite.TypePrefix, packageTitle, enhance.InterceptorDefineName)

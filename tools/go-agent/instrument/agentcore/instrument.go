@@ -72,7 +72,7 @@ func (i *Instrument) FilterAndEdit(path string, curFile *dst.File, cursor *dstut
 		// and we can't just use "filepath.Join",
 		// which would cause the regex to throw an error
 		var prefix string
-		if runtime.GOOS == "windows" {
+		if runtime.GOOS == consts.WindowsGOOS {
 			prefix = strings.ReplaceAll(CopiedBasePackage, `\/`, `\\`)
 			if sub != "" {
 				prefix = fmt.Sprintf(`%s\\%s`, prefix, sub)
