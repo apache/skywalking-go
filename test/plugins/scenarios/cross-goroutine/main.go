@@ -15,23 +15,38 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package traceactivation
+package main
 
 import (
-	"github.com/apache/skywalking-go/plugins/core/operator"
-	"github.com/apache/skywalking-go/plugins/core/tracing"
+	"log"
+	"net/http"
+	"sync"
+	"time"
+
+	_ "github.com/apache/skywalking-go"
+	"github.com/apache/skywalking-go/toolkit/trace"
 )
 
-type ContinueContextInterceptor struct {
+func executeHandler(w http.ResponseWriter, r *http.Request) {
+	log.Println("Received request for /execute")
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		trace.CreateLocalSpan("testGoroutineLocalSpan")
+		time.Sleep(100 * time.Millisecond)
+		trace.StopSpan()
+	}()
+	wg.Wait()
+	log.Println("Goroutine finished, sending response")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write([]byte("success"))
 }
 
-func (h *ContinueContextInterceptor) BeforeInvoke(invocation operator.Invocation) error {
-	if invocation.Args()[0] != nil {
-		tracing.ContinueContext(invocation.Args()[0].(tracing.ContextSnapshot))
-	}
-	return nil
-}
-
-func (h *ContinueContextInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {
-	return nil
+func main() {
+	http.HandleFunc("/execute", executeHandler)
+	http.HandleFunc("/health", func(writer http.ResponseWriter, request *http.Request) {
+		writer.WriteHeader(http.StatusOK)
+	})
+	_ = http.ListenAndServe(":8080", nil)
 }

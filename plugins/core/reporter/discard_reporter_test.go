@@ -31,8 +31,8 @@ func TestDiscardReporter(t *testing.T) {
 	r.SendTracing(nil)
 	r.SendMetrics(nil)
 	r.SendLog(nil)
-	if status := r.ConnectionStatus(); status != 0 {
-		t.Errorf("expect 0, actual is %d", status)
+	if status := r.ConnectionStatus(); status != reporter.ConnectionStatusDisconnect {
+		t.Errorf("expect 2, actual is %d", status)
 	}
 	r.Close()
 }

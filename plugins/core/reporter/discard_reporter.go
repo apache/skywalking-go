@@ -39,7 +39,7 @@ func (r *discardReporter) SendLog(log *logv3.LogData) {
 }
 func (r *discardReporter) ConnectionStatus() ConnectionStatus {
 	// do nothing
-	return 0
+	return ConnectionStatusDisconnect
 }
 func (r *discardReporter) Close() {
 	// do nothing
