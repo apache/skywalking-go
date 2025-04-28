@@ -2,6 +2,20 @@ Changes by Version
 ==================
 Release Notes.
 
+0.7.0
+------------------
+#### Features
+
+#### Plugins
+
+#### Documentation
+
+#### Bug Fixes
+
+#### Issues and PR
+- All issues are [here](https://github.com/apache/skywalking/milestone/238?closed=1)
+- All and pull requests are [here](https://github.com/apache/skywalking-go/milestone/8?closed=1)
+
 0.6.0
 ------------------
 #### Features
