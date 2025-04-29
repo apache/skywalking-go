@@ -1,0 +1,11 @@
+name: Windows Plugin Tests
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-on-windows:
+    runs-on: windows-latest
+    steps:
+      - name: mock
+        run: echo "mock"
