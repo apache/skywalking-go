@@ -18,7 +18,7 @@
 
 set -ex
 cp -rf /mnt/d/a/skywalking-go/skywalking-go/test/plugins/workspace /root/repo/skywalking-go/test/plugins/
-cd $(find ~/repo/skywalking-go/test/plugins/workspace -mindepth 2 -maxdepth 2 -type d | head -n 1)
+cd {{.Context.WorkSpaceDir}}
 export WINDOWS_HOST=`cat /etc/resolv.conf | grep nameserver | cut -d ' ' -f 2`
 sed -i "s/service:8080/$WINDOWS_HOST:8080/g" ./config/excepted.yml
 sed -i "s/HTTP_HOST=127\.0\.0\.1/HTTP_HOST=$WINDOWS_HOST/g" validator.sh

@@ -165,6 +165,8 @@ func RenderValidatorScript(context *Context) error {
 }
 
 func RenderWSLScenariosScript(context *Context) error {
+	dir := context.WorkSpaceDir
+	context.WorkSpaceDir = "/root/repo/skywalking-go/test/plugins/workspace/" + context.ScenarioName + "/" + context.CaseName
 	render, err := templates.Render("wsl-scenarios.tpl", struct {
 		Context *Context
 	}{
@@ -174,5 +176,6 @@ func RenderWSLScenariosScript(context *Context) error {
 		return err
 	}
 	render = strings.ReplaceAll(render, "\r\n", "\n")
+	context.WorkSpaceDir = dir
 	return os.WriteFile(filepath.Join(context.WorkSpaceDir, "wsl-scenarios.sh"), []byte(render), 0o600)
 }
