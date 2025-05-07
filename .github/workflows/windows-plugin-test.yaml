@@ -33,7 +33,25 @@ jobs:
           Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False
 
       - name: Install and Configure WSL 2
-        uses: vedantmgoyal9/setup-wsl2@main
+        shell: pwsh
+        run: |
+          Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux
+          Enable-WindowsOptionalFeature -Online -FeatureName VirtualMachinePlatform
+
+          Invoke-WebRequest -Uri https://wslstorestorage.blob.core.windows.net/wslblob/wsl_update_x64.msi -OutFile wsl_update.msi
+          Start-Process msiexec.exe -Wait -ArgumentList '/i wsl_update.msi /quiet'
+          
+          wsl --set-default-version 2
+          wsl --update
+          wsl --install -d Ubuntu
+          
+          @'
+          @echo off
+          FOR /F "usebackq tokens=*" %%F IN (`wsl wslpath '%~1'`) DO SET wslpath=%%F
+          wsl -d Ubuntu sed -i 's/\r$//' %wslpath%
+          wsl -d Ubuntu --cd %GITHUB_WORKSPACE% bash --noprofile --norc -eo pipefail %wslpath%
+          '@ | Out-File -FilePath $env:RUNNER_TEMP\wsl-run.bat -Encoding utf8
+          $env:RUNNER_TEMP >> $env:GITHUB_PATH
 
       - name: WSL - Setup Docker
         shell: wsl-run {0}
