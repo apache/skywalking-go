@@ -22,6 +22,9 @@ import (
 	"flag"
 	"os"
 	"path/filepath"
+	"runtime"
+
+	"github.com/apache/skywalking-go/tools/go-agent/instrument/consts"
 
 	"gopkg.in/yaml.v3"
 )
@@ -61,6 +64,7 @@ func BuildContext() (*Context, error) {
 		GoAgentPath:  filepath.Clean(*goAgentPath),
 		DebugMode:    *debugMode == "on",
 		Config:       config,
+		IsWindows:    runtime.GOOS == consts.WindowsGOOS,
 	}, nil
 }
 
@@ -73,6 +77,7 @@ type Context struct {
 	GoAgentPath  string
 	DebugMode    bool
 	Config       *Config
+	IsWindows    bool
 }
 
 type Config struct {
