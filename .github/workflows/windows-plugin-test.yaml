@@ -16,12 +16,136 @@
 
 name: Windows Plugin Tests
 
+concurrency:
+  group: plugins-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 on:
-  workflow_dispatch:
+  pull_request:
 
 jobs:
   test-on-windows:
     runs-on: windows-latest
     steps:
-      - name: mock
-        run: echo "mock"
+      - name: firewall
+        shell: pwsh
+        run: |
+          Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False
+
+      - name: Install and Configure WSL 2
+        uses: vedantmgoyal9/setup-wsl2@main
+
+      - name: WSL - Setup Docker
+        shell: wsl-run {0}
+        run: |
+          # Add Docker's official GPG key:
+          sudo apt-get update
+          sudo apt-get install -y ca-certificates curl
+          sudo install -m 0755 -d /etc/apt/keyrings
+          sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+          sudo chmod a+r /etc/apt/keyrings/docker.asc
+          
+          # Add the repository to Apt sources:
+          echo \
+            "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+            $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+            sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+          sudo apt-get update
+          
+          sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+          
+          sudo service docker start
+          
+          curl -SL https://github.com/docker/compose/releases/download/v2.2.3/docker-compose-linux-x86_64 -o /usr/local/bin/docker-compose
+          sudo chmod +x /usr/local/bin/docker-compose
+          docker-compose --version
+      - name: WSL – Install Go 1.19
+        shell: wsl-run {0}
+        run: |
+          wget https://go.dev/dl/go1.19.linux-amd64.tar.gz
+          sudo tar -C /usr/local -xzf go1.19.linux-amd64.tar.gz
+          
+          echo 'export GOROOT=/usr/local/go' >> ~/.profile
+          echo 'export GOPATH=$HOME/go' >> ~/.profile
+          echo 'export PATH=$GOROOT/bin:$GOPATH/bin:$PATH' >> ~/.profile
+          
+          export GOROOT=/usr/local/go
+          export GOPATH=$HOME/go
+          export PATH=$GOROOT/bin:$GOPATH/bin:$PATH
+          
+          go version
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Copy code to WSL home
+        shell: wsl-run {0}
+        run: |
+          mkdir -p ~/repo
+          cp -r /mnt/d/a/skywalking-go/*   ~/repo/
+
+      - name: WSL – Build
+        shell: wsl-run {0}
+        run: |
+          export GOROOT=/usr/local/go
+          export GOPATH=$HOME/go
+          export PATH=$GOROOT/bin:$GOPATH/bin:$PATH
+          sudo apt-get install -y build-essential
+          cd ~/repo/skywalking-go/test/plugins
+          mkdir -p dist
+          cd validator && docker build . -t skywalking/agent-test-validator:1.0.0
+          docker save -o ../dist/skywalking-agent-test-validator-1.0.0.tgz skywalking/agent-test-validator:1.0.0
+
+      - name: Copy WSL to Windows
+        shell: wsl-run {0}
+        run: |
+          sudo cp -rf ~/repo/*  /mnt/d/a/skywalking-go
+
+      - name: Windows Set up Go 1.19
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.19
+      - name: WSL Setup Tools
+        shell: wsl-run {0}
+        run: |
+          cd ~/repo/skywalking-go
+          cp -rf /mnt/d/a/skywalking-go/skywalking-go/test/plugins/dist/* test/plugins/dist/
+          chmod +x test/plugins/dist/*
+          if ls test/plugins/dist/skywalking-agent-test-validator-1.0.0.tgz; then
+            docker load -i test/plugins/dist/skywalking-agent-test-validator-1.0.0.tgz
+          fi
+      - name: Run Windows Server
+        run: |
+          choco install yq
+          cd test/plugins
+          head -n -2 Makefile > temp && rm Makefile && mv temp Makefile
+          make build os=windows
+          bash run.sh http
+      - name: WSL Run Docker Compose And Test
+        shell: wsl-run {0}
+        run: |
+          cp -rf /mnt/d/a/skywalking-go/skywalking-go/test/plugins/workspace /root/repo/skywalking-go/test/plugins/
+          cd $(find ~/repo/skywalking-go/test/plugins/workspace -mindepth 2 -maxdepth 2 -type d | head -n 1)
+          bash wsl-scenarios.sh
+      - uses: actions/upload-artifact@v4
+        name: Upload Agent
+        if: ${{ failure() }}
+        with:
+          path: test/plugins/workspace
+          name: test-plugins-workspace-http-windows
+
+  required:
+    if: always()
+    name: Windows Plugin Tests
+    needs:
+      - test-on-windows
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Merge Requirement
+        run: |
+          if [[ ${{ needs.test-on-windows.result }} != 'success' ]]; then
+            exit -1
+          fi
