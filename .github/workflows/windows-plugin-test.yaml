@@ -141,12 +141,6 @@ jobs:
           head -n -2 Makefile > temp && rm Makefile && mv temp Makefile
           make build os=windows
           bash run.sh http
-      - name: WSL Run Docker Compose And Test
-        shell: wsl-run {0}
-        run: |
-          cp -rf /mnt/d/a/skywalking-go/skywalking-go/test/plugins/workspace /root/repo/skywalking-go/test/plugins/
-          cd $(find ~/repo/skywalking-go/test/plugins/workspace -mindepth 2 -maxdepth 2 -type d | head -n 1)
-          bash wsl-scenarios.sh
       - uses: actions/upload-artifact@v4
         name: Upload Agent
         if: ${{ failure() }}

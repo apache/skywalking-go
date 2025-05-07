@@ -33,3 +33,8 @@ export SW_AGENT_REPORTER_GRPC_BACKEND_SERVICE=localhost:19876
 eval "$(grep '^export ' ./bin/startup.sh)"
 
 ./${project_name} &
+web_pid=$!
+
+wsl-run.bat "${home}/wsl-scenarios.sh"
+
+kill -9 $web_pid

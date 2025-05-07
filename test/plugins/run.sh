@@ -213,10 +213,6 @@ for framework_version in $frameworks; do
   bash ${case_home}/scenarios.sh > ${case_logs}/scenarios.log
   status=$?
 
-  if [[ $os == "windows" ]]; then
-    exit 0
-  fi
-
   if [[ $status == 0 ]]; then
       [[ $debug_mode == "off" ]] && remove_dir ${case_home}
   else
@@ -225,6 +221,9 @@ for framework_version in $frameworks; do
   num_of_testcases=$(($num_of_testcases+1))
 
 done
+  if [[ $os == "windows" ]]; then
+    break
+  fi
 done
 
 exitAndClean 0
