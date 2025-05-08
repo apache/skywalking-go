@@ -30,6 +30,8 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/apache/skywalking-go/tools/go-agent/instrument/consts"
+
 	"github.com/dave/dst"
 	"github.com/dave/dst/decorator"
 	"github.com/dave/dst/dstutil"
@@ -173,7 +175,7 @@ func BuildDSTDebugInfo(srcPath string, file *dst.File) (*DebugInfo, error) {
 }
 
 func WriteDSTFile(path string, file *dst.File, debug *DebugInfo) error {
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == consts.WindowsGOOS {
 		path = strings.ReplaceAll(path, `/`, `\`)
 	}
 

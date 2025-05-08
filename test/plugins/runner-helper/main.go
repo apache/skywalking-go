@@ -41,6 +41,12 @@ func main() {
 		log.Fatalf("build dockerfile failure: %v", err)
 	}
 
+	// generate scenarios.sh to start the plugin test case
+	err = RenderScenariosScript(context)
+	if err != nil {
+		log.Fatalf("build scenarios failure: %v", err)
+	}
+
 	// generate docker-compose.yml to run the plugin
 	err = RenderDockerCompose(context)
 	if err != nil {
@@ -53,10 +59,12 @@ func main() {
 		log.Fatalf("build validator failure: %v", err)
 	}
 
-	// generate scenarios.sh to start the plugin test case
-	err = RenderScenariosScript(context)
-	if err != nil {
-		log.Fatalf("build scenarios failure: %v", err)
+	// generate validator.sh to validate the plugin
+	if context.IsWindows {
+		err = RenderWSLScenariosScript(context)
+		if err != nil {
+			log.Fatalf("windows build wsl-scenarios failure: %v", err)
+		}
 	}
 }
 
@@ -89,18 +97,50 @@ func RenderDockerFile(context *Context) error {
 	return os.WriteFile(filepath.Join(context.WorkSpaceDir, "Dockerfile"), []byte(render), 0o600)
 }
 
+func RenderScenariosScript(context *Context) error {
+	tplName := "scenarios.tpl"
+	dockerComposeFilePath := filepath.Join(context.WorkSpaceDir, "docker-compose.yml")
+	if context.IsWindows {
+		tplName = "windows-scenarios.tpl"
+		dockerComposeFilePath = strings.ReplaceAll(dockerComposeFilePath, `\`, `/`)
+	}
+
+	render, err := templates.Render(tplName, struct {
+		DockerComposeFilePath string
+		Context               *Context
+	}{
+		DockerComposeFilePath: dockerComposeFilePath,
+		Context:               context,
+	})
+	if err != nil {
+		return err
+	}
+	render = strings.ReplaceAll(render, "\r\n", "\n")
+	return os.WriteFile(filepath.Join(context.WorkSpaceDir, "scenarios.sh"), []byte(render), 0o600)
+}
+
 func RenderDockerCompose(context *Context) error {
 	rel, err := filepath.Rel(context.ProjectDir, filepath.Join(context.WorkSpaceDir, "Dockerfile"))
 	if err != nil {
 		return err
 	}
-	render, err := templates.Render("docker-compose.tpl", struct {
+
+	dir := context.WorkSpaceDir
+
+	tplName := "docker-compose.tpl"
+	if context.IsWindows {
+		tplName = "windows-docker-compose.tpl"
+		context.WorkSpaceDir = "/root/repo/skywalking-go/test/plugins/workspace/" + context.ScenarioName + "/" + context.CaseName
+	}
+
+	render, err := templates.Render(tplName, struct {
 		DockerFilePathRelateToProject string
 		Context                       *Context
 	}{
 		DockerFilePathRelateToProject: rel,
 		Context:                       context,
 	})
+	context.WorkSpaceDir = dir
 	if err != nil {
 		return err
 	}
@@ -108,7 +148,11 @@ func RenderDockerCompose(context *Context) error {
 }
 
 func RenderValidatorScript(context *Context) error {
-	render, err := templates.Render("validator.tpl", struct {
+	tplName := "validator.tpl"
+	if context.IsWindows {
+		tplName = "windows-validator.tpl"
+	}
+	render, err := templates.Render(tplName, struct {
 		Context *Context
 	}{
 		Context: context,
@@ -116,19 +160,22 @@ func RenderValidatorScript(context *Context) error {
 	if err != nil {
 		return err
 	}
+	render = strings.ReplaceAll(render, "\r\n", "\n")
 	return os.WriteFile(filepath.Join(context.WorkSpaceDir, "validator.sh"), []byte(render), 0o600)
 }
 
-func RenderScenariosScript(context *Context) error {
-	render, err := templates.Render("scenarios.tpl", struct {
-		DockerComposeFilePath string
-		Context               *Context
+func RenderWSLScenariosScript(context *Context) error {
+	dir := context.WorkSpaceDir
+	context.WorkSpaceDir = "/root/repo/skywalking-go/test/plugins/workspace/" + context.ScenarioName + "/" + context.CaseName
+	render, err := templates.Render("wsl-scenarios.tpl", struct {
+		Context *Context
 	}{
-		DockerComposeFilePath: filepath.Join(context.WorkSpaceDir, "docker-compose.yml"),
-		Context:               context,
+		Context: context,
 	})
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(filepath.Join(context.WorkSpaceDir, "scenarios.sh"), []byte(render), 0o600)
+	render = strings.ReplaceAll(render, "\r\n", "\n")
+	context.WorkSpaceDir = dir
+	return os.WriteFile(filepath.Join(context.WorkSpaceDir, "wsl-scenarios.sh"), []byte(render), 0o600)
 }
