@@ -28,6 +28,11 @@ num_of_testcases=0
 
 start_stamp=`date +%s`
 
+os_name=$(uname)
+if [[ "$os_name" =~ "NT" || "$os_name" =~ "MINGW" || "$os_name" =~ "MSYS" ]]; then
+  os="windows"
+fi
+
 replace() {
   if [ $# -lt 2 ]; then
     echo 1
@@ -207,6 +212,7 @@ for framework_version in $frameworks; do
 
   bash ${case_home}/scenarios.sh > ${case_logs}/scenarios.log
   status=$?
+
   if [[ $status == 0 ]]; then
       [[ $debug_mode == "off" ]] && remove_dir ${case_home}
   else
@@ -215,6 +221,9 @@ for framework_version in $frameworks; do
   num_of_testcases=$(($num_of_testcases+1))
 
 done
+  if [[ $os == "windows" ]]; then
+    break
+  fi
 done
 
 exitAndClean 0

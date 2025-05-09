@@ -20,7 +20,10 @@ package plugins
 import (
 	"fmt"
 	"path/filepath"
+	"runtime"
 	"strings"
+
+	"github.com/apache/skywalking-go/tools/go-agent/instrument/consts"
 
 	"github.com/apache/skywalking-go/plugins/core/instrument"
 	"github.com/apache/skywalking-go/tools/go-agent/instrument/agentcore"
@@ -66,6 +69,9 @@ type MethodEnhance struct {
 func NewMethodEnhance(inst instrument.Instrument, matcher *instrument.Point, f *dst.FuncDecl, path string,
 	importAnalyzer *tools.ImportAnalyzer) *MethodEnhance {
 	fullPackage := filepath.Join(inst.BasePackage(), matcher.PackagePath)
+	if runtime.GOOS == consts.WindowsGOOS {
+		fullPackage = strings.ReplaceAll(fullPackage, `\`, `/`)
+	}
 	pkgName := filepath.Base(fullPackage)
 	if matcher.PackageName != "" {
 		pkgName = matcher.PackageName
@@ -88,13 +94,16 @@ func NewMethodEnhance(inst instrument.Instrument, matcher *instrument.Point, f *
 	importAnalyzer.AnalyzeNeedsImports(path, f.Type.Results)
 	enhance.importAnalyzer = importAnalyzer
 
-	enhance.FuncID = tools.BuildFuncIdentity(filepath.Join(inst.BasePackage(), matcher.PackagePath), f)
+	enhance.FuncID = tools.BuildFuncIdentity(fullPackage, f)
 	enhance.AdapterPreFuncName = fmt.Sprintf("%s%s", rewrite.GenerateMethodPrefix, enhance.FuncID)
 	enhance.AdapterPostFuncName = fmt.Sprintf("%s%s_ret", rewrite.GenerateMethodPrefix, enhance.FuncID)
 
 	// the interceptor name needs to add the function id ensure there no conflict in the framework package
 	titleCase := cases.Title(language.English)
 	packageTitle := filepath.Base(titleCase.String(filepath.Join(inst.BasePackage(), pkgName)))
+	if runtime.GOOS == consts.WindowsGOOS {
+		packageTitle = strings.ReplaceAll(packageTitle, `\`, `/`)
+	}
 	enhance.InterceptorGeneratedName = fmt.Sprintf("%s%s%s", rewrite.TypePrefix, packageTitle, enhance.InterceptorDefineName)
 	enhance.InterceptorVarName = fmt.Sprintf("%sinterceptor_%s", rewrite.GenerateVarPrefix, enhance.FuncID)
 	return enhance

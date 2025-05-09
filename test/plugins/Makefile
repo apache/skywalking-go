@@ -24,12 +24,19 @@ ifeq ($(strip $(GIT_VERSION)),)
 endif
 VERSION ?= $(GIT_VERSION)
 
+os ?= $(OS)
+
 .PHONY: build
 build:
 	mkdir -p dist
 	# go agent
-	@make -C ../../tools/go-agent linux
-	cp ../../bin/skywalking-go-agent-$(VERSION)-linux-$(shell go env GOARCH) dist/skywalking-go-agent
+	@if [ "$(os)" = "windows" ]; then \
+    		"$(MAKE)" -C ../../tools/go-agent windows; \
+    		cp ../../bin/skywalking-go-agent-$(VERSION)-windows-$(shell go env GOARCH) dist/skywalking-go-agent.exe; \
+    	else \
+    		"$(MAKE)" -C ../../tools/go-agent linux; \
+    		cp ../../bin/skywalking-go-agent-$(VERSION)-linux-$(shell go env GOARCH) dist/skywalking-go-agent; \
+    	fi
 	# runner helper
 	cd runner-helper && $(GO_BUILD) -o ../dist/runner-helper
 	# validator container

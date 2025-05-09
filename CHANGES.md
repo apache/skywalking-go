@@ -6,11 +6,15 @@ Release Notes.
 ------------------
 #### Features
 
+* Support Windows plugin test.
+
 #### Plugins
 
 #### Documentation
 
 #### Bug Fixes
+
+* Fix plugin interceptors bypassed on Windows.
 
 #### Issues and PR
 - All issues are [here](https://github.com/apache/skywalking/milestone/238?closed=1)
