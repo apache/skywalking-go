@@ -6,8 +6,8 @@
 - log: The log configuration for adapt the Golang agent.
 - plugins: The plugins for adapt the frameworks.
   - core: Agent core and API for the SkyWalking Agent, the plugins should import this module.
+    - reporter: The reporter for adapt the SkyWalking backend.
   - xxx: The plugins for adapt the framework.
-- reporter: The reporter for adapt the SkyWalking backend.
 - tools/go-agent: The Golang Agent enhancement program.
   - cmd: The agent starter.
   - config: The application register configuration for agent.
