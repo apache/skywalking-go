@@ -34,20 +34,22 @@ agent:
   ignore_suffix: ${SW_AGENT_IGNORE_SUFFIX:.jpg,.jpeg,.js,.css,.png,.bmp,.gif,.ico,.mp3,.mp4,.html,.svg}
   # If the operation name of the first span is matching, this segment should be ignored.(multiple split by ",").
   # Matching rules follow Ant Path match style, like /path/*, /path/**, /path/?.
-  #       "/path/*" means matching any path that starts with "/path/".  
+  #       "/path/*" means matching any path that starts with "/path/".
   #       "/path/**" means matching any path that starts with "/path/" and includes its subpaths.
   #       "/path/?" means matching any path that starts with "/path/" and has any single character as a wildcard.
   trace_ignore_path: ${SW_AGENT_TRACE_IGNORE_PATH:}
 
 reporter:
   discard: ${SW_AGENT_REPORTER_DISCARD:false}
+  # Reporter type: "grpc" or "kafka"
+  type: ${SW_AGENT_REPORTER_TYPE:grpc}
+  # The interval(s) of checking service and backend service
+  check_interval: ${SW_AGENT_REPORTER_CHECK_INTERVAL:20}
   grpc:
     # The gRPC server address of the backend service.
     backend_service: ${SW_AGENT_REPORTER_GRPC_BACKEND_SERVICE:127.0.0.1:11800}
     # The maximum count of segment for reporting tracing data.
     max_send_queue: ${SW_AGENT_REPORTER_GRPC_MAX_SEND_QUEUE:5000}
-    # The interval(s) of checking service and backend service
-    check_interval: ${SW_AGENT_REPORTER_GRPC_CHECK_INTERVAL:20}
     # The authentication string for communicate with backend.
     authentication: ${SW_AGENT_REPORTER_GRPC_AUTHENTICATION:}
     # The interval(s) of fetching dynamic configuration from backend.
@@ -63,6 +65,27 @@ reporter:
       client_cert_chain_path: ${SW_AGENT_REPORTER_GRPC_TLS_CLIENT_CERT_CHAIN_PATH:}
       # Controls whether a client verifies the server's certificate chain and host name.
       insecure_skip_verify: ${SW_AGENT_REPORTER_GRPC_TLS_INSECURE_SKIP_VERIFY:false}
+  kafka:
+    # Kafka broker addresses, comma separated
+    brokers: ${SW_AGENT_REPORTER_KAFKA_BROKERS:127.0.0.1:9092}
+    # Topic for segments data
+    topic_segment: ${SW_AGENT_REPORTER_KAFKA_TOPIC_SEGMENT:skywalking-segments}
+    # Topic for meters data
+    topic_meter: ${SW_AGENT_REPORTER_KAFKA_TOPIC_METER:skywalking-meters}
+    # Topic for logging data
+    topic_logging: ${SW_AGENT_REPORTER_KAFKA_TOPIC_LOGGING:skywalking-logging}
+    # Topic for management data
+    topic_management: ${SW_AGENT_REPORTER_KAFKA_TOPIC_MANAGEMENT:skywalking-managements}
+    # Send queue size
+    max_send_queue: ${SW_AGENT_REPORTER_KAFKA_MAX_SEND_QUEUE:5000}
+    # Batch size
+    batch_size: ${SW_AGENT_REPORTER_KAFKA_BATCH_SIZE:1000}
+    # Batch bytes
+    batch_bytes: ${SW_AGENT_REPORTER_KAFKA_BATCH_BYTES:1048576}
+    # Batch timeout millis
+    batch_timeout_millis: ${SW_AGENT_REPORTER_KAFKA_BATCH_TIMEOUT_MILLIS:1000}
+    # Acknowledge, 0: none, 1: leader, 2: all
+    acks: ${SW_AGENT_REPORTER_KAFKA_ACKS:1}
 
 log:
   # The type determines which logging type is currently used by the system.
@@ -106,7 +129,7 @@ plugin:
     redis:
       # Limit the bytes size of redis args request
       max_args_bytes: ${SW_AGENT_PLUGIN_CONFIG_REDIS_MAX_ARGS_BYTES:1024}
-    gin: 
+    gin:
       # Collect the http header of gin request
       collect_request_headers: ${SW_AGENT_PLUGIN_CONFIG_GIN_COLLECT_REQUEST_HEADERS:}
       # Controlling the length limitation of all header values

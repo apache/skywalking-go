@@ -55,8 +55,11 @@ type Agent struct {
 }
 
 type Reporter struct {
-	Discard StringValue  `yaml:"discard"`
-	GRPC    GRPCReporter `yaml:"grpc"`
+	Discard       StringValue   `yaml:"discard"`
+	Type          StringValue   `yaml:"type"`
+	CheckInterval StringValue   `yaml:"check_interval"`
+	GRPC          GRPCReporter  `yaml:"grpc"`
+	Kafka         KafkaReporter `yaml:"kafka"`
 }
 
 type Log struct {
@@ -82,7 +85,6 @@ type Meter struct {
 type GRPCReporter struct {
 	BackendService   StringValue     `yaml:"backend_service"`
 	MaxSendQueue     StringValue     `yaml:"max_send_queue"`
-	CheckInterval    StringValue     `yaml:"check_interval"`
 	Authentication   StringValue     `yaml:"authentication"`
 	CDSFetchInterval StringValue     `yaml:"cds_fetch_interval"`
 	TLS              GRPCReporterTLS `yaml:"tls"`
@@ -94,6 +96,19 @@ type GRPCReporterTLS struct {
 	ClientKeyPath       StringValue `yaml:"client_key_path"`
 	ClientCertChainPath StringValue `yaml:"client_cert_chain_path"`
 	InsecureSkipVerify  StringValue `yaml:"insecure_skip_verify"`
+}
+
+type KafkaReporter struct {
+	Brokers            StringValue `yaml:"brokers"`
+	TopicSegment       StringValue `yaml:"topic_segment"`
+	TopicMeter         StringValue `yaml:"topic_meter"`
+	TopicLogging       StringValue `yaml:"topic_logging"`
+	TopicManagement    StringValue `yaml:"topic_management"`
+	MaxSendQueue       StringValue `yaml:"max_send_queue"`
+	BatchSize          StringValue `yaml:"batch_size"`
+	BatchBytes         StringValue `yaml:"batch_bytes"`
+	BatchTimeoutMillis StringValue `yaml:"batch_timeout_millis"`
+	Acks               StringValue `yaml:"acks"`
 }
 
 type Plugin struct {
