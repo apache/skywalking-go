@@ -84,7 +84,7 @@ reporter:
     batch_bytes: ${SW_AGENT_REPORTER_KAFKA_BATCH_BYTES:1048576}
     # Batch timeout millis
     batch_timeout_millis: ${SW_AGENT_REPORTER_KAFKA_BATCH_TIMEOUT_MILLIS:1000}
-    # Acknowledge, 0: none, 1: leader, 2: all
+    # Acknowledge, 0: none, 1: leader, -1: all
     acks: ${SW_AGENT_REPORTER_KAFKA_ACKS:1}
 
 log:
