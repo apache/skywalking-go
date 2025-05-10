@@ -18,6 +18,7 @@
 package segmentiokafka
 
 import (
+	"context"
 	"github.com/segmentio/kafka-go"
 
 	"github.com/apache/skywalking-go/plugins/core/operator"
@@ -25,9 +26,10 @@ import (
 )
 
 const (
-	kafkaWriterPrefix      = "Kafka/"
-	kafkaWriterSuffix      = "/Producer"
-	kafkaWriterComponentID = 40
+	kafkaWriterPrefix          = "Kafka/"
+	kafkaWriterSuffix          = "/Producer"
+	kafkaWriterComponentID     = 40
+	internalReporterContextKey = "skywalking-kafka-reporter"
 )
 
 type WriterInterceptor struct {
@@ -36,6 +38,10 @@ type WriterInterceptor struct {
 func (w *WriterInterceptor) BeforeInvoke(invocation operator.Invocation) error {
 	writer := invocation.CallerInstance().(*kafka.Writer)
 	addr, topic := writer.Addr.String(), writer.Topic
+	ctx := invocation.Args()[0].(context.Context)
+	if internal, ok := ctx.Value(internalReporterContextKey).(bool); ok && internal {
+		return nil
+	}
 	messageList := invocation.Args()[1].([]kafka.Message)
 	operationName := kafkaWriterPrefix + topic + kafkaWriterSuffix
 

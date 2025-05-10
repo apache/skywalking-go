@@ -1,3 +1,5 @@
+#!/bin/bash
+#
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -14,35 +16,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-entry-service: http://${HTTP_HOST}:${HTTP_PORT}/execute
-health-checker: http://${HTTP_HOST}:${HTTP_PORT}/health
-start-script: ./bin/startup.sh
-framework: gorm.io/gorm
-export-port: 8080
-support-version:
-  - go: 1.19
-    framework:
-      - v1.22.0
-      - v1.23.0
-      - v1.24.0
-      - v1.24.1
-      - v1.24.2
-      - v1.24.3
-      - v1.24.4
-      - v1.24.5
-      - v1.25.0
-      - v1.25.1
-dependencies:
-  mysql-server:
-    image: mysql:5.7
-    hostname: mysql-server
-    expose:
-      - "3306"
-    environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: test
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 5s
-      timeout: 60s
-      retries: 120
+home="$(cd "$(dirname $0)"; pwd)"
+
+go build ${GO_BUILD_OPTS} -o kafka-reporter
+
+export SW_AGENT_REPORTER_TYPE=kafka
+export SW_AGENT_REPORTER_KAFKA_BROKERS=kafka-server:9092
+export SW_AGENT_REPORTER_KAFKA_TOPIC_SEGMENT=skywalking-segments
+export SW_AGENT_REPORTER_KAFKA_TOPIC_METER=skywalking-meters
+export SW_AGENT_REPORTER_KAFKA_TOPIC_LOGGING=skywalking-logging
+export SW_AGENT_REPORTER_KAFKA_TOPIC_MANAGEMENT=skywalking-managements
+
+./kafka-reporter

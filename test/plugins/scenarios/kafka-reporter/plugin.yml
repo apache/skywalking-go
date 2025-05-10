@@ -17,32 +17,22 @@
 entry-service: http://${HTTP_HOST}:${HTTP_PORT}/execute
 health-checker: http://${HTTP_HOST}:${HTTP_PORT}/health
 start-script: ./bin/startup.sh
-framework: gorm.io/gorm
+framework: go
 export-port: 8080
 support-version:
   - go: 1.19
-    framework:
-      - v1.22.0
-      - v1.23.0
-      - v1.24.0
-      - v1.24.1
-      - v1.24.2
-      - v1.24.3
-      - v1.24.4
-      - v1.24.5
-      - v1.25.0
-      - v1.25.1
 dependencies:
-  mysql-server:
-    image: mysql:5.7
-    hostname: mysql-server
-    expose:
-      - "3306"
+  zookeeper-server:
+    image: zookeeper:3.9.2
+    hostname: zookeeper-server
+  kafka-server:
+    image: bitnami/kafka:3.7.0
+    hostname: kafka-server
+    ports:
+      - 9092
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: test
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 5s
-      timeout: 60s
-      retries: 120
+      KAFKA_ZOOKEEPER_CONNECT: "zookeeper-server:2181"
+      KAFKA_BROKER_ID: 1
+      KAFKA_LISTENERS: "PLAINTEXT://kafka-server:9092"
+    depends_on:
+      - zookeeper-server
