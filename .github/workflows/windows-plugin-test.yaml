@@ -17,7 +17,7 @@
 name: Windows Plugin Tests
 
 concurrency:
-  group: plugins-${{ github.event.pull_request.number || github.ref }}
+  group: windows-plugins-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 on:
