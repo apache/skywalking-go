@@ -35,12 +35,14 @@ import (
 const (
 	kafkaMaxSendQueueSize      int32 = 30000
 	internalReporterContextKey       = "skywalking-kafka-reporter"
+	topicKeyRegister                 = "register-"
 )
 
 type kafkaReporter struct {
 	entity           *reporter.Entity
 	logger           operator.LogOperator
 	writer           *kafka.Writer
+	brokerAddr       []string
 	tracingSendCh    chan *agentv3.SegmentObject
 	metricsSendCh    chan []*agentv3.MeterData
 	logSendCh        chan *logv3.LogData
@@ -66,9 +68,9 @@ func NewKafkaReporter(logger operator.LogOperator, brokers string, checkInterval
 		cdsManager:       cdsManager,
 	}
 
-	brokerAddr := strings.Split(brokers, ",")
+	r.brokerAddr = strings.Split(brokers, ",")
 	writer := &kafka.Writer{
-		Addr:                   kafka.TCP(brokerAddr...),
+		Addr:                   kafka.TCP(r.brokerAddr...),
 		Balancer:               &kafka.RoundRobin{},
 		MaxAttempts:            10,
 		BatchSize:              1000,
@@ -106,8 +108,8 @@ func (r *kafkaReporter) updateConnectionStatus() {
 }
 
 func (r *kafkaReporter) checkKafkaConnection() bool {
-	addr := r.writer.Addr
-	conn, err := kafka.Dial("tcp", addr.String())
+	firstAddr := r.brokerAddr[0]
+	conn, err := kafka.Dial("tcp", firstAddr)
 	if err != nil {
 		r.logger.Errorf("kafka connection error %v", err)
 		return false
@@ -286,7 +288,7 @@ func (r *kafkaReporter) check() {
 				ctx := context.WithValue(context.Background(), internalReporterContextKey, true)
 				err = r.writer.WriteMessages(ctx, kafka.Message{
 					Topic: r.topicManagement,
-					Key:   []byte(r.entity.ServiceInstanceName),
+					Key:   []byte(topicKeyRegister + r.entity.ServiceInstanceName),
 					Value: payload,
 				})
 				if err != nil {
