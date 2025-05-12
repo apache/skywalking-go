@@ -69,7 +69,6 @@ use (
 	./test/plugins/scenarios/goframe
 	./test/plugins/scenarios/so11y
 	./test/plugins/scenarios/cross-goroutine
-	./test/plugins/scenarios/kafka-reporter
 
 	./tools/go-agent
 

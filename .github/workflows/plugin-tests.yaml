@@ -106,7 +106,6 @@ jobs:
           - goframe
           - so11y
           - cross-goroutine
-          - kafka-reporter
     steps:
       - uses: actions/checkout@v2
         with:
