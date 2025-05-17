@@ -127,7 +127,7 @@ reporter:
     # Topic for meters data
     topic_meter: ${SW_AGENT_REPORTER_KAFKA_TOPIC_METER:skywalking-meters}
     # Topic for logging data
-    topic_logging: ${SW_AGENT_REPORTER_KAFKA_TOPIC_LOGGING:skywalking-logging}
+    topic_logging: ${SW_AGENT_REPORTER_KAFKA_TOPIC_LOGGING:skywalking-logs}
     # Topic for management data
     topic_management: ${SW_AGENT_REPORTER_KAFKA_TOPIC_MANAGEMENT:skywalking-managements}
     # Send queue size
