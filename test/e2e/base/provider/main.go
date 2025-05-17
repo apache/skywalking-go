@@ -34,7 +34,7 @@ type User struct {
 
 func main() {
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("ok"))
+		_, _ = w.Write([]byte("ok"))
 	})
 
 	http.HandleFunc("/info", func(w http.ResponseWriter, r *http.Request) {
@@ -43,7 +43,7 @@ func main() {
 		sleepTime := rand.Intn(500) + 500
 		time.Sleep(time.Duration(sleepTime) * time.Millisecond)
 
-		w.Write([]byte("This is provider info"))
+		_, _ = w.Write([]byte("This is provider info"))
 		log.Printf("Provider processed %s request to /info", r.Method)
 	})
 
@@ -62,7 +62,7 @@ func main() {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		w.Write(jsonData)
+		_, _ = w.Write(jsonData)
 		log.Printf("Provider processed %s request to /users", r.Method)
 	})
 
@@ -73,7 +73,7 @@ func main() {
 		trace.SetCorrelation("PROVIDER_KEY", "provider")
 
 		correlation := trace.GetCorrelation("PROVIDER_KEY") + "_" + trace.GetCorrelation("MIDDLE_KEY") + "_" + trace.GetCorrelation("PROVIDER_KEY")
-		w.Write([]byte(correlation))
+		_, _ = w.Write([]byte(correlation))
 		log.Printf("Provider processed %s request to /correlation", r.Method)
 	})
 

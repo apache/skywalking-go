@@ -41,7 +41,7 @@ func main() {
 	log.Printf("Provider URL: %s\n", providerURL)
 
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("ok"))
+		_, _ = w.Write([]byte("ok"))
 	})
 
 	http.HandleFunc("/info", func(w http.ResponseWriter, r *http.Request) {
@@ -58,7 +58,9 @@ func main() {
 			http.Error(w, fmt.Sprintf("Error calling provider: %v", err), http.StatusInternalServerError)
 			return
 		}
-		defer resp.Body.Close()
+		defer func(body io.ReadCloser) {
+			_ = body.Close()
+		}(resp.Body)
 
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
@@ -66,7 +68,7 @@ func main() {
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-		w.Write(body)
+		_, _ = w.Write(body)
 
 		logging.Debug("this is debug msg", "foo1", "bar1")
 		logging.Info("this is info msg", "foo2", "bar2")
@@ -89,7 +91,9 @@ func main() {
 			http.Error(w, fmt.Sprintf("Error calling provider: %v", err), http.StatusInternalServerError)
 			return
 		}
-		defer resp.Body.Close()
+		defer func(body io.ReadCloser) {
+			_ = body.Close()
+		}(resp.Body)
 
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
@@ -97,7 +101,7 @@ func main() {
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-		w.Write(body)
+		_, _ = w.Write(body)
 		log.Printf("Consumer processed %s request to /users", r.Method)
 	})
 
@@ -116,7 +120,9 @@ func main() {
 			http.Error(w, fmt.Sprintf("Error calling provider: %v", err), http.StatusInternalServerError)
 			return
 		}
-		defer resp.Body.Close()
+		defer func(body io.ReadCloser) {
+			_ = body.Close()
+		}(resp.Body)
 
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
@@ -124,7 +130,7 @@ func main() {
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-		w.Write(body)
+		_, _ = w.Write(body)
 		log.Printf("Consumer processed %s request to /correlation", r.Method)
 	})
 
