@@ -42,6 +42,8 @@ catalog:
           path: /en/agent/plugin-configurations
         - name: Transport Layer Security (TLS)
           path: /en/advanced-features/grpc-tls
+        - name: Kafka Reporter
+          path: /en/advanced-features/kafka-reporter
         - name: Manual APIs
           catalog:
             - name: Tracing APIs
