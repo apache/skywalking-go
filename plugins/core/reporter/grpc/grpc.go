@@ -37,8 +37,13 @@ const (
 )
 
 // NewGRPCReporter create a new reporter to send data to gRPC oap server. Only one backend address is allowed.
-func NewGRPCReporter(logger operator.LogOperator, serverAddr string, checkInterval time.Duration,
-	connManager *reporter.ConnectionManager, cdsManager *reporter.CDSManager, opts ...ReporterOption) (reporter.Reporter, error) {
+func NewGRPCReporter(logger operator.LogOperator,
+	serverAddr string,
+	checkInterval time.Duration,
+	connManager *reporter.ConnectionManager,
+	cdsManager *reporter.CDSManager,
+	opts ...ReporterOption,
+) (reporter.Reporter, error) {
 	r := &gRPCReporter{
 		logger:        logger,
 		serverAddr:    serverAddr,
@@ -283,11 +288,13 @@ func (r *gRPCReporter) closeLogStream(stream logv3.LogReportService_CollectClien
 }
 
 func (r *gRPCReporter) reportInstanceProperties() (err error) {
-	_, err = r.managementClient.ReportInstanceProperties(metadata.NewOutgoingContext(context.Background(), r.connManager.GetMD()), &managementv3.InstanceProperties{
-		Service:         r.entity.ServiceName,
-		ServiceInstance: r.entity.ServiceInstanceName,
-		Properties:      r.entity.Props,
-	})
+	_, err = r.managementClient.ReportInstanceProperties(
+		metadata.NewOutgoingContext(context.Background(), r.connManager.GetMD()),
+		&managementv3.InstanceProperties{
+			Service:         r.entity.ServiceName,
+			ServiceInstance: r.entity.ServiceInstanceName,
+			Properties:      r.entity.Props,
+		})
 	return err
 }
 
@@ -316,10 +323,12 @@ func (r *gRPCReporter) check() {
 				instancePropertiesSubmitted = true
 			}
 
-			_, err := r.managementClient.KeepAlive(metadata.NewOutgoingContext(context.Background(), r.connManager.GetMD()), &managementv3.InstancePingPkg{
-				Service:         r.entity.ServiceName,
-				ServiceInstance: r.entity.ServiceInstanceName,
-			})
+			_, err := r.managementClient.KeepAlive(
+				metadata.NewOutgoingContext(context.Background(), r.connManager.GetMD()),
+				&managementv3.InstancePingPkg{
+					Service:         r.entity.ServiceName,
+					ServiceInstance: r.entity.ServiceInstanceName,
+				})
 
 			if err != nil {
 				r.logger.Errorf("send keep alive signal error %v", err)

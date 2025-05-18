@@ -26,33 +26,33 @@ import (
 	agentv3 "skywalking.apache.org/repo/goapi/collect/language/agent/v3"
 )
 
-type KafkaReporterOption func(r *kafkaReporter)
+type ReporterOptionKafka func(r *kafkaReporter)
 
-func WithKafkaTopicSegment(topicSegment string) KafkaReporterOption {
+func WithKafkaTopicSegment(topicSegment string) ReporterOptionKafka {
 	return func(r *kafkaReporter) {
 		r.topicSegment = topicSegment
 	}
 }
 
-func WithKafkaTopicMeter(topicMeter string) KafkaReporterOption {
+func WithKafkaTopicMeter(topicMeter string) ReporterOptionKafka {
 	return func(r *kafkaReporter) {
 		r.topicMeter = topicMeter
 	}
 }
 
-func WithKafkaTopicLogging(topicLogging string) KafkaReporterOption {
+func WithKafkaTopicLogging(topicLogging string) ReporterOptionKafka {
 	return func(r *kafkaReporter) {
 		r.topicLogging = topicLogging
 	}
 }
 
-func WithKafkaTopicManagement(topicManagement string) KafkaReporterOption {
+func WithKafkaTopicManagement(topicManagement string) ReporterOptionKafka {
 	return func(r *kafkaReporter) {
 		r.topicManagement = topicManagement
 	}
 }
 
-func WithKafkaMaxSendQueueSize(kafkaMaxSendQueueSize int) KafkaReporterOption {
+func WithKafkaMaxSendQueueSize(kafkaMaxSendQueueSize int) ReporterOptionKafka {
 	return func(r *kafkaReporter) {
 		r.tracingSendCh = make(chan *agentv3.SegmentObject, kafkaMaxSendQueueSize)
 		r.metricsSendCh = make(chan []*agentv3.MeterData, kafkaMaxSendQueueSize)
@@ -60,25 +60,25 @@ func WithKafkaMaxSendQueueSize(kafkaMaxSendQueueSize int) KafkaReporterOption {
 	}
 }
 
-func WithKafkaBatchSize(batchSize int) KafkaReporterOption {
+func WithKafkaBatchSize(batchSize int) ReporterOptionKafka {
 	return func(r *kafkaReporter) {
 		r.writer.BatchSize = batchSize
 	}
 }
 
-func WithKafkaBatchBytes(batchBytes int64) KafkaReporterOption {
+func WithKafkaBatchBytes(batchBytes int64) ReporterOptionKafka {
 	return func(r *kafkaReporter) {
 		r.writer.BatchBytes = batchBytes
 	}
 }
 
-func WithKafkaBatchTimeoutMillis(batchTimeoutMillis int) KafkaReporterOption {
+func WithKafkaBatchTimeoutMillis(batchTimeoutMillis int) ReporterOptionKafka {
 	return func(r *kafkaReporter) {
 		r.writer.BatchTimeout = time.Duration(batchTimeoutMillis) * time.Millisecond
 	}
 }
 
-func WithKafkaAcks(acks int) KafkaReporterOption {
+func WithKafkaAcks(acks int) ReporterOptionKafka {
 	return func(r *kafkaReporter) {
 		r.writer.RequiredAcks = kafka.RequiredAcks(acks)
 	}

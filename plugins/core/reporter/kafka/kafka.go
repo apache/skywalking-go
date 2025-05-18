@@ -57,7 +57,12 @@ type kafkaReporter struct {
 	cdsManager       *reporter.CDSManager
 }
 
-func NewKafkaReporter(logger operator.LogOperator, brokers string, checkInterval time.Duration, cdsManager *reporter.CDSManager, opts ...KafkaReporterOption) (reporter.Reporter, error) {
+func NewKafkaReporter(logger operator.LogOperator,
+	brokers string,
+	checkInterval time.Duration,
+	cdsManager *reporter.CDSManager,
+	opts ...ReporterOptionKafka,
+) (reporter.Reporter, error) {
 	r := &kafkaReporter{
 		logger:           logger,
 		tracingSendCh:    make(chan *agentv3.SegmentObject, kafkaMaxSendQueueSize),
@@ -128,92 +133,92 @@ func (r *kafkaReporter) checkKafkaConnection() bool {
 }
 
 func (r *kafkaReporter) initSendPipeline() {
-	go func() {
-		consecutiveErrors := 0
-		logFrequency := 30
-		for s := range r.tracingSendCh {
-			payload, err := proto.Marshal(s)
-			if err != nil {
-				r.logger.Errorf("marshal segment error %v", err)
-				continue
-			}
-			ctx := context.WithValue(context.Background(), internalReporterContextKey, true)
-			err = r.writer.WriteMessages(ctx, kafka.Message{
-				Topic: r.topicSegment,
-				Key:   []byte(s.GetTraceSegmentId()),
-				Value: payload,
-			})
-			if err != nil {
-				consecutiveErrors++
-				if consecutiveErrors == 1 || consecutiveErrors%logFrequency == 0 {
-					r.logger.Errorf("send segment to kafka error %v (errors: %d)", err, consecutiveErrors)
-				}
-				continue
-			} else {
-				if consecutiveErrors > 0 {
-					consecutiveErrors = 0
-				}
-			}
+	go r.tracingSendLoop()
+	go r.metricsSendLoop()
+	go r.logSendLoop()
+}
+
+func (r *kafkaReporter) tracingSendLoop() {
+	consecutiveErrors := 0
+	logFrequency := 30
+	for s := range r.tracingSendCh {
+		payload, err := proto.Marshal(s)
+		if err != nil {
+			r.logger.Errorf("marshal segment error %v", err)
+			continue
 		}
-	}()
-	go func() {
-		consecutiveErrors := 0
-		logFrequency := 30
-		for s := range r.metricsSendCh {
-			payload, err := proto.Marshal(&agentv3.MeterDataCollection{
-				MeterData: s,
-			})
-			if err != nil {
-				r.logger.Errorf("marshal metrics error %v", err)
-				continue
+		ctx := context.WithValue(context.Background(), internalReporterContextKey, true)
+		err = r.writer.WriteMessages(ctx, kafka.Message{
+			Topic: r.topicSegment,
+			Key:   []byte(s.GetTraceSegmentId()),
+			Value: payload,
+		})
+		if err != nil {
+			consecutiveErrors++
+			if consecutiveErrors == 1 || consecutiveErrors%logFrequency == 0 {
+				r.logger.Errorf("send segment to kafka error %v (errors: %d)", err, consecutiveErrors)
 			}
-			ctx := context.WithValue(context.Background(), internalReporterContextKey, true)
-			err = r.writer.WriteMessages(ctx, kafka.Message{
-				Topic: r.topicMeter,
-				Key:   []byte(r.entity.ServiceInstanceName),
-				Value: payload,
-			})
-			if err != nil {
-				consecutiveErrors++
-				if consecutiveErrors == 1 || consecutiveErrors%logFrequency == 0 {
-					r.logger.Errorf("send metrics to kafka error %v (errors: %d)", err, consecutiveErrors)
-				}
-				continue
-			} else {
-				if consecutiveErrors > 0 {
-					consecutiveErrors = 0
-				}
-			}
+			continue
+		} else if consecutiveErrors > 0 {
+			consecutiveErrors = 0
 		}
-	}()
-	go func() {
-		consecutiveErrors := 0
-		logFrequency := 30
-		for s := range r.logSendCh {
-			payload, err := proto.Marshal(s)
-			if err != nil {
-				r.logger.Errorf("marshal log error %v", err)
-				continue
-			}
-			ctx := context.WithValue(context.Background(), internalReporterContextKey, true)
-			err = r.writer.WriteMessages(ctx, kafka.Message{
-				Topic: r.topicLogging,
-				Key:   []byte(s.Service),
-				Value: payload,
-			})
-			if err != nil {
-				consecutiveErrors++
-				if consecutiveErrors == 1 || consecutiveErrors%logFrequency == 0 {
-					r.logger.Errorf("send log to kafka error %v (errors: %d)", err, consecutiveErrors)
-				}
-				continue
-			} else {
-				if consecutiveErrors > 0 {
-					consecutiveErrors = 0
-				}
-			}
+	}
+}
+
+func (r *kafkaReporter) metricsSendLoop() {
+	consecutiveErrors := 0
+	logFrequency := 30
+	for s := range r.metricsSendCh {
+		payload, err := proto.Marshal(&agentv3.MeterDataCollection{
+			MeterData: s,
+		})
+		if err != nil {
+			r.logger.Errorf("marshal metrics error %v", err)
+			continue
 		}
-	}()
+		ctx := context.WithValue(context.Background(), internalReporterContextKey, true)
+		err = r.writer.WriteMessages(ctx, kafka.Message{
+			Topic: r.topicMeter,
+			Key:   []byte(r.entity.ServiceInstanceName),
+			Value: payload,
+		})
+		if err != nil {
+			consecutiveErrors++
+			if consecutiveErrors == 1 || consecutiveErrors%logFrequency == 0 {
+				r.logger.Errorf("send metrics to kafka error %v (errors: %d)", err, consecutiveErrors)
+			}
+			continue
+		} else if consecutiveErrors > 0 {
+			consecutiveErrors = 0
+		}
+	}
+}
+
+func (r *kafkaReporter) logSendLoop() {
+	consecutiveErrors := 0
+	logFrequency := 30
+	for s := range r.logSendCh {
+		payload, err := proto.Marshal(s)
+		if err != nil {
+			r.logger.Errorf("marshal log error %v", err)
+			continue
+		}
+		ctx := context.WithValue(context.Background(), internalReporterContextKey, true)
+		err = r.writer.WriteMessages(ctx, kafka.Message{
+			Topic: r.topicLogging,
+			Key:   []byte(s.Service),
+			Value: payload,
+		})
+		if err != nil {
+			consecutiveErrors++
+			if consecutiveErrors == 1 || consecutiveErrors%logFrequency == 0 {
+				r.logger.Errorf("send log to kafka error %v (errors: %d)", err, consecutiveErrors)
+			}
+			continue
+		} else if consecutiveErrors > 0 {
+			consecutiveErrors = 0
+		}
+	}
 }
 
 func (r *kafkaReporter) SendTracing(spans []reporter.ReportedSpan) {
@@ -342,5 +347,4 @@ func (r *kafkaReporter) Close() {
 			r.logger.Errorf("close kafka writer failed, err: %v", err)
 		}
 	}
-
 }

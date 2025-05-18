@@ -213,7 +213,7 @@ func initGRPCReporter(logger operator.LogOperator, checkInterval time.Duration, 
 }
 
 func initKafkaReporter(logger operator.LogOperator, checkInterval time.Duration, cdsManager *CDSManager) (Reporter, error) {
-    var opts []KafkaReporterOption
+    var opts []ReporterOptionKafka
 
     topicSegment := {{.Config.Reporter.Kafka.TopicSegment.ToGoStringValue}}
 	opts = append(opts, WithKafkaTopicSegment(topicSegment))
