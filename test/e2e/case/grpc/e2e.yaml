@@ -86,7 +86,3 @@ verify:
               | yq e '.traces | select(.[].endpointnames[0]=="POST:/info") | .[0].traceids[0]' -
         )
       expected: ../expected/logs-list.yml
-
-cleanup:
-  # always never success failure
-  on: never
