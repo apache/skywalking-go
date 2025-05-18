@@ -32,8 +32,88 @@ import (
 
 var providerURL string
 
-func main() {
+func infoHandler(w http.ResponseWriter, r *http.Request) {
+	log.Printf("Received %s request to /info", r.Method)
+	sleepTime := rand.Intn(500) + 500
+	time.Sleep(time.Duration(sleepTime) * time.Millisecond)
 
+	var resp *http.Response
+	var err error
+
+	resp, err = http.Post(providerURL+"/info", "application/json", bytes.NewBufferString(""))
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error calling provider: %v", err), http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error reading provider response: %v", err), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_, _ = w.Write(body)
+
+	logging.Debug("this is debug msg", "foo1", "bar1")
+	logging.Info("this is info msg", "foo2", "bar2")
+	logging.Warn("this is warn msg", "foo3", "bar3")
+	logging.Error("this is error msg", "foo4", "bar4")
+	log.Printf("Consumer processed %s request to /info", r.Method)
+}
+
+func usersHandler(w http.ResponseWriter, r *http.Request) {
+	log.Printf("Received %s request to /users", r.Method)
+	sleepTime := rand.Intn(500) + 500
+	time.Sleep(time.Duration(sleepTime) * time.Millisecond)
+
+	var resp *http.Response
+	var err error
+
+	resp, err = http.Post(providerURL+"/users", "application/json", bytes.NewBufferString("{}"))
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error calling provider: %v", err), http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error reading provider response: %v", err), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_, _ = w.Write(body)
+	log.Printf("Consumer processed %s request to /users", r.Method)
+}
+
+func correlationHandler(w http.ResponseWriter, r *http.Request) {
+	log.Printf("Received %s request to /correlation", r.Method)
+	sleepTime := rand.Intn(500) + 500
+	time.Sleep(time.Duration(sleepTime) * time.Millisecond)
+	trace.SetCorrelation("CONSUMER_KEY", "consumer")
+
+	var resp *http.Response
+	var err error
+
+	resp, err = http.Post(providerURL+"/correlation", "application/json", bytes.NewBufferString(""))
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error calling provider: %v", err), http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error reading provider response: %v", err), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_, _ = w.Write(body)
+	log.Printf("Consumer processed %s request to /correlation", r.Method)
+}
+
+func main() {
 	providerURL = os.Getenv("PROVIDER_URL")
 	if providerURL == "" {
 		providerURL = "http://localhost:8080"
@@ -43,96 +123,9 @@ func main() {
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte("ok"))
 	})
-
-	http.HandleFunc("/info", func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("Received %s request to /info", r.Method)
-
-		sleepTime := rand.Intn(500) + 500
-		time.Sleep(time.Duration(sleepTime) * time.Millisecond)
-
-		var resp *http.Response
-		var err error
-
-		resp, err = http.Post(providerURL+"/info", "application/json", bytes.NewBufferString(""))
-		if err != nil {
-			http.Error(w, fmt.Sprintf("Error calling provider: %v", err), http.StatusInternalServerError)
-			return
-		}
-		defer func(body io.ReadCloser) {
-			_ = body.Close()
-		}(resp.Body)
-
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			http.Error(w, fmt.Sprintf("Error reading provider response: %v", err), http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write(body)
-
-		logging.Debug("this is debug msg", "foo1", "bar1")
-		logging.Info("this is info msg", "foo2", "bar2")
-		logging.Warn("this is warn msg", "foo3", "bar3")
-		logging.Error("this is error msg", "foo4", "bar4")
-		log.Printf("Consumer processed %s request to /info", r.Method)
-	})
-
-	http.HandleFunc("/users", func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("Received %s request to /users", r.Method)
-
-		sleepTime := rand.Intn(500) + 500
-		time.Sleep(time.Duration(sleepTime) * time.Millisecond)
-
-		var resp *http.Response
-		var err error
-
-		resp, err = http.Post(providerURL+"/users", "application/json", bytes.NewBufferString("{}"))
-		if err != nil {
-			http.Error(w, fmt.Sprintf("Error calling provider: %v", err), http.StatusInternalServerError)
-			return
-		}
-		defer func(body io.ReadCloser) {
-			_ = body.Close()
-		}(resp.Body)
-
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			http.Error(w, fmt.Sprintf("Error reading provider response: %v", err), http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write(body)
-		log.Printf("Consumer processed %s request to /users", r.Method)
-	})
-
-	http.HandleFunc("/correlation", func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("Received %s request to /correlation", r.Method)
-
-		sleepTime := rand.Intn(500) + 500
-		time.Sleep(time.Duration(sleepTime) * time.Millisecond)
-		trace.SetCorrelation("CONSUMER_KEY", "consumer")
-
-		var resp *http.Response
-		var err error
-
-		resp, err = http.Post(providerURL+"/correlation", "application/json", bytes.NewBufferString(""))
-		if err != nil {
-			http.Error(w, fmt.Sprintf("Error calling provider: %v", err), http.StatusInternalServerError)
-			return
-		}
-		defer func(body io.ReadCloser) {
-			_ = body.Close()
-		}(resp.Body)
-
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			http.Error(w, fmt.Sprintf("Error reading provider response: %v", err), http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write(body)
-		log.Printf("Consumer processed %s request to /correlation", r.Method)
-	})
+	http.HandleFunc("/info", infoHandler)
+	http.HandleFunc("/users", usersHandler)
+	http.HandleFunc("/correlation", correlationHandler)
 
 	if err := http.ListenAndServe(":8080", nil); err != nil {
 		log.Fatalf("Error starting server: %v", err)
