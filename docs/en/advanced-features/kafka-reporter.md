@@ -6,6 +6,9 @@ This document describes how to configure and use the Kafka reporter in the Apach
 
 The SkyWalking Go agent can be configured to report collected telemetry data (traces, metrics, logs) to a Kafka cluster. This is useful for scenarios where Kafka is already part of your infrastructure or when you prefer Kafka's buffering and scalability features for handling observability data.
 
+**Note:** Even when the primary data reporting is set to Kafka (`reporter.type: kafka`), the CDS functionality itself still relies on gRPC communication with the SkyWalking OAP (Observability Analysis Platform). Therefore, you **must** also configure the relevant gRPC settings under `reporter.grpc` (or their corresponding environment variables like `SW_AGENT_REPORTER_GRPC_BACKEND_SERVICE`) for CDS to work correctly.
+
+
 ## Enabling Kafka Reporter
 
 You can enable the Kafka reporter either through environment variables or by configuring the `agent.default.yaml` file.
@@ -67,8 +70,6 @@ These settings are typically found under the `reporter.kafka` section in `agent.
     *   Environment Variable: `SW_AGENT_REPORTER_KAFKA_TOPIC_MANAGEMENT`
     *   YAML: `reporter.kafka.topic_management`
     *   Example: `skywalking-management`
-
-**Important Note:** Even when the primary data reporting is set to Kafka (`reporter.type: kafka`), the CDS functionality itself still relies on gRPC communication with the SkyWalking OAP (Observability Analysis Platform). Therefore, you **must** also configure the relevant gRPC settings under `reporter.grpc` (or their corresponding environment variables like `SW_AGENT_REPORTER_GRPC_BACKEND_SERVICE`) for CDS to work correctly.
 
 
 ### Advanced Kafka Configuration
