@@ -41,6 +41,6 @@ jobs:
       - name: Build SkyWalking Go agent
         run: make -C test/e2e build
       - name: Run E2E Tests
-        uses: apache/skywalking-infra-e2e@cf589b4a0b9f8e6f436f78e9cfd94a1ee5494180
+        uses: apache/skywalking-infra-e2e@5217e1c6cfe8c2a3c58a0d278b0d9097cab02b5e
         with:
           e2e-file: ${{ matrix.case.path }}
