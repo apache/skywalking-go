@@ -19,17 +19,9 @@ on:
   pull_request:
 
 jobs:
-  E2E:
-    name: Basic function + ${{ matrix.case.name }} reporter
+  build:
+    name: Build SkyWalking Go agent
     runs-on: ubuntu-latest
-    timeout-minutes: 90
-    strategy:
-      matrix:
-        case:
-          - name: gRPC
-            path: test/e2e/case/grpc/e2e.yaml
-          - name: Kafka
-            path: test/e2e/case/kafka/e2e.yaml
     steps:
       - name: Set up Go
         uses: actions/setup-go@v2
@@ -40,6 +32,32 @@ jobs:
           submodules: true
       - name: Build SkyWalking Go agent
         run: make -C test/e2e build
+      - name: Upload agent binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: skywalking-go-agent
+          path: test/e2e/dist/
+  e2e:
+    name: Basic function + ${{ matrix.case.name }} reporter
+    runs-on: ubuntu-latest
+    needs: build
+    timeout-minutes: 90
+    strategy:
+      matrix:
+        case:
+          - name: gRPC
+            path: test/e2e/case/grpc/e2e.yaml
+          - name: Kafka
+            path: test/e2e/case/kafka/e2e.yaml
+    steps:
+      - name: Download agent binary
+        uses: actions/download-artifact@v4
+        with:
+          name: skywalking-go-agent
+          path: test/e2e/dist/
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
       - name: Run E2E Tests
         uses: apache/skywalking-infra-e2e@7e4b5b68716fdb7b79b21fa8908f9db497e1b115
         with:
