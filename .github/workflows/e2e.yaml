@@ -50,14 +50,14 @@ jobs:
           - name: Kafka
             path: test/e2e/case/kafka/e2e.yaml
     steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
       - name: Download agent binary
         uses: actions/download-artifact@v4
         with:
           name: skywalking-go-agent
           path: test/e2e/dist/
-      - uses: actions/checkout@v2
-        with:
-          submodules: true
       - name: Run E2E Tests
         uses: apache/skywalking-infra-e2e@7e4b5b68716fdb7b79b21fa8908f9db497e1b115
         with:
