@@ -17,7 +17,7 @@ version: "2.1"
 
 services:
   zookeeper:
-    image: zookeeper:3.4
+    image: zookeeper:3.9.2
     hostname: zookeeper
     expose:
       - 2181
@@ -98,16 +98,6 @@ services:
       broker-a:
         condition: service_healthy
       broker-b:
-        condition: service_healthy
-
-  ui:
-    extends:
-      file: ../../script/docker-compose/base-compose.yml
-      service: ui
-    ports:
-      - 8080
-    depends_on:
-      oap:
         condition: service_healthy
 
   kafkaprovider:

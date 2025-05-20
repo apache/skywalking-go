@@ -19,18 +19,18 @@ package segmentiokafka
 
 import (
 	"context"
-	"github.com/segmentio/kafka-go"
-
 	"github.com/apache/skywalking-go/plugins/core/operator"
 	"github.com/apache/skywalking-go/plugins/core/tracing"
+	"github.com/segmentio/kafka-go"
 )
 
 const (
-	kafkaWriterPrefix          = "Kafka/"
-	kafkaWriterSuffix          = "/Producer"
-	kafkaWriterComponentID     = 40
-	internalReporterContextKey = "skywalking-kafka-reporter"
+	kafkaWriterPrefix      = "Kafka/"
+	kafkaWriterSuffix      = "/Producer"
+	kafkaWriterComponentID = 40
 )
+
+var internalReporterContextKey = context.Background()
 
 type WriterInterceptor struct {
 }

@@ -33,10 +33,11 @@ import (
 )
 
 const (
-	kafkaMaxSendQueueSize      int32 = 30000
-	internalReporterContextKey       = "skywalking-kafka-reporter"
-	topicKeyRegister                 = "register-"
+	kafkaMaxSendQueueSize int32 = 30000
+	topicKeyRegister            = "register-"
 )
+
+var internalReporterContextKey = context.Background()
 
 type kafkaReporter struct {
 	entity           *reporter.Entity
