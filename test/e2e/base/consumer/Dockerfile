@@ -23,6 +23,7 @@ WORKDIR /build
 COPY . /build/skywalking-go
 COPY test/e2e/base/consumer /build/consumer
 COPY test/e2e/dist/skywalking-go-agent /build/skywalking-go-agent
+RUN chmod +x /build/skywalking-go-agent
 
 WORKDIR /build/consumer
 RUN go mod edit -replace=github.com/apache/skywalking-go=../skywalking-go
