@@ -18,8 +18,9 @@
 package reporter
 
 import (
-	agentv3 "skywalking.apache.org/repo/goapi/collect/language/agent/v3"
 	"time"
+
+	agentv3 "skywalking.apache.org/repo/goapi/collect/language/agent/v3"
 )
 
 type Transform struct {

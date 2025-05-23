@@ -19,8 +19,9 @@ package reporter
 
 import (
 	"context"
-	"github.com/apache/skywalking-go/plugins/core/operator"
 	"time"
+
+	"github.com/apache/skywalking-go/plugins/core/operator"
 
 	configuration "skywalking.apache.org/repo/goapi/collect/agent/configuration/v3"
 )

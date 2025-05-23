@@ -22,14 +22,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/apache/skywalking-go/plugins/core/operator"
-	"github.com/apache/skywalking-go/plugins/core/reporter"
 	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/kafka-go/compress"
 	"google.golang.org/protobuf/proto"
 	agentv3 "skywalking.apache.org/repo/goapi/collect/language/agent/v3"
 	logv3 "skywalking.apache.org/repo/goapi/collect/logging/v3"
 	managementv3 "skywalking.apache.org/repo/goapi/collect/management/v3"
+
+	"github.com/apache/skywalking-go/plugins/core/operator"
+	"github.com/apache/skywalking-go/plugins/core/reporter"
 )
 
 const (
