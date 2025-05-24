@@ -35,8 +35,8 @@ import (
 )
 
 var reporterDirName = []string{
-	consts.GRPC_REPORTER,
-	consts.KAFKA_REPORTER,
+	consts.GrpcReporter,
+	consts.KafkaReporter,
 }
 
 type Instrument struct {
@@ -136,8 +136,7 @@ func (i *Instrument) copyReporterFiles(targetDir string) ([]string, error) {
 	return copiedFilesResult, nil
 }
 
-func (i *Instrument) generateReporterInitFile(dir string) (string, error) {
-	return tools.WriteFile(dir, "reporter_init.go", html.UnescapeString(tools.ExecuteTemplate(`package reporter
+const reporterInitTemplate = `package reporter
 
 import (
 	"github.com/apache/skywalking-go/agent/core/operator"
@@ -203,7 +202,10 @@ func initManager(logger operator.LogOperator, checkInterval time.Duration) (*Con
 	return connManager, cdsManager, nil
 }
 
-func initGRPCReporter(logger operator.LogOperator, checkInterval time.Duration, connManager *ConnectionManager, cdsManager *CDSManager) (Reporter, error) {
+func initGRPCReporter(logger operator.LogOperator,
+					checkInterval time.Duration,
+					connManager *ConnectionManager,
+					cdsManager *CDSManager) (Reporter, error) {
 	var opts []ReporterOption
 	maxSendQueueVal := {{.Config.Reporter.GRPC.MaxSendQueue.ToGoIntValue "the GRPC reporter max queue size must be number"}}
 	opts = append(opts, WithMaxSendQueueSize(maxSendQueueVal))
@@ -238,15 +240,18 @@ func initKafkaReporter(logger operator.LogOperator, checkInterval time.Duration,
 	brokers := {{.Config.Reporter.Kafka.Brokers.ToGoStringValue}}
     return NewKafkaReporter(logger, brokers, checkInterval, cdsManager, opts...)
 }
-`, struct {
+`
+
+func (i *Instrument) generateReporterInitFile(dir string) (string, error) {
+	return tools.WriteFile(dir, "reporter_init.go", html.UnescapeString(tools.ExecuteTemplate(reporterInitTemplate, struct {
 		InitFuncName  string
 		GRPCReporter  string
 		KafkaReporter string
 		Config        *config.Config
 	}{
 		InitFuncName:  consts.ReporterInitFuncName,
-		GRPCReporter:  consts.GRPC_REPORTER,
-		KafkaReporter: consts.KAFKA_REPORTER,
+		GRPCReporter:  consts.GrpcReporter,
+		KafkaReporter: consts.KafkaReporter,
 		Config:        config.GetConfig(),
 	})))
 }
