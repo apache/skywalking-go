@@ -33,9 +33,20 @@ export SW_AGENT_NAME=${project_name}
 export SW_AGENT_REPORTER_GRPC_BACKEND_SERVICE=127.0.0.1:19876
 eval "$(grep '^export ' ./bin/startup.sh)"
 
+echo "Starting OAP server in WSL..."
+wsl-run.bat "${home}/wsl-scenarios.sh" &
+wsl_pid=$!
+
+echo "Waiting for OAP server to be ready..."
+sleep 15
+
+echo "Starting Windows application..."
 ./${project_name} &
 web_pid=$!
 
-wsl-run.bat "${home}/wsl-scenarios.sh"
+wait $wsl_pid
+wsl_exit_code=$?
 
 kill -9 $web_pid
+
+exit $wsl_exit_code
