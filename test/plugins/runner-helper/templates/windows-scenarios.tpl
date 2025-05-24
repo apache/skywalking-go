@@ -37,8 +37,24 @@ echo "Starting OAP server in WSL..."
 wsl-run.bat "${home}/wsl-scenarios.sh" &
 wsl_pid=$!
 
+
 echo "Waiting for OAP server to be ready..."
-sleep 15
+for i in {1..60}; do
+    if command -v nc >/dev/null 2>&1 && nc -z 127.0.0.1 19876 2>/dev/null; then
+        echo "OAP server is ready!"
+        break
+    elif timeout 1 bash -c "</dev/tcp/127.0.0.1/19876" 2>/dev/null; then
+        echo "OAP server is ready!"
+        break
+    fi
+    sleep 2
+    if [ $i -eq 60 ]; then
+        echo "Timeout waiting for OAP server"
+        exit 1
+    fi
+done
+
+sleep 10
 
 echo "Starting Windows application..."
 ./${project_name} &
