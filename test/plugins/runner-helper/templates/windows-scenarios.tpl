@@ -31,38 +31,13 @@ echo "Building the project..."
 eval $build_shell
 export SW_AGENT_NAME=${project_name}
 export SW_AGENT_REPORTER_GRPC_BACKEND_SERVICE=127.0.0.1:19876
+export SW_AGENT_METER_COLLECT_INTERVAL=3
+export SW_AGENT_REPORTER_CHECK_INTERVAL=10
 eval "$(grep '^export ' ./bin/startup.sh)"
 
-echo "Starting OAP server in WSL..."
-wsl-run.bat "${home}/wsl-scenarios.sh" &
-wsl_pid=$!
-
-
-echo "Waiting for OAP server to be ready..."
-for i in {1..60}; do
-    if command -v nc >/dev/null 2>&1 && nc -z 127.0.0.1 19876 2>/dev/null; then
-        echo "OAP server is ready!"
-        break
-    elif timeout 1 bash -c "</dev/tcp/127.0.0.1/19876" 2>/dev/null; then
-        echo "OAP server is ready!"
-        break
-    fi
-    sleep 2
-    if [ $i -eq 60 ]; then
-        echo "Timeout waiting for OAP server"
-        exit 1
-    fi
-done
-
-sleep 10
-
-echo "Starting Windows application..."
 ./${project_name} &
 web_pid=$!
 
-wait $wsl_pid
-wsl_exit_code=$?
+wsl-run.bat "${home}/wsl-scenarios.sh"
 
 kill -9 $web_pid
-
-exit $wsl_exit_code
