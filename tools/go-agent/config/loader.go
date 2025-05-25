@@ -293,13 +293,18 @@ func (s *StringValue) ToGoBoolFunction() string {
 	return fmt.Sprintf("func() bool { return %s }", s.ToGoBoolValue())
 }
 
-func (s *StringValue) GetListStringResult() []string {
+func (s *StringValue) GetStringResult() string {
 	val := s.Default
 	if s.EnvKey != "" {
 		if envValue := os.Getenv(s.EnvKey); envValue != "" {
 			val = envValue
 		}
 	}
+	return val
+}
+
+func (s *StringValue) GetListStringResult() []string {
+	val := s.GetStringResult()
 	if val == "" {
 		return nil
 	}

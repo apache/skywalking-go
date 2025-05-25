@@ -34,11 +34,6 @@ import (
 	"github.com/dave/dst/dstutil"
 )
 
-var reporterDirName = []string{
-	consts.GrpcReporter,
-	consts.KafkaReporter,
-}
-
 type Instrument struct {
 	hasToEnhance bool
 	compileOpts  *api.CompileOptions
@@ -57,7 +52,15 @@ func (i *Instrument) FilterAndEdit(path string, curFile *dst.File, cursor *dstut
 	if i.hasToEnhance {
 		return false
 	}
-	i.hasToEnhance = true
+	fileName := filepath.Base(path)
+	reporterType := i.getReporterTypeConfig()
+	if fileName == "imports.go" && reporterType == consts.GrpcReporter {
+		tools.DeletePackageImports(curFile,
+			"github.com/segmentio/kafka-go",
+			"github.com/segmentio/kafka-go/compress",
+			"google.golang.org/protobuf/proto")
+		i.hasToEnhance = true
+	}
 	return true
 }
 
@@ -66,6 +69,7 @@ func (i *Instrument) AfterEnhanceFile(fromPath, newPath string) error {
 }
 
 func (i *Instrument) WriteExtraFiles(dir string) ([]string, error) {
+	reporterType := i.getReporterTypeConfig()
 	// copy reporter api files
 	results := make([]string, 0)
 	copiedFiles, err := tools.CopyGoFiles(core.FS, "reporter", dir, func(entry fs.DirEntry, f *dst.File) (*tools.DebugInfo, error) {
@@ -88,14 +92,14 @@ func (i *Instrument) WriteExtraFiles(dir string) ([]string, error) {
 	}
 	results = append(results, copiedFiles...)
 
-	copiedFiles, err = i.copyReporterFiles(dir)
+	copiedFiles, err = i.copyReporterFiles(dir, reporterType)
 	if err != nil {
 		return nil, err
 	}
 	results = append(results, copiedFiles...)
 
 	// generate the file for export the reporter
-	file, err := i.generateReporterInitFile(dir)
+	file, err := i.generateReporterInitFile(dir, reporterType)
 	if err != nil {
 		return nil, err
 	}
@@ -104,39 +108,76 @@ func (i *Instrument) WriteExtraFiles(dir string) ([]string, error) {
 	return results, nil
 }
 
+func (i *Instrument) getReporterTypeConfig() string {
+	reporterType := config.GetConfig().Reporter.Type.GetStringResult()
+	if reporterType == consts.KafkaReporter {
+		return consts.KafkaReporter
+	}
+	return consts.GrpcReporter
+}
+
 // copy reporter implementations
 // Force the use of '/' delimiter on all platforms
-func (i *Instrument) copyReporterFiles(targetDir string) ([]string, error) {
+func (i *Instrument) copyReporterFiles(targetDir, reporterType string) ([]string, error) {
 	copiedFilesResult := make([]string, 0)
-	for _, reporterDir := range reporterDirName {
-		reporterDirName := strings.ReplaceAll(filepath.Join("reporter", reporterDir), `\`, `/`)
-		copiedFiles, err := tools.CopyGoFiles(core.FS, reporterDirName, targetDir, func(entry fs.DirEntry, f *dst.File) (*tools.DebugInfo, error) {
-			if i.compileOpts.DebugDir == "" {
-				return nil, nil
-			}
-			debugPath := filepath.Join(i.compileOpts.DebugDir, "plugins", "core", reporterDirName, entry.Name())
-			return tools.BuildDSTDebugInfo(debugPath, f)
-		}, func(file *dst.File) {
-			file.Name = dst.NewIdent("reporter")
-			pkgUpdates := make(map[string]string)
-			for _, p := range agentcore.CopiedSubPackages {
-				key := strings.ReplaceAll(filepath.Join(agentcore.EnhanceFromBasePackage, p), `\`, `/`)
-				val := strings.ReplaceAll(filepath.Join(agentcore.EnhanceBasePackage, p), `\`, `/`)
-				pkgUpdates[key] = val
-			}
-			tools.ChangePackageImportPath(file, pkgUpdates)
-			tools.DeletePackageImports(file, "github.com/apache/skywalking-go/plugins/core/reporter")
-		})
-
-		if err != nil {
-			return nil, err
+	reporterDirName := strings.ReplaceAll(filepath.Join("reporter", reporterType), `\`, `/`)
+	copiedFiles, err := tools.CopyGoFiles(core.FS, reporterDirName, targetDir, func(entry fs.DirEntry, f *dst.File) (*tools.DebugInfo, error) {
+		if i.compileOpts.DebugDir == "" {
+			return nil, nil
 		}
-		copiedFilesResult = append(copiedFilesResult, copiedFiles...)
+		debugPath := filepath.Join(i.compileOpts.DebugDir, "plugins", "core", reporterDirName, entry.Name())
+		return tools.BuildDSTDebugInfo(debugPath, f)
+	}, func(file *dst.File) {
+		file.Name = dst.NewIdent("reporter")
+		pkgUpdates := make(map[string]string)
+		for _, p := range agentcore.CopiedSubPackages {
+			key := strings.ReplaceAll(filepath.Join(agentcore.EnhanceFromBasePackage, p), `\`, `/`)
+			val := strings.ReplaceAll(filepath.Join(agentcore.EnhanceBasePackage, p), `\`, `/`)
+			pkgUpdates[key] = val
+		}
+		tools.ChangePackageImportPath(file, pkgUpdates)
+		tools.DeletePackageImports(file, "github.com/apache/skywalking-go/plugins/core/reporter")
+	})
+
+	if err != nil {
+		return nil, err
 	}
+	copiedFilesResult = append(copiedFilesResult, copiedFiles...)
 	return copiedFilesResult, nil
 }
 
-const reporterInitTemplate = `package reporter
+func (i *Instrument) generateReporterInitFile(dir, reporterType string) (string, error) {
+	reporterInitTemplate := baseReporterInitTemplate
+	if reporterType == consts.KafkaReporter {
+		reporterInitTemplate += `
+	_, cdsManager, err := initManager(logger, checkInterval)
+	if err != nil {
+		return nil, err
+	}
+	return initKafkaReporter(logger, checkInterval, cdsManager)
+}`
+		reporterInitTemplate += kafkaReporterInitFunc
+	} else {
+		reporterInitTemplate += `
+	connManager, cdsManager, err := initManager(logger, checkInterval)
+	if err != nil {
+		return nil, err
+	}
+	return initGRPCReporter(logger, checkInterval, connManager, cdsManager)
+}`
+		reporterInitTemplate += grpcReporterInitFunc
+	}
+	reporterInitTemplate += initManagerFunc
+	return tools.WriteFile(dir, "reporter_init.go", html.UnescapeString(tools.ExecuteTemplate(reporterInitTemplate, struct {
+		InitFuncName string
+		Config       *config.Config
+	}{
+		InitFuncName: consts.ReporterInitFuncName,
+		Config:       config.GetConfig(),
+	})))
+}
+
+const baseReporterInitTemplate = `package reporter
 
 import (
 	"github.com/apache/skywalking-go/agent/core/operator"
@@ -151,23 +192,11 @@ func {{.InitFuncName}}(logger operator.LogOperator) (Reporter, error) {
 	if {{.Config.Reporter.Discard.ToGoBoolValue}} {
 		return NewDiscardReporter(), nil
 	}
-	reporterType := {{.Config.Reporter.Type.ToGoStringValue}}
 	checkIntervalVal := {{.Config.Reporter.CheckInterval.ToGoIntValue "the reporter check interval must be number"}}
 	checkInterval := time.Second * time.Duration(checkIntervalVal)
+`
 
-	connManager, cdsManager, err := initManager(logger, checkInterval)
-	if err != nil {
-		return nil, err
-	}
-	switch reporterType {
-	case "{{.GRPCReporter}}":
-		return initGRPCReporter(logger, checkInterval, connManager, cdsManager)
-	case "{{.KafkaReporter}}":
-		return initKafkaReporter(logger, checkInterval, cdsManager)
-	default:
-		return nil, fmt.Errorf("unsupported reporter type: %s", reporterType)
-	}
-}
+const initManagerFunc = `
 
 func initManager(logger operator.LogOperator, checkInterval time.Duration) (*ConnectionManager, *CDSManager, error) {
 	authenticationVal := {{.Config.Reporter.GRPC.Authentication.ToGoStringValue}}
@@ -201,6 +230,9 @@ func initManager(logger operator.LogOperator, checkInterval time.Duration) (*Con
 	}
 	return connManager, cdsManager, nil
 }
+`
+
+const grpcReporterInitFunc = `
 
 func initGRPCReporter(logger operator.LogOperator,
 					checkInterval time.Duration,
@@ -213,6 +245,9 @@ func initGRPCReporter(logger operator.LogOperator,
 	backendServiceVal := {{.Config.Reporter.GRPC.BackendService.ToGoStringValue}}
 	return NewGRPCReporter(logger, backendServiceVal, checkInterval, connManager, cdsManager, opts...)
 }
+`
+
+const kafkaReporterInitFunc = `
 
 func initKafkaReporter(logger operator.LogOperator, checkInterval time.Duration, cdsManager *CDSManager) (Reporter, error) {
     var opts []ReporterOptionKafka
@@ -241,17 +276,3 @@ func initKafkaReporter(logger operator.LogOperator, checkInterval time.Duration,
     return NewKafkaReporter(logger, brokers, checkInterval, cdsManager, opts...)
 }
 `
-
-func (i *Instrument) generateReporterInitFile(dir string) (string, error) {
-	return tools.WriteFile(dir, "reporter_init.go", html.UnescapeString(tools.ExecuteTemplate(reporterInitTemplate, struct {
-		InitFuncName  string
-		GRPCReporter  string
-		KafkaReporter string
-		Config        *config.Config
-	}{
-		InitFuncName:  consts.ReporterInitFuncName,
-		GRPCReporter:  consts.GrpcReporter,
-		KafkaReporter: consts.KafkaReporter,
-		Config:        config.GetConfig(),
-	})))
-}
