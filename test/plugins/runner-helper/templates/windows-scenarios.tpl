@@ -24,15 +24,14 @@ echo "Detected Windows OS"
 home="$(cd "$(dirname $0)"; pwd)"
 build_dir="$(cd "$(dirname $0)/../../.."; pwd)"
 export GO_BUILD_OPTS="-toolexec=\"${build_dir}/dist/skywalking-go-agent.exe\" -a"
-export GODEBUG="netdns=1"
 go mod tidy
 build_shell="go build ${GO_BUILD_OPTS} -o ${project_name} main.go"
 echo "Building the project..."
 eval $build_shell
 export SW_AGENT_NAME=${project_name}
-export SW_AGENT_REPORTER_GRPC_BACKEND_SERVICE=127.0.0.1:19876
-export SW_AGENT_METER_COLLECT_INTERVAL=3
-export SW_AGENT_REPORTER_CHECK_INTERVAL=10
+export SW_AGENT_REPORTER_GRPC_BACKEND_SERVICE=localhost:19876
+export SW_AGENT_METER_COLLECT_INTERVAL=1000
+export SW_AGENT_REPORTER_GRPC_CHECK_INTERVAL=5
 eval "$(grep '^export ' ./bin/startup.sh)"
 
 ./${project_name} &
