@@ -35,7 +35,7 @@ func NewInstrument() *Instrument {
 }
 
 func (i *Instrument) Name() string {
-	return "segmentio_kafka"
+	return "segmentio-kafka"
 }
 
 func (i *Instrument) BasePackage() string {

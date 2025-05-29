@@ -87,7 +87,7 @@ test: ## Run E2E scenario tests
 lint: linter ## Run golangci-lint linter
 	@$(LOG_TARGET)
 	@for dir in $$(find . -name go.mod -exec dirname {} \; ); do \
-  		if [[ $$dir == "./test/plugins/scenarios/"* ]]; then \
+  		if [[ $$dir == "./test/plugins/scenarios/"* ]] || [[ $$dir == "./test/e2e/"* ]]; then \
 			continue; \
 		fi; \
 		echo "Linting $$dir"; \
