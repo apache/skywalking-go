@@ -36,7 +36,7 @@ services:
         condition: service_healthy
     volumes:
       - {{.Context.WorkSpaceDir}}:/workspace
-    command: ["/bin/bash", "-c", "sleep 5s && /workspace/validator.sh"]
+    command: ["/bin/bash", "-c", "sleep 10s && /workspace/validator.sh"]
   {{- range $name, $service := .Context.Config.Dependencies }}
   {{$name}}:
     image: {{$service.Image}}

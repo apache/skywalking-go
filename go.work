@@ -36,6 +36,9 @@ use (
 	./test/plugins/runner-helper
 
 	// define the plugin test scenarios
+	./test/e2e/base/consumer
+	./test/e2e/base/provider
+
 	./test/plugins/scenarios/dubbo
 	./test/plugins/scenarios/gin
 	./test/plugins/scenarios/short_versions_gin

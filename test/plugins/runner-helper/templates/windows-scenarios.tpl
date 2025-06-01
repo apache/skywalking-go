@@ -30,6 +30,8 @@ echo "Building the project..."
 eval $build_shell
 export SW_AGENT_NAME=${project_name}
 export SW_AGENT_REPORTER_GRPC_BACKEND_SERVICE=localhost:19876
+export SW_AGENT_METER_COLLECT_INTERVAL=1
+export SW_AGENT_REPORTER_CHECK_INTERVAL=5
 eval "$(grep '^export ' ./bin/startup.sh)"
 
 ./${project_name} &
