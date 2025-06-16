@@ -7,6 +7,7 @@ Release Notes.
 #### Features
 
 * Support Windows plugin test.
+* Support Kafka reporter.
 
 #### Plugins
 
