@@ -175,6 +175,11 @@ func (r *gRPCReporter) initSendPipeline() {
 		return
 	}
 	go func() {
+		defer func() {
+			if err := recover(); err != nil {
+				r.logger.Errorf("gRPCReporter initSendPipeline trace client Collect panic err %v", err)
+			}
+		}()
 	StreamLoop:
 		for {
 			switch r.connManager.GetConnectionStatus(r.serverAddr) {
@@ -205,6 +210,11 @@ func (r *gRPCReporter) initSendPipeline() {
 		}
 	}()
 	go func() {
+		defer func() {
+			if err := recover(); err != nil {
+				r.logger.Errorf("gRPCReporter initSendPipeline metrics client CollectBatch panic err %v", err)
+			}
+		}()
 	StreamLoop:
 		for {
 			switch r.connManager.GetConnectionStatus(r.serverAddr) {
@@ -236,6 +246,11 @@ func (r *gRPCReporter) initSendPipeline() {
 		}
 	}()
 	go func() {
+		defer func() {
+			if err := recover(); err != nil {
+				r.logger.Errorf("gRPCReporter initSendPipeline log client Collect panic err %v", err)
+			}
+		}()
 	StreamLoop:
 		for {
 			switch r.connManager.GetConnectionStatus(r.serverAddr) {
@@ -303,6 +318,11 @@ func (r *gRPCReporter) check() {
 		return
 	}
 	go func() {
+		defer func() {
+			if err := recover(); err != nil {
+				r.logger.Errorf("gRPCReporter check panic err %v", err)
+			}
+		}()
 		instancePropertiesSubmitted := false
 		for {
 			switch r.connManager.GetConnectionStatus(r.serverAddr) {

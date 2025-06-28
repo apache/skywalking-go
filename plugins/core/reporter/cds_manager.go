@@ -65,6 +65,11 @@ func (r *CDSManager) InitCDS(entity *Entity, cdsWatchers []AgentConfigChangeWatc
 
 	// fetch config
 	go func() {
+		defer func() {
+			if err := recover(); err != nil {
+				r.logger.Errorf("CDSManager InitCDS panic err %v", err)
+			}
+		}()
 		for {
 			switch r.connManager.GetConnectionStatus(r.serverAddr) {
 			case ConnectionStatusShutdown:
