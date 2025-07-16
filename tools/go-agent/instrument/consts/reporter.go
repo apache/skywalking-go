@@ -18,5 +18,7 @@
 package consts
 
 const (
-	GRPCInitFuncName = "GRPCReporterInit"
+	ReporterInitFuncName = "ReporterInit"
+	GrpcReporter         = "grpc"
+	KafkaReporter        = "kafka"
 )

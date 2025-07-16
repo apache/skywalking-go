@@ -56,6 +56,11 @@ import (
 	_ "google.golang.org/grpc/stats"
 	_ "google.golang.org/grpc/status"
 
+	// imports required packages for Kafka reporter
+	_ "github.com/segmentio/kafka-go"
+	_ "github.com/segmentio/kafka-go/compress"
+	_ "google.golang.org/protobuf/proto"
+
 	// imports protocols between agent and backend
 	_ "skywalking.apache.org/repo/goapi/collect/agent/configuration/v3"
 	_ "skywalking.apache.org/repo/goapi/collect/common/v3"

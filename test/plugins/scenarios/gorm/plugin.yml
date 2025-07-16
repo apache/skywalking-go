@@ -20,7 +20,7 @@ start-script: ./bin/startup.sh
 framework: gorm.io/gorm
 export-port: 8080
 support-version:
-  - go: 1.17
+  - go: 1.19
     framework:
       - v1.22.0
       - v1.23.0

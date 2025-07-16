@@ -7,6 +7,8 @@ Release Notes.
 #### Features
 
 * Support Windows plugin test.
+* Support Kafka reporter.
+* Add recover to goroutine to prevent unexpected panics.
 * Add mutex to fix some data race. 
 
 #### Plugins

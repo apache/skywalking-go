@@ -42,7 +42,7 @@ import (
 var instruments = []api.Instrument{
 	runtime.NewInstrument(),
 	agentcore.NewInstrument(),
-	reporter.NewGRPCInstrument(),
+	reporter.NewInstrument(),
 	entry.NewInstrument(),
 	logger.NewInstrument(),
 	plugins.NewInstrument(),

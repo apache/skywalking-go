@@ -32,6 +32,9 @@ func (t *Tracer) Metrics() interface{} {
 }
 
 func (t *Tracer) initMetricsCollect(meterCollectSecond int) {
+	if meterCollectSecond < 0 {
+		return
+	}
 	collectDuration := time.Duration(meterCollectSecond) * time.Second
 	go func() {
 		for {
