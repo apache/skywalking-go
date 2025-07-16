@@ -107,10 +107,13 @@ type DynamicSampler struct {
 	currentRate float64
 	defaultRate float64
 	sampler     Sampler
+	locker      sync.RWMutex
 }
 
 // IsSampled implements IsSampled() of Sampler.
 func (s *DynamicSampler) IsSampled(operation string) bool {
+	s.locker.RLock()
+	defer s.locker.RUnlock()
 	return s.sampler.IsSampled(operation)
 }
 
@@ -136,11 +139,15 @@ func (s *DynamicSampler) Notify(eventType reporter.AgentConfigEventType, newValu
 	} else {
 		sampler = NewRandomSampler(samplingRate)
 	}
+	s.locker.Lock()
+	defer s.locker.Unlock()
 	s.sampler = sampler
 	s.currentRate = samplingRate
 }
 
 func (s *DynamicSampler) Value() string {
+	s.locker.RLock()
+	defer s.locker.RUnlock()
 	return fmt.Sprintf("%f", s.currentRate)
 }
 

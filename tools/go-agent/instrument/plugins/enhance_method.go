@@ -153,8 +153,6 @@ func (m *MethodEnhance) BuildForDelegator() []dst.Decl {
 	result := make([]dst.Decl, 0)
 
 	result = append(result, tools.GoStringToDecls(fmt.Sprintf(`var %s = &%s{}`, m.InterceptorVarName, m.InterceptorGeneratedName))...)
-	result = append(result, tools.GoStringToDecls(fmt.Sprintf(`var %s_interTimeCost int64`, m.FuncID))...)
-	result = append(result, tools.GoStringToDecls(fmt.Sprintf(`var %s_beforeInterStart int64`, m.FuncID))...)
 	preFunc := &dst.FuncDecl{
 		Name: &dst.Ident{Name: m.AdapterPreFuncName},
 		Type: &dst.FuncType{

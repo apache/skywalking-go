@@ -27,6 +27,7 @@ import (
 	_ "os"
 	_ "strconv"
 	_ "strings"
+	_ "sync"
 	_ "time"
 
 	// imports the logs for reporter

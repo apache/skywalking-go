@@ -7,6 +7,7 @@ Release Notes.
 #### Features
 
 * Support Windows plugin test.
+* Add mutex to fix some data race. 
 
 #### Plugins
 

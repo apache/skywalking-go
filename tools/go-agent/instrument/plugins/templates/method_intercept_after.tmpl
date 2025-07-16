@@ -4,8 +4,8 @@ defer func() {
 		// log error
 		log.Errorf("execute interceptor after invoke error, instrument name: %s, interceptor name: %s, function ID: %s, error: %v, stack: %s",
 		    "{{.InstrumentName}}", "{{.InterceptorDefineName}}", "{{.FuncID}}", r, tracing.DebugStack())
-        {{.FuncID}}_interTimeCost += operator.NanoTime() - {{.FuncID}}_beforeInterStart
-        operator.DurationOfInterceptor({{.FuncID}}_interTimeCost)
+        invocation.interTimeCost += operator.NanoTime() - invocation.beforeInterStart
+        operator.DurationOfInterceptor(invocation.interTimeCost)
 	}
 }()
 
@@ -28,5 +28,5 @@ if (invocation.isContinue) {
     }
     {{- end }}
 }
-{{.FuncID}}_interTimeCost += operator.NanoTime() - {{.FuncID}}_beforeInterStart
-operator.DurationOfInterceptor({{.FuncID}}_interTimeCost)
+invocation.interTimeCost += operator.NanoTime() - invocation.beforeInterStart
+operator.DurationOfInterceptor(invocation.interTimeCost)

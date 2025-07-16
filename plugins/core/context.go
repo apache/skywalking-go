@@ -17,7 +17,10 @@
 
 package core
 
-import "reflect"
+import (
+	"reflect"
+	"sync"
+)
 
 var (
 	GetGLS            = func() interface{} { return nil }
@@ -29,16 +32,21 @@ var (
 )
 
 type ContextSnapshoter interface {
-	TakeSnapShot(val interface{}) interface{}
+	TakeSnapShot() interface{}
 }
 
 type TracingContext struct {
 	activeSpan TracingSpan
 	Runtime    *RuntimeContext
 	ID         *IDContext
+
+	activeSpanLock sync.RWMutex
 }
 
-func (t *TracingContext) TakeSnapShot(val interface{}) interface{} {
+func (t *TracingContext) TakeSnapShot() interface{} {
+	if t == nil {
+		return nil
+	}
 	snapshot := newSnapshotSpan(t.ActiveSpan())
 	return &TracingContext{
 		activeSpan: snapshot,
@@ -48,6 +56,8 @@ func (t *TracingContext) TakeSnapShot(val interface{}) interface{} {
 }
 
 func (t *TracingContext) ActiveSpan() TracingSpan {
+	t.activeSpanLock.RLock()
+	defer t.activeSpanLock.RUnlock()
 	if t.activeSpan == nil || reflect.ValueOf(t.activeSpan).IsZero() {
 		return nil
 	}
@@ -55,6 +65,8 @@ func (t *TracingContext) ActiveSpan() TracingSpan {
 }
 
 func (t *TracingContext) SaveActiveSpan(s TracingSpan) {
+	t.activeSpanLock.Lock()
+	defer t.activeSpanLock.Unlock()
 	t.activeSpan = s
 }
 

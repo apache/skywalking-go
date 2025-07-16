@@ -20,6 +20,7 @@ package grpc
 import (
 	"context"
 	"io"
+	"sync"
 	"time"
 
 	"google.golang.org/grpc"
@@ -111,8 +112,9 @@ type gRPCReporter struct {
 	creds credentials.TransportCredentials
 
 	// bootFlag is set if Boot be executed
-	bootFlag         bool
-	connectionStatus reporter.ConnectionStatus
+	bootFlag             bool
+	connectionStatus     reporter.ConnectionStatus
+	connectionStatusLock sync.RWMutex
 }
 
 func (r *gRPCReporter) Boot(entity *reporter.Entity, cdsWatchers []reporter.AgentConfigChangeWatcher) {
@@ -124,6 +126,8 @@ func (r *gRPCReporter) Boot(entity *reporter.Entity, cdsWatchers []reporter.Agen
 }
 
 func (r *gRPCReporter) ConnectionStatus() reporter.ConnectionStatus {
+	r.connectionStatusLock.RLock()
+	defer r.connectionStatusLock.RUnlock()
 	return r.connectionStatus
 }
 
@@ -395,6 +399,8 @@ func (r *gRPCReporter) initSendPipeline() {
 }
 
 func (r *gRPCReporter) updateConnectionStatus() reporter.ConnectionStatus {
+	r.connectionStatusLock.Lock()
+	defer r.connectionStatusLock.Unlock()
 	state := r.conn.GetState()
 	switch state {
 	case connectivity.TransientFailure:

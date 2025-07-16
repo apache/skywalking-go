@@ -255,12 +255,15 @@ func (rs *RootSegmentSpan) AsyncFinish() {
 }
 
 func (rs *RootSegmentSpan) end0() {
-	go func() {
-		defer func() {
-			_ = recover()
-		}()
-		rs.doneCh <- atomic.SwapInt32(rs.SegmentContext.refNum, -1)
+	defer func() {
+		_ = recover()
 	}()
+	if rs != nil && rs.doneCh != nil && rs.SegmentContext.refNum != nil {
+		select {
+		case rs.doneCh <- atomic.SwapInt32(rs.SegmentContext.refNum, -1):
+		default:
+		}
+	}
 }
 
 func (rs *RootSegmentSpan) createRootSegmentContext(ctx *TracingContext, _ SegmentSpan) (err error) {
@@ -376,22 +379,27 @@ func newSegmentRoot(segmentSpan *SegmentSpanImpl) *RootSegmentSpan {
 }
 
 func newSnapshotSpan(current TracingSpan) TracingSpan {
+	fmt.Println("test111")
 	if current == nil {
 		return nil
 	}
+	fmt.Println("test222")
 	if _, isNoop := current.(*NoopSpan); isNoop {
 		return newSnapshotNoopSpan()
 	}
+	fmt.Println("test333")
 	segmentSpan, ok := current.(SegmentSpan)
 	if !ok || !segmentSpan.IsValid() { // is not segment span or segment is invalid(Executed End() method
 		return nil
 	}
+	fmt.Println("test444")
 
 	segCtx := segmentSpan.GetSegmentContext()
 	copiedCorrelation := make(map[string]string)
 	for k, v := range segCtx.CorrelationContext {
 		copiedCorrelation[k] = v
 	}
+	fmt.Println("test555")
 	s := &SnapshotSpan{
 		DefaultSpan: DefaultSpan{
 			OperationName: segmentSpan.GetOperationName(),
@@ -410,6 +418,7 @@ func newSnapshotSpan(current TracingSpan) TracingSpan {
 			CorrelationContext: copiedCorrelation,
 		},
 	}
+	fmt.Println("test666")
 
 	return s
 }
