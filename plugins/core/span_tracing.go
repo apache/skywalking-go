@@ -259,10 +259,7 @@ func (rs *RootSegmentSpan) end0() {
 		_ = recover()
 	}()
 	if rs != nil && rs.doneCh != nil && rs.SegmentContext.refNum != nil {
-		select {
-		case rs.doneCh <- atomic.SwapInt32(rs.SegmentContext.refNum, -1):
-		default:
-		}
+		rs.doneCh <- atomic.SwapInt32(rs.SegmentContext.refNum, -1)
 	}
 }
 
