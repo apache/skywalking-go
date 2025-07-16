@@ -94,9 +94,7 @@ func (t *Tracer) allMeterCollectListeners() []func() {
 	t.meterCollectListenersLock.RLock()
 	defer t.meterCollectListenersLock.RUnlock()
 	listeners := make([]func(), 0, len(t.meterCollectListeners))
-	for _, l := range t.meterCollectListeners {
-		listeners = append(listeners, l)
-	}
+	listeners = append(listeners, t.meterCollectListeners...)
 	return listeners
 }
 
