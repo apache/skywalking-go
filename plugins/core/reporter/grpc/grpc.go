@@ -20,7 +20,6 @@ package grpc
 import (
 	"context"
 	"io"
-	"sync"
 	"time"
 
 	"google.golang.org/grpc/metadata"
@@ -88,9 +87,6 @@ type gRPCReporter struct {
 	transform   *reporter.Transform
 	connManager *reporter.ConnectionManager
 	cdsManager  *reporter.CDSManager
-
-	connectionStatus     reporter.ConnectionStatus
-	connectionStatusLock sync.RWMutex
 }
 
 func (r *gRPCReporter) Boot(entity *reporter.Entity, cdsWatchers []reporter.AgentConfigChangeWatcher) {
@@ -103,8 +99,6 @@ func (r *gRPCReporter) Boot(entity *reporter.Entity, cdsWatchers []reporter.Agen
 }
 
 func (r *gRPCReporter) ConnectionStatus() reporter.ConnectionStatus {
-	r.connectionStatusLock.RLock()
-	defer r.connectionStatusLock.RUnlock()
 	return r.connManager.GetConnectionStatus(r.serverAddr)
 }
 

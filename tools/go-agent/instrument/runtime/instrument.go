@@ -253,7 +253,7 @@ func _skywalking_metrics_hook_append_impl(f func()) {
 }
 
 type ContextSnapshoter interface {
-	TakeSnapShot(val interface{}) interface{}
+	TakeSnapShot() interface{}
 }
 
 func goroutineChange(tls interface{}) interface{} {
