@@ -54,6 +54,8 @@ reporter:
     authentication: ${SW_AGENT_REPORTER_GRPC_AUTHENTICATION:}
     # The interval(s) of fetching dynamic configuration from backend.
     cds_fetch_interval: ${SW_AGENT_REPORTER_GRPC_CDS_FETCH_INTERVAL:20}
+    # The interval(s) of fetching profile task from backend.
+    profile_fetch_interval: ${SW_AGENT_REPORTER_GRPC_PROFILE_FETCH_INTERVAL:30}
     tls:
       # Whether to enable TLS with backend.
       enable: ${SW_AGENT_REPORTER_GRPC_TLS_ENABLE:false}

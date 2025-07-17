@@ -19,6 +19,7 @@ package grpc
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"time"
 
@@ -40,20 +41,23 @@ const (
 func NewGRPCReporter(logger operator.LogOperator,
 	serverAddr string,
 	checkInterval time.Duration,
+	profileFetchIntervalVal time.Duration,
 	connManager *reporter.ConnectionManager,
 	cdsManager *reporter.CDSManager,
 	opts ...ReporterOption,
 ) (reporter.Reporter, error) {
 	r := &gRPCReporter{
-		logger:        logger,
-		serverAddr:    serverAddr,
-		tracingSendCh: make(chan *agentv3.SegmentObject, maxSendQueueSize),
-		metricsSendCh: make(chan []*agentv3.MeterData, maxSendQueueSize),
-		logSendCh:     make(chan *logv3.LogData, maxSendQueueSize),
-		checkInterval: checkInterval,
-		connManager:   connManager,
-		cdsManager:    cdsManager,
+		logger:                  logger,
+		serverAddr:              serverAddr,
+		tracingSendCh:           make(chan *agentv3.SegmentObject, maxSendQueueSize),
+		metricsSendCh:           make(chan []*agentv3.MeterData, maxSendQueueSize),
+		logSendCh:               make(chan *logv3.LogData, maxSendQueueSize),
+		checkInterval:           checkInterval,
+		profileFetchIntervalVal: profileFetchIntervalVal,
+		connManager:             connManager,
+		cdsManager:              cdsManager,
 	}
+	fmt.Println("NewGRPCReporter:profileFetchIntervalVal:" + profileFetchIntervalVal.String())
 	for _, o := range opts {
 		o(r)
 	}
@@ -70,18 +74,18 @@ func NewGRPCReporter(logger operator.LogOperator,
 }
 
 type gRPCReporter struct {
-	entity           *reporter.Entity
-	serverAddr       string
-	logger           operator.LogOperator
-	tracingSendCh    chan *agentv3.SegmentObject
-	metricsSendCh    chan []*agentv3.MeterData
-	logSendCh        chan *logv3.LogData
-	traceClient      agentv3.TraceSegmentReportServiceClient
-	metricsClient    agentv3.MeterReportServiceClient
-	logClient        logv3.LogReportServiceClient
-	managementClient managementv3.ManagementServiceClient
-	checkInterval    time.Duration
-
+	entity                  *reporter.Entity
+	serverAddr              string
+	logger                  operator.LogOperator
+	tracingSendCh           chan *agentv3.SegmentObject
+	metricsSendCh           chan []*agentv3.MeterData
+	logSendCh               chan *logv3.LogData
+	traceClient             agentv3.TraceSegmentReportServiceClient
+	metricsClient           agentv3.MeterReportServiceClient
+	logClient               logv3.LogReportServiceClient
+	managementClient        managementv3.ManagementServiceClient
+	checkInterval           time.Duration
+	profileFetchIntervalVal time.Duration
 	// bootFlag is set if Boot be executed
 	bootFlag    bool
 	transform   *reporter.Transform

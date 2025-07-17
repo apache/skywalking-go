@@ -241,9 +241,11 @@ func initGRPCReporter(logger operator.LogOperator,
 	var opts []ReporterOption
 	maxSendQueueVal := {{.Config.Reporter.GRPC.MaxSendQueue.ToGoIntValue "the GRPC reporter max queue size must be number"}}
 	opts = append(opts, WithMaxSendQueueSize(maxSendQueueVal))
-
+	
 	backendServiceVal := {{.Config.Reporter.GRPC.BackendService.ToGoStringValue}}
-	return NewGRPCReporter(logger, backendServiceVal, checkInterval, connManager, cdsManager, opts...)
+	profileFetchIntervalVal := {{.Config.Reporter.GRPC.ProfileFetchInterval.ToGoIntValue "the profile fetch interval must be number"}}
+	profileFetchInterval := time.Second * time.Duration(profileFetchIntervalVal)
+	return NewGRPCReporter(logger, backendServiceVal, checkInterval,profileFetchInterval ,connManager, cdsManager, opts...)
 }
 `
 
