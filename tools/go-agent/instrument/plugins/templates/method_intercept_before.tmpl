@@ -1,15 +1,15 @@
-{{.FuncID}}_interTimeCost = int64(0)
-{{.FuncID}}_beforeInterStart = operator.NanoTime()
+invocation = &operator.realInvocation{}
+invocation.interTimeCost = int64(0)
+invocation.beforeInterStart = operator.NanoTime()
 defer func() {
 	if err := recover(); err != nil {
 	    operator.ErrorOfPlugin("{{.InstrumentName}}")
 		// log error
 		log.Errorf("execute interceptor before invoke error, instrument name: %s, interceptor name: %s, function ID: %s, error: %v, stack: %s",
 		    "{{.InstrumentName}}", "{{.InterceptorDefineName}}", "{{.FuncID}}", err, tracing.DebugStack())
-		{{.FuncID}}_interTimeCost += operator.NanoTime() - {{.FuncID}}_beforeInterStart
+		invocation.interTimeCost += operator.NanoTime() - invocation.beforeInterStart
 	}
 }()
-invocation = &operator.realInvocation{}
 {{if .Recvs -}}
 invocation.callerInstance = *recv_0	// for caller if exist
 {{- end}}
@@ -37,7 +37,7 @@ if err := {{.InterceptorVarName}}.BeforeInvoke(invocation); err != nil {
 	// using go2sky log error
 	log.Warnf("execute interceptor before invoke error, instrument name: %s, interceptor name: %s, function ID: %s, error: %v",
     		    "{{.InstrumentName}}", "{{.InterceptorDefineName}}", "{{.FuncID}}", err)
-    {{.FuncID}}_interTimeCost += operator.NanoTime() - {{.FuncID}}_beforeInterStart
+    invocation.interTimeCost += operator.NanoTime() - invocation.beforeInterStart
 
 	return {{ range $index, $value := .Results -}}
 def_res_{{$index}},
@@ -49,13 +49,13 @@ if (invocation.isContinue) {
         def_res_{{$index}} = (invocation.returnValues[{{$index}}]).({{$value.PackagedTypeName}})
     }
     {{- end}}
-    {{.FuncID}}_interTimeCost += operator.NanoTime() - {{.FuncID}}_beforeInterStart
+    invocation.interTimeCost += operator.NanoTime() - invocation.beforeInterStart
 
 	return {{ range $index, $value := .Results -}}
     def_res_{{$index}},
 {{- end}}invocation, true
 }
-{{.FuncID}}_interTimeCost += operator.NanoTime() - {{.FuncID}}_beforeInterStart
+invocation.interTimeCost += operator.NanoTime() - invocation.beforeInterStart
 
 return {{ range $index, $value := .Results -}}
 def_res_{{$index}},

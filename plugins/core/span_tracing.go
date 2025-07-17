@@ -255,12 +255,12 @@ func (rs *RootSegmentSpan) AsyncFinish() {
 }
 
 func (rs *RootSegmentSpan) end0() {
-	go func() {
-		defer func() {
-			_ = recover()
-		}()
-		rs.doneCh <- atomic.SwapInt32(rs.SegmentContext.refNum, -1)
+	defer func() {
+		_ = recover()
 	}()
+	if rs != nil && rs.doneCh != nil && rs.SegmentContext.refNum != nil {
+		rs.doneCh <- atomic.SwapInt32(rs.SegmentContext.refNum, -1)
+	}
 }
 
 func (rs *RootSegmentSpan) createRootSegmentContext(ctx *TracingContext, _ SegmentSpan) (err error) {

@@ -49,11 +49,12 @@ type Tracer struct {
 	// for plugin tools
 	tools *TracerTools
 	// for all metrics
-	meterMap              *sync.Map
-	meterCollectListeners []func()
-	ignoreSuffix          []string
-	traceIgnorePath       []string
-	mu                    sync.Mutex
+	meterMap                  *sync.Map
+	meterCollectListeners     []func()
+	meterCollectListenersLock sync.RWMutex
+	ignoreSuffix              []string
+	traceIgnorePath           []string
+	mu                        sync.Mutex
 }
 
 func (t *Tracer) Init(entity *reporter.Entity, rep reporter.Reporter, samp Sampler, logger operator.LogOperator,

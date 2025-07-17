@@ -75,7 +75,7 @@ func (t *Tracer) reachNotInitMetrics() {
 func (t *Tracer) sendMetrics() {
 	meters := make([]reporter.ReportedMeter, 0)
 	// call collect hook
-	for _, hook := range t.meterCollectListeners {
+	for _, hook := range t.allMeterCollectListeners() {
 		hook()
 	}
 	t.meterMap.Range(func(key, value interface{}) bool {
@@ -88,6 +88,14 @@ func (t *Tracer) sendMetrics() {
 	})
 
 	t.Reporter.SendMetrics(meters)
+}
+
+func (t *Tracer) allMeterCollectListeners() []func() {
+	t.meterCollectListenersLock.RLock()
+	defer t.meterCollectListenersLock.RUnlock()
+	listeners := make([]func(), 0, len(t.meterCollectListeners))
+	listeners = append(listeners, t.meterCollectListeners...)
+	return listeners
 }
 
 func (t *Tracer) NewCounter(name string, opt interface{}) interface{} {
@@ -118,6 +126,8 @@ func (t *Tracer) NewHistogram(name string, minValue float64, steps []float64, op
 }
 
 func (t *Tracer) AddCollectHook(f func()) {
+	t.meterCollectListenersLock.Lock()
+	defer t.meterCollectListenersLock.Unlock()
 	t.meterCollectListeners = append(t.meterCollectListeners, f)
 }
 
@@ -347,7 +357,7 @@ func (h *histogramBucket) Bucket() float64 {
 }
 
 func (h *histogramBucket) Count() int64 {
-	return *h.value
+	return atomic.LoadInt64(h.value)
 }
 
 func (h *histogramBucket) IsNegativeInfinity() bool {
