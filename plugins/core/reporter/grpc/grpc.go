@@ -21,16 +21,17 @@ import (
 	"context"
 	"fmt"
 	"io"
+	common "skywalking.apache.org/repo/goapi/collect/common/v3"
 	"time"
 
 	"google.golang.org/grpc/metadata"
 
-	agentv3 "skywalking.apache.org/repo/goapi/collect/language/agent/v3"
-	logv3 "skywalking.apache.org/repo/goapi/collect/logging/v3"
-	managementv3 "skywalking.apache.org/repo/goapi/collect/management/v3"
-
 	"github.com/apache/skywalking-go/plugins/core/operator"
 	"github.com/apache/skywalking-go/plugins/core/reporter"
+	agentv3 "skywalking.apache.org/repo/goapi/collect/language/agent/v3"
+	profilev3 "skywalking.apache.org/repo/goapi/collect/language/profile/v3"
+	logv3 "skywalking.apache.org/repo/goapi/collect/logging/v3"
+	managementv3 "skywalking.apache.org/repo/goapi/collect/management/v3"
 )
 
 const (
@@ -57,7 +58,6 @@ func NewGRPCReporter(logger operator.LogOperator,
 		connManager:             connManager,
 		cdsManager:              cdsManager,
 	}
-	fmt.Println("NewGRPCReporter:profileFetchIntervalVal:" + profileFetchIntervalVal.String())
 	for _, o := range opts {
 		o(r)
 	}
@@ -70,6 +70,7 @@ func NewGRPCReporter(logger operator.LogOperator,
 	r.metricsClient = agentv3.NewMeterReportServiceClient(conn)
 	r.logClient = logv3.NewLogReportServiceClient(conn)
 	r.managementClient = managementv3.NewManagementServiceClient(conn)
+	r.ProfileTaskClient = profilev3.NewProfileTaskClient(conn)
 	return r, nil
 }
 
@@ -84,6 +85,7 @@ type gRPCReporter struct {
 	metricsClient           agentv3.MeterReportServiceClient
 	logClient               logv3.LogReportServiceClient
 	managementClient        managementv3.ManagementServiceClient
+	ProfileTaskClient       profilev3.ProfileTaskClient
 	checkInterval           time.Duration
 	profileFetchIntervalVal time.Duration
 	// bootFlag is set if Boot be executed
@@ -98,6 +100,7 @@ func (r *gRPCReporter) Boot(entity *reporter.Entity, cdsWatchers []reporter.Agen
 	r.transform = reporter.NewTransform(entity)
 	r.initSendPipeline()
 	r.check()
+	r.fetchProfileTasks()
 	r.cdsManager.InitCDS(entity, cdsWatchers)
 	r.bootFlag = true
 }
@@ -360,4 +363,40 @@ func (r *gRPCReporter) check() {
 			time.Sleep(r.checkInterval)
 		}
 	}()
+}
+func (r *gRPCReporter) fetchProfileTasks() {
+	if r.profileFetchIntervalVal < 0 || r.ProfileTaskClient == nil {
+		fmt.Println("profile init error")
+		return
+	}
+	go func() {
+		for {
+			// 构造请求
+			req := &profilev3.ProfileTaskCommandQuery{
+				Service:         r.entity.ServiceName,
+				ServiceInstance: r.entity.ServiceInstanceName,
+			}
+			// 拉取任务
+			resp, err := r.ProfileTaskClient.GetProfileTaskCommands(context.Background(), req)
+			if err != nil {
+				r.logger.Errorf("fetch profile task error: %v", err)
+				time.Sleep(r.profileFetchIntervalVal)
+				continue
+			}
+			// 处理返回的所有命令
+			for _, cmd := range resp.Commands {
+				r.handleProfileTask(cmd)
+			}
+			time.Sleep(r.profileFetchIntervalVal)
+		}
+	}()
+}
+func (r *gRPCReporter) handleProfileTask(cmd *common.Command) {
+	if cmd.Command != "ProfileTaskQuery" {
+		return
+	}
+	for _, arg := range cmd.Args {
+		fmt.Printf("key: %s, value: %s\n", arg.Key, arg.Value)
+		// 你可以用 switch/case 或 map 取出需要的参数
+	}
 }
