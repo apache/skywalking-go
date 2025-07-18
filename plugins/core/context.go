@@ -57,11 +57,12 @@ func (t *TracingContext) TakeSnapShot() interface{} {
 
 func (t *TracingContext) ActiveSpan() TracingSpan {
 	t.activeSpanLock.RLock()
-	defer t.activeSpanLock.RUnlock()
-	if t.activeSpan == nil || reflect.ValueOf(t.activeSpan).IsZero() {
+	data := t.activeSpan
+	t.activeSpanLock.RUnlock()
+	if data == nil || reflect.ValueOf(data).IsZero() {
 		return nil
 	}
-	return t.activeSpan
+	return data
 }
 
 func (t *TracingContext) SaveActiveSpan(s TracingSpan) {
