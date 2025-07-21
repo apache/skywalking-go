@@ -33,7 +33,6 @@ import (
 	// imports the logs for reporter
 	_ "github.com/apache/skywalking-go/agent/core/operator"
 	_ "github.com/apache/skywalking-go/log"
-
 	// imports configuration and starter for gRPC
 	_ "google.golang.org/grpc"
 	_ "google.golang.org/grpc/backoff"

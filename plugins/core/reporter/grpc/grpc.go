@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"io"
 	common "skywalking.apache.org/repo/goapi/collect/common/v3"
+	"strconv"
 	"time"
 
 	"google.golang.org/grpc/metadata"
@@ -395,8 +396,39 @@ func (r *gRPCReporter) handleProfileTask(cmd *common.Command) {
 	if cmd.Command != "ProfileTaskQuery" {
 		return
 	}
-	for _, arg := range cmd.Args {
-		fmt.Printf("key: %s, value: %s\n", arg.Key, arg.Value)
-		// 你可以用 switch/case 或 map 取出需要的参数
-	}
+	//var task reporter.ProfileTask
+	//for _, arg := range cmd.Args {
+	//	switch arg.Key {
+	//	case "TaskId":
+	//		task.TaskId = arg.Value
+	//	case "EndpointName":
+	//		task.EndpointName = arg.Value
+	//	case "Duration":
+	//		// Duration 单位为分钟
+	//		fmt.Sscanf(arg.Value, "%d", &task.Duration)
+	//	case "MinDurationThreshold":
+	//		fmt.Sscanf(arg.Value, "%d", &task.MinDurationThreshold)
+	//	case "DumpPeriod":
+	//		fmt.Sscanf(arg.Value, "%d", &task.DumpPeriod)
+	//	case "MaxSamplingCount":
+	//		fmt.Sscanf(arg.Value, "%d", &task.MaxSamplingCount)
+	//	case "StartTime":
+	//		fmt.Sscanf(arg.Value, "%d", &task.StartTime)
+	//	case "CreateTime":
+	//		fmt.Sscanf(arg.Value, "%d", &task.CreateTime)
+	//	case "SerialNumber":
+	//		task.SerialNumber = arg.Value
+	//	}
+	//}
+
+}
+
+func parseUint64(value string) uint64 {
+	v, _ := strconv.ParseUint(value, 10, 64)
+	return v
+}
+
+func parseInt(value string) int {
+	v, _ := strconv.Atoi(value)
+	return v
 }

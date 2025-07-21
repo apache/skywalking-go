@@ -41,7 +41,8 @@ func (h *ServerInterceptor) BeforeInvoke(invocation operator.Invocation) error {
 	if err != nil {
 		return err
 	}
-
+	id := s.TraceID()
+	fmt.Println("trace_id:", id)
 	if config.ServerCollectParameters && request.URL != nil {
 		s.Tag(tracing.TagHTTPParams, request.URL.RawQuery)
 	}
