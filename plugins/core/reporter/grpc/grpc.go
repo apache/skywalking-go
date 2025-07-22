@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"io"
 	common "skywalking.apache.org/repo/goapi/collect/common/v3"
-	"strconv"
 	"time"
 
 	"google.golang.org/grpc/metadata"
@@ -72,6 +71,7 @@ func NewGRPCReporter(logger operator.LogOperator,
 	r.logClient = logv3.NewLogReportServiceClient(conn)
 	r.managementClient = managementv3.NewManagementServiceClient(conn)
 	r.ProfileTaskClient = profilev3.NewProfileTaskClient(conn)
+	r.ProfileManager = reporter.NewProfileManager()
 	return r, nil
 }
 
@@ -87,6 +87,7 @@ type gRPCReporter struct {
 	logClient               logv3.LogReportServiceClient
 	managementClient        managementv3.ManagementServiceClient
 	ProfileTaskClient       profilev3.ProfileTaskClient
+	ProfileManager          *reporter.ProfileManager
 	checkInterval           time.Duration
 	profileFetchIntervalVal time.Duration
 	// bootFlag is set if Boot be executed
@@ -396,39 +397,5 @@ func (r *gRPCReporter) handleProfileTask(cmd *common.Command) {
 	if cmd.Command != "ProfileTaskQuery" {
 		return
 	}
-	//var task reporter.ProfileTask
-	//for _, arg := range cmd.Args {
-	//	switch arg.Key {
-	//	case "TaskId":
-	//		task.TaskId = arg.Value
-	//	case "EndpointName":
-	//		task.EndpointName = arg.Value
-	//	case "Duration":
-	//		// Duration 单位为分钟
-	//		fmt.Sscanf(arg.Value, "%d", &task.Duration)
-	//	case "MinDurationThreshold":
-	//		fmt.Sscanf(arg.Value, "%d", &task.MinDurationThreshold)
-	//	case "DumpPeriod":
-	//		fmt.Sscanf(arg.Value, "%d", &task.DumpPeriod)
-	//	case "MaxSamplingCount":
-	//		fmt.Sscanf(arg.Value, "%d", &task.MaxSamplingCount)
-	//	case "StartTime":
-	//		fmt.Sscanf(arg.Value, "%d", &task.StartTime)
-	//	case "CreateTime":
-	//		fmt.Sscanf(arg.Value, "%d", &task.CreateTime)
-	//	case "SerialNumber":
-	//		task.SerialNumber = arg.Value
-	//	}
-	//}
-
-}
-
-func parseUint64(value string) uint64 {
-	v, _ := strconv.ParseUint(value, 10, 64)
-	return v
-}
-
-func parseInt(value string) int {
-	v, _ := strconv.Atoi(value)
-	return v
+	r.ProfileManager.AddProfileTask(cmd.Args)
 }
