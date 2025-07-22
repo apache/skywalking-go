@@ -67,7 +67,6 @@ func (m *ProfileManager) AddProfileTask(args []*common.KeyStringValuePair) {
 		}
 	}
 	task.Status = Pending
-	fmt.Println(task.EndpointName)
 	m.Tasks[task.SerialNumber] = &task
 }
 func (m *ProfileManager) RemoveProfileTask() {
@@ -90,16 +89,22 @@ func (m *ProfileManager) GetProfileTask(endpoint string) []*Task {
 	}
 	return result
 }
-func (m *ProfileManager) Display(endpoint string) string {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	var result string
-	for _, t := range m.Tasks {
-		if t.EndpointName == endpoint {
-			result += t.SerialNumber
+func (m *ProfileManager) ToProfile(endpoint string, traceId string) {
+	t := time.Now().UnixMilli()
+	for _, v := range m.GetProfileTask(endpoint) {
+		if v.StartTime+int64(v.Duration)*int64(time.Second) < t {
+			delete(m.Tasks, v.SerialNumber)
+			continue
 		}
+
+		task := v // 安全复制指针变量
+		go func(t *Task) {
+			StartProfiling(t, traceId)
+		}(task)
 	}
-	return result
+}
+func StartProfiling(t *Task, traceId string) {
+	fmt.Printf("Starting profiling task %s\n,traceId :%s", t.SerialNumber, traceId)
 }
 func parseInt64(value string) int64 {
 	v, _ := strconv.ParseInt(value, 10, 64)
