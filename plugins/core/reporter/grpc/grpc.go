@@ -70,8 +70,8 @@ func NewGRPCReporter(logger operator.LogOperator,
 	r.metricsClient = agentv3.NewMeterReportServiceClient(conn)
 	r.logClient = logv3.NewLogReportServiceClient(conn)
 	r.managementClient = managementv3.NewManagementServiceClient(conn)
-	r.ProfileTaskClient = profilev3.NewProfileTaskClient(conn)
-	r.ProfileManager = reporter.NewProfileManager()
+	r.profileTaskClient = profilev3.NewProfileTaskClient(conn)
+	r.profileManager = reporter.NewProfileManager()
 	return r, nil
 }
 
@@ -86,8 +86,8 @@ type gRPCReporter struct {
 	metricsClient           agentv3.MeterReportServiceClient
 	logClient               logv3.LogReportServiceClient
 	managementClient        managementv3.ManagementServiceClient
-	ProfileTaskClient       profilev3.ProfileTaskClient
-	ProfileManager          *reporter.ProfileManager
+	profileTaskClient       profilev3.ProfileTaskClient
+	profileManager          *reporter.ProfileManager
 	checkInterval           time.Duration
 	profileFetchIntervalVal time.Duration
 	// bootFlag is set if Boot be executed
@@ -367,19 +367,21 @@ func (r *gRPCReporter) check() {
 	}()
 }
 func (r *gRPCReporter) fetchProfileTasks() {
-	if r.profileFetchIntervalVal < 0 || r.ProfileTaskClient == nil {
+	if r.profileFetchIntervalVal < 0 || r.profileTaskClient == nil {
 		fmt.Println("profile init error")
 		return
 	}
 	go func() {
 		for {
 			// 构造请求
+
 			req := &profilev3.ProfileTaskCommandQuery{
 				Service:         r.entity.ServiceName,
 				ServiceInstance: r.entity.ServiceInstanceName,
 			}
 			// 拉取任务
-			resp, err := r.ProfileTaskClient.GetProfileTaskCommands(context.Background(), req)
+			fmt.Println("开始拉取任务")
+			resp, err := r.profileTaskClient.GetProfileTaskCommands(context.Background(), req)
 			if err != nil {
 				r.logger.Errorf("fetch profile task error: %v", err)
 				time.Sleep(r.profileFetchIntervalVal)
@@ -397,5 +399,8 @@ func (r *gRPCReporter) handleProfileTask(cmd *common.Command) {
 	if cmd.Command != "ProfileTaskQuery" {
 		return
 	}
-	r.ProfileManager.AddProfileTask(cmd.Args)
+	r.profileManager.AddProfileTask(cmd.Args)
+}
+func (r *gRPCReporter) Profiling(traceId string, endPoint string) {
+	r.profileManager.ToProfile(endPoint, traceId)
 }

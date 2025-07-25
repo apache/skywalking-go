@@ -19,12 +19,15 @@ package reporter
 
 import (
 	// imports required packages for gRPC reporter
+	_ "bytes"
 	_ "context"
 	_ "crypto/tls"
 	_ "crypto/x509"
 	_ "fmt"
 	_ "io"
 	_ "os"
+	_ "runtime"
+	_ "runtime/pprof"
 	_ "strconv"
 	_ "strings"
 	_ "sync"
@@ -34,6 +37,7 @@ import (
 	_ "github.com/apache/skywalking-go/agent/core/operator"
 	_ "github.com/apache/skywalking-go/log"
 	// imports configuration and starter for gRPC
+	_ "github.com/pkg/errors"
 	_ "google.golang.org/grpc"
 	_ "google.golang.org/grpc/backoff"
 	_ "google.golang.org/grpc/balancer"

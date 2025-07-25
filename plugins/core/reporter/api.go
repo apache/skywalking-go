@@ -115,4 +115,5 @@ type Reporter interface {
 	SendLog(log *logv3.LogData)
 	ConnectionStatus() ConnectionStatus
 	Close()
+	Profiling(traceId string, endPoint string)
 }

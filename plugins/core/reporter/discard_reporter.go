@@ -44,3 +44,5 @@ func (r *discardReporter) ConnectionStatus() ConnectionStatus {
 func (r *discardReporter) Close() {
 	// do nothing
 }
+func (r *discardReporter) Profiling(traceId string, endpoint string) {
+}

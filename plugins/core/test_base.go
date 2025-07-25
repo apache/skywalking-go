@@ -96,3 +96,6 @@ func (r *StoreReporter) ConnectionStatus() reporter.ConnectionStatus {
 
 func (r *StoreReporter) Close() {
 }
+func (r *StoreReporter) Profiling(traceId string, endpoint string) {
+
+}

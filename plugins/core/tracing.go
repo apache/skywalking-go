@@ -66,7 +66,7 @@ func (t *Tracer) CreateEntrySpan(operationName string, extractor interface{}, op
 	span, _, err := t.createSpan0(ctx, tracingSpan, opts, withRef(ref), withSpanType(SpanTypeEntry), withOperationName(operationName))
 	if err == nil {
 		id := span.GetTraceID()
-		fmt.Println("id:", id)
+		t.Reporter.Profiling(id, operationName)
 	}
 	return span, err
 }

@@ -1,7 +1,10 @@
 package reporter
 
 import (
+	"bytes"
 	"fmt"
+	"github.com/pkg/errors"
+	"runtime/pprof"
 	common "skywalking.apache.org/repo/goapi/collect/common/v3"
 	"strconv"
 	"sync"
@@ -9,6 +12,8 @@ import (
 )
 
 type TaskStatus int
+
+var cpuProfileLock sync.Mutex
 
 const (
 	Pending TaskStatus = iota
@@ -67,6 +72,7 @@ func (m *ProfileManager) AddProfileTask(args []*common.KeyStringValuePair) {
 		}
 	}
 	task.Status = Pending
+	fmt.Println("adding task:", task)
 	m.Tasks[task.SerialNumber] = &task
 }
 func (m *ProfileManager) RemoveProfileTask() {
@@ -91,20 +97,59 @@ func (m *ProfileManager) GetProfileTask(endpoint string) []*Task {
 }
 func (m *ProfileManager) ToProfile(endpoint string, traceId string) {
 	t := time.Now().UnixMilli()
+	//fmt.Println(traceId + "  " + endpoint + "  " + "start")
 	for _, v := range m.GetProfileTask(endpoint) {
-		if v.StartTime+int64(v.Duration)*int64(time.Second) < t {
+		//删除过期任务
+		if v.StartTime+int64(v.Duration)*int64(time.Minute) < t {
 			delete(m.Tasks, v.SerialNumber)
 			continue
 		}
-
-		task := v // 安全复制指针变量
-		go func(t *Task) {
-			StartProfiling(t, traceId)
+		v.Status = Running
+		//执行profiling
+		task := v
+		go func(task *Task) {
+			data, err := StartProfiling(task)
+			if err != nil {
+				task.Status = Pending
+				return
+			}
+			fmt.Println(data)
 		}(task)
+
 	}
 }
-func StartProfiling(t *Task, traceId string) {
-	fmt.Printf("Starting profiling task %s\n,traceId :%s", t.SerialNumber, traceId)
+func StartProfiling(t *Task) ([]byte, error) {
+	var buf bytes.Buffer
+	if cpuProfileLock.TryLock() {
+		defer cpuProfileLock.Unlock()
+		// 开始写入 profiling 数据到内存
+		if err := pprof.StartCPUProfile(&buf); err != nil {
+			fmt.Printf("could not start CPU profile: %v\n", err)
+			return nil, err
+		}
+
+		// 模拟运行（持续 t.Duration min）
+		time.Sleep(time.Duration(t.Duration) * time.Minute)
+		pprof.StopCPUProfile()
+		return buf.Bytes(), nil
+		// profiling 逻辑
+	} else {
+		//fmt.Println("profile is already running, skip this task")
+		return nil, errors.New("profile is already running")
+	}
+
+}
+func splitProfileData(data []byte, chunkSize int) [][]byte {
+	var chunks [][]byte
+	for len(data) > 0 {
+		if len(data) < chunkSize {
+			chunks = append(chunks, data)
+			break
+		}
+		chunks = append(chunks, data[:chunkSize])
+		data = data[chunkSize:]
+	}
+	return chunks
 }
 func parseInt64(value string) int64 {
 	v, _ := strconv.ParseInt(value, 10, 64)
