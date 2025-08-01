@@ -415,13 +415,18 @@ func (r *gRPCReporter) EndProfiling() {
 		r.profileManager.EndProfiling()
 	}
 }
+
+func (r *gRPCReporter) AddSpanIdToProfile(spanId int32) {
+	if r.profileManager.IfProfiling() {
+		r.profileManager.AddSpanId(spanId)
+	} else {
+		fmt.Println("no profile")
+	}
+}
 func (r *gRPCReporter) reportProfileResult() {
 	go func() {
-		for {
-			for task := range r.profileManager.ReportResults {
-				fmt.Printf("收到任务结果：%+v\n", task)
-			}
-			time.Sleep(r.profileFetchIntervalVal)
+		for task := range r.profileManager.ReportResults {
+			fmt.Printf("收到任务结果：%+v\n", task)
 		}
 	}()
 

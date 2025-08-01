@@ -100,3 +100,5 @@ func (r *StoreReporter) Profiling(traceId string, endpoint string) {
 
 }
 func (r *StoreReporter) EndProfiling() {}
+func (r *StoreReporter) AddSpanIdToProfile(spanId int32) {
+}

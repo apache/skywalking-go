@@ -117,4 +117,5 @@ type Reporter interface {
 	Close()
 	Profiling(traceId string, endPoint string)
 	EndProfiling()
+	AddSpanIdToProfile(spanId int32)
 }
