@@ -14,6 +14,7 @@ import (
 
 type TaskStatus int
 
+const ChunkSize = 1024 * 1024
 const (
 	Pending TaskStatus = iota
 	Running
@@ -33,19 +34,26 @@ type Task struct {
 	CreateTime           int64
 	Status               TaskStatus //任务执行状态
 }
+type Result struct {
+	Payload        [][]byte
+	TraceSegmentID string
+	TaskID         string
+}
 type ProfileManager struct {
-	mu       sync.Mutex
-	ctx      context.Context
-	status   bool
-	Tasks    map[string]*Task
-	buf      *bytes.Buffer // 当前 profile 的 buffer
-	stopChan chan struct{} //结束信号
+	mu            sync.Mutex
+	ctx           context.Context
+	status        bool
+	Tasks         map[string]*Task
+	ReportResults chan Result
+	buf           *bytes.Buffer // 当前 profile 的 buffer
+	stopChan      chan struct{} //结束信号
 }
 
 func NewProfileManager() *ProfileManager {
 	return &ProfileManager{
-		Tasks:  make(map[string]*Task),
-		status: false,
+		Tasks:         make(map[string]*Task),
+		ReportResults: make(chan Result, 10),
+		status:        false,
 	}
 }
 func (m *ProfileManager) AddProfileTask(args []*common.KeyStringValuePair) {
@@ -163,9 +171,21 @@ func (m *ProfileManager) StartProfiling(t *Task, traceSegmentID string) error {
 	// 停止
 	pprof.StopCPUProfile()
 	m.mu.Lock()
+	//存储结果
+	data, err := m.GetResult()
+	if err != nil {
+		m.mu.Unlock()
+		return err
+	}
+	var re = Result{
+		TaskID:         t.TaskId,
+		TraceSegmentID: traceSegmentID,
+	}
+	r := splitProfileData(data, ChunkSize)
+	re.Payload = r
+	m.ReportResults <- re
+	//修改状态
 	m.status = false
-	close(m.stopChan)
-	m.stopChan = nil
 	m.mu.Unlock()
 	return nil
 }
@@ -188,17 +208,11 @@ func (m *ProfileManager) EndProfiling() {
 	if m.stopChan != nil {
 		// 通知 goroutine 停止
 		close(m.stopChan)
+		m.stopChan = nil
 	}
 }
 
-func (m *ProfileManager) ReportResult() ([]byte, error) {
-	// goroutine 会调用 StopCPUProfile 并清理状态
-	// 但 StopCPUProfile 不是完全同步的，最好等待 status=false
-	for m.status {
-		m.mu.Unlock()
-		time.Sleep(10 * time.Millisecond)
-		m.mu.Lock()
-	}
+func (m *ProfileManager) GetResult() ([]byte, error) {
 	if m.buf == nil {
 		return nil, errors.New("no buffer")
 	}
@@ -220,6 +234,7 @@ func splitProfileData(data []byte, chunkSize int) [][]byte {
 	}
 	return chunks
 }
+
 func parseInt64(value string) int64 {
 	v, _ := strconv.ParseInt(value, 10, 64)
 	return v

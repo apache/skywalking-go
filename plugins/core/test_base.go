@@ -99,3 +99,4 @@ func (r *StoreReporter) Close() {
 func (r *StoreReporter) Profiling(traceId string, endpoint string) {
 
 }
+func (r *StoreReporter) EndProfiling() {}

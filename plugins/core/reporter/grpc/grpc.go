@@ -103,6 +103,7 @@ func (r *gRPCReporter) Boot(entity *reporter.Entity, cdsWatchers []reporter.Agen
 	r.initSendPipeline()
 	r.check()
 	r.fetchProfileTasks()
+	r.reportProfileResult()
 	r.cdsManager.InitCDS(entity, cdsWatchers)
 	r.bootFlag = true
 }
@@ -391,6 +392,8 @@ func (r *gRPCReporter) fetchProfileTasks() {
 			for _, cmd := range resp.Commands {
 				r.handleProfileTask(cmd)
 			}
+			// 除去已完成的
+			r.profileManager.RemoveProfileTask()
 			time.Sleep(r.profileFetchIntervalVal)
 		}
 	}()
@@ -400,7 +403,26 @@ func (r *gRPCReporter) handleProfileTask(cmd *common.Command) {
 		return
 	}
 	r.profileManager.AddProfileTask(cmd.Args)
+
 }
 func (r *gRPCReporter) Profiling(traceId string, endPoint string) {
-	r.profileManager.ToProfile(endPoint, traceId)
+	if r.profileManager != nil {
+		r.profileManager.ToProfile(endPoint, traceId)
+	}
+}
+func (r *gRPCReporter) EndProfiling() {
+	if r.profileManager != nil {
+		r.profileManager.EndProfiling()
+	}
+}
+func (r *gRPCReporter) reportProfileResult() {
+	go func() {
+		for {
+			for task := range r.profileManager.ReportResults {
+				fmt.Printf("收到任务结果：%+v\n", task)
+			}
+			time.Sleep(r.profileFetchIntervalVal)
+		}
+	}()
+
 }

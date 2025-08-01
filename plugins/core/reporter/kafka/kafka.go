@@ -351,3 +351,4 @@ func (r *kafkaReporter) Close() {
 	}
 }
 func (r *kafkaReporter) Profiling(traceId string, endPoint string) {}
+func (r *kafkaReporter) EndProfiling()                             {}

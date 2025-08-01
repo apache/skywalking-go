@@ -46,3 +46,4 @@ func (r *discardReporter) Close() {
 }
 func (r *discardReporter) Profiling(traceId string, endpoint string) {
 }
+func (r *discardReporter) EndProfiling() {}

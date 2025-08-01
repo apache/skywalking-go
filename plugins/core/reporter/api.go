@@ -116,4 +116,5 @@ type Reporter interface {
 	ConnectionStatus() ConnectionStatus
 	Close()
 	Profiling(traceId string, endPoint string)
+	EndProfiling()
 }
