@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/pkg/errors"
-	"os"
 	"runtime/pprof"
 	common "skywalking.apache.org/repo/goapi/collect/common/v3"
 	"strconv"
@@ -34,6 +33,7 @@ type Task struct {
 	StartTime            int64
 	CreateTime           int64
 	Status               TaskStatus //任务执行状态
+	EndTime              int64      //任务deadline
 }
 type Result struct {
 	Payload        [][]byte
@@ -84,8 +84,13 @@ func (m *ProfileManager) AddProfileTask(args []*common.KeyStringValuePair) {
 			task.SerialNumber = arg.Value
 		}
 	}
-	task.Status = Pending
 	fmt.Println("adding task:", task)
+	if _, exists := m.Tasks[task.TaskId]; exists {
+		return
+	}
+	endTime := task.StartTime + int64(task.Duration)*60*1000
+	task.EndTime = endTime
+	task.Status = Pending
 	m.Tasks[task.TaskId] = &task
 }
 func (m *ProfileManager) RemoveProfileTask() {
@@ -102,7 +107,8 @@ func (m *ProfileManager) GetProfileTask(endpoint string) []*Task {
 	defer m.mu.Unlock()
 	var result []*Task
 	for _, t := range m.Tasks {
-		if t.EndpointName == endpoint && t.StartTime <= time.Now().UnixMilli() && t.Status == Pending {
+		endTime := t.StartTime + int64(t.Duration)*60*1000
+		if t.EndpointName == endpoint && t.StartTime <= time.Now().UnixMilli() && endTime > time.Now().UnixMilli() && t.Status == Pending {
 			result = append(result, t)
 		}
 	}
@@ -116,28 +122,37 @@ func (m *ProfileManager) IfProfiling() bool {
 
 func (m *ProfileManager) ToProfile(endpoint string, traceSegmentID string) {
 	t := time.Now().UnixMilli()
-
-	for _, v := range m.GetProfileTask(endpoint) {
+	tasks := m.GetProfileTask(endpoint)
+	if tasks != nil {
+		err := m.StartProfiling(traceSegmentID)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+	}
+	for _, v := range tasks {
 		//删除过期任务
-		if v.StartTime+int64(v.Duration)*int64(time.Minute) < t {
+		if v.EndTime < t {
+			m.mu.Lock()
 			delete(m.Tasks, v.SerialNumber)
+			m.mu.Unlock()
 			continue
 		}
 		m.Tasks[v.TaskId].Status = Running
 		//执行profiling
 		task := v
 		go func(task *Task) {
-			err := m.StartProfilingTest(task, traceSegmentID)
+			err := m.monitor(task, traceSegmentID)
 			if err != nil {
 				m.Tasks[task.TaskId].Status = Pending
 				return
 			}
 			m.Tasks[task.TaskId].Status = Finished
 		}(task)
-
+		break
 	}
 }
-func (m *ProfileManager) StartProfiling(t *Task, traceSegmentID string) error {
+func (m *ProfileManager) StartProfiling(traceSegmentID string) error {
 	m.mu.Lock()
 	if m.status {
 		m.mu.Unlock()
@@ -150,7 +165,6 @@ func (m *ProfileManager) StartProfiling(t *Task, traceSegmentID string) error {
 	//添加profiling主上下文
 	ctx := context.Background()
 	labels := pprof.Labels("traceSegmentID", traceSegmentID)
-	fmt.Println(labels)
 	ctx = pprof.WithLabels(ctx, labels)
 	pprof.SetGoroutineLabels(ctx)
 	m.mu.Lock()
@@ -163,7 +177,9 @@ func (m *ProfileManager) StartProfiling(t *Task, traceSegmentID string) error {
 		m.mu.Unlock()
 		return err
 	}
-
+	return nil
+}
+func (m *ProfileManager) monitor(t *Task, traceSegmentID string) error {
 	select {
 	// 超时结束
 	case <-time.After(time.Duration(t.Duration) * time.Minute):
@@ -191,80 +207,14 @@ func (m *ProfileManager) StartProfiling(t *Task, traceSegmentID string) error {
 	m.mu.Unlock()
 	return nil
 }
-func (m *ProfileManager) StartProfilingTest(t *Task, traceSegmentID string) error {
-	m.mu.Lock()
-	if m.status {
-		m.mu.Unlock()
-		return errors.New("profile is already running")
-	}
-	m.status = true
-	m.buf = &bytes.Buffer{}
-	m.stopChan = make(chan struct{})
-	m.mu.Unlock()
-	//添加profiling主上下文
-	ctx := context.Background()
-	labels := pprof.Labels("traceSegmentID", traceSegmentID)
-	ctx = pprof.WithLabels(ctx, labels)
-	pprof.SetGoroutineLabels(ctx)
-	m.mu.Lock()
-	m.ctx = ctx
-	m.mu.Unlock()
-	f, _ := os.Create("cpu.pprof")
-	if err := pprof.StartCPUProfile(f); err != nil {
-		m.mu.Lock()
-		m.status = false
-		m.mu.Unlock()
-		return err
-	}
 
-	select {
-	// 超时结束
-	case <-time.After(time.Duration(t.Duration) * time.Minute):
-
-	case <-m.stopChan: // 手动结束
-	}
-	time.Sleep(1 * time.Second)
-	// 停止
-	fmt.Println("cpu.pprof.StopCPUProfile")
-	pprof.StopCPUProfile()
-	m.mu.Lock()
-	//存储结果
-	data, err := m.GetResult()
-	if err != nil {
-		m.mu.Unlock()
-		return err
-	}
-	var re = Result{
-		TaskID:         t.TaskId,
-		TraceSegmentID: traceSegmentID,
-	}
-	r := splitProfileData(data, ChunkSize)
-	re.Payload = r
-	m.ReportResults <- re
-	//修改状态
-	m.status = false
-	m.mu.Unlock()
-	return nil
-}
 func (m *ProfileManager) AddSpanId(spanID int32) {
-	time.Sleep(1 * time.Millisecond)
-	fmt.Println("adding span:", spanID)
+
 	if m.ctx == nil {
-		fmt.Println("AddSpanId context is nil")
 		return
 	}
-
 	spanCtx := pprof.WithLabels(m.ctx, pprof.Labels("spanID", parseString(spanID)))
 	pprof.SetGoroutineLabels(spanCtx)
-	// 立即检查label是否设置成功
-	currentLabels := pprof.Labels()
-	fmt.Printf("Labels after SetGoroutineLabels: %+v\n", currentLabels)
-
-	fmt.Printf("Current labels type: %T\n", currentLabels)
-	fmt.Printf("Current labels content: %+v\n", currentLabels)
-
-	// 检查traceSegmentID是否存在
-	fmt.Printf("All current labels: %+v\n", currentLabels)
 }
 func (m *ProfileManager) EndProfiling() {
 	m.mu.Lock()
