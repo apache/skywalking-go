@@ -103,7 +103,6 @@ func (r *gRPCReporter) Boot(entity *reporter.Entity, cdsWatchers []reporter.Agen
 	r.initSendPipeline()
 	r.check()
 	r.fetchProfileTasks()
-	r.reportProfileResult()
 	r.cdsManager.InitCDS(entity, cdsWatchers)
 	r.bootFlag = true
 }
@@ -289,6 +288,58 @@ func (r *gRPCReporter) initSendPipeline() {
 			break
 		}
 	}()
+	go func() {
+		defer func() {
+			if err := recover(); err != nil {
+				r.logger.Errorf("gRPCReporter reportProfileResult panic err %v", err)
+			}
+		}()
+	StreamLoop:
+		for {
+			switch r.connManager.GetConnectionStatus(r.serverAddr) {
+			case reporter.ConnectionStatusShutdown:
+				break
+			case reporter.ConnectionStatusDisconnect:
+				time.Sleep(5 * time.Second)
+				continue StreamLoop
+			}
+
+			stream, err := r.profileTaskClient.GoProfileReport(metadata.NewOutgoingContext(context.Background(), r.connManager.GetMD()))
+			if err != nil {
+				r.logger.Errorf("open profile stream error %v", err)
+				time.Sleep(5 * time.Second)
+				continue StreamLoop
+			}
+
+			for task := range r.profileManager.ReportResults {
+				// 发送所有chunks
+				for i, chunk := range task.Payload {
+					isLast := i == len(task.Payload)-1
+					profileData := &profilev3.GoProfileData{
+						TaskId:         task.TaskID,
+						TraceSegmentId: task.TraceSegmentID,
+						Payload:        chunk,
+						IsLast:         isLast,
+						ChunkId:        int32(i),
+					}
+
+					// 只在最后一个chunk中包含spanIds
+					if isLast {
+						profileData.SpanIds = task.SpanIDs
+					}
+
+					err = stream.Send(profileData)
+					if err != nil {
+						r.logger.Errorf("send profile data error %v", err)
+						r.closeProfileStream(stream)
+						continue StreamLoop
+					}
+				}
+			}
+			r.closeProfileStream(stream)
+			break
+		}
+	}()
 }
 
 func (r *gRPCReporter) closeTracingStream(stream agentv3.TraceSegmentReportService_CollectClient) {
@@ -311,7 +362,12 @@ func (r *gRPCReporter) closeLogStream(stream logv3.LogReportService_CollectClien
 		r.logger.Errorf("send closing error %v", err)
 	}
 }
-
+func (r *gRPCReporter) closeProfileStream(stream profilev3.ProfileTask_GoProfileReportClient) {
+	_, err := stream.CloseAndRecv()
+	if err != nil && err != io.EOF {
+		r.logger.Errorf("send profile closing error %v", err)
+	}
+}
 func (r *gRPCReporter) reportInstanceProperties() (err error) {
 	_, err = r.managementClient.ReportInstanceProperties(
 		metadata.NewOutgoingContext(context.Background(), r.connManager.GetMD()),
@@ -423,11 +479,19 @@ func (r *gRPCReporter) AddSpanIdToProfile(spanId int32) {
 		fmt.Println("no profile")
 	}
 }
-func (r *gRPCReporter) reportProfileResult() {
-	go func() {
-		for task := range r.profileManager.ReportResults {
-			fmt.Printf("收到任务结果：%+v\n", task)
-		}
-	}()
 
+//	func (r *gRPCReporter) reportProfileResult() {
+//		go func() {
+//			for task := range r.profileManager.ReportResults {
+//				fmt.Printf("收到任务结果：%+v\n", task)
+//			}
+//		}()
+//
+// }
+func (r *gRPCReporter) CheckProfileValue(spanId int32, start int64, end int64) {
+	if start == 0 || end == 0 || end <= start {
+		return
+	}
+	dur := end - start
+	r.profileManager.CheckTimeIfEnough(spanId, dur)
 }

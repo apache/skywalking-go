@@ -27,18 +27,20 @@ type Task struct {
 	TaskId               string
 	EndpointName         string //端点
 	Duration             int    //监控持续时间(min)
-	MinDurationThreshold int    //起始监控时间(ms)
+	MinDurationThreshold int64  //起始监控时间(ms)
 	DumpPeriod           int    //监控间隔(ms)
 	MaxSamplingCount     int    //最大采样数
 	StartTime            int64
 	CreateTime           int64
 	Status               TaskStatus //任务执行状态
+	spanIds              []int32    //超过MinDuration的span
 	EndTime              int64      //任务deadline
 }
 type Result struct {
 	Payload        [][]byte
 	TraceSegmentID string
 	TaskID         string
+	SpanIDs        []int32
 }
 type ProfileManager struct {
 	mu            sync.Mutex
@@ -47,6 +49,7 @@ type ProfileManager struct {
 	Tasks         map[string]*Task
 	ReportResults chan Result
 	buf           *bytes.Buffer // 当前 profile 的 buffer
+	currentTask   *Task
 	stopChan      chan struct{} //结束信号
 }
 
@@ -71,7 +74,7 @@ func (m *ProfileManager) AddProfileTask(args []*common.KeyStringValuePair) {
 			// Duration 单位为分钟
 			task.Duration = parseInt(arg.Value)
 		case "MinDurationThreshold":
-			task.MinDurationThreshold = parseInt(arg.Value)
+			task.MinDurationThreshold = parseInt64(arg.Value)
 		case "DumpPeriod":
 			task.DumpPeriod = parseInt(arg.Value)
 		case "MaxSamplingCount":
@@ -142,12 +145,15 @@ func (m *ProfileManager) ToProfile(endpoint string, traceSegmentID string) {
 		//执行profiling
 		task := v
 		go func(task *Task) {
+			m.currentTask = task
 			err := m.monitor(task, traceSegmentID)
 			if err != nil {
 				m.Tasks[task.TaskId].Status = Pending
+				m.currentTask = nil
 				return
 			}
 			m.Tasks[task.TaskId].Status = Finished
+			m.currentTask = nil
 		}(task)
 		break
 	}
@@ -198,6 +204,7 @@ func (m *ProfileManager) monitor(t *Task, traceSegmentID string) error {
 	var re = Result{
 		TaskID:         t.TaskId,
 		TraceSegmentID: traceSegmentID,
+		SpanIDs:        t.spanIds,
 	}
 	r := splitProfileData(data, ChunkSize)
 	re.Payload = r
@@ -253,7 +260,15 @@ func splitProfileData(data []byte, chunkSize int) [][]byte {
 	}
 	return chunks
 }
-
+func (m *ProfileManager) CheckTimeIfEnough(spanId int32, dur int64) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.status && m.currentTask != nil {
+		if dur > m.currentTask.MinDurationThreshold {
+			m.currentTask.spanIds = append(m.currentTask.spanIds, spanId)
+		}
+	}
+}
 func parseInt64(value string) int64 {
 	v, _ := strconv.ParseInt(value, 10, 64)
 	return v

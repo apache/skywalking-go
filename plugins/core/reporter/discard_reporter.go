@@ -46,5 +46,6 @@ func (r *discardReporter) Close() {
 }
 func (r *discardReporter) Profiling(traceId string, endpoint string) {
 }
-func (r *discardReporter) EndProfiling()                   {}
-func (r *discardReporter) AddSpanIdToProfile(spanId int32) {}
+func (r *discardReporter) EndProfiling()                                          {}
+func (r *discardReporter) AddSpanIdToProfile(spanId int32)                        {}
+func (r *discardReporter) CheckProfileValue(spanId int32, start int64, end int64) {}
