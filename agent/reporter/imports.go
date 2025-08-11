@@ -24,6 +24,7 @@ import (
 	_ "crypto/tls"
 	_ "crypto/x509"
 	_ "fmt"
+	_ "github.com/google/pprof/profile"
 	_ "io"
 	_ "os"
 	_ "runtime"
@@ -32,7 +33,6 @@ import (
 	_ "strings"
 	_ "sync"
 	_ "time"
-
 	// imports the logs and profiles for reporter
 	_ "github.com/apache/skywalking-go/agent/core/operator"
 	_ "github.com/apache/skywalking-go/log"

@@ -116,7 +116,7 @@ type Reporter interface {
 	ConnectionStatus() ConnectionStatus
 	Close()
 	Profiling(traceId string, endPoint string)
-	EndProfiling()
-	AddSpanIdToProfile(spanId int32)
+	EndProfiling(segmentID string)
+	AddSpanIdToProfile(segmentId string, spanId int32)
 	CheckProfileValue(spanId int32, start int64, end int64)
 }

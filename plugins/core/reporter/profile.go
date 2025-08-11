@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/google/pprof/profile"
 	"github.com/pkg/errors"
 	"runtime/pprof"
 	common "skywalking.apache.org/repo/goapi/collect/common/v3"
@@ -13,6 +14,10 @@ import (
 )
 
 type TaskStatus int
+type ProfileCtx struct {
+	ctx       context.Context
+	closeChan chan struct{}
+}
 
 const ChunkSize = 1024 * 1024
 const (
@@ -21,6 +26,8 @@ const (
 	Finished
 	Reported
 )
+const SegmentLabel = "traceSegmentID"
+const SpanLabel = "spanID"
 
 type Task struct {
 	SerialNumber         string //uuid
@@ -44,13 +51,12 @@ type Result struct {
 }
 type ProfileManager struct {
 	mu            sync.Mutex
-	ctx           context.Context
+	ctxs          map[string]ProfileCtx
 	status        bool
 	Tasks         map[string]*Task
 	ReportResults chan Result
 	buf           *bytes.Buffer // 当前 profile 的 buffer
 	currentTask   *Task
-	stopChan      chan struct{} //结束信号
 }
 
 func NewProfileManager() *ProfileManager {
@@ -58,6 +64,7 @@ func NewProfileManager() *ProfileManager {
 		Tasks:         make(map[string]*Task),
 		ReportResults: make(chan Result, 100),
 		status:        false,
+		ctxs:          make(map[string]ProfileCtx),
 	}
 }
 func (m *ProfileManager) AddProfileTask(args []*common.KeyStringValuePair) {
@@ -117,13 +124,31 @@ func (m *ProfileManager) GetProfileTask(endpoint string) []*Task {
 	}
 	return result
 }
+
 func (m *ProfileManager) IfProfiling() bool {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	return m.status
 }
+func (m *ProfileManager) generateLabelCtx(traceSegmentID string) ProfileCtx {
+	ctx := context.Background()
+	labels := pprof.Labels(SegmentLabel, traceSegmentID)
+	ctx = pprof.WithLabels(ctx, labels)
+	closeChan := make(chan struct{}, 1)
+	return ProfileCtx{
+		ctx:       ctx,
+		closeChan: closeChan,
+	}
+}
 
 func (m *ProfileManager) ToProfile(endpoint string, traceSegmentID string) {
+	//检测当下是否正在profiling
+	if m.IfProfiling() {
+		c := m.generateLabelCtx(traceSegmentID)
+		m.ctxs[traceSegmentID] = c
+		pprof.SetGoroutineLabels(c.ctx)
+		return
+	}
 	t := time.Now().UnixMilli()
 	tasks := m.GetProfileTask(endpoint)
 	if tasks != nil {
@@ -132,49 +157,43 @@ func (m *ProfileManager) ToProfile(endpoint string, traceSegmentID string) {
 			fmt.Println(err)
 			return
 		}
-	}
-	for _, v := range tasks {
-		//删除过期任务
-		if v.EndTime < t {
-			m.mu.Lock()
-			delete(m.Tasks, v.SerialNumber)
-			m.mu.Unlock()
-			continue
-		}
-		m.Tasks[v.TaskId].Status = Running
-		//执行profiling
-		task := v
-		go func(task *Task) {
-			m.currentTask = task
-			err := m.monitor(task, traceSegmentID)
-			if err != nil {
-				m.Tasks[task.TaskId].Status = Pending
-				m.currentTask = nil
-				return
+		for _, v := range tasks {
+			//删除过期任务
+			if v.EndTime < t {
+				m.mu.Lock()
+				delete(m.Tasks, v.TaskId)
+				m.mu.Unlock()
+				continue
 			}
-			m.Tasks[task.TaskId].Status = Finished
-			m.currentTask = nil
-		}(task)
-		break
+			m.Tasks[v.TaskId].Status = Running
+			//执行profiling
+			task := v
+			go func(task *Task) {
+				m.currentTask = task
+				err = m.monitor(task, traceSegmentID)
+				if err != nil {
+					m.Tasks[task.TaskId].Status = Pending
+					m.currentTask = nil
+					return
+				}
+				m.Tasks[task.TaskId].Status = Finished
+				m.currentTask = nil
+			}(task)
+			break
+		}
 	}
+
 }
+
 func (m *ProfileManager) StartProfiling(traceSegmentID string) error {
 	m.mu.Lock()
-	if m.status {
-		m.mu.Unlock()
-		return errors.New("profile is already running")
-	}
 	m.status = true
 	m.buf = &bytes.Buffer{}
-	m.stopChan = make(chan struct{})
-	m.mu.Unlock()
+
 	//添加profiling主上下文
-	ctx := context.Background()
-	labels := pprof.Labels("traceSegmentID", traceSegmentID)
-	ctx = pprof.WithLabels(ctx, labels)
-	pprof.SetGoroutineLabels(ctx)
-	m.mu.Lock()
-	m.ctx = ctx
+	c := m.generateLabelCtx(traceSegmentID)
+	pprof.SetGoroutineLabels(c.ctx)
+	m.ctxs[traceSegmentID] = c
 	m.mu.Unlock()
 
 	if err := pprof.StartCPUProfile(m.buf); err != nil {
@@ -190,7 +209,7 @@ func (m *ProfileManager) monitor(t *Task, traceSegmentID string) error {
 	// 超时结束
 	case <-time.After(time.Duration(t.Duration) * time.Minute):
 
-	case <-m.stopChan: // 手动结束
+	case <-m.ctxs[traceSegmentID].closeChan: // 手动结束
 	}
 	// 停止
 	pprof.StopCPUProfile()
@@ -201,41 +220,50 @@ func (m *ProfileManager) monitor(t *Task, traceSegmentID string) error {
 		m.mu.Unlock()
 		return err
 	}
+	da, _, err := filterBySegmentID(data, SegmentLabel, traceSegmentID)
+	if err != nil {
+		m.mu.Unlock()
+		return err
+	}
+
 	var re = Result{
 		TaskID:         t.TaskId,
 		TraceSegmentID: traceSegmentID,
 		SpanIDs:        t.spanIds,
 	}
-	r := splitProfileData(data, ChunkSize)
+	r := splitProfileData(da, ChunkSize)
 	re.Payload = r
 	m.ReportResults <- re
 	//修改状态
+	delete(m.ctxs, traceSegmentID)
 	m.status = false
 	m.mu.Unlock()
 	return nil
 }
-
-func (m *ProfileManager) AddSpanId(spanID int32) {
-
-	if m.ctx == nil {
+func (m *ProfileManager) AddSpanId(segmentId string, spanID int32) {
+	c, ok := m.ctxs[segmentId]
+	if !ok || c.ctx == nil {
 		return
 	}
-	spanCtx := pprof.WithLabels(m.ctx, pprof.Labels("spanID", parseString(spanID)))
+	spanCtx := pprof.WithLabels(c.ctx, pprof.Labels(SpanLabel, parseString(spanID)))
 	pprof.SetGoroutineLabels(spanCtx)
 }
-func (m *ProfileManager) EndProfiling() {
+func (m *ProfileManager) EndProfiling(segmentID string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	//如果是false,即没启动，就直接返回
-	if !m.status {
+
+	ctx, ok := m.ctxs[segmentID]
+	if !ok {
 		return
 	}
-
-	if m.stopChan != nil {
-		// 通知 goroutine 停止
-		close(m.stopChan)
-		m.stopChan = nil
+	// 防止重复 close
+	select {
+	case <-ctx.closeChan:
+		// 已经关闭过
+	default:
+		close(ctx.closeChan)
 	}
+	m.status = false
 }
 
 func (m *ProfileManager) GetResult() ([]byte, error) {
@@ -245,7 +273,6 @@ func (m *ProfileManager) GetResult() ([]byte, error) {
 
 	data := m.buf.Bytes()
 	m.buf = nil
-	m.ctx = nil
 	return data, nil
 }
 func splitProfileData(data []byte, chunkSize int) [][]byte {
@@ -264,11 +291,45 @@ func (m *ProfileManager) CheckTimeIfEnough(spanId int32, dur int64) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if m.status && m.currentTask != nil {
+		fmt.Println("checkTimeIfEnough:", spanId, m.currentTask.EndTime)
 		if dur > m.currentTask.MinDurationThreshold {
 			m.currentTask.spanIds = append(m.currentTask.spanIds, spanId)
 		}
 	}
 }
+
+// tools
+func filterBySegmentID(src []byte, key, val string) ([]byte, *profile.Profile, error) {
+	// 从内存字节解析 profile
+	prof, err := profile.Parse(bytes.NewReader(src))
+	if err != nil {
+		return nil, nil, err
+	}
+	// 过滤样本
+	filteredSamples := []*profile.Sample{}
+	for _, sample := range prof.Sample {
+		if v, ok := sample.Label[key]; ok {
+			for _, vv := range v {
+				if vv == val {
+					filteredSamples = append(filteredSamples, sample)
+					break
+				}
+			}
+		}
+	}
+	prof.Sample = filteredSamples
+	for i, sample := range filteredSamples {
+		fmt.Printf("sample %d labels[%s]: %v\n", i, key, sample.Label[key])
+	}
+	fmt.Printf("filteredSamples total: %d\n", len(filteredSamples))
+	// 写回到内存
+	var buf bytes.Buffer
+	if err = prof.Write(&buf); err != nil {
+		return nil, nil, err
+	}
+	return buf.Bytes(), prof, nil
+}
+
 func parseInt64(value string) int64 {
 	v, _ := strconv.ParseInt(value, 10, 64)
 	return v
