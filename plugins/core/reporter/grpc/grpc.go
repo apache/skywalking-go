@@ -317,8 +317,8 @@ func (r *gRPCReporter) initSendPipeline() {
 	//			for i, chunk := range task.Payload {
 	//				isLast := i == len(task.Payload)-1
 	//				profileData := &profilev3.GoProfileData{
-	//					TaskId:         task.TaskID,
-	//					TraceSegmentId: task.TraceSegmentID,
+	//					taskId:         task.TaskID,
+	//					traceSegmentId: task.TraceSegmentID,
 	//					Payload:        chunk,
 	//					IsLast:         isLast,
 	//					ChunkId:        int32(i),
@@ -468,6 +468,7 @@ func (r *gRPCReporter) Profiling(traceId string, endPoint string) {
 	}
 }
 func (r *gRPCReporter) EndProfiling(segmentID string) {
+	fmt.Println("结束profiling")
 	if r.profileManager != nil {
 		r.profileManager.EndProfiling(segmentID)
 	}
@@ -489,10 +490,11 @@ func (r *gRPCReporter) reportProfileResult() {
 	}()
 
 }
-func (r *gRPCReporter) CheckProfileValue(spanId int32, start int64, end int64) {
+func (r *gRPCReporter) CheckProfileValue(segmentID string, spanId int32, start int64, end int64) {
+
 	if start == 0 || end == 0 || end <= start {
 		return
 	}
 	dur := end - start
-	r.profileManager.CheckTimeIfEnough(spanId, dur)
+	r.profileManager.CheckTimeIfEnough(segmentID, spanId, dur)
 }

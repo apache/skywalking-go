@@ -113,9 +113,9 @@ func (s *SegmentSpanImpl) End() {
 	}
 	s.DefaultSpan.End(true)
 	id := s.SpanID
+	segmentID := s.SegmentID
 	r := s.tracer().Reporter
-	fmt.Println("check")
-	r.CheckProfileValue(id, s.StartTime(), s.EndTime())
+	r.CheckProfileValue(segmentID, id, s.StartTime(), s.EndTime())
 	if !s.DefaultSpan.InAsyncMode {
 		s.end0()
 	}
@@ -247,10 +247,10 @@ func (rs *RootSegmentSpan) End() {
 		return
 	}
 	rs.DefaultSpan.End(true)
-	id := rs.SpanID
+	spanId := rs.SpanID
+	segmentId := rs.SegmentID
 	r := rs.tracer().Reporter
-	fmt.Println("check")
-	r.CheckProfileValue(id, rs.StartTime(), rs.EndTime())
+	r.CheckProfileValue(segmentId, spanId, rs.StartTime(), rs.EndTime())
 	if !rs.InAsyncMode {
 		rs.end0()
 	}

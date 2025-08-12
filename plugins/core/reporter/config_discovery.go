@@ -47,7 +47,7 @@ func (s *ConfigDiscoveryService) HandleCommand(command *common.Command) {
 	var uuid string
 	var newConfigs = make(map[string]*common.KeyStringValuePair)
 	for _, pair := range command.GetArgs() {
-		if pair.Key == "SerialNumber" {
+		if pair.Key == "serialNumber" {
 		} else if pair.Key == "UUID" {
 			uuid = pair.Value
 		} else {

@@ -40,8 +40,16 @@ type Task struct {
 	StartTime            int64
 	CreateTime           int64
 	Status               TaskStatus //任务执行状态
-	spanIds              []int32    //超过MinDuration的span
-	EndTime              int64      //任务deadline
+	spanIds              []int32
+	EndTime              int64 //任务deadline
+}
+type currentTask struct {
+	serialNumber         string //uuid
+	taskId               string
+	traceSegmentId       string
+	spanIds              []int32 //超过MinDuration的span
+	minDurationThreshold int64
+	duration             int
 }
 type Result struct {
 	Payload        [][]byte
@@ -56,7 +64,7 @@ type ProfileManager struct {
 	Tasks         map[string]*Task
 	ReportResults chan Result
 	buf           *bytes.Buffer // 当前 profile 的 buffer
-	currentTask   *Task
+	currentTask   *currentTask
 }
 
 func NewProfileManager() *ProfileManager {
@@ -140,7 +148,19 @@ func (m *ProfileManager) generateLabelCtx(traceSegmentID string) ProfileCtx {
 		closeChan: closeChan,
 	}
 }
-
+func (m *ProfileManager) generateCurrentTask(t *Task, traceSegmentID string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	var c = currentTask{
+		serialNumber:         t.SerialNumber,
+		taskId:               t.TaskId,
+		spanIds:              make([]int32, 0),
+		traceSegmentId:       traceSegmentID,
+		minDurationThreshold: t.MinDurationThreshold,
+		duration:             t.Duration,
+	}
+	m.currentTask = &c
+}
 func (m *ProfileManager) ToProfile(endpoint string, traceSegmentID string) {
 	//检测当下是否正在profiling
 	if m.IfProfiling() {
@@ -169,11 +189,12 @@ func (m *ProfileManager) ToProfile(endpoint string, traceSegmentID string) {
 			//执行profiling
 			task := v
 			go func(task *Task) {
-				m.currentTask = task
-				err = m.monitor(task, traceSegmentID)
+				m.generateCurrentTask(task, traceSegmentID)
+				err = m.monitor()
 				if err != nil {
 					m.Tasks[task.TaskId].Status = Pending
 					m.currentTask = nil
+					m.status = false
 					return
 				}
 				m.Tasks[task.TaskId].Status = Finished
@@ -204,12 +225,12 @@ func (m *ProfileManager) StartProfiling(traceSegmentID string) error {
 	}
 	return nil
 }
-func (m *ProfileManager) monitor(t *Task, traceSegmentID string) error {
+func (m *ProfileManager) monitor() error {
 	select {
 	// 超时结束
-	case <-time.After(time.Duration(t.Duration) * time.Minute):
+	case <-time.After(time.Duration(m.currentTask.duration) * time.Minute):
 
-	case <-m.ctxs[traceSegmentID].closeChan: // 手动结束
+	case <-m.ctxs[m.currentTask.traceSegmentId].closeChan: // 手动结束
 	}
 	// 停止
 	pprof.StopCPUProfile()
@@ -220,27 +241,28 @@ func (m *ProfileManager) monitor(t *Task, traceSegmentID string) error {
 		m.mu.Unlock()
 		return err
 	}
-	da, _, err := filterBySegmentID(data, SegmentLabel, traceSegmentID)
+	da, _, err := filterBySegmentAndSpanIDs(data, SegmentLabel, m.currentTask.traceSegmentId, SpanLabel, m.currentTask.spanIds)
 	if err != nil {
 		m.mu.Unlock()
 		return err
 	}
 
 	var re = Result{
-		TaskID:         t.TaskId,
-		TraceSegmentID: traceSegmentID,
-		SpanIDs:        t.spanIds,
+		TaskID:         m.currentTask.taskId,
+		TraceSegmentID: m.currentTask.traceSegmentId,
+		SpanIDs:        m.currentTask.spanIds,
 	}
 	r := splitProfileData(da, ChunkSize)
 	re.Payload = r
 	m.ReportResults <- re
 	//修改状态
-	delete(m.ctxs, traceSegmentID)
+	delete(m.ctxs, m.currentTask.traceSegmentId)
 	m.status = false
 	m.mu.Unlock()
 	return nil
 }
 func (m *ProfileManager) AddSpanId(segmentId string, spanID int32) {
+	fmt.Println("adding span:", segmentId)
 	c, ok := m.ctxs[segmentId]
 	if !ok || c.ctx == nil {
 		return
@@ -252,17 +274,28 @@ func (m *ProfileManager) EndProfiling(segmentID string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	ctx, ok := m.ctxs[segmentID]
-	if !ok {
+	// 先判断是否在profiling，且当前任务存在
+	if !m.status || m.currentTask == nil {
 		return
 	}
-	// 防止重复 close
-	select {
-	case <-ctx.closeChan:
-		// 已经关闭过
-	default:
-		close(ctx.closeChan)
+
+	//  校验当前任务的traceSegmentId是否匹配
+	if m.currentTask.traceSegmentId != segmentID {
+		return
 	}
+
+	// 安全关闭通道（确保存在）
+	ctx, ok := m.ctxs[segmentID]
+	if ok {
+		select {
+		case <-ctx.closeChan:
+			fmt.Println("profile chan had closed")
+		default:
+			close(ctx.closeChan)
+			fmt.Println("profile chan closed")
+		}
+	}
+	// 重置状态
 	m.status = false
 }
 
@@ -287,42 +320,80 @@ func splitProfileData(data []byte, chunkSize int) [][]byte {
 	}
 	return chunks
 }
-func (m *ProfileManager) CheckTimeIfEnough(spanId int32, dur int64) {
+func (m *ProfileManager) CheckTimeIfEnough(traceSegmentId string, spanId int32, dur int64) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if m.status && m.currentTask != nil {
-		fmt.Println("checkTimeIfEnough:", spanId, m.currentTask.EndTime)
-		if dur > m.currentTask.MinDurationThreshold {
+		if m.currentTask.traceSegmentId != traceSegmentId {
+			return
+		}
+		if dur > m.currentTask.minDurationThreshold {
 			m.currentTask.spanIds = append(m.currentTask.spanIds, spanId)
 		}
 	}
 }
 
 // tools
-func filterBySegmentID(src []byte, key, val string) ([]byte, *profile.Profile, error) {
-	// 从内存字节解析 profile
+func filterBySegmentAndSpanIDs(
+	src []byte,
+	segmentKey, segmentVal string,
+	spanKey string,
+	spanIDs []int32,
+) ([]byte, *profile.Profile, error) {
+	// 从二进制解析 profile
 	prof, err := profile.Parse(bytes.NewReader(src))
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// 将 spanIDs 转为 string 集合方便快速查找
+	spanIDSet := make(map[string]struct{}, len(spanIDs))
+	for _, id := range spanIDs {
+		spanIDSet[strconv.Itoa(int(id))] = struct{}{}
+	}
+
 	// 过滤样本
-	filteredSamples := []*profile.Sample{}
+	var filteredSamples []*profile.Sample
 	for _, sample := range prof.Sample {
-		if v, ok := sample.Label[key]; ok {
-			for _, vv := range v {
-				if vv == val {
-					filteredSamples = append(filteredSamples, sample)
+		// 先匹配 segmentId
+		if segVals, ok := sample.Label[segmentKey]; ok {
+			matchSeg := false
+			for _, segVal := range segVals {
+				if segVal == segmentVal {
+					matchSeg = true
 					break
 				}
 			}
+			if !matchSeg {
+				continue
+			}
+		} else {
+			continue
 		}
+
+		// 再匹配 spanId
+		if spanVals, ok := sample.Label[spanKey]; ok {
+			matchSpan := false
+			for _, spanVal := range spanVals {
+				if _, ok := spanIDSet[spanVal]; ok {
+					matchSpan = true
+					break
+				}
+			}
+			if !matchSpan {
+				continue
+			}
+		} else {
+			continue
+		}
+
+		// 两个条件都满足
+		filteredSamples = append(filteredSamples, sample)
 	}
+
 	prof.Sample = filteredSamples
-	for i, sample := range filteredSamples {
-		fmt.Printf("sample %d labels[%s]: %v\n", i, key, sample.Label[key])
-	}
-	fmt.Printf("filteredSamples total: %d\n", len(filteredSamples))
-	// 写回到内存
+
+	// 写回内存
 	var buf bytes.Buffer
 	if err = prof.Write(&buf); err != nil {
 		return nil, nil, err
