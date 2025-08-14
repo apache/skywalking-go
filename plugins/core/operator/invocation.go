@@ -27,6 +27,10 @@ type realInvocation struct {
 	returnValues []interface{}
 
 	context interface{}
+
+	// self obs
+	interTimeCost    int64
+	beforeInterStart int64
 }
 
 func (i *realInvocation) CallerInstance() interface{} {

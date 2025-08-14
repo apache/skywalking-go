@@ -187,6 +187,8 @@ func (t *Tracer) ContinueContext(snapshot interface{}) {
 			ctx = NewTracingContext()
 			SetGLS(ctx)
 		}
+		ctx.activeSpanLock.Lock()
+		defer ctx.activeSpanLock.Unlock()
 		ctx.activeSpan = snap.activeSpan
 		ctx.Runtime = snap.runtime
 	}

@@ -57,7 +57,7 @@ func SetAsNewGoroutine() {
 		return
 	}
 	if e := gls.(ContextSnapshoter); e != nil {
-		SetGLS(e.TakeSnapShot(GetGLS()))
+		SetGLS(e.TakeSnapShot())
 	}
 }
 
