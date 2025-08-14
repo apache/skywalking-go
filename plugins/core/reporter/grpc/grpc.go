@@ -104,7 +104,6 @@ func (r *gRPCReporter) Boot(entity *reporter.Entity, cdsWatchers []reporter.Agen
 	r.check()
 	r.fetchProfileTasks()
 	r.cdsManager.InitCDS(entity, cdsWatchers)
-	r.reportProfileResult()
 	r.bootFlag = true
 }
 
@@ -289,58 +288,50 @@ func (r *gRPCReporter) initSendPipeline() {
 			break
 		}
 	}()
-	//go func() {
-	//	defer func() {
-	//		if err := recover(); err != nil {
-	//			r.logger.Errorf("gRPCReporter reportProfileResult panic err %v", err)
-	//		}
-	//	}()
-	//StreamLoop:
-	//	for {
-	//		switch r.connManager.GetConnectionStatus(r.serverAddr) {
-	//		case reporter.ConnectionStatusShutdown:
-	//			break
-	//		case reporter.ConnectionStatusDisconnect:
-	//			time.Sleep(5 * time.Second)
-	//			continue StreamLoop
-	//		}
-	//
-	//		stream, err := r.profileTaskClient.GoProfileReport(metadata.NewOutgoingContext(context.Background(), r.connManager.GetMD()))
-	//		if err != nil {
-	//			r.logger.Errorf("open profile stream error %v", err)
-	//			time.Sleep(5 * time.Second)
-	//			continue StreamLoop
-	//		}
-	//
-	//		for task := range r.profileManager.ReportResults {
-	//			// 发送所有chunks
-	//			for i, chunk := range task.Payload {
-	//				isLast := i == len(task.Payload)-1
-	//				profileData := &profilev3.GoProfileData{
-	//					taskId:         task.TaskID,
-	//					traceSegmentId: task.TraceSegmentID,
-	//					Payload:        chunk,
-	//					IsLast:         isLast,
-	//					ChunkId:        int32(i),
-	//				}
-	//
-	//				// 只在最后一个chunk中包含spanIds
-	//				if isLast {
-	//					profileData.SpanIds = task.SpanIDs
-	//				}
-	//
-	//				err = stream.Send(profileData)
-	//				if err != nil {
-	//					r.logger.Errorf("send profile data error %v", err)
-	//					r.closeProfileStream(stream)
-	//					continue StreamLoop
-	//				}
-	//			}
-	//		}
-	//		r.closeProfileStream(stream)
-	//		break
-	//	}
-	//}()
+	go func() {
+		defer func() {
+			if err := recover(); err != nil {
+				r.logger.Errorf("gRPCReporter reportProfileResult panic err %v", err)
+			}
+		}()
+	StreamLoop:
+		for {
+			switch r.connManager.GetConnectionStatus(r.serverAddr) {
+			case reporter.ConnectionStatusShutdown:
+				break
+			case reporter.ConnectionStatusDisconnect:
+				time.Sleep(5 * time.Second)
+				continue StreamLoop
+			}
+
+			stream, err := r.profileTaskClient.GoProfileReport(metadata.NewOutgoingContext(context.Background(), r.connManager.GetMD()))
+			if err != nil {
+				r.logger.Errorf("open profile stream error %v", err)
+				time.Sleep(5 * time.Second)
+				continue StreamLoop
+			}
+
+			for task := range r.profileManager.ReportResults {
+				// 发送所有chunks
+				for i, chunk := range task.Payload {
+					isLast := i == len(task.Payload)-1
+					profileData := &profilev3.GoProfileData{
+						TaskId:  task.TaskID,
+						Payload: chunk,
+						IsLast:  isLast,
+					}
+					err = stream.Send(profileData)
+					if err != nil {
+						r.logger.Errorf("send profile data error %v", err)
+						r.closeProfileStream(stream)
+						continue StreamLoop
+					}
+				}
+			}
+			r.closeProfileStream(stream)
+			break
+		}
+	}()
 }
 
 func (r *gRPCReporter) closeTracingStream(stream agentv3.TraceSegmentReportService_CollectClient) {
@@ -424,6 +415,7 @@ func (r *gRPCReporter) check() {
 		}
 	}()
 }
+
 func (r *gRPCReporter) fetchProfileTasks() {
 	if r.profileFetchIntervalVal < 0 || r.profileTaskClient == nil {
 		fmt.Println("profile init error")
@@ -431,30 +423,32 @@ func (r *gRPCReporter) fetchProfileTasks() {
 	}
 	go func() {
 		for {
-			// 构造请求
-
+			// Construct the request
 			req := &profilev3.ProfileTaskCommandQuery{
 				Service:         r.entity.ServiceName,
 				ServiceInstance: r.entity.ServiceInstanceName,
 			}
-			// 拉取任务
-			fmt.Println("开始拉取任务")
+
+			// Pull tasks
 			resp, err := r.profileTaskClient.GetProfileTaskCommands(context.Background(), req)
 			if err != nil {
 				r.logger.Errorf("fetch profile task error: %v", err)
 				time.Sleep(r.profileFetchIntervalVal)
 				continue
 			}
-			// 处理返回的所有命令
+
+			// Handle all returned commands
 			for _, cmd := range resp.Commands {
 				r.handleProfileTask(cmd)
 			}
-			// 除去已完成的
+
+			// Remove completed tasks
 			r.profileManager.RemoveProfileTask()
 			time.Sleep(r.profileFetchIntervalVal)
 		}
 	}()
 }
+
 func (r *gRPCReporter) handleProfileTask(cmd *common.Command) {
 	if cmd.Command != "ProfileTaskQuery" {
 		return
@@ -462,13 +456,15 @@ func (r *gRPCReporter) handleProfileTask(cmd *common.Command) {
 	r.profileManager.AddProfileTask(cmd.Args)
 
 }
+
 func (r *gRPCReporter) Profiling(traceId string, endPoint string) {
 	if r.profileManager != nil {
 		r.profileManager.ToProfile(endPoint, traceId)
 	}
 }
+
 func (r *gRPCReporter) EndProfiling(segmentID string) {
-	fmt.Println("结束profiling")
+
 	if r.profileManager != nil {
 		r.profileManager.EndProfiling(segmentID)
 	}
@@ -482,14 +478,6 @@ func (r *gRPCReporter) AddSpanIdToProfile(segmentId string, spanId int32) {
 	}
 }
 
-func (r *gRPCReporter) reportProfileResult() {
-	go func() {
-		for task := range r.profileManager.ReportResults {
-			fmt.Printf("收到任务结果：%+v\n", task)
-		}
-	}()
-
-}
 func (r *gRPCReporter) CheckProfileValue(segmentID string, spanId int32, start int64, end int64) {
 
 	if start == 0 || end == 0 || end <= start {

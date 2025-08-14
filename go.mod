@@ -6,8 +6,6 @@ toolchain go1.24.4
 
 replace (
 	skywalking.apache.org/repo/goapi => ../skywalking-goapi
-//google.golang.org/genproto => google.golang.org/genproto v0.0.0-20230410155749-daa745c078e1
-//google.golang.org/genproto/googleapis/rpc => google.golang.org/genproto/googleapis/rpc v0.0.0-20230410155749-daa745c078e1
 )
 
 require (
@@ -28,5 +26,4 @@ require (
 	golang.org/x/sys v0.33.0 // indirect
 	golang.org/x/text v0.25.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250324211829-b45e905df463 // indirect
-//google.golang.org/genproto v0.0.0-20230410155749-daa745c078e1 // indirect
 )

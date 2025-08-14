@@ -68,8 +68,8 @@ func (t *Tracer) CreateEntrySpan(operationName string, extractor interface{}, op
 		id := span.GetSegmentID()
 		t.Reporter.Profiling(id, operationName)
 		if segmentSpan, ok := span.(SegmentSpan); ok {
-			c := segmentSpan.GetSegmentContext()        // 获取spanID
-			t.Reporter.AddSpanIdToProfile(id, c.SpanID) // 传递spanID
+			c := segmentSpan.GetSegmentContext()
+			t.Reporter.AddSpanIdToProfile(id, c.SpanID)
 		}
 	}
 	return span, err
@@ -88,8 +88,8 @@ func (t *Tracer) CreateLocalSpan(operationName string, opts ...interface{}) (s i
 	if err == nil {
 		id := span.GetSegmentID()
 		if segmentSpan, ok := span.(SegmentSpan); ok {
-			c := segmentSpan.GetSegmentContext()        // 获取spanID
-			t.Reporter.AddSpanIdToProfile(id, c.SpanID) // 传递spanID
+			c := segmentSpan.GetSegmentContext()
+			t.Reporter.AddSpanIdToProfile(id, c.SpanID)
 		}
 	}
 	return span, err

@@ -378,7 +378,6 @@ func newSegmentRoot(segmentSpan *SegmentSpanImpl) *RootSegmentSpan {
 				break
 			}
 		}
-		fmt.Println("finish:" + s.SegmentID)
 		s.tracer().Reporter.EndProfiling(s.SegmentID)
 		s.tracer().Reporter.SendTracing(append(s.segment, s))
 	}()

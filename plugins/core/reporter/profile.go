@@ -30,40 +30,43 @@ const SegmentLabel = "traceSegmentID"
 const SpanLabel = "spanID"
 
 type Task struct {
-	SerialNumber         string //uuid
+	SerialNumber         string // uuid
 	TaskId               string
-	EndpointName         string //端点
-	Duration             int    //监控持续时间(min)
-	MinDurationThreshold int64  //起始监控时间(ms)
-	DumpPeriod           int    //监控间隔(ms)
-	MaxSamplingCount     int    //最大采样数
+	EndpointName         string // endpoint
+	Duration             int    // monitoring duration (min)
+	MinDurationThreshold int64  // starting monitoring time (ms)
+	DumpPeriod           int    // monitoring interval (ms)
+	MaxSamplingCount     int    // maximum number of samples
 	StartTime            int64
 	CreateTime           int64
-	Status               TaskStatus //任务执行状态
+	Status               TaskStatus // task execution status
 	spanIds              []int32
-	EndTime              int64 //任务deadline
+	EndTime              int64 // task deadline
 }
+
 type currentTask struct {
-	serialNumber         string //uuid
+	serialNumber         string // uuid
 	taskId               string
 	traceSegmentId       string
-	spanIds              []int32 //超过MinDuration的span
+	spanIds              []int32 // spans exceeding MinDuration
 	minDurationThreshold int64
 	duration             int
 }
+
 type Result struct {
 	Payload        [][]byte
 	TraceSegmentID string
 	TaskID         string
 	SpanIDs        []int32
 }
+
 type ProfileManager struct {
 	mu            sync.Mutex
 	ctxs          map[string]ProfileCtx
 	status        bool
 	Tasks         map[string]*Task
 	ReportResults chan Result
-	buf           *bytes.Buffer // 当前 profile 的 buffer
+	buf           *bytes.Buffer // current profile buffer
 	currentTask   *currentTask
 }
 
@@ -86,7 +89,7 @@ func (m *ProfileManager) AddProfileTask(args []*common.KeyStringValuePair) {
 		case "EndpointName":
 			task.EndpointName = arg.Value
 		case "Duration":
-			// Duration 单位为分钟
+			// Duration min
 			task.Duration = parseInt(arg.Value)
 		case "MinDurationThreshold":
 			task.MinDurationThreshold = parseInt64(arg.Value)
@@ -102,7 +105,7 @@ func (m *ProfileManager) AddProfileTask(args []*common.KeyStringValuePair) {
 			task.SerialNumber = arg.Value
 		}
 	}
-	fmt.Println("adding task:", task)
+	fmt.Println("adding profile task:", task)
 	if _, exists := m.Tasks[task.TaskId]; exists {
 		return
 	}
@@ -115,12 +118,12 @@ func (m *ProfileManager) RemoveProfileTask() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	for k, t := range m.Tasks {
-		if t.Status == Reported {
+		if t.Status == Reported || t.EndTime < time.Now().Unix() {
 			delete(m.Tasks, k)
 		}
 	}
 }
-func (m *ProfileManager) GetProfileTask(endpoint string) []*Task {
+func (m *ProfileManager) getProfileTask(endpoint string) []*Task {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	var result []*Task
@@ -162,31 +165,25 @@ func (m *ProfileManager) generateCurrentTask(t *Task, traceSegmentID string) {
 	m.currentTask = &c
 }
 func (m *ProfileManager) ToProfile(endpoint string, traceSegmentID string) {
-	//检测当下是否正在profiling
+	//check if profiling
 	if m.IfProfiling() {
 		c := m.generateLabelCtx(traceSegmentID)
 		m.ctxs[traceSegmentID] = c
 		pprof.SetGoroutineLabels(c.ctx)
 		return
 	}
-	t := time.Now().UnixMilli()
-	tasks := m.GetProfileTask(endpoint)
+
+	tasks := m.getProfileTask(endpoint)
 	if tasks != nil {
 		err := m.StartProfiling(traceSegmentID)
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
+
 		for _, v := range tasks {
-			//删除过期任务
-			if v.EndTime < t {
-				m.mu.Lock()
-				delete(m.Tasks, v.TaskId)
-				m.mu.Unlock()
-				continue
-			}
 			m.Tasks[v.TaskId].Status = Running
-			//执行profiling
+			//choose task to profiling
 			task := v
 			go func(task *Task) {
 				m.generateCurrentTask(task, traceSegmentID)
@@ -211,7 +208,7 @@ func (m *ProfileManager) StartProfiling(traceSegmentID string) error {
 	m.status = true
 	m.buf = &bytes.Buffer{}
 
-	//添加profiling主上下文
+	// Add main profiling context
 	c := m.generateLabelCtx(traceSegmentID)
 	pprof.SetGoroutineLabels(c.ctx)
 	m.ctxs[traceSegmentID] = c
@@ -225,17 +222,20 @@ func (m *ProfileManager) StartProfiling(traceSegmentID string) error {
 	}
 	return nil
 }
+
 func (m *ProfileManager) monitor() error {
 	select {
-	// 超时结束
+	// End on timeout
 	case <-time.After(time.Duration(m.currentTask.duration) * time.Minute):
 
-	case <-m.ctxs[m.currentTask.traceSegmentId].closeChan: // 手动结束
+	// End manually
+	case <-m.ctxs[m.currentTask.traceSegmentId].closeChan:
 	}
-	// 停止
+	// Stop profiling
 	pprof.StopCPUProfile()
+
 	m.mu.Lock()
-	//存储结果
+	// Store result
 	data, err := m.GetResult()
 	if err != nil {
 		m.mu.Unlock()
@@ -255,14 +255,15 @@ func (m *ProfileManager) monitor() error {
 	r := splitProfileData(da, ChunkSize)
 	re.Payload = r
 	m.ReportResults <- re
-	//修改状态
+
+	// Update status
 	delete(m.ctxs, m.currentTask.traceSegmentId)
 	m.status = false
 	m.mu.Unlock()
 	return nil
 }
+
 func (m *ProfileManager) AddSpanId(segmentId string, spanID int32) {
-	fmt.Println("adding span:", segmentId)
 	c, ok := m.ctxs[segmentId]
 	if !ok || c.ctx == nil {
 		return
@@ -274,28 +275,28 @@ func (m *ProfileManager) EndProfiling(segmentID string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	// 先判断是否在profiling，且当前任务存在
+	// Check if profiling is ongoing and current task exists
 	if !m.status || m.currentTask == nil {
 		return
 	}
 
-	//  校验当前任务的traceSegmentId是否匹配
+	// Verify if the current task's traceSegmentId matches
 	if m.currentTask.traceSegmentId != segmentID {
 		return
 	}
 
-	// 安全关闭通道（确保存在）
+	// Safely close the channel (ensure it exists)
 	ctx, ok := m.ctxs[segmentID]
 	if ok {
 		select {
 		case <-ctx.closeChan:
-			fmt.Println("profile chan had closed")
+			fmt.Println("profile channel had already closed")
 		default:
 			close(ctx.closeChan)
-			fmt.Println("profile chan closed")
+			fmt.Println("profile channel closed")
 		}
 	}
-	// 重置状态
+	// Reset status
 	m.status = false
 }
 
@@ -308,6 +309,7 @@ func (m *ProfileManager) GetResult() ([]byte, error) {
 	m.buf = nil
 	return data, nil
 }
+
 func splitProfileData(data []byte, chunkSize int) [][]byte {
 	var chunks [][]byte
 	for len(data) > 0 {
@@ -320,6 +322,7 @@ func splitProfileData(data []byte, chunkSize int) [][]byte {
 	}
 	return chunks
 }
+
 func (m *ProfileManager) CheckTimeIfEnough(traceSegmentId string, spanId int32, dur int64) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -340,22 +343,22 @@ func filterBySegmentAndSpanIDs(
 	spanKey string,
 	spanIDs []int32,
 ) ([]byte, *profile.Profile, error) {
-	// 从二进制解析 profile
+	// Parse the profile from binary
 	prof, err := profile.Parse(bytes.NewReader(src))
 	if err != nil {
 		return nil, nil, err
 	}
 
-	// 将 spanIDs 转为 string 集合方便快速查找
+	// Convert spanIDs to a string set for quick lookup
 	spanIDSet := make(map[string]struct{}, len(spanIDs))
 	for _, id := range spanIDs {
 		spanIDSet[strconv.Itoa(int(id))] = struct{}{}
 	}
 
-	// 过滤样本
+	// Filter samples
 	var filteredSamples []*profile.Sample
 	for _, sample := range prof.Sample {
-		// 先匹配 segmentId
+		// First match segmentId
 		if segVals, ok := sample.Label[segmentKey]; ok {
 			matchSeg := false
 			for _, segVal := range segVals {
@@ -371,7 +374,7 @@ func filterBySegmentAndSpanIDs(
 			continue
 		}
 
-		// 再匹配 spanId
+		// Then match spanId
 		if spanVals, ok := sample.Label[spanKey]; ok {
 			matchSpan := false
 			for _, spanVal := range spanVals {
@@ -387,13 +390,13 @@ func filterBySegmentAndSpanIDs(
 			continue
 		}
 
-		// 两个条件都满足
+		// Both conditions satisfied
 		filteredSamples = append(filteredSamples, sample)
 	}
 
 	prof.Sample = filteredSamples
 
-	// 写回内存
+	// Write back to memory
 	var buf bytes.Buffer
 	if err = prof.Write(&buf); err != nil {
 		return nil, nil, err
