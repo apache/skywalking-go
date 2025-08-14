@@ -115,4 +115,8 @@ type Reporter interface {
 	SendLog(log *logv3.LogData)
 	ConnectionStatus() ConnectionStatus
 	Close()
+	Profiling(traceId string, endPoint string)
+	EndProfiling(segmentID string)
+	AddSpanIdToProfile(segmentId string, spanId int32)
+	CheckProfileValue(segmentID string, spanId int32, start int64, end int64)
 }

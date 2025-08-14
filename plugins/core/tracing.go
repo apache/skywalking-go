@@ -64,6 +64,14 @@ func (t *Tracer) CreateEntrySpan(operationName string, extractor interface{}, op
 	}
 
 	span, _, err := t.createSpan0(ctx, tracingSpan, opts, withRef(ref), withSpanType(SpanTypeEntry), withOperationName(operationName))
+	if err == nil {
+		id := span.GetSegmentID()
+		t.Reporter.Profiling(id, operationName)
+		if segmentSpan, ok := span.(SegmentSpan); ok {
+			c := segmentSpan.GetSegmentContext()
+			t.Reporter.AddSpanIdToProfile(id, c.SpanID)
+		}
+	}
 	return span, err
 }
 
@@ -77,6 +85,13 @@ func (t *Tracer) CreateLocalSpan(operationName string, opts ...interface{}) (s i
 	}()
 
 	span, _, err := t.createSpan0(ctx, tracingSpan, opts, withSpanType(SpanTypeLocal), withOperationName(operationName))
+	if err == nil {
+		id := span.GetSegmentID()
+		if segmentSpan, ok := span.(SegmentSpan); ok {
+			c := segmentSpan.GetSegmentContext()
+			t.Reporter.AddSpanIdToProfile(id, c.SpanID)
+		}
+	}
 	return span, err
 }
 

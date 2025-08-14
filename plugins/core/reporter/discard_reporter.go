@@ -44,3 +44,8 @@ func (r *discardReporter) ConnectionStatus() ConnectionStatus {
 func (r *discardReporter) Close() {
 	// do nothing
 }
+func (r *discardReporter) Profiling(traceId string, endpoint string) {
+}
+func (r *discardReporter) EndProfiling(segmentID string)                                            {}
+func (r *discardReporter) AddSpanIdToProfile(segmentId string, spanId int32)                        {}
+func (r *discardReporter) CheckProfileValue(segmentID string, spanId int32, start int64, end int64) {}
