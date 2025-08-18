@@ -1,4 +1,4 @@
-package reporter
+package profile
 
 import (
 	"bytes"
@@ -29,7 +29,7 @@ const (
 const SegmentLabel = "traceSegmentID"
 const SpanLabel = "spanID"
 
-type Task struct {
+type ProfileTask struct {
 	SerialNumber         string // uuid
 	TaskId               string
 	EndpointName         string // endpoint
@@ -64,7 +64,7 @@ type ProfileManager struct {
 	mu            sync.Mutex
 	ctxs          map[string]ProfileCtx
 	status        bool
-	Tasks         map[string]*Task
+	Tasks         map[string]*ProfileTask
 	ReportResults chan Result
 	buf           *bytes.Buffer // current profile buffer
 	currentTask   *currentTask
@@ -72,7 +72,7 @@ type ProfileManager struct {
 
 func NewProfileManager() *ProfileManager {
 	return &ProfileManager{
-		Tasks:         make(map[string]*Task),
+		Tasks:         make(map[string]*ProfileTask),
 		ReportResults: make(chan Result, 100),
 		status:        false,
 		ctxs:          make(map[string]ProfileCtx),
@@ -81,7 +81,7 @@ func NewProfileManager() *ProfileManager {
 func (m *ProfileManager) AddProfileTask(args []*common.KeyStringValuePair) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	var task Task
+	var task ProfileTask
 	for _, arg := range args {
 		switch arg.Key {
 		case "TaskId":
@@ -123,10 +123,10 @@ func (m *ProfileManager) RemoveProfileTask() {
 		}
 	}
 }
-func (m *ProfileManager) getProfileTask(endpoint string) []*Task {
+func (m *ProfileManager) getProfileTask(endpoint string) []*ProfileTask {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	var result []*Task
+	var result []*ProfileTask
 	for _, t := range m.Tasks {
 		endTime := t.StartTime + int64(t.Duration)*60*1000
 		if t.EndpointName == endpoint && t.StartTime <= time.Now().UnixMilli() && endTime > time.Now().UnixMilli() && t.Status == Pending {
@@ -151,7 +151,7 @@ func (m *ProfileManager) generateLabelCtx(traceSegmentID string) ProfileCtx {
 		closeChan: closeChan,
 	}
 }
-func (m *ProfileManager) generateCurrentTask(t *Task, traceSegmentID string) {
+func (m *ProfileManager) generateCurrentTask(t *ProfileTask, traceSegmentID string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	var c = currentTask{
@@ -185,7 +185,7 @@ func (m *ProfileManager) ToProfile(endpoint string, traceSegmentID string) {
 			m.Tasks[v.TaskId].Status = Running
 			//choose task to profiling
 			task := v
-			go func(task *Task) {
+			go func(task *ProfileTask) {
 				m.generateCurrentTask(task, traceSegmentID)
 				err = m.monitor()
 				if err != nil {
@@ -323,7 +323,11 @@ func splitProfileData(data []byte, chunkSize int) [][]byte {
 	return chunks
 }
 
-func (m *ProfileManager) CheckTimeIfEnough(traceSegmentId string, spanId int32, dur int64) {
+func (m *ProfileManager) CheckProfileValue(traceSegmentId string, spanId int32, start int64, end int64) {
+	if start == 0 || end == 0 || end <= start {
+		return
+	}
+	dur := end - start
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if m.status && m.currentTask != nil {

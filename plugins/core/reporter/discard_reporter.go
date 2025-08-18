@@ -17,7 +17,10 @@
 
 package reporter
 
-import logv3 "skywalking.apache.org/repo/goapi/collect/logging/v3"
+import (
+	"github.com/apache/skywalking-go/plugins/core/profile"
+	logv3 "skywalking.apache.org/repo/goapi/collect/logging/v3"
+)
 
 type discardReporter struct{}
 
@@ -44,8 +47,10 @@ func (r *discardReporter) ConnectionStatus() ConnectionStatus {
 func (r *discardReporter) Close() {
 	// do nothing
 }
-func (r *discardReporter) Profiling(traceId string, endpoint string) {
-}
-func (r *discardReporter) EndProfiling(segmentID string)                                            {}
-func (r *discardReporter) AddSpanIdToProfile(segmentId string, spanId int32)                        {}
-func (r *discardReporter) CheckProfileValue(segmentID string, spanId int32, start int64, end int64) {}
+func (r *discardReporter) AddProfileManager(p *profile.ProfileManager) {}
+
+//func (r *discardReporter) Profiling(traceId string, endpoint string) {
+//}
+//func (r *discardReporter) EndProfiling(segmentID string)                                            {}
+//func (r *discardReporter) AddSpanIdToProfile(segmentId string, spanId int32)                        {}
+//func (r *discardReporter) CheckProfileValue(segmentID string, spanId int32, start int64, end int64) {}

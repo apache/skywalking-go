@@ -18,6 +18,7 @@
 package reporter
 
 import (
+	"github.com/apache/skywalking-go/plugins/core/profile"
 	commonv3 "skywalking.apache.org/repo/goapi/collect/common/v3"
 	agentv3 "skywalking.apache.org/repo/goapi/collect/language/agent/v3"
 	logv3 "skywalking.apache.org/repo/goapi/collect/logging/v3"
@@ -115,8 +116,5 @@ type Reporter interface {
 	SendLog(log *logv3.LogData)
 	ConnectionStatus() ConnectionStatus
 	Close()
-	Profiling(traceId string, endPoint string)
-	EndProfiling(segmentID string)
-	AddSpanIdToProfile(segmentId string, spanId int32)
-	CheckProfileValue(segmentID string, spanId int32, start int64, end int64)
+	AddProfileManager(p *profile.ProfileManager)
 }

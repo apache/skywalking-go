@@ -20,8 +20,10 @@ package grpc
 import (
 	"context"
 	"fmt"
+	"github.com/apache/skywalking-go/plugins/core/profile"
 	"io"
 	common "skywalking.apache.org/repo/goapi/collect/common/v3"
+	"strconv"
 	"time"
 
 	"google.golang.org/grpc/metadata"
@@ -55,6 +57,8 @@ func NewGRPCReporter(logger operator.LogOperator,
 		logSendCh:               make(chan *logv3.LogData, maxSendQueueSize),
 		checkInterval:           checkInterval,
 		profileFetchIntervalVal: profileFetchIntervalVal,
+		profileTask:             make(map[string]*profile.ProfileTask),
+		profileResults:          make(chan profile.Result, maxSendQueueSize),
 		connManager:             connManager,
 		cdsManager:              cdsManager,
 	}
@@ -71,7 +75,6 @@ func NewGRPCReporter(logger operator.LogOperator,
 	r.logClient = logv3.NewLogReportServiceClient(conn)
 	r.managementClient = managementv3.NewManagementServiceClient(conn)
 	r.profileTaskClient = profilev3.NewProfileTaskClient(conn)
-	r.profileManager = reporter.NewProfileManager()
 	return r, nil
 }
 
@@ -87,7 +90,9 @@ type gRPCReporter struct {
 	logClient               logv3.LogReportServiceClient
 	managementClient        managementv3.ManagementServiceClient
 	profileTaskClient       profilev3.ProfileTaskClient
-	profileManager          *reporter.ProfileManager
+	profileManager          *profile.ProfileManager
+	profileTask             map[string]*profile.ProfileTask
+	profileResults          chan profile.Result
 	checkInterval           time.Duration
 	profileFetchIntervalVal time.Duration
 	// bootFlag is set if Boot be executed
@@ -417,7 +422,7 @@ func (r *gRPCReporter) check() {
 }
 
 func (r *gRPCReporter) fetchProfileTasks() {
-	if r.profileFetchIntervalVal < 0 || r.profileTaskClient == nil {
+	if r.profileFetchIntervalVal < 0 {
 		fmt.Println("profile init error")
 		return
 	}
@@ -448,41 +453,87 @@ func (r *gRPCReporter) fetchProfileTasks() {
 		}
 	}()
 }
+func (r *gRPCReporter) AddProfileManager(p *profile.ProfileManager) {
+	r.profileManager = p
+}
 
 func (r *gRPCReporter) handleProfileTask(cmd *common.Command) {
 	if cmd.Command != "ProfileTaskQuery" {
 		return
 	}
-	r.profileManager.AddProfileTask(cmd.Args)
-
-}
-
-func (r *gRPCReporter) Profiling(traceId string, endPoint string) {
-	if r.profileManager != nil {
-		r.profileManager.ToProfile(endPoint, traceId)
+	var task profile.ProfileTask
+	for _, arg := range cmd.Args {
+		switch arg.Key {
+		case "TaskId":
+			task.TaskId = arg.Value
+		case "EndpointName":
+			task.EndpointName = arg.Value
+		case "Duration":
+			// Duration min
+			task.Duration = parseInt(arg.Value)
+		case "MinDurationThreshold":
+			task.MinDurationThreshold = parseInt64(arg.Value)
+		case "DumpPeriod":
+			task.DumpPeriod = parseInt(arg.Value)
+		case "MaxSamplingCount":
+			task.MaxSamplingCount = parseInt(arg.Value)
+		case "StartTime":
+			task.StartTime = parseInt64(arg.Value)
+		case "CreateTime":
+			task.CreateTime = parseInt64(arg.Value)
+		case "SerialNumber":
+			task.SerialNumber = arg.Value
+		}
 	}
-}
-
-func (r *gRPCReporter) EndProfiling(segmentID string) {
-
-	if r.profileManager != nil {
-		r.profileManager.EndProfiling(segmentID)
-	}
-}
-
-func (r *gRPCReporter) AddSpanIdToProfile(segmentId string, spanId int32) {
-	if r.profileManager.IfProfiling() {
-		r.profileManager.AddSpanId(segmentId, spanId)
-	} else {
-		fmt.Println("no profile")
-	}
-}
-
-func (r *gRPCReporter) CheckProfileValue(segmentID string, spanId int32, start int64, end int64) {
-
-	if start == 0 || end == 0 || end <= start {
+	fmt.Println("adding profile task:", task)
+	if _, exists := r.profileTask[task.TaskId]; exists {
 		return
 	}
-	dur := end - start
-	r.profileManager.CheckTimeIfEnough(segmentID, spanId, dur)
+	endTime := task.StartTime + int64(task.Duration)*60*1000
+	task.EndTime = endTime
+	task.Status = profile.Pending
+	r.profileTask[task.TaskId] = &task
+
+}
+
+//	func (r *gRPCReporter) Profiling(traceId string, endPoint string) {
+//		if r.profileManager != nil {
+//			r.profileManager.ToProfile(endPoint, traceId)
+//		}
+//	}
+//
+// func (r *gRPCReporter) EndProfiling(segmentID string) {
+//
+//		if r.profileManager != nil {
+//			r.profileManager.EndProfiling(segmentID)
+//		}
+//	}
+//
+//	func (r *gRPCReporter) AddSpanIdToProfile(segmentId string, spanId int32) {
+//		if r.profileManager.IfProfiling() {
+//			r.profileManager.AddSpanId(segmentId, spanId)
+//		} else {
+//			fmt.Println("no profile")
+//		}
+//	}
+//
+// func (r *gRPCReporter) CheckProfileValue(segmentID string, spanId int32, start int64, end int64) {
+//
+//		if start == 0 || end == 0 || end <= start {
+//			return
+//		}
+//		r.profileManager.CheckProfileValue(segmentID, spanId, start, end)
+//	}
+func parseInt64(value string) int64 {
+	v, _ := strconv.ParseInt(value, 10, 64)
+	return v
+}
+
+func parseInt(value string) int {
+	v, _ := strconv.Atoi(value)
+	return v
+}
+func parseString(value int32) string {
+	str := strconv.Itoa(int(value))
+	return str
 }
