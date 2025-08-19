@@ -33,4 +33,7 @@ import (
 
 	//go:nolint
 	_ "skywalking.apache.org/repo/goapi/collect/common/v3"
+
+	//go:nolint
+	_ "github.com/apache/skywalking-go/agent/reporter"
 )

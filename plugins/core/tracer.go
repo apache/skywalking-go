@@ -63,7 +63,7 @@ func (t *Tracer) Init(entity *reporter.Entity, rep reporter.Reporter, samp Sampl
 	t.ServiceEntity = entity
 	t.Reporter = rep
 	t.ProfileManager = profile.NewProfileManager()
-	t.Reporter.AddProfileManager(t.ProfileManager)
+	t.Reporter.AddProfileTaskManager(t.ProfileManager)
 	t.Sampler = samp
 	if logger != nil && !reflect.ValueOf(logger).IsZero() {
 		t.Log.ChangeLogger(logger)

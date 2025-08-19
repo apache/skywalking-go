@@ -66,7 +66,7 @@ func (t *Tracer) CreateEntrySpan(operationName string, extractor interface{}, op
 	span, _, err := t.createSpan0(ctx, tracingSpan, opts, withRef(ref), withSpanType(SpanTypeEntry), withOperationName(operationName))
 	if err == nil {
 		id := span.GetSegmentID()
-		t.ProfileManager.ToProfile(id, operationName)
+		t.ProfileManager.ToProfile(operationName, id)
 		if segmentSpan, ok := span.(SegmentSpan); ok {
 			c := segmentSpan.GetSegmentContext()
 			if t.ProfileManager.IfProfiling() {

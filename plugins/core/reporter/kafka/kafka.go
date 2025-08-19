@@ -19,7 +19,6 @@ package kafka
 
 import (
 	"context"
-	"github.com/apache/skywalking-go/plugins/core/profile"
 	"strings"
 	"time"
 
@@ -351,9 +350,5 @@ func (r *kafkaReporter) Close() {
 		}
 	}
 }
-func (r *kafkaReporter) AddProfileManager(p *profile.ProfileManager) {}
 
-//func (r *kafkaReporter) Profiling(traceId string, endPoint string)                                {}
-//func (r *kafkaReporter) EndProfiling(segmentID string)                                            {}
-//func (r *kafkaReporter) AddSpanIdToProfile(segmentId string, spanId int32)                        {}
-//func (r *kafkaReporter) CheckProfileValue(segmentID string, spanId int32, start int64, end int64) {}
+func (r *kafkaReporter) AddProfileTaskManager(p reporter.ProfileTaskManager) {}
