@@ -42,21 +42,21 @@ const (
 func NewGRPCReporter(logger operator.LogOperator,
 	serverAddr string,
 	checkInterval time.Duration,
-	profileFetchIntervalVal time.Duration,
+	profileFetchInterval time.Duration,
 	connManager *reporter.ConnectionManager,
 	cdsManager *reporter.CDSManager,
 	opts ...ReporterOption,
 ) (reporter.Reporter, error) {
 	r := &gRPCReporter{
-		logger:                  logger,
-		serverAddr:              serverAddr,
-		tracingSendCh:           make(chan *agentv3.SegmentObject, maxSendQueueSize),
-		metricsSendCh:           make(chan []*agentv3.MeterData, maxSendQueueSize),
-		logSendCh:               make(chan *logv3.LogData, maxSendQueueSize),
-		checkInterval:           checkInterval,
-		profileFetchIntervalVal: profileFetchIntervalVal,
-		connManager:             connManager,
-		cdsManager:              cdsManager,
+		logger:               logger,
+		serverAddr:           serverAddr,
+		tracingSendCh:        make(chan *agentv3.SegmentObject, maxSendQueueSize),
+		metricsSendCh:        make(chan []*agentv3.MeterData, maxSendQueueSize),
+		logSendCh:            make(chan *logv3.LogData, maxSendQueueSize),
+		checkInterval:        checkInterval,
+		profileFetchInterval: profileFetchInterval,
+		connManager:          connManager,
+		cdsManager:           cdsManager,
 	}
 	for _, o := range opts {
 		o(r)
@@ -75,20 +75,20 @@ func NewGRPCReporter(logger operator.LogOperator,
 }
 
 type gRPCReporter struct {
-	entity                  *reporter.Entity
-	serverAddr              string
-	logger                  operator.LogOperator
-	tracingSendCh           chan *agentv3.SegmentObject
-	metricsSendCh           chan []*agentv3.MeterData
-	logSendCh               chan *logv3.LogData
-	traceClient             agentv3.TraceSegmentReportServiceClient
-	metricsClient           agentv3.MeterReportServiceClient
-	logClient               logv3.LogReportServiceClient
-	managementClient        managementv3.ManagementServiceClient
-	profileTaskClient       profilev3.ProfileTaskClient
-	profileTaskManager      reporter.ProfileTaskManager
-	checkInterval           time.Duration
-	profileFetchIntervalVal time.Duration
+	entity               *reporter.Entity
+	serverAddr           string
+	logger               operator.LogOperator
+	tracingSendCh        chan *agentv3.SegmentObject
+	metricsSendCh        chan []*agentv3.MeterData
+	logSendCh            chan *logv3.LogData
+	traceClient          agentv3.TraceSegmentReportServiceClient
+	metricsClient        agentv3.MeterReportServiceClient
+	logClient            logv3.LogReportServiceClient
+	managementClient     managementv3.ManagementServiceClient
+	profileTaskClient    profilev3.ProfileTaskClient
+	profileTaskManager   reporter.ProfileTaskManager
+	checkInterval        time.Duration
+	profileFetchInterval time.Duration
 	// bootFlag is set if Boot be executed
 	bootFlag    bool
 	transform   *reporter.Transform
@@ -293,6 +293,7 @@ func (r *gRPCReporter) initSendPipeline() {
 				r.logger.Errorf("gRPCReporter reportProfileResult panic err %v", err)
 			}
 		}()
+
 	StreamLoop:
 		for {
 			switch r.connManager.GetConnectionStatus(r.serverAddr) {
@@ -310,23 +311,22 @@ func (r *gRPCReporter) initSendPipeline() {
 				continue StreamLoop
 			}
 			re := r.profileTaskManager.GetProfileResults()
+
 			for task := range re {
-				// 发送所有chunks
-				for i, chunk := range task.Payload {
-					isLast := i == len(task.Payload)-1
-					profileData := &profilev3.GoProfileData{
-						TaskId:  task.TaskID,
-						Payload: chunk,
-						IsLast:  isLast,
-					}
-					err = stream.Send(profileData)
-					if err != nil {
-						r.logger.Errorf("send profile data error %v", err)
-						r.closeProfileStream(stream)
-						continue StreamLoop
-					}
+				profileData := &profilev3.GoProfileData{
+					TaskId:  task.TaskID,
+					Payload: task.Payload,
+					IsLast:  task.IsLast,
 				}
-				r.profileTaskManager.ProfileFinish(task.TaskID)
+				err = stream.Send(profileData)
+				if err != nil {
+					r.logger.Errorf("send profile data error %v", err)
+					r.closeProfileStream(stream)
+					continue StreamLoop
+				}
+				if task.IsLast {
+					r.profileTaskManager.ProfileFinish(task.TaskID)
+				}
 			}
 			r.closeProfileStream(stream)
 			break
@@ -417,7 +417,7 @@ func (r *gRPCReporter) check() {
 }
 
 func (r *gRPCReporter) fetchProfileTasks() {
-	if r.profileFetchIntervalVal < 0 {
+	if r.profileFetchInterval < 0 {
 		fmt.Println("profile init error")
 		return
 	}
@@ -433,7 +433,7 @@ func (r *gRPCReporter) fetchProfileTasks() {
 			resp, err := r.profileTaskClient.GetProfileTaskCommands(context.Background(), req)
 			if err != nil {
 				r.logger.Errorf("fetch profile task error: %v", err)
-				time.Sleep(r.profileFetchIntervalVal)
+				time.Sleep(r.profileFetchInterval)
 				continue
 			}
 
@@ -444,7 +444,7 @@ func (r *gRPCReporter) fetchProfileTasks() {
 
 			// Remove completed tasks
 			r.profileTaskManager.RemoveProfileTask()
-			time.Sleep(r.profileFetchIntervalVal)
+			time.Sleep(r.profileFetchInterval)
 		}
 	}()
 }

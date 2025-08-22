@@ -60,8 +60,6 @@ func middleware() echo.MiddlewareFunc {
 			if err != nil {
 				return err
 			}
-			id := span.TraceID()
-			fmt.Println("trace_id:", id)
 			// serve the request to the next middleware
 			if err = next(c); err != nil {
 				span.Error(err.Error())

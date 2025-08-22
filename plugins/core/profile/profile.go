@@ -1,12 +1,9 @@
 package profile
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"github.com/apache/skywalking-go/plugins/core/reporter"
-	"github.com/google/pprof/profile"
-	"github.com/pkg/errors"
 	"runtime/pprof"
 	common "skywalking.apache.org/repo/goapi/collect/common/v3"
 	"strconv"
@@ -23,6 +20,7 @@ const (
 	maxSendQueueSize int32 = 100
 	ChunkSize              = 1024 * 1024
 	SegmentLabel           = "traceSegmentID"
+	MinDurationLabel       = "minDurationThreshold"
 	SpanLabel              = "spanID"
 )
 
@@ -30,33 +28,74 @@ type currentTask struct {
 	serialNumber         string // uuid
 	taskId               string
 	traceSegmentId       string
-	spanIds              []int32 // spans exceeding MinDuration
 	minDurationThreshold int64
 	duration             int
 }
 
 type ProfileManager struct {
-	mu            sync.Mutex
-	ctxs          map[string]profileCtx
-	status        bool
-	Tasks         map[string]*reporter.ProfileTask
-	ReportResults chan reporter.ProfileResult
-	buf           *bytes.Buffer // current profile buffer
-	currentTask   *currentTask
+	mu                 sync.Mutex
+	ctxs               map[string]profileCtx
+	status             bool
+	TraceProfileTasks  map[string]*reporter.TraceProfileTask
+	rawCh              chan profileRawData
+	FinalReportResults chan reporter.ProfileResult
+	profilingWriter    *ProfilingWriter
+	currentTask        *currentTask
+}
+
+func (m *ProfileManager) initReportChannel() {
+	// Original channel for receiving raw data chunks sent by the Writer
+	rawCh := make(chan profileRawData, maxSendQueueSize)
+	m.rawCh = rawCh
+
+	// Start a goroutine to supplement each data chunk with business information
+	go func() {
+		for rawResult := range rawCh {
+			m.mu.Lock()
+			// Get business information from currentTask
+			task := m.currentTask
+			m.mu.Unlock()
+
+			if task == nil {
+				fmt.Println("no task")
+				continue // Task has ended, ignore
+			}
+
+			if rawResult.isLast {
+				m.FinalReportResults <- reporter.ProfileResult{
+					TaskID:         task.taskId,
+					TraceSegmentID: task.traceSegmentId,
+					Payload:        rawResult.data,
+					IsLast:         rawResult.isLast,
+				}
+			} else {
+				m.FinalReportResults <- reporter.ProfileResult{
+					TaskID:         task.taskId,
+					TraceSegmentID: task.traceSegmentId,
+					Payload:        rawResult.data,
+					IsLast:         rawResult.isLast,
+				}
+			}
+
+		}
+	}()
 }
 
 func NewProfileManager() *ProfileManager {
-	return &ProfileManager{
-		Tasks:         make(map[string]*reporter.ProfileTask),
-		ReportResults: make(chan reporter.ProfileResult, maxSendQueueSize),
-		status:        false,
-		ctxs:          make(map[string]profileCtx),
+	pm := &ProfileManager{
+		TraceProfileTasks:  make(map[string]*reporter.TraceProfileTask),
+		FinalReportResults: make(chan reporter.ProfileResult, maxSendQueueSize),
+		status:             false,
+		ctxs:               make(map[string]profileCtx),
 	}
+	pm.initReportChannel()
+	return pm
 }
+
 func (m *ProfileManager) AddProfileTask(args []*common.KeyStringValuePair) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	var task reporter.ProfileTask
+	var task reporter.TraceProfileTask
 	for _, arg := range args {
 		switch arg.Key {
 		case "TaskId":
@@ -81,28 +120,29 @@ func (m *ProfileManager) AddProfileTask(args []*common.KeyStringValuePair) {
 		}
 	}
 	fmt.Println("adding profile task:", task)
-	if _, exists := m.Tasks[task.TaskId]; exists {
+	if _, exists := m.TraceProfileTasks[task.TaskId]; exists {
 		return
 	}
 	endTime := task.StartTime + int64(task.Duration)*60*1000
 	task.EndTime = endTime
 	task.Status = reporter.Pending
-	m.Tasks[task.TaskId] = &task
+	m.TraceProfileTasks[task.TaskId] = &task
 }
 func (m *ProfileManager) RemoveProfileTask() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	for k, t := range m.Tasks {
+	for k, t := range m.TraceProfileTasks {
 		if t.Status == reporter.Reported || t.EndTime < time.Now().Unix() {
-			delete(m.Tasks, k)
+			delete(m.TraceProfileTasks, k)
 		}
 	}
 }
-func (m *ProfileManager) getProfileTask(endpoint string) []*reporter.ProfileTask {
+
+func (m *ProfileManager) getProfileTask(endpoint string) []*reporter.TraceProfileTask {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	var result []*reporter.ProfileTask
-	for _, t := range m.Tasks {
+	var result []*reporter.TraceProfileTask
+	for _, t := range m.TraceProfileTasks {
 		endTime := t.StartTime + int64(t.Duration)*60*1000
 		if t.EndpointName == endpoint && t.StartTime <= time.Now().UnixMilli() && endTime > time.Now().UnixMilli() && t.Status == reporter.Pending {
 			result = append(result, t)
@@ -116,33 +156,40 @@ func (m *ProfileManager) IfProfiling() bool {
 	defer m.mu.Unlock()
 	return m.status
 }
-func (m *ProfileManager) generateLabelCtx(traceSegmentID string) profileCtx {
+
+func (m *ProfileManager) generateLabelCtx(traceSegmentID string, minDurationThreshold int64) profileCtx {
 	ctx := context.Background()
-	labels := pprof.Labels(SegmentLabel, traceSegmentID)
-	ctx = pprof.WithLabels(ctx, labels)
+	if minDurationThreshold == 0 {
+		labels := pprof.Labels(SegmentLabel, traceSegmentID)
+		ctx = pprof.WithLabels(ctx, labels)
+	} else {
+		labels := pprof.Labels(SegmentLabel, traceSegmentID, MinDurationLabel, strconv.FormatInt(minDurationThreshold, 10))
+		ctx = pprof.WithLabels(ctx, labels)
+	}
 	closeChan := make(chan struct{}, 1)
 	return profileCtx{
 		ctx:       ctx,
 		closeChan: closeChan,
 	}
 }
-func (m *ProfileManager) generateCurrentTask(t *reporter.ProfileTask, traceSegmentID string) {
+
+func (m *ProfileManager) generateCurrentTask(t *reporter.TraceProfileTask, traceSegmentID string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	var c = currentTask{
 		serialNumber:         t.SerialNumber,
 		taskId:               t.TaskId,
-		spanIds:              make([]int32, 0),
 		traceSegmentId:       traceSegmentID,
 		minDurationThreshold: t.MinDurationThreshold,
 		duration:             t.Duration,
 	}
 	m.currentTask = &c
 }
+
 func (m *ProfileManager) ToProfile(endpoint string, traceSegmentID string) {
 	//check if profiling
 	if m.IfProfiling() {
-		c := m.generateLabelCtx(traceSegmentID)
+		c := m.generateLabelCtx(traceSegmentID, 0)
 		m.ctxs[traceSegmentID] = c
 		pprof.SetGoroutineLabels(c.ctx)
 		return
@@ -150,27 +197,25 @@ func (m *ProfileManager) ToProfile(endpoint string, traceSegmentID string) {
 
 	tasks := m.getProfileTask(endpoint)
 	if tasks != nil {
-		err := m.StartProfiling(traceSegmentID)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-
 		for _, v := range tasks {
-			m.Tasks[v.TaskId].Status = reporter.Running
+			m.TraceProfileTasks[v.TaskId].Status = reporter.Running
 			//choose task to profiling
 			task := v
-			go func(task *reporter.ProfileTask) {
-				m.generateCurrentTask(task, traceSegmentID)
+			m.generateCurrentTask(task, traceSegmentID)
+			err := m.StartProfiling(traceSegmentID)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+			go func(task *reporter.TraceProfileTask) {
 				err = m.monitor()
 				if err != nil {
-					m.Tasks[task.TaskId].Status = reporter.Pending
+					m.TraceProfileTasks[task.TaskId].Status = reporter.Pending
 					m.currentTask = nil
 					m.status = false
 					return
 				}
-				m.Tasks[task.TaskId].Status = reporter.Finished
-				m.currentTask = nil
+				m.TraceProfileTasks[task.TaskId].Status = reporter.Finished
 			}(task)
 			break
 		}
@@ -181,15 +226,17 @@ func (m *ProfileManager) ToProfile(endpoint string, traceSegmentID string) {
 func (m *ProfileManager) StartProfiling(traceSegmentID string) error {
 	m.mu.Lock()
 	m.status = true
-	m.buf = &bytes.Buffer{}
-
+	m.profilingWriter = NewProfilingWriter(
+		ChunkSize,
+		m.rawCh,
+	)
 	// Add main profiling context
-	c := m.generateLabelCtx(traceSegmentID)
+	c := m.generateLabelCtx(traceSegmentID, m.currentTask.minDurationThreshold)
 	pprof.SetGoroutineLabels(c.ctx)
 	m.ctxs[traceSegmentID] = c
 	m.mu.Unlock()
 
-	if err := pprof.StartCPUProfile(m.buf); err != nil {
+	if err := pprof.StartCPUProfile(m.profilingWriter); err != nil {
 		m.mu.Lock()
 		m.status = false
 		m.mu.Unlock()
@@ -208,33 +255,10 @@ func (m *ProfileManager) monitor() error {
 	}
 	// Stop profiling
 	pprof.StopCPUProfile()
-
+	m.profilingWriter.Flush()
 	m.mu.Lock()
-	// Store result
-	data, err := m.getResult()
-	if err != nil {
-		m.mu.Unlock()
-		return err
-	}
-	da, _, err := filterBySegmentAndSpanIDs(data, SegmentLabel, m.currentTask.traceSegmentId, SpanLabel, m.currentTask.spanIds)
-	if err != nil {
-		m.mu.Unlock()
-		return err
-	}
-
-	var re = reporter.ProfileResult{
-		TaskID:         m.currentTask.taskId,
-		TraceSegmentID: m.currentTask.traceSegmentId,
-		SpanIDs:        m.currentTask.spanIds,
-	}
-	r := splitProfileData(da, ChunkSize)
-	re.Payload = r
-	m.ReportResults <- re
-
-	// Update status
-	delete(m.ctxs, m.currentTask.traceSegmentId)
-	m.status = false
-	m.mu.Unlock()
+	defer m.mu.Unlock()
+	m.ctxs = make(map[string]profileCtx)
 	return nil
 }
 
@@ -272,128 +296,20 @@ func (m *ProfileManager) EndProfiling(segmentID string) {
 			fmt.Println("profile channel closed")
 		}
 	}
-	// Reset status
-	m.status = false
-}
-
-func (m *ProfileManager) getResult() ([]byte, error) {
-	if m.buf == nil {
-		return nil, errors.New("no buffer")
-	}
-
-	data := m.buf.Bytes()
-	m.buf = nil
-	return data, nil
 }
 
 func (m *ProfileManager) GetProfileResults() chan reporter.ProfileResult {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	return m.ReportResults
-}
-
-func splitProfileData(data []byte, chunkSize int) [][]byte {
-	var chunks [][]byte
-	for len(data) > 0 {
-		if len(data) < chunkSize {
-			chunks = append(chunks, data)
-			break
-		}
-		chunks = append(chunks, data[:chunkSize])
-		data = data[chunkSize:]
-	}
-	return chunks
+	return m.FinalReportResults
 }
 
 func (m *ProfileManager) ProfileFinish(taskId string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	m.Tasks[taskId].Status = reporter.Reported
-}
-
-func (m *ProfileManager) CheckProfileValue(traceSegmentId string, spanId int32, start int64, end int64) {
-	if start == 0 || end == 0 || end <= start {
-		return
-	}
-	dur := end - start
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	if m.status && m.currentTask != nil {
-		if m.currentTask.traceSegmentId != traceSegmentId {
-			return
-		}
-		if dur > m.currentTask.minDurationThreshold {
-			m.currentTask.spanIds = append(m.currentTask.spanIds, spanId)
-		}
-	}
-}
-
-// tools
-func filterBySegmentAndSpanIDs(
-	src []byte,
-	segmentKey, segmentVal string,
-	spanKey string,
-	spanIDs []int32,
-) ([]byte, *profile.Profile, error) {
-	// Parse the profile from binary
-	prof, err := profile.Parse(bytes.NewReader(src))
-	if err != nil {
-		return nil, nil, err
-	}
-
-	// Convert spanIDs to a string set for quick lookup
-	spanIDSet := make(map[string]struct{}, len(spanIDs))
-	for _, id := range spanIDs {
-		spanIDSet[strconv.Itoa(int(id))] = struct{}{}
-	}
-
-	// Filter samples
-	var filteredSamples []*profile.Sample
-	for _, sample := range prof.Sample {
-		// First match segmentId
-		if segVals, ok := sample.Label[segmentKey]; ok {
-			matchSeg := false
-			for _, segVal := range segVals {
-				if segVal == segmentVal {
-					matchSeg = true
-					break
-				}
-			}
-			if !matchSeg {
-				continue
-			}
-		} else {
-			continue
-		}
-
-		// Then match spanId
-		if spanVals, ok := sample.Label[spanKey]; ok {
-			matchSpan := false
-			for _, spanVal := range spanVals {
-				if _, ok := spanIDSet[spanVal]; ok {
-					matchSpan = true
-					break
-				}
-			}
-			if !matchSpan {
-				continue
-			}
-		} else {
-			continue
-		}
-
-		// Both conditions satisfied
-		filteredSamples = append(filteredSamples, sample)
-	}
-
-	prof.Sample = filteredSamples
-
-	// Write back to memory
-	var buf bytes.Buffer
-	if err = prof.Write(&buf); err != nil {
-		return nil, nil, err
-	}
-	return buf.Bytes(), prof, nil
+	m.TraceProfileTasks[taskId].Status = reporter.Reported
+	m.currentTask = nil
+	m.status = false
 }
 
 func parseInt64(value string) int64 {

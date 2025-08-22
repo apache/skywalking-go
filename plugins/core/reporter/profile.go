@@ -1,6 +1,8 @@
 package reporter
 
-import common "skywalking.apache.org/repo/goapi/collect/common/v3"
+import (
+	common "skywalking.apache.org/repo/goapi/collect/common/v3"
+)
 
 type ProfileTaskManager interface {
 	// AddProfileTask add new profile task
@@ -10,7 +12,7 @@ type ProfileTaskManager interface {
 	RemoveProfileTask()
 }
 
-type ProfileTask struct {
+type TraceProfileTask struct {
 	SerialNumber         string // uuid
 	TaskId               string
 	EndpointName         string // endpoint
@@ -26,8 +28,8 @@ type ProfileTask struct {
 }
 
 type ProfileResult struct {
-	Payload        [][]byte
+	Payload        []byte
 	TraceSegmentID string
 	TaskID         string
-	SpanIDs        []int32
+	IsLast         bool
 }

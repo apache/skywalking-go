@@ -1,6 +1,6 @@
 module github.com/apache/skywalking-go/plugins/core
 
-go 1.24.4
+go 1.19
 
 replace (
 
