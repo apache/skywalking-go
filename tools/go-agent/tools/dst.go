@@ -119,6 +119,8 @@ func RemovePackageRef(parent dst.Node, current *dst.SelectorExpr, inx int) {
 		p.Type = dst.NewIdent(current.Sel.Name)
 	case *dst.ArrayType:
 		p.Elt = dst.NewIdent(current.Sel.Name)
+	case *dst.ChanType:
+		p.Value = dst.NewIdent(current.Sel.Name)
 	case *dst.CallExpr:
 		p.Fun = dst.NewIdent(current.Sel.Name)
 	case *dst.KeyValueExpr:

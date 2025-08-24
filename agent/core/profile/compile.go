@@ -15,35 +15,28 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package reporter
+package profile
 
 import (
-	logv3 "skywalking.apache.org/repo/goapi/collect/logging/v3"
+	//go:nolint
+	_ "bytes"
+	_ "context"
+	_ "fmt"
+	_ "runtime/pprof"
+	_ "slices"
+	_ "strconv"
+	_ "strings"
+	_ "sync"
+	_ "time"
+	_ "unsafe"
+
+	//go:nolint
+	_ "github.com/google/pprof/profile"
+	_ "github.com/pkg/errors"
+
+	//go:nolint
+	_ "skywalking.apache.org/repo/goapi/collect/common/v3"
+
+	//go:nolint
+	_ "github.com/apache/skywalking-go/agent/reporter"
 )
-
-type discardReporter struct{}
-
-func NewDiscardReporter() Reporter {
-	return &discardReporter{}
-}
-
-func (r *discardReporter) Boot(entity *Entity, cdsWatchers []AgentConfigChangeWatcher) {
-	// do nothing
-}
-func (r *discardReporter) SendTracing(spans []ReportedSpan) {
-	// do nothing
-}
-func (r *discardReporter) SendMetrics(metrics []ReportedMeter) {
-	// do nothing
-}
-func (r *discardReporter) SendLog(log *logv3.LogData) {
-	// do nothing
-}
-func (r *discardReporter) ConnectionStatus() ConnectionStatus {
-	// do nothing
-	return ConnectionStatusDisconnect
-}
-func (r *discardReporter) Close() {
-	// do nothing
-}
-func (r *discardReporter) AddProfileTaskManager(p ProfileTaskManager) {}

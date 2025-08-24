@@ -96,3 +96,5 @@ func (r *StoreReporter) ConnectionStatus() reporter.ConnectionStatus {
 
 func (r *StoreReporter) Close() {
 }
+
+func (r *StoreReporter) AddProfileTaskManager(p reporter.ProfileTaskManager) {}

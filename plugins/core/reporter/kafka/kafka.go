@@ -350,3 +350,5 @@ func (r *kafkaReporter) Close() {
 		}
 	}
 }
+
+func (r *kafkaReporter) AddProfileTaskManager(p reporter.ProfileTaskManager) {}
