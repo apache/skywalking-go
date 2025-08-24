@@ -18,7 +18,7 @@ func TestGetLabels(t *testing.T) {
 	assert.Equal(t, ts, *ls)
 }
 
-func TestSetLabelSet(t *testing.T) {
+func TestSetLabels(t *testing.T) {
 	ts := &LabelSet{list: []label{{"test1", "test1_label"}, {"test2", "test2_label"}}}
 	labels := Labels(ts, "test3", "test3_label")
 	SetGoroutineLabels(labels)

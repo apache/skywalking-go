@@ -23,9 +23,12 @@ import (
 	_ "context"
 	_ "fmt"
 	_ "runtime/pprof"
+	_ "slices"
 	_ "strconv"
+	_ "strings"
 	_ "sync"
 	_ "time"
+	_ "unsafe"
 
 	//go:nolint
 	_ "github.com/google/pprof/profile"

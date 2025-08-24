@@ -1,7 +1,6 @@
 package profile
 
 import (
-	"context"
 	"fmt"
 	"github.com/apache/skywalking-go/plugins/core/reporter"
 	"runtime/pprof"
@@ -11,8 +10,8 @@ import (
 	"time"
 )
 
-type profileCtx struct {
-	ctx       context.Context
+type profileLabels struct {
+	labels    *LabelSet
 	closeChan chan struct{}
 }
 
@@ -34,7 +33,7 @@ type currentTask struct {
 
 type ProfileManager struct {
 	mu                 sync.Mutex
-	ctxs               map[string]profileCtx
+	labelSets          map[string]profileLabels
 	status             bool
 	TraceProfileTasks  map[string]*reporter.TraceProfileTask
 	rawCh              chan profileRawData
@@ -86,7 +85,7 @@ func NewProfileManager() *ProfileManager {
 		TraceProfileTasks:  make(map[string]*reporter.TraceProfileTask),
 		FinalReportResults: make(chan reporter.ProfileResult, maxSendQueueSize),
 		status:             false,
-		ctxs:               make(map[string]profileCtx),
+		labelSets:          make(map[string]profileLabels),
 	}
 	pm.initReportChannel()
 	return pm
@@ -128,6 +127,7 @@ func (m *ProfileManager) AddProfileTask(args []*common.KeyStringValuePair) {
 	task.Status = reporter.Pending
 	m.TraceProfileTasks[task.TaskId] = &task
 }
+
 func (m *ProfileManager) RemoveProfileTask() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -157,18 +157,16 @@ func (m *ProfileManager) IfProfiling() bool {
 	return m.status
 }
 
-func (m *ProfileManager) generateLabelCtx(traceSegmentID string, minDurationThreshold int64) profileCtx {
-	ctx := context.Background()
+func (m *ProfileManager) generateProfileLabels(traceSegmentID string, minDurationThreshold int64) profileLabels {
+	var l = &LabelSet{}
 	if minDurationThreshold == 0 {
-		labels := pprof.Labels(SegmentLabel, traceSegmentID)
-		ctx = pprof.WithLabels(ctx, labels)
+		l = Labels(l, SegmentLabel, traceSegmentID)
 	} else {
-		labels := pprof.Labels(SegmentLabel, traceSegmentID, MinDurationLabel, strconv.FormatInt(minDurationThreshold, 10))
-		ctx = pprof.WithLabels(ctx, labels)
+		l = Labels(l, SegmentLabel, traceSegmentID, MinDurationLabel, strconv.FormatInt(minDurationThreshold, 10))
 	}
 	closeChan := make(chan struct{}, 1)
-	return profileCtx{
-		ctx:       ctx,
+	return profileLabels{
+		labels:    l,
 		closeChan: closeChan,
 	}
 }
@@ -189,9 +187,9 @@ func (m *ProfileManager) generateCurrentTask(t *reporter.TraceProfileTask, trace
 func (m *ProfileManager) ToProfile(endpoint string, traceSegmentID string) {
 	//check if profiling
 	if m.IfProfiling() {
-		c := m.generateLabelCtx(traceSegmentID, 0)
-		m.ctxs[traceSegmentID] = c
-		pprof.SetGoroutineLabels(c.ctx)
+		c := m.generateProfileLabels(traceSegmentID, 0)
+		m.labelSets[traceSegmentID] = c
+		SetGoroutineLabels(c.labels)
 		return
 	}
 
@@ -231,9 +229,9 @@ func (m *ProfileManager) StartProfiling(traceSegmentID string) error {
 		m.rawCh,
 	)
 	// Add main profiling context
-	c := m.generateLabelCtx(traceSegmentID, m.currentTask.minDurationThreshold)
-	pprof.SetGoroutineLabels(c.ctx)
-	m.ctxs[traceSegmentID] = c
+	c := m.generateProfileLabels(traceSegmentID, m.currentTask.minDurationThreshold)
+	SetGoroutineLabels(c.labels)
+	m.labelSets[traceSegmentID] = c
 	m.mu.Unlock()
 
 	if err := pprof.StartCPUProfile(m.profilingWriter); err != nil {
@@ -251,24 +249,25 @@ func (m *ProfileManager) monitor() error {
 	case <-time.After(time.Duration(m.currentTask.duration) * time.Minute):
 
 	// End manually
-	case <-m.ctxs[m.currentTask.traceSegmentId].closeChan:
+	case <-m.labelSets[m.currentTask.traceSegmentId].closeChan:
 	}
 	// Stop profiling
 	pprof.StopCPUProfile()
 	m.profilingWriter.Flush()
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	m.ctxs = make(map[string]profileCtx)
+	m.labelSets = make(map[string]profileLabels)
 	return nil
 }
 
 func (m *ProfileManager) AddSpanId(segmentId string, spanID int32) {
-	c, ok := m.ctxs[segmentId]
-	if !ok || c.ctx == nil {
+	c, ok := m.labelSets[segmentId]
+	if !ok || c.labels == nil {
 		return
 	}
-	spanCtx := pprof.WithLabels(c.ctx, pprof.Labels(SpanLabel, parseString(spanID)))
-	pprof.SetGoroutineLabels(spanCtx)
+	nowLabels := GetPprofLabelSet()
+	afterAdd := Labels(nowLabels, SpanLabel, parseString(spanID))
+	SetGoroutineLabels(afterAdd)
 }
 
 func (m *ProfileManager) EndProfiling(segmentID string) {
@@ -286,7 +285,7 @@ func (m *ProfileManager) EndProfiling(segmentID string) {
 	}
 
 	// Safely close the channel (ensure it exists)
-	ctx, ok := m.ctxs[segmentID]
+	ctx, ok := m.labelSets[segmentID]
 	if ok {
 		select {
 		case <-ctx.closeChan:
