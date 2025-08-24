@@ -106,6 +106,7 @@ jobs:
           - goframe
           - so11y
           - cross-goroutine
+          - gozero
     steps:
       - uses: actions/checkout@v2
         with:
