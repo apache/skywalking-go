@@ -31,14 +31,14 @@ const gozeroComponent int32 = 5023
 type ServerMiddlewareInterceptor struct {
 }
 
-// BeforeInvoke intercepts the HTTP request before invoking the handler.
+// BeforeInvoke intercepts the rpc request before invoking the handler.
 func (h *ServerMiddlewareInterceptor) BeforeInvoke(invocation operator.Invocation) error {
 	server := invocation.CallerInstance().(*zrpc.RpcServer)
 	server.AddUnaryInterceptors(RpcServeInterceptor(invocation))
 	return nil
 }
 
-// AfterInvoke processes after the HTTP request has been handled.
+// AfterInvoke processes after the rpc request has been handled.
 func (h *ServerMiddlewareInterceptor) AfterInvoke(invocation operator.Invocation, results ...interface{}) error {
 	return nil
 }

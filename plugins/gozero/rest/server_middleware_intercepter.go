@@ -31,7 +31,6 @@ const gozeroComponent int32 = 5023
 type ServerMiddlewareInterceptor struct {
 }
 
-// SkyWalking middleware - 采用 go-micro 的策略：复用底层 span 而不是与其冲突
 var SkyWalkingMiddleware rest.Middleware = func(next http.HandlerFunc) http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
 		// 检查是否有已存在的 span（由底层 HTTP 插件创建）
