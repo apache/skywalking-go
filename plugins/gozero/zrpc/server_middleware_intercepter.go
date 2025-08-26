@@ -48,7 +48,7 @@ var RpcServeInterceptor = func(invocation operator.Invocation) grpc.UnaryServerI
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
 		if activeSpan := tracing.ActiveSpan(); activeSpan != nil {
 			activeSpan.SetOperationName(info.FullMethod)
-			activeSpan.SetComponent(gozeroComponent) // 设置 go-zero 组件ID (5023)
+			activeSpan.SetComponent(gozeroComponent)
 			activeSpan.SetSpanLayer(tracing.SpanLayerRPCFramework)
 			activeSpan.Tag("framework", "go-zero")
 			activeSpan.Tag("gozero.endpoint", info.FullMethod)

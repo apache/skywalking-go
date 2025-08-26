@@ -33,11 +33,9 @@ type ServerMiddlewareInterceptor struct {
 
 var SkyWalkingMiddleware rest.Middleware = func(next http.HandlerFunc) http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
-		// 检查是否有已存在的 span（由底层 HTTP 插件创建）
 		if activeSpan := tracing.ActiveSpan(); activeSpan != nil {
-			// 复用现有 span，设置 go-zero 框架特有的属性
 			activeSpan.SetOperationName(fmt.Sprintf("%s:%s", request.Method, request.URL.Path))
-			activeSpan.SetComponent(gozeroComponent) // 设置 go-zero 组件ID (5023)
+			activeSpan.SetComponent(gozeroComponent)
 			activeSpan.SetSpanLayer(tracing.SpanLayerHTTP)
 			activeSpan.Tag("framework", "go-zero")
 			activeSpan.Tag(tracing.TagHTTPMethod, request.Method)
@@ -60,7 +58,6 @@ var SkyWalkingMiddleware rest.Middleware = func(next http.HandlerFunc) http.Hand
 			return
 		}
 
-		// 没有现有 span，创建新的入口 span（独立使用 go-zero 的情况）
 		s, err := tracing.CreateEntrySpan(fmt.Sprintf("%s:%s", request.Method, request.URL.Path), func(headerKey string) (string, error) {
 			return request.Header.Get(headerKey), nil
 		}, tracing.WithLayer(tracing.SpanLayerHTTP),
