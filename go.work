@@ -20,6 +20,7 @@ use (
 	./plugins/http
 	./plugins/irisv12
 	./plugins/kratosv2
+	./plugins/pprof
 	./plugins/microv4
 	./plugins/mongo
 	./plugins/mux

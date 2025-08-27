@@ -19,7 +19,6 @@ package core
 
 import (
 	"fmt"
-	"github.com/apache/skywalking-go/plugins/core/profile"
 	defLog "log"
 	"os"
 	"reflect"
@@ -41,7 +40,7 @@ type CorrelationConfig struct {
 type Tracer struct {
 	ServiceEntity  *reporter.Entity
 	Reporter       reporter.Reporter
-	ProfileManager *profile.ProfileManager
+	ProfileManager *ProfileManager
 	// 0 not init 1 init
 	initFlag    int32
 	Sampler     Sampler
@@ -63,7 +62,7 @@ func (t *Tracer) Init(entity *reporter.Entity, rep reporter.Reporter, samp Sampl
 	meterCollectSecond int, correlation *CorrelationConfig, ignoreSuffixStr string, ignorePath string) error {
 	t.ServiceEntity = entity
 	t.Reporter = rep
-	t.ProfileManager = profile.NewProfileManager()
+	t.ProfileManager = NewProfileManager()
 	t.Reporter.AddProfileTaskManager(t.ProfileManager)
 	t.Sampler = samp
 	if logger != nil && !reflect.ValueOf(logger).IsZero() {

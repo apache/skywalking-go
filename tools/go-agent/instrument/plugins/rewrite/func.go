@@ -77,8 +77,10 @@ func (c *Context) Func(funcDecl *dst.FuncDecl, cursor *dstutil.Cursor) {
 	c.enhanceFuncParameter(funcDecl.Type.Results)
 
 	// enhance the method body
-	for _, stmt := range funcDecl.Body.List {
-		c.enhanceFuncStmt(stmt)
+	if funcDecl.Body != nil {
+		for _, stmt := range funcDecl.Body.List {
+			c.enhanceFuncStmt(stmt)
+		}
 	}
 }
 

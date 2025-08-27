@@ -1,6 +1,8 @@
-package profile
+package core
 
 import (
+	"context"
+	"runtime/pprof"
 	"slices"
 	"strings"
 	"unsafe"
@@ -25,6 +27,16 @@ func runtimeGetProfLabel() unsafe.Pointer
 //go:linkname runtimeSetProfLabel runtime/pprof.runtime_setProfLabel
 func runtimeSetProfLabel(label unsafe.Pointer)
 
+func GetLabelsFromCtx(ctx context.Context) LabelSet {
+	var labels LabelSet
+	// 使用公共 API ForLabels 迭代上下文标签
+	pprof.ForLabels(ctx, func(key, value string) bool {
+		labels.list = append(labels.list, label{key: key, value: value})
+		return true // 继续迭代所有标签
+	})
+	return labels
+}
+
 func GetPprofLabelSet() *LabelSet {
 	ptr := runtimeGetProfLabel()
 	if ptr != nil {
@@ -42,7 +54,7 @@ func GetPprofLabelSet() *LabelSet {
 
 func Labels(s *LabelSet, args ...string) *LabelSet {
 	if len(args)%2 != 0 {
-		panic("uneven number of arguments to pprof.Labels")
+		panic("uneven number of arguments to profile.Labels")
 	}
 
 	// add first
@@ -69,6 +81,20 @@ func Labels(s *LabelSet, args ...string) *LabelSet {
 	return s
 }
 
+func (s *LabelSet) List() []string {
+	var ret []string
+	for _, v := range s.list {
+		ret = append(ret, v.key)
+		ret = append(ret, v.value)
+	}
+	return ret
+}
+
+func TurnToPprofLabel(l *LabelSet) pprof.LabelSet {
+	li := l.List()
+	re := pprof.Labels(li...)
+	return re
+}
 func SetGoroutineLabels(s *LabelSet) {
 	runtimeSetProfLabel(unsafe.Pointer(s))
 }

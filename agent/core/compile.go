@@ -19,6 +19,7 @@ package core
 
 import (
 	//go:nolint
+	_ "context"
 	_ "encoding/base64"
 	_ "fmt"
 	_ "log"
@@ -30,6 +31,8 @@ import (
 	_ "runtime"
 	_ "runtime/debug"
 	_ "runtime/metrics"
+	_ "runtime/pprof"
+	_ "slices"
 	_ "sort"
 	_ "strconv"
 	_ "strings"
