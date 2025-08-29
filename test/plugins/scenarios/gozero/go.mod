@@ -6,7 +6,6 @@ require (
 	github.com/zeromicro/go-zero v1.6.0
 	github.com/zeromicro/zero-examples v0.0.0-20250322065739-21b8afb836a4
 	google.golang.org/grpc v1.59.0
-
 )
 
 require (
