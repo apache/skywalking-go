@@ -22,5 +22,5 @@ export-port: 8999
 support-version:
   - go: 1.24
     framework:
-      - v1.8.0
+      - v1.6.0
       - v1.8.2

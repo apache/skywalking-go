@@ -21,13 +21,12 @@ import (
 	"context"
 	"net/http"
 
-	"test/plugins/scenarios/gozero/protos/proto"
-
 	_ "github.com/apache/skywalking-go"
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/core/logc"
 	"github.com/zeromicro/go-zero/rest"
 	"github.com/zeromicro/go-zero/zrpc"
+	proto "github.com/zeromicro/zero-examples/rpc/remote/unary"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
@@ -61,12 +60,12 @@ func main() {
 				// 创建 gRPC 客户端
 				client := proto.NewGreeterClient(conn.Conn())
 
-				r, err := client.SayHello(ctx, &proto.Hello{Name: "World"})
+				r, err := client.Greet(ctx, &proto.Request{Name: "World"})
 				// 调用 gRPC 方法
 				if err != nil {
 					logc.Errorf(ctx, "could not greet: %v", err)
 				}
-				writer.Write([]byte(r.Message))
+				writer.Write([]byte(r.Greet))
 			},
 			Method: http.MethodGet,
 			Path:   "/ping",
@@ -81,28 +80,24 @@ func main() {
 	})
 	go server.Start()
 
-	svcCtx := NewServiceContext(Config{})
-	s := NewGreeterServer(svcCtx)
-	rpcs, _ := zrpc.NewServer(zrpc.RpcServerConf{ListenOn: ":8089"}, func(gs *grpc.Server) {
-		proto.RegisterGreeterServer(gs, s)
+	// svcCtx := NewServiceContext(Config{})
+
+	srv := zrpc.MustNewServer(zrpc.RpcServerConf{ListenOn: ":8089"}, func(gs *grpc.Server) {
+		proto.RegisterGreeterServer(gs, NewGreeterServer())
 		reflection.Register(gs)
 	})
 
-	rpcs.Start()
+	srv.Start()
 
 }
 
 type GreeterServer struct {
-	svcCtx *ServiceContext
-	proto.UnimplementedGreeterServer
 }
 
-func NewGreeterServer(svcCtx *ServiceContext) *GreeterServer {
-	return &GreeterServer{
-		svcCtx: svcCtx,
-	}
+func NewGreeterServer() *GreeterServer {
+	return &GreeterServer{}
 }
 
-func (s *GreeterServer) SayHello(ctx context.Context, in *proto.Hello) (*proto.Reply, error) {
-	return &proto.Reply{Message: "world"}, nil
+func (s *GreeterServer) Greet(ctx context.Context, in *proto.Request) (*proto.Response, error) {
+	return &proto.Response{Greet: "world"}, nil
 }
