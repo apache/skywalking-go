@@ -27,6 +27,26 @@ func runtimeGetProfLabel() unsafe.Pointer
 //go:linkname runtimeSetProfLabel runtime/pprof.runtime_setProfLabel
 func runtimeSetProfLabel(label unsafe.Pointer)
 
+func (m *ProfileManager) GetPprofLabelSet() interface{} {
+	ptr := runtimeGetProfLabel()
+	if ptr != nil {
+		lm := (*labelMap)(ptr)
+		if lm != nil && lm.list != nil {
+			return &lm.LabelSet
+		} else {
+			return &LabelSet{list: make([]label, 0)}
+		}
+	} else {
+		return &LabelSet{list: make([]label, 0)}
+	}
+}
+
+func (m *ProfileManager) TurnToPprofLabel(l interface{}) interface{} {
+	li := l.(*LabelSet).List()
+	re := pprof.Labels(li...)
+	return re
+}
+
 func GetLabelsFromCtx(ctx context.Context) LabelSet {
 	var labels LabelSet
 	// 使用公共 API ForLabels 迭代上下文标签
@@ -90,11 +110,6 @@ func (s *LabelSet) List() []string {
 	return ret
 }
 
-func TurnToPprofLabel(l *LabelSet) pprof.LabelSet {
-	li := l.List()
-	re := pprof.Labels(li...)
-	return re
-}
 func SetGoroutineLabels(s *LabelSet) {
 	runtimeSetProfLabel(unsafe.Pointer(s))
 }

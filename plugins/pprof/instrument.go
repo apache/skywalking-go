@@ -2,7 +2,6 @@ package pprof
 
 import (
 	"embed"
-
 	"github.com/apache/skywalking-go/plugins/core/instrument"
 )
 
@@ -21,7 +20,7 @@ func (i *Instrument) Name() string {
 }
 
 func (i *Instrument) BasePackage() string {
-	return "runtime/profile"
+	return "runtime/pprof"
 }
 
 func (i *Instrument) VersionChecker(version string) bool {

@@ -38,6 +38,10 @@ func (t *Tracer) Logger() interface{} {
 	return t.Log
 }
 
+func (t *Tracer) Profiler() interface{} {
+	return t.ProfileManager
+}
+
 func (t *Tracer) DebugStack() []byte {
 	return debug.Stack()
 }
