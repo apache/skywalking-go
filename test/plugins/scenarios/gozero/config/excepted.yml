@@ -1,0 +1,121 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+segmentItems:
+  - serviceName: gozero
+    segmentSize: ge 3
+    segments:
+      - segmentId: not null
+        spans:
+        - operationName: GET:/health
+          parentSpanId: -1
+          spanId: 0
+          spanLayer: Http
+          startTime: nq 0
+          endTime: nq 0
+          componentId: 5023
+          isError: false
+          spanType: Entry
+          peer: ''
+          skipAnalysis: false
+          tags:
+          - {key: framework, value: go-zero}
+          - {key: http.method, value: GET}
+          - {key: url, value: 'service:8999/health'}
+          - {key: status_code, value: '200'}
+      - segmentId: not null
+        spans:
+          - operationName: /proto.Greeter/SayHello
+            parentSpanId: -1
+            spanId: 0
+            spanLayer: RPCFramework
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 5023
+            isError: false
+            spanType: Entry
+            peer: ''
+            skipAnalysis: false
+            tags:
+              - { key: url, value: /proto.Greeter/SayHello }
+              - { key: rpc.type, value: Unary }
+              - { key: framework, value: go-zero }
+              - { key: gozero.endpoint, value: /proto.Greeter/SayHello }
+              - { key: transport, value: gRPC }
+            refs:
+              - { parentEndpoint: 'GET:/ping', networkAddress: 'direct:///127.0.0.1:8089',
+                  refType: CrossProcess, parentSpanId: 1, parentTraceSegmentId: nq 0,
+                  parentServiceInstance: nq 0, parentService: gozero,
+                  traceId: nq 0 }
+      - segmentId: not null
+        spans:
+          - operationName: proto.Greeter.SayHello/Client/Request/SendMsg
+            parentSpanId: 1
+            spanId: 2
+            spanLayer: RPCFramework
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 23
+            isError: false
+            spanType: Local
+            peer: ''
+            skipAnalysis: false
+            tags:
+              - {key: url, value: /proto.Greeter/SayHello}
+          - operationName: proto.Greeter.SayHello/Client/Response/RecvMsg
+            parentSpanId: 1
+            spanId: 3
+            spanLayer: RPCFramework
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 23
+            isError: false
+            spanType: Local
+            peer: ''
+            skipAnalysis: false
+            tags:
+              - { key: url, value: /proto.Greeter/SayHello }
+          - operationName: proto.Greeter.SayHello
+            parentSpanId: 0
+            spanId: 1
+            spanLayer: RPCFramework
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 23
+            isError: false
+            spanType: Exit
+            peer: :8089
+            skipAnalysis: false
+            tags:
+            - {key: url, value: /proto.Greeter/SayHello}
+            - {key: rpc.type, value: Unary}
+          - operationName: GET:/ping
+            parentSpanId: -1
+            spanId: 0
+            spanLayer: Http
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 5023
+            isError: false
+            spanType: Entry
+            peer: ''
+            skipAnalysis: false
+            tags:
+            - {key: http.method, value: GET}
+            - {key: url, value: 'service:8999/ping'}
+            - {key: status_code, value: '200'}
+meterItems: []
+logItems: []
