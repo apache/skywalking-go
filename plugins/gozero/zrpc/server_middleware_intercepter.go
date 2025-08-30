@@ -34,7 +34,7 @@ type ServerMiddlewareInterceptor struct {
 // BeforeInvoke intercepts the rpc request before invoking the handler.
 func (h *ServerMiddlewareInterceptor) BeforeInvoke(invocation operator.Invocation) error {
 	server := invocation.CallerInstance().(*zrpc.RpcServer)
-	server.AddUnaryInterceptors(RpcServeInterceptor(invocation))
+	server.AddUnaryInterceptors(RPCServeInterceptor(invocation))
 	return nil
 }
 
@@ -43,8 +43,8 @@ func (h *ServerMiddlewareInterceptor) AfterInvoke(invocation operator.Invocation
 	return nil
 }
 
-// RpcServeInterceptor is a grpc server interceptor that creates a new span for each incoming request.
-var RpcServeInterceptor = func(invocation operator.Invocation) grpc.UnaryServerInterceptor {
+// RPCServeInterceptor is a grpc server interceptor that creates a new span for each incoming request.
+var RPCServeInterceptor = func(invocation operator.Invocation) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
 		if activeSpan := tracing.ActiveSpan(); activeSpan != nil {
 			activeSpan.SetOperationName(info.FullMethod)
@@ -55,11 +55,11 @@ var RpcServeInterceptor = func(invocation operator.Invocation) grpc.UnaryServerI
 			activeSpan.Tag("transport", "gRPC")
 
 			invocation.SetContext(activeSpan)
-			reply, err := handler(ctx, req)
-			if err != nil {
-				activeSpan.Error(err.Error())
+			reply, handlerErr := handler(ctx, req)
+			if handlerErr != nil {
+				activeSpan.Error(handlerErr.Error())
 			}
-			return reply, err
+			return reply, handlerErr
 		}
 
 		span, err := tracing.CreateEntrySpan(info.FullMethod, func(headerKey string) (string, error) {
@@ -68,7 +68,7 @@ var RpcServeInterceptor = func(invocation operator.Invocation) grpc.UnaryServerI
 				return "", nil
 			}
 			values := md.Get(headerKey)
-			if len(values) == 0 || len(values[0]) == 0 {
+			if len(values) == 0 || values[0] == "" {
 				return "", nil
 			}
 			return values[0], nil
