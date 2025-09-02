@@ -282,7 +282,7 @@ func (m *ProfileManager) AddSpanId(segmentId string, spanID int32) {
 	if !ok || c.labels == nil {
 		return
 	}
-	nowLabels := GetPprofLabelSet()
+	nowLabels := m.GetPprofLabelSet().(*LabelSet)
 	afterAdd := Labels(nowLabels, SpanLabel, parseString(spanID))
 	SetGoroutineLabels(afterAdd)
 }

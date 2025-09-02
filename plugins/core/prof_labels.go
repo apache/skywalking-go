@@ -18,7 +18,6 @@
 package core
 
 import (
-	"context"
 	"runtime/pprof"
 	"sort"
 	"strings"
@@ -62,31 +61,6 @@ func (m *ProfileManager) TurnToPprofLabel(l interface{}) interface{} {
 	li := l.(*LabelSet).List()
 	re := pprof.Labels(li...)
 	return re
-}
-
-func GetLabelsFromCtx(ctx context.Context) LabelSet {
-	var labels LabelSet
-
-	pprof.ForLabels(ctx, func(key, value string) bool {
-		labels.list = append(labels.list, label{key: key, value: value})
-		return true
-	})
-	return labels
-}
-
-func GetPprofLabelSet() *LabelSet {
-	ptr := runtimeGetProfLabel()
-	if ptr != nil {
-		lm := (*labelMap)(ptr)
-		if lm != nil && lm.list != nil {
-			return &lm.LabelSet
-		} else {
-			return &LabelSet{list: make([]label, 0)}
-		}
-	} else {
-		return &LabelSet{list: make([]label, 0)}
-	}
-
 }
 
 func Labels(s *LabelSet, args ...string) *LabelSet {
