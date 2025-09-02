@@ -9,8 +9,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/segmentio/kafka-go v0.4.47
 	github.com/stretchr/testify v1.8.2
-	google.golang.org/grpc v1.73.0
-	google.golang.org/protobuf v1.36.6
+	google.golang.org/grpc v1.55.0
 	skywalking.apache.org/repo/goapi v0.0.0-20250831073349-4fd1f9f19fb5
 )
 

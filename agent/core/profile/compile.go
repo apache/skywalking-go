@@ -23,7 +23,6 @@ import (
 	_ "context"
 	_ "fmt"
 	_ "runtime/pprof"
-	_ "slices"
 	_ "strconv"
 	_ "strings"
 	_ "sync"

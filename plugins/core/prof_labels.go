@@ -20,7 +20,7 @@ package core
 import (
 	"context"
 	"runtime/pprof"
-	"slices"
+	"sort"
 	"strings"
 	"unsafe"
 )
@@ -66,10 +66,10 @@ func (m *ProfileManager) TurnToPprofLabel(l interface{}) interface{} {
 
 func GetLabelsFromCtx(ctx context.Context) LabelSet {
 	var labels LabelSet
-	// 使用公共 API ForLabels 迭代上下文标签
+
 	pprof.ForLabels(ctx, func(key, value string) bool {
 		labels.list = append(labels.list, label{key: key, value: value})
-		return true // 继续迭代所有标签
+		return true
 	})
 	return labels
 }
@@ -100,8 +100,8 @@ func Labels(s *LabelSet, args ...string) *LabelSet {
 	}
 
 	// sort
-	slices.SortStableFunc(s.list, func(a, b label) int {
-		return strings.Compare(a.key, b.key)
+	sort.SliceStable(s.list, func(i, j int) bool {
+		return strings.Compare(s.list[i].key, s.list[j].key) < 0
 	})
 
 	// remove duplicates

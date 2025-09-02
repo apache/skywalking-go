@@ -32,7 +32,6 @@ import (
 	_ "runtime/debug"
 	_ "runtime/metrics"
 	_ "runtime/pprof"
-	_ "slices"
 	_ "sort"
 	_ "strconv"
 	_ "strings"
