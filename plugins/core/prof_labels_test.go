@@ -30,7 +30,7 @@ func TestGetLabels(t *testing.T) {
 	labels := pprof.Labels("test1", "test1_label", "test2", "test2_label")
 	ctx = pprof.WithLabels(ctx, labels)
 	pprof.SetGoroutineLabels(ctx)
-	p := NewProfileManager()
+	p := NewProfileManager(nil)
 	ls := p.GetPprofLabelSet().(*LabelSet)
 	ts := LabelSet{list: []label{{"test1", "test1_label"}, {"test2", "test2_label"}}}
 	assert.Equal(t, ts, *ls)
@@ -40,7 +40,7 @@ func TestSetLabels(t *testing.T) {
 	ts := &LabelSet{list: []label{{"test1", "test1_label"}, {"test2", "test2_label"}}}
 	labels := Labels(ts, "test3", "test3_label")
 	SetGoroutineLabels(labels)
-	p := NewProfileManager()
+	p := NewProfileManager(nil)
 	re := p.GetPprofLabelSet().(*LabelSet)
 	assert.Equal(t, re, ts)
 }

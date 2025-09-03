@@ -19,6 +19,7 @@ package core
 
 import (
 	"fmt"
+	"github.com/apache/skywalking-go/plugins/core/operator"
 	"github.com/apache/skywalking-go/plugins/core/reporter"
 	"runtime/pprof"
 	common "skywalking.apache.org/repo/goapi/collect/common/v3"
@@ -57,6 +58,7 @@ type ProfileManager struct {
 	FinalReportResults chan reporter.ProfileResult
 	profilingWriter    *ProfilingWriter
 	currentTask        *currentTask
+	Log                operator.LogOperator
 }
 
 func (m *ProfileManager) initReportChannel() {
@@ -73,6 +75,7 @@ func (m *ProfileManager) initReportChannel() {
 			m.mu.Unlock()
 
 			if task == nil {
+				m.Log.Info("no task\n")
 				fmt.Println("no task")
 				continue // Task has ended, ignore
 			}
@@ -97,13 +100,18 @@ func (m *ProfileManager) initReportChannel() {
 	}()
 }
 
-func NewProfileManager() *ProfileManager {
+func NewProfileManager(log operator.LogOperator) *ProfileManager {
 	pm := &ProfileManager{
 		TraceProfileTasks:  make(map[string]*reporter.TraceProfileTask),
 		FinalReportResults: make(chan reporter.ProfileResult, maxSendQueueSize),
 		status:             false,
 		labelSets:          make(map[string]profileLabels),
 	}
+
+	if log == nil {
+		log = newDefaultLogger()
+	}
+	pm.Log = log
 	pm.initReportChannel()
 	return pm
 }
@@ -135,7 +143,7 @@ func (m *ProfileManager) AddProfileTask(args []*common.KeyStringValuePair) {
 			task.SerialNumber = arg.Value
 		}
 	}
-	fmt.Println("adding profile task:", task)
+	m.Log.Info("adding profile task:", task, "\n")
 	if _, exists := m.TraceProfileTasks[task.TaskId]; exists {
 		return
 	}
@@ -217,9 +225,9 @@ func (m *ProfileManager) ToProfile(endpoint string, traceSegmentID string) {
 			//choose task to profiling
 			task := v
 			m.generateCurrentTask(task, traceSegmentID)
-			err := m.StartProfiling(traceSegmentID)
+			err := m.StartProfiling(m.currentTask.traceSegmentId)
 			if err != nil {
-				fmt.Println(err)
+				m.Log.Errorf("start cpu_profile error: %v", err)
 				return
 			}
 			go func(task *reporter.TraceProfileTask) {
@@ -306,10 +314,10 @@ func (m *ProfileManager) EndProfiling(segmentID string) {
 	if ok {
 		select {
 		case <-ctx.closeChan:
-			fmt.Println("profile channel had already closed")
+			m.Log.Info("profile channel had already closed\n")
 		default:
 			close(ctx.closeChan)
-			fmt.Println("profile channel closed")
+			m.Log.Info("profile channel closed\n")
 		}
 	}
 }

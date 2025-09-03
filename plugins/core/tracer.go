@@ -62,12 +62,12 @@ func (t *Tracer) Init(entity *reporter.Entity, rep reporter.Reporter, samp Sampl
 	meterCollectSecond int, correlation *CorrelationConfig, ignoreSuffixStr string, ignorePath string) error {
 	t.ServiceEntity = entity
 	t.Reporter = rep
-	t.ProfileManager = NewProfileManager()
-	t.Reporter.AddProfileTaskManager(t.ProfileManager)
 	t.Sampler = samp
 	if logger != nil && !reflect.ValueOf(logger).IsZero() {
 		t.Log.ChangeLogger(logger)
 	}
+	t.ProfileManager = NewProfileManager(t.Log)
+	t.Reporter.AddProfileTaskManager(t.ProfileManager)
 	t.Reporter.Boot(entity, t.cdsWatchers)
 	t.initFlag = 1
 	t.initMetricsCollect(meterCollectSecond)

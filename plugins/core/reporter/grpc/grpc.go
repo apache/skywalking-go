@@ -19,7 +19,6 @@ package grpc
 
 import (
 	"context"
-	"fmt"
 	"io"
 	common "skywalking.apache.org/repo/goapi/collect/common/v3"
 	"time"
@@ -418,7 +417,7 @@ func (r *gRPCReporter) check() {
 
 func (r *gRPCReporter) fetchProfileTasks() {
 	if r.profileFetchInterval < 0 {
-		fmt.Println("profile init error")
+		r.logger.Errorf("profile init error:profileFetchInterval is %v", r.profileFetchInterval)
 		return
 	}
 	go func() {
