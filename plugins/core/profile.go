@@ -18,19 +18,19 @@
 package core
 
 import (
-	"fmt"
 	"github.com/apache/skywalking-go/plugins/core/operator"
 	"github.com/apache/skywalking-go/plugins/core/reporter"
+	"os"
 	"runtime/pprof"
 	common "skywalking.apache.org/repo/goapi/collect/common/v3"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
 type profileLabels struct {
-	labels    *LabelSet
-	closeChan chan struct{}
+	labels *LabelSet
 }
 
 const (
@@ -44,31 +44,33 @@ const (
 type currentTask struct {
 	serialNumber         string // uuid
 	taskId               string
-	traceSegmentId       string
 	minDurationThreshold int64
+	endpointName         string
 	duration             int
 }
 
 type ProfileManager struct {
 	mu                 sync.Mutex
 	labelSets          map[string]profileLabels
-	status             bool
 	TraceProfileTasks  map[string]*reporter.TraceProfileTask
 	rawCh              chan profileRawData
 	FinalReportResults chan reporter.ProfileResult
 	profilingWriter    *ProfilingWriter
+	profileEvents      *EventManager
 	currentTask        *currentTask
 	Log                operator.LogOperator
+	counter            atomic.Int32
 }
 
 func (m *ProfileManager) initReportChannel() {
 	// Original channel for receiving raw data chunks sent by the Writer
 	rawCh := make(chan profileRawData, maxSendQueueSize)
 	m.rawCh = rawCh
-
+	var d []byte
 	// Start a goroutine to supplement each data chunk with business information
 	go func() {
 		for rawResult := range rawCh {
+			d = append(d, rawResult.data...)
 			m.mu.Lock()
 			// Get business information from currentTask
 			task := m.currentTask
@@ -76,23 +78,28 @@ func (m *ProfileManager) initReportChannel() {
 
 			if task == nil {
 				m.Log.Info("no task\n")
-				fmt.Println("no task")
 				continue // Task has ended, ignore
 			}
 
 			if rawResult.isLast {
 				m.FinalReportResults <- reporter.ProfileResult{
-					TaskID:         task.taskId,
-					TraceSegmentID: task.traceSegmentId,
-					Payload:        rawResult.data,
-					IsLast:         rawResult.isLast,
+					TaskID:  task.taskId,
+					Payload: rawResult.data,
+					IsLast:  rawResult.isLast,
 				}
+				m.mu.Lock()
+				m.TraceProfileTasks[m.currentTask.taskId].Status = reporter.Finished
+				m.currentTask = nil
+				m.profileEvents.BaseEventStatus[CurTaskExist] = false
+				m.mu.Unlock()
+				f, _ := os.Create("cpu.pprof.gz")
+				f.Write(d)
+				f.Close()
 			} else {
 				m.FinalReportResults <- reporter.ProfileResult{
-					TaskID:         task.taskId,
-					TraceSegmentID: task.traceSegmentId,
-					Payload:        rawResult.data,
-					IsLast:         rawResult.isLast,
+					TaskID:  task.taskId,
+					Payload: rawResult.data,
+					IsLast:  rawResult.isLast,
 				}
 			}
 
@@ -104,15 +111,20 @@ func NewProfileManager(log operator.LogOperator) *ProfileManager {
 	pm := &ProfileManager{
 		TraceProfileTasks:  make(map[string]*reporter.TraceProfileTask),
 		FinalReportResults: make(chan reporter.ProfileResult, maxSendQueueSize),
-		status:             false,
 		labelSets:          make(map[string]profileLabels),
+		profileEvents:      NewEventManager(),
 	}
+	pm.RegisterProfileEvents()
 
 	if log == nil {
 		log = newDefaultLogger()
 	}
 	pm.Log = log
 	pm.initReportChannel()
+	pm.profilingWriter = NewProfilingWriter(
+		ChunkSize,
+		pm.rawCh,
+	)
 	return pm
 }
 
@@ -151,6 +163,8 @@ func (m *ProfileManager) AddProfileTask(args []*common.KeyStringValuePair) {
 	task.EndTime = endTime
 	task.Status = reporter.Pending
 	m.TraceProfileTasks[task.TaskId] = &task
+	m.TrySetCurrentTask(&task)
+	m.tryStartCpuProfiling()
 }
 
 func (m *ProfileManager) RemoveProfileTask() {
@@ -163,126 +177,119 @@ func (m *ProfileManager) RemoveProfileTask() {
 	}
 }
 
-func (m *ProfileManager) getProfileTask(endpoint string) []*reporter.TraceProfileTask {
+func (m *ProfileManager) tryStartCpuProfiling() {
+	ok, err := m.profileEvents.ExecuteComplexEvent(CouldProfile)
+	if err != nil {
+		m.Log.Errorf("profile event error:%v", err)
+		return
+	}
+	t := m.TraceProfileTasks[m.currentTask.taskId]
+	if ok && t.Status == reporter.Pending {
+		err := pprof.StartCPUProfile(m.profilingWriter)
+		if err != nil {
+			m.Log.Info("failed to start cpu profiling", err)
+			return
+		}
+		err = m.profileEvents.UpdateBaseEventStatus(IfProfiling, true)
+		if err != nil {
+			m.Log.Errorf("update profile event error:%v", err)
+		}
+		t.Status = reporter.Running
+		go m.monitor()
+	}
+}
+
+func (m *ProfileManager) CheckIfProfileTarget(endpoint string) bool {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	var result []*reporter.TraceProfileTask
-	for _, t := range m.TraceProfileTasks {
-		endTime := t.StartTime + int64(t.Duration)*60*1000
-		if t.EndpointName == endpoint && t.StartTime <= time.Now().UnixMilli() && endTime > time.Now().UnixMilli() && t.Status == reporter.Pending {
-			result = append(result, t)
-		}
+	if m.currentTask == nil {
+		return false
 	}
-	return result
+	return m.currentTask.endpointName == endpoint
 }
 
 func (m *ProfileManager) IfProfiling() bool {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	return m.status
+	return m.profileEvents.BaseEventStatus[IfProfiling]
+}
+
+func (m *ProfileManager) TrySetCurrentTask(task *reporter.TraceProfileTask) {
+	ok, err := m.profileEvents.ExecuteComplexEvent(CouldSetCurTask)
+	if err != nil {
+		m.Log.Errorf("profile event error:%v", err)
+	}
+	if ok {
+		m.generateCurrentTask(task)
+	}
 }
 
 func (m *ProfileManager) generateProfileLabels(traceSegmentID string, minDurationThreshold int64) profileLabels {
 	var l = &LabelSet{}
-	if minDurationThreshold == 0 {
-		l = Labels(l, SegmentLabel, traceSegmentID)
-	} else {
-		l = Labels(l, SegmentLabel, traceSegmentID, MinDurationLabel, strconv.FormatInt(minDurationThreshold, 10))
-	}
-	closeChan := make(chan struct{}, 1)
+
+	l = Labels(l, SegmentLabel, traceSegmentID, MinDurationLabel, strconv.FormatInt(minDurationThreshold, 10))
+
 	return profileLabels{
-		labels:    l,
-		closeChan: closeChan,
+		labels: l,
 	}
 }
 
-func (m *ProfileManager) generateCurrentTask(t *reporter.TraceProfileTask, traceSegmentID string) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+func (m *ProfileManager) generateCurrentTask(t *reporter.TraceProfileTask) {
 	var c = currentTask{
 		serialNumber:         t.SerialNumber,
 		taskId:               t.TaskId,
-		traceSegmentId:       traceSegmentID,
 		minDurationThreshold: t.MinDurationThreshold,
 		duration:             t.Duration,
+		endpointName:         t.EndpointName,
 	}
 	m.currentTask = &c
+	err := m.profileEvents.UpdateBaseEventStatus(CurTaskExist, true)
+	if err != nil {
+		m.Log.Errorf("profile event error:%v", err)
+	}
 }
 
-func (m *ProfileManager) ToProfile(endpoint string, traceSegmentID string) {
-	//check if profiling
-	if m.IfProfiling() {
-		c := m.generateProfileLabels(traceSegmentID, 0)
+func (m *ProfileManager) TryToAddSegmentID(traceSegmentID string) {
+	if m.profileEvents.BaseEventStatus[IfProfiling] && m.currentTask != nil {
+		c := m.generateProfileLabels(traceSegmentID, m.currentTask.minDurationThreshold)
 		m.labelSets[traceSegmentID] = c
 		SetGoroutineLabels(c.labels)
 		return
 	}
 
-	tasks := m.getProfileTask(endpoint)
-	if tasks != nil {
-		for _, v := range tasks {
-			m.TraceProfileTasks[v.TaskId].Status = reporter.Running
-			//choose task to profiling
-			task := v
-			m.generateCurrentTask(task, traceSegmentID)
-			err := m.StartProfiling(m.currentTask.traceSegmentId)
-			if err != nil {
-				m.Log.Errorf("start cpu_profile error: %v", err)
-				return
-			}
-			go func(task *reporter.TraceProfileTask) {
-				err = m.monitor()
-				if err != nil {
-					m.TraceProfileTasks[task.TaskId].Status = reporter.Pending
-					m.currentTask = nil
-					m.status = false
+}
+
+func (m *ProfileManager) monitor() {
+	done := make(chan struct{})
+	var zeroSince time.Time
+	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
+
+	go func() {
+		for range ticker.C {
+			currentCounter := m.counter.Load()
+			if currentCounter == 0 {
+				if zeroSince.IsZero() {
+					zeroSince = time.Now()
+				}
+
+				if time.Since(zeroSince) >= 30*time.Second {
+					close(done)
 					return
 				}
-				m.TraceProfileTasks[task.TaskId].Status = reporter.Finished
-			}(task)
-			break
+			} else {
+				zeroSince = time.Time{}
+			}
 		}
-	}
+	}()
 
-}
-
-func (m *ProfileManager) StartProfiling(traceSegmentID string) error {
-	m.mu.Lock()
-	m.status = true
-	m.profilingWriter = NewProfilingWriter(
-		ChunkSize,
-		m.rawCh,
-	)
-	// Add main profiling context
-	c := m.generateProfileLabels(traceSegmentID, m.currentTask.minDurationThreshold)
-	SetGoroutineLabels(c.labels)
-	m.labelSets[traceSegmentID] = c
-	m.mu.Unlock()
-
-	if err := pprof.StartCPUProfile(m.profilingWriter); err != nil {
-		m.mu.Lock()
-		m.status = false
-		m.mu.Unlock()
-		return err
-	}
-	return nil
-}
-
-func (m *ProfileManager) monitor() error {
 	select {
-	// End on timeout
 	case <-time.After(time.Duration(m.currentTask.duration) * time.Minute):
 
-	// End manually
-	case <-m.labelSets[m.currentTask.traceSegmentId].closeChan:
+	case <-done:
 	}
-	// Stop profiling
 	pprof.StopCPUProfile()
-	m.profilingWriter.Flush()
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	m.labelSets = make(map[string]profileLabels)
-	return nil
+	if m.profilingWriter != nil {
+		m.profilingWriter.Flush()
+	}
 }
 
 func (m *ProfileManager) AddSpanId(segmentId string, spanID int32) {
@@ -295,31 +302,27 @@ func (m *ProfileManager) AddSpanId(segmentId string, spanID int32) {
 	SetGoroutineLabels(afterAdd)
 }
 
-func (m *ProfileManager) EndProfiling(segmentID string) {
+func (m *ProfileManager) IncCounter() {
+	m.counter.Add(1)
+	err := m.profileEvents.UpdateBaseEventStatus(HasWorthRequeue, true)
+	if err != nil {
+		m.Log.Errorf("profile event error:%v", err)
+	}
+}
+
+func (m *ProfileManager) DecCounter(segmentId string) {
 	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	// Check if profiling is ongoing and current task exists
-	if !m.status || m.currentTask == nil {
-		return
-	}
-
-	// Verify if the current task's traceSegmentId matches
-	if m.currentTask.traceSegmentId != segmentID {
-		return
-	}
-
-	// Safely close the channel (ensure it exists)
-	ctx, ok := m.labelSets[segmentID]
-	if ok {
-		select {
-		case <-ctx.closeChan:
-			m.Log.Info("profile channel had already closed\n")
-		default:
-			close(ctx.closeChan)
-			m.Log.Info("profile channel closed\n")
+	ct := m.counter.Add(-1)
+	delete(m.labelSets, segmentId)
+	if ct == 0 {
+		m.mu.Unlock()
+		err := m.profileEvents.UpdateBaseEventStatus(HasWorthRequeue, false)
+		if err != nil {
+			m.Log.Errorf("profile event error:%v", err)
 		}
+		return
 	}
+	m.mu.Unlock()
 }
 
 func (m *ProfileManager) GetProfileResults() chan reporter.ProfileResult {
@@ -332,8 +335,6 @@ func (m *ProfileManager) ProfileFinish(taskId string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.TraceProfileTasks[taskId].Status = reporter.Reported
-	m.currentTask = nil
-	m.status = false
 }
 
 func parseInt64(value string) int64 {

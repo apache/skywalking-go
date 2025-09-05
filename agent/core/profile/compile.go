@@ -26,6 +26,7 @@ import (
 	_ "strconv"
 	_ "strings"
 	_ "sync"
+	_ "sync/atomic"
 	_ "time"
 	_ "unsafe"
 
