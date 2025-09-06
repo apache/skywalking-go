@@ -61,7 +61,7 @@ linter:
 
 .PHONY: generate-proto
 generate-proto: ##generate data collect proto
-	cd tools/protocols && ./pull-proto.sh
+	cd tools/protocols && ./pull-proto.sh && cd ../..
 
 ##@ Golang
 
