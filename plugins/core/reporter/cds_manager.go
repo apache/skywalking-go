@@ -23,7 +23,7 @@ import (
 
 	"github.com/apache/skywalking-go/plugins/core/operator"
 
-	configuration "skywalking.apache.org/repo/goapi/collect/agent/configuration/v3"
+	configuration "github.com/apache/skywalking-go/protocols/skywalking.apache.org/repo/goapi/collect/agent/configuration/v3"
 )
 
 type CDSManager struct {

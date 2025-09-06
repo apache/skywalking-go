@@ -117,6 +117,18 @@ func (i *Instrument) WriteExtraFiles(dir string) ([]string, error) {
 
 		pkgUpdates[newKey] = newVal
 	}
+	
+	// 添加protocols导入路径的处理
+	protocolsPackages := []string{
+		"github.com/apache/skywalking-go/protocols/skywalking.apache.org/repo/goapi/collect/common/v3",
+		"github.com/apache/skywalking-go/protocols/skywalking.apache.org/repo/goapi/collect/language/agent/v3",
+		"github.com/apache/skywalking-go/protocols/skywalking.apache.org/repo/goapi/collect/logging/v3",
+		"github.com/apache/skywalking-go/protocols/skywalking.apache.org/repo/goapi/collect/management/v3",
+		"github.com/apache/skywalking-go/protocols/skywalking.apache.org/repo/goapi/collect/agent/configuration/v3",
+	}
+	for _, pkg := range protocolsPackages {
+		pkgUpdates[pkg] = pkg
+	}
 
 	copiedFiles, err := tools.CopyGoFiles(core.FS, sub, dir, i.buildDSTDebugInfo, func(file *dst.File) {
 		tools.ChangePackageImportPath(file, pkgUpdates)

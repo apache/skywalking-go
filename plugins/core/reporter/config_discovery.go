@@ -17,7 +17,7 @@
 
 package reporter
 
-import common "skywalking.apache.org/repo/goapi/collect/common/v3"
+import common "github.com/apache/skywalking-go/protocols/skywalking.apache.org/repo/goapi/collect/common/v3"
 
 type AgentConfigEventType int32
 

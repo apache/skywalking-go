@@ -24,8 +24,8 @@ import (
 
 	"github.com/apache/skywalking-go/plugins/core/operator"
 
-	commonv3 "skywalking.apache.org/repo/goapi/collect/common/v3"
-	logv3 "skywalking.apache.org/repo/goapi/collect/logging/v3"
+	commonv3 "github.com/apache/skywalking-go/protocols/skywalking.apache.org/repo/goapi/collect/common/v3"
+	logv3 "github.com/apache/skywalking-go/protocols/skywalking.apache.org/repo/goapi/collect/logging/v3"
 )
 
 func (t *Tracer) LogReporter() interface{} {

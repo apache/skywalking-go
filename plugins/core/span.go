@@ -20,7 +20,7 @@ package core
 import (
 	"github.com/apache/skywalking-go/plugins/core/tracing"
 
-	agentv3 "skywalking.apache.org/repo/goapi/collect/language/agent/v3"
+	agentv3 "github.com/apache/skywalking-go/protocols/skywalking.apache.org/repo/goapi/collect/language/agent/v3"
 )
 
 // SpanType is used to identify entry, exit and local
