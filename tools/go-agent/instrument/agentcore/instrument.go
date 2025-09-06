@@ -117,8 +117,7 @@ func (i *Instrument) WriteExtraFiles(dir string) ([]string, error) {
 
 		pkgUpdates[newKey] = newVal
 	}
-	
-	// 添加protocols导入路径的处理
+
 	protocolsPackages := []string{
 		"github.com/apache/skywalking-go/protocols/skywalking.apache.org/repo/goapi/collect/common/v3",
 		"github.com/apache/skywalking-go/protocols/skywalking.apache.org/repo/goapi/collect/language/agent/v3",

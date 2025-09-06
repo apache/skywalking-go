@@ -135,7 +135,6 @@ func (i *Instrument) copyReporterFiles(targetDir, reporterType string) ([]string
 			val := strings.ReplaceAll(filepath.Join(agentcore.EnhanceBasePackage, p), `\`, `/`)
 			pkgUpdates[key] = val
 		}
-		// 添加protocols导入路径的处理
 		pkgUpdates["github.com/apache/skywalking-go/protocols/skywalking.apache.org/repo/goapi/collect/common/v3"] = "github.com/apache/skywalking-go/protocols/skywalking.apache.org/repo/goapi/collect/common/v3"
 		pkgUpdates["github.com/apache/skywalking-go/protocols/skywalking.apache.org/repo/goapi/collect/language/agent/v3"] = "github.com/apache/skywalking-go/protocols/skywalking.apache.org/repo/goapi/collect/language/agent/v3"
 		pkgUpdates["github.com/apache/skywalking-go/protocols/skywalking.apache.org/repo/goapi/collect/logging/v3"] = "github.com/apache/skywalking-go/protocols/skywalking.apache.org/repo/goapi/collect/logging/v3"
