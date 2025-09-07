@@ -6,7 +6,8 @@ set -e
 # -----------------------------
 export GOPROXY=https://goproxy.cn,direct
 PROTOC_VERSION=3.14.0
-
+export PATH="/home/runner/go/bin:$PATH"
+export GOPATH="${GOPATH:-$HOME/go}"
 BASEDIR=$(dirname "$0")
 TEMPDIR="$BASEDIR"/temp
 BINDIR="$TEMPDIR"/bin
@@ -67,10 +68,12 @@ fi
 # Export PATH for local protoc
 # -----------------------------
 export PATH="$BINDIR:$GOPATH/bin:$PATH"
-
+rm -f "$GOPATH/bin/protoc-gen-go" "$GOPATH/bin/protoc-gen-go-grpc"
 # -----------------------------
 # Install Go plugins (fixed versions)
 # -----------------------------
+echo "Current go version:"
+go version
 if ! command -v protoc-gen-go &>/dev/null; then
     echo "Installing protoc-gen-go v1.26..."
     GO111MODULE=on GOPROXY=https://goproxy.cn,direct GOSUMDB=sum.golang.google.cn go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.26.0
