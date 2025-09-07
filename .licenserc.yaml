@@ -36,6 +36,7 @@ header:
     - '**/*.tmpl'
     - 'tools/go-agent/tools/testdata/*'
     - 'VERSION'
+    - 'protocols'
 
   comment: on-failure
 
