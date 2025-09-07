@@ -30,6 +30,8 @@ jobs:
       - uses: actions/checkout@v2
         with:
           submodules: true
+      - name: Generate data collect proto
+        run: make generate-proto
       - name: Build SkyWalking Go agent
         run: make -C test/e2e build
       - name: Upload agent binary

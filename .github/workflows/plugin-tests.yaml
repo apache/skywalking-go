@@ -55,6 +55,8 @@ jobs:
         uses: actions/checkout@v2
         with:
           submodules: true
+      - name: Generate data collect proto
+        run: make generate-proto
       - name: Build
         run: make -C test/plugins build
       - uses: actions/upload-artifact@v4
