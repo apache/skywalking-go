@@ -4,6 +4,7 @@ set -e
 # -----------------------------
 # Configuration
 # -----------------------------
+export GOPROXY=https://goproxy.cn,direct
 PROTOC_VERSION=3.14.0
 
 BASEDIR=$(dirname "$0")
@@ -36,11 +37,29 @@ if [[ ! -f "$BINDIR"/protoc ]]; then
     fi
 
     curl -sL "https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/${PROTOC_ZIP}" -o "$TEMPDIR/$PROTOC_ZIP"
-    unzip -o "$TEMPDIR/$PROTOC_ZIP" -d "$BINDIR"/.. bin/protoc > /dev/null 2>&1 || true
-    unzip -o "$TEMPDIR/$PROTOC_ZIP" -d "$BINDIR"/.. bin/protoc.exe > /dev/null 2>&1 || true
-    unzip -o "$TEMPDIR/$PROTOC_ZIP" -d "$BINDIR"/.. include/* > /dev/null 2>&1 || true
-    mv "$BINDIR"/protoc.exe "$BINDIR"/protoc > /dev/null 2>&1 || true
-    chmod +x "$BINDIR"/protoc
+    
+    # Extract to temp directory first
+    EXTRACT_DIR="$TEMPDIR/extract"
+    mkdir -p "$EXTRACT_DIR"
+    unzip -o "$TEMPDIR/$PROTOC_ZIP" -d "$EXTRACT_DIR"
+    
+    # Copy protoc binary
+    if [[ -f "$EXTRACT_DIR/bin/protoc" ]]; then
+        cp "$EXTRACT_DIR/bin/protoc" "$BINDIR/protoc"
+    elif [[ -f "$EXTRACT_DIR/bin/protoc.exe" ]]; then
+        cp "$EXTRACT_DIR/bin/protoc.exe" "$BINDIR/protoc"
+    else
+        echo "Error: protoc binary not found in archive"
+        exit 1
+    fi
+    
+    # Copy include files
+    if [[ -d "$EXTRACT_DIR/include" ]]; then
+        cp -r "$EXTRACT_DIR/include"/* "$INCLUDE_DIR/"
+    fi
+    
+    chmod +x "$BINDIR/protoc"
+    rm -rf "$EXTRACT_DIR"
     rm -f "$TEMPDIR/$PROTOC_ZIP"
 fi
 
@@ -54,12 +73,12 @@ export PATH="$BINDIR:$GOPATH/bin:$PATH"
 # -----------------------------
 if ! command -v protoc-gen-go &>/dev/null; then
     echo "Installing protoc-gen-go v1.28..."
-    go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28
+    GOPROXY=https://goproxy.cn,direct GOSUMDB=sum.golang.google.cn go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28
 fi
 
 if ! command -v protoc-gen-go-grpc &>/dev/null; then
     echo "Installing protoc-gen-go-grpc v1.2..."
-    go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.2
+    GOPROXY=https://goproxy.cn,direct GOSUMDB=sum.golang.google.cn go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.2
 fi
 
 # -----------------------------
