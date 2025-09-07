@@ -67,30 +67,29 @@ ifeq ($(OS),Windows_NT)
 	if (-not (Get-Command protoc -ErrorAction SilentlyContinue)) { \
 		Invoke-WebRequest -Uri https://github.com/protocolbuffers/protobuf/releases/download/v22.2/protoc-22.2-win64.zip -OutFile protoc.zip; \
 		Expand-Archive protoc.zip -DestinationPath $$env:USERPROFILE\protoc; \
-		$$env:PATH = \"$$env:USERPROFILE\protoc\bin;$$env:PATH\"; \
 	}; \
-	go install google.golang.org/protobuf/cmd/protoc-gen-go@latest; \
-	go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest;"
+	go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.30.0; \
+	go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.55.0; \
+	bash -c 'export PATH=$$env:USERPROFILE/protoc/bin:$$GOPATH/bin:$$PATH && cd tools/protocols && ./pull-proto.sh'"
 else
 	@echo "Running on Linux / WSL..."
 	@PROTOC_HOME=$(HOME)/.local/protoc; \
+	mkdir -p $$PROTOC_HOME; \
 	if ! command -v protoc >/dev/null 2>&1; then \
 		echo "Downloading protoc..."; \
-		mkdir -p $$PROTOC_HOME; \
 		wget -q https://github.com/protocolbuffers/protobuf/releases/download/v22.2/protoc-22.2-linux-x86_64.zip -O protoc.zip; \
 		unzip -o protoc.zip -d $$PROTOC_HOME; \
-		export PATH=$$PROTOC_HOME/bin:$$PATH; \
 	fi; \
 	if ! command -v protoc-gen-go >/dev/null 2>&1; then \
-		go install google.golang.org/protobuf/cmd/protoc-gen-go@latest; \
+		go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.30.0; \
 	fi; \
 	if ! command -v protoc-gen-go-grpc >/dev/null 2>&1; then \
-		go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest; \
-	fi
+		go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.55.0; \
+	fi; \
+	echo "Generating gRPC code..."; \
+	PATH=$$PROTOC_HOME/bin:$$PATH:$(GOPATH)/bin cd tools/protocols && ./pull-proto.sh
 endif
 
-	@echo "Generating gRPC code..."
-	@cd tools/protocols && ./pull-proto.sh
 
 ##@ Golang
 
