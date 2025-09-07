@@ -8,6 +8,7 @@ require (
 	github.com/segmentio/kafka-go v0.4.49
 	google.golang.org/grpc v1.55.0
 	google.golang.org/protobuf v1.30.0
+	skywalking.apache.org/repo/goapi v0.0.0-20230314034821-0c5a44bb767a
 )
 
 require (

@@ -72,13 +72,14 @@ export PATH="$BINDIR:$GOPATH/bin:$PATH"
 # Install Go plugins (fixed versions)
 # -----------------------------
 if ! command -v protoc-gen-go &>/dev/null; then
-    echo "Installing protoc-gen-go v1.28..."
-    GOPROXY=https://goproxy.cn,direct GOSUMDB=sum.golang.google.cn go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28
+    echo "Installing protoc-gen-go v1.26..."
+    GO111MODULE=on GOPROXY=https://goproxy.cn,direct GOSUMDB=sum.golang.google.cn go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.26.0
 fi
 
 if ! command -v protoc-gen-go-grpc &>/dev/null; then
-    echo "Installing protoc-gen-go-grpc v1.2..."
-    GOPROXY=https://goproxy.cn,direct GOSUMDB=sum.golang.google.cn go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.2
+    echo "Installing protoc-gen-go-grpc v1.1..."
+    GO111MODULE=on GOPROXY=https://goproxy.cn,direct GOSUMDB=sum.golang.google.cn go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.1.0
+
 fi
 
 # -----------------------------
