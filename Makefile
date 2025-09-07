@@ -60,7 +60,7 @@ linter:
 ##@ General
 
 .PHONY: generate-proto
-generate-proto: ##generate data collect proto
+generate-proto: ## generate data collect proto
 ifeq ($(OS),Windows_NT)
 	@echo "Running on Windows..."
 	@powershell -Command " \
@@ -73,20 +73,24 @@ ifeq ($(OS),Windows_NT)
 	go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest;"
 else
 	@echo "Running on Linux / WSL..."
-	@if ! command -v protoc >/dev/null 2>&1; then \
-		wget https://github.com/protocolbuffers/protobuf/releases/download/v22.2/protoc-22.2-linux-x86_64.zip; \
-		unzip -o protoc-22.2-linux-x86_64.zip -d /usr/local; \
-	fi
-	@if ! command -v protoc-gen-go >/dev/null 2>&1; then \
+	@PROTOC_HOME=$(HOME)/.local/protoc; \
+	if ! command -v protoc >/dev/null 2>&1; then \
+		echo "Downloading protoc..."; \
+		mkdir -p $$PROTOC_HOME; \
+		wget -q https://github.com/protocolbuffers/protobuf/releases/download/v22.2/protoc-22.2-linux-x86_64.zip -O protoc.zip; \
+		unzip -o protoc.zip -d $$PROTOC_HOME; \
+		export PATH=$$PROTOC_HOME/bin:$$PATH; \
+	fi; \
+	if ! command -v protoc-gen-go >/dev/null 2>&1; then \
 		go install google.golang.org/protobuf/cmd/protoc-gen-go@latest; \
-	fi
-	@if ! command -v protoc-gen-go-grpc >/dev/null 2>&1; then \
+	fi; \
+	if ! command -v protoc-gen-go-grpc >/dev/null 2>&1; then \
 		go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest; \
 	fi
 endif
 
 	@echo "Generating gRPC code..."
-	cd tools/protocols && ./pull-proto.sh
+	@cd tools/protocols && ./pull-proto.sh
 
 ##@ Golang
 
