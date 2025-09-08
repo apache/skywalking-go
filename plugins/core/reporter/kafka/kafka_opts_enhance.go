@@ -20,10 +20,10 @@ package kafka
 import (
 	"time"
 
-	logv3 "github.com/apache/skywalking-go/protocols/collect/logging/v3"
+	"github.com/segmentio/kafka-go"
 
 	agentv3 "github.com/apache/skywalking-go/protocols/collect/language/agent/v3"
-	"github.com/segmentio/kafka-go"
+	logv3 "github.com/apache/skywalking-go/protocols/collect/logging/v3"
 )
 
 type ReporterOptionKafka func(r *kafkaReporter)

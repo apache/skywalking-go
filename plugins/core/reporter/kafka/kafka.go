@@ -22,12 +22,13 @@ import (
 	"strings"
 	"time"
 
-	agentv3 "github.com/apache/skywalking-go/protocols/collect/language/agent/v3"
-	logv3 "github.com/apache/skywalking-go/protocols/collect/logging/v3"
-	managementv3 "github.com/apache/skywalking-go/protocols/collect/management/v3"
 	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/kafka-go/compress"
 	"google.golang.org/protobuf/proto"
+
+	agentv3 "github.com/apache/skywalking-go/protocols/collect/language/agent/v3"
+	logv3 "github.com/apache/skywalking-go/protocols/collect/logging/v3"
+	managementv3 "github.com/apache/skywalking-go/protocols/collect/management/v3"
 
 	"github.com/apache/skywalking-go/plugins/core/operator"
 	"github.com/apache/skywalking-go/plugins/core/reporter"

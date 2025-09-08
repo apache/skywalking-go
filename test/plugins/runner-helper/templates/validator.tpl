@@ -26,11 +26,18 @@ exitOnError() {
 healthCheck() {
     HEALTH_CHECK_URL=$1
     STATUS=""
-    TIMES=${TIMES:-120}
+    TIMES=${TIMES:-60}
     i=1
     while [[ $i -lt ${TIMES} ]];
     do
-        STATUS=$(curl --max-time 3 -is ${HEALTH_CHECK_URL} | grep -oE "HTTP/.*\s+200")
+        echo "[healthcheck] attempt=${i}/${TIMES} url=${HEALTH_CHECK_URL}"
+        host_part=${HEALTH_CHECK_URL#*://}
+        host_part=${host_part%%[:/]*}
+        echo "[healthcheck] resolving host='${host_part}'"
+        getent hosts "${host_part}" || true
+        echo "[healthcheck] curl timings (code connect starttransfer total) ->" \
+             $(curl -s -o /dev/null -w "%{http_code} %{time_connect} %{time_starttransfer} %{time_total}" "${HEALTH_CHECK_URL}" || echo "curl_failed")
+        STATUS=$(curl --max-time 3 -is ${HEALTH_CHECK_URL} | grep -oE "HTTP/.*\s+200") || true
         if [[ -n "$STATUS" ]]; then
           echo "${HEALTH_CHECK_URL}: ${STATUS}"
           return 0
@@ -39,12 +46,6 @@ healthCheck() {
         i=$(($i + 1))
     done
 
-    echo "Health check failed after $TIMES attempts for ${HEALTH_CHECK_URL}." >&2
-    echo "Resolver/hosts debug:" >&2
-    cat /etc/resolv.conf || true >&2
-    getent hosts || true >&2
-    echo "Verbose curl output:" >&2
-    curl -v --max-time 5 -is ${HEALTH_CHECK_URL} || true >&2
     exitOnError "{{.Context.ScenarioName}}-{{.Context.CaseName}} url=${HEALTH_CHECK_URL}, status=${STATUS} health check failed!"
 }
 

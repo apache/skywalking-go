@@ -48,6 +48,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     timeout-minutes: 90
+    env:
+      GOPROXY: https://goproxy.cn,direct
     strategy:
       matrix:
         case:
@@ -74,5 +76,8 @@ jobs:
           path: test/e2e/dist/
       - name: Run E2E Tests
         uses: apache/skywalking-infra-e2e@7e4b5b68716fdb7b79b21fa8908f9db497e1b115
+        env:
+          GOPROXY: https://goproxy.cn,direct
+          GOSUMDB: sum.golang.org
         with:
           e2e-file: ${{ matrix.case.path }}
