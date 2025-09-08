@@ -30,6 +30,6 @@ import (
 	_ "github.com/apache/skywalking-go/agent/reporter"
 
 	//go:nolint
-	_ "github.com/apache/skywalking-go/protocols/skywalking.apache.org/repo/goapi/collect/common/v3"
-	_ "github.com/apache/skywalking-go/protocols/skywalking.apache.org/repo/goapi/collect/language/agent/v3"
+	_ "github.com/apache/skywalking-go/protocols/collect/common/v3"
+	_ "github.com/apache/skywalking-go/protocols/collect/language/agent/v3"
 )

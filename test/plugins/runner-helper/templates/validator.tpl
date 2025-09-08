@@ -26,7 +26,7 @@ exitOnError() {
 healthCheck() {
     HEALTH_CHECK_URL=$1
     STATUS=""
-    TIMES=${TIMES:-60}
+    TIMES=${TIMES:-120}
     i=1
     while [[ $i -lt ${TIMES} ]];
     do
@@ -39,6 +39,12 @@ healthCheck() {
         i=$(($i + 1))
     done
 
+    echo "Health check failed after $TIMES attempts for ${HEALTH_CHECK_URL}." >&2
+    echo "Resolver/hosts debug:" >&2
+    cat /etc/resolv.conf || true >&2
+    getent hosts || true >&2
+    echo "Verbose curl output:" >&2
+    curl -v --max-time 5 -is ${HEALTH_CHECK_URL} || true >&2
     exitOnError "{{.Context.ScenarioName}}-{{.Context.CaseName}} url=${HEALTH_CHECK_URL}, status=${STATUS} health check failed!"
 }
 

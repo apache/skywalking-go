@@ -135,11 +135,11 @@ func (i *Instrument) copyReporterFiles(targetDir, reporterType string) ([]string
 			val := strings.ReplaceAll(filepath.Join(agentcore.EnhanceBasePackage, p), `\`, `/`)
 			pkgUpdates[key] = val
 		}
-		pkgUpdates["github.com/apache/skywalking-go/protocols/skywalking.apache.org/repo/goapi/collect/common/v3"] = "github.com/apache/skywalking-go/protocols/skywalking.apache.org/repo/goapi/collect/common/v3"
-		pkgUpdates["github.com/apache/skywalking-go/protocols/skywalking.apache.org/repo/goapi/collect/language/agent/v3"] = "github.com/apache/skywalking-go/protocols/skywalking.apache.org/repo/goapi/collect/language/agent/v3"
-		pkgUpdates["github.com/apache/skywalking-go/protocols/skywalking.apache.org/repo/goapi/collect/logging/v3"] = "github.com/apache/skywalking-go/protocols/skywalking.apache.org/repo/goapi/collect/logging/v3"
-		pkgUpdates["github.com/apache/skywalking-go/protocols/skywalking.apache.org/repo/goapi/collect/management/v3"] = "github.com/apache/skywalking-go/protocols/skywalking.apache.org/repo/goapi/collect/management/v3"
-		pkgUpdates["github.com/apache/skywalking-go/protocols/skywalking.apache.org/repo/goapi/collect/agent/configuration/v3"] = "github.com/apache/skywalking-go/protocols/skywalking.apache.org/repo/goapi/collect/agent/configuration/v3"
+		pkgUpdates["github.com/apache/skywalking-go/protocols/collect/common/v3"] = "github.com/apache/skywalking-go/protocols/collect/common/v3"
+		pkgUpdates["github.com/apache/skywalking-go/protocols/collect/language/agent/v3"] = "github.com/apache/skywalking-go/protocols/collect/language/agent/v3"
+		pkgUpdates["github.com/apache/skywalking-go/protocols/collect/logging/v3"] = "github.com/apache/skywalking-go/protocols/collect/logging/v3"
+		pkgUpdates["github.com/apache/skywalking-go/protocols/collect/management/v3"] = "github.com/apache/skywalking-go/protocols/collect/management/v3"
+		pkgUpdates["github.com/apache/skywalking-go/protocols/collect/agent/configuration/v3"] = "github.com/apache/skywalking-go/protocols/collect/agent/configuration/v3"
 		tools.ChangePackageImportPath(file, pkgUpdates)
 		tools.DeletePackageImports(file, "github.com/apache/skywalking-go/plugins/core/reporter")
 	})
