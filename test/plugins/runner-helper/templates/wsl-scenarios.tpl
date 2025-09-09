@@ -41,7 +41,7 @@ docker-compose -p "${project_name}" -f "docker-compose.yml" up -d --build
 [[ $? -ne 0 ]] && exit 1
 set -ex
 
-sleep 60
+sleep 5
 
 validator_container_name="${project_name}${separator}validator${separator}1"
 

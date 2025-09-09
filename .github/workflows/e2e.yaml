@@ -79,5 +79,7 @@ jobs:
         env:
           GOPROXY: https://goproxy.cn,direct
           GOSUMDB: sum.golang.org
+          GOROOT: /opt/hostedtoolcache/go/1.19.13/x64
+          PATH: /opt/hostedtoolcache/go/1.19.13/x64/bin:${{ env.PATH }}
         with:
           e2e-file: ${{ matrix.case.path }}
