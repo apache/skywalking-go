@@ -60,18 +60,16 @@ jobs:
         uses: actions/setup-go@v4
         with:
           go-version: 1.24
-      - uses: actions/checkout@v2
-      - with:
-      - submodules: true
-      - name: Install unzip
-      - run: sudo apt-get update && sudo apt-get install -y unzip
-      - name: Check Go version
-      - run: go version
-      - name: Generate data collect proto
-      - run: make generate-proto
-      - uses: actions/checkout@v2
+      - name: Checkout repository
+        uses: actions/checkout@v2
         with:
           submodules: true
+      - name: Install unzip
+        run: sudo apt-get update && sudo apt-get install -y unzip
+      - name: Check Go version
+        run: go version
+      - name: Generate data collect proto
+        run: make generate-proto
       - name: Download agent binary
         uses: actions/download-artifact@v4
         with:
