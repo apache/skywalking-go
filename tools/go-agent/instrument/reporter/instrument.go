@@ -196,7 +196,6 @@ func {{.InitFuncName}}(logger operator.LogOperator) (Reporter, error) {
 	checkInterval := time.Second * time.Duration(checkIntervalVal)
 `
 
-// TODO: pprof task manager should be added to the initManager function
 const initManagerFunc = `
 
 func initManager(logger operator.LogOperator, checkInterval time.Duration) (*ConnectionManager, *CDSManager, *PprofTaskManager, error) {

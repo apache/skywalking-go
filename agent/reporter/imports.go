@@ -19,15 +19,12 @@ package reporter
 
 import (
 	// imports required packages for gRPC reporter
-	_ "bytes"
 	_ "context"
 	_ "crypto/tls"
 	_ "crypto/x509"
 	_ "fmt"
 	_ "io"
 	_ "os"
-	_ "runtime"
-	_ "runtime/pprof"
 	_ "strconv"
 	_ "strings"
 	_ "sync"

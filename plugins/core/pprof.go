@@ -32,7 +32,6 @@ type PprofTaskCommandImpl struct {
 	duration time.Duration
 	// Unix timestamp in milliseconds when the task was created
 	createTime int64
-	// Processed dump period (unit is hz for CPU, converted for internal use)
 	dumpPeriod int
 
 	// for pprof task service
@@ -80,8 +79,7 @@ func (command *PprofTaskCommandImpl) StartTask() (io.Writer, error) {
 		writer = &bytes.Buffer{}
 	} else {
 		// sample data to file
-		timestamp := time.Now().Format("20060102150405")
-		fileName := strings.ToLower(command.events) + "_" + timestamp + "_" + command.taskId + ".pprof"
+		fileName := strings.ToLower(command.events) + "_" + command.taskId + ".pprof"
 		pprofFilePath := command.pprofFilePath + fileName
 		writer, err = os.Create(pprofFilePath)
 		if err != nil {
@@ -98,15 +96,11 @@ func (command *PprofTaskCommandImpl) StartTask() (io.Writer, error) {
 			isRunning.Store(false)
 			return nil, err
 		}
-		command.logger.Infof("CPU profiling task started for %s", command.taskId)
 	case reporter.EventsTypeHeap:
-		command.logger.Infof("Heap profiling task started for %s", command.taskId)
 	case reporter.EventsTypeBlock:
 		runtime.SetBlockProfileRate(command.dumpPeriod)
-		command.logger.Infof("Block profiling task started for %s", command.taskId)
 	case reporter.EventsTypeMutex:
 		runtime.SetMutexProfileFraction(command.dumpPeriod)
-		command.logger.Infof("Mutex profiling task started for %s", command.taskId)
 	default:
 		return nil, fmt.Errorf("unsupported profile type: %s", command.events)
 	}
@@ -148,8 +142,6 @@ func (command *PprofTaskCommandImpl) StopTask(writer io.Writer) {
 		}
 	}
 	command.readPprofData(command.taskId, writer)
-	command.logger.Infof("Pprof task completed for taskId: %s, type: %s", command.taskId, command.events)
-
 }
 
 func (command *PprofTaskCommandImpl) readPprofData(taskId string, writer io.Writer) {

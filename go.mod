@@ -1,8 +1,6 @@
 module github.com/apache/skywalking-go
 
-go 1.24
-
-toolchain go1.24.3
+go 1.19
 
 require (
 	github.com/google/uuid v1.6.0

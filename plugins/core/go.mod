@@ -1,8 +1,6 @@
 module github.com/apache/skywalking-go/plugins/core
 
-go 1.24
-
-toolchain go1.24.3
+go 1.19
 
 require (
 	github.com/dave/dst v0.27.2

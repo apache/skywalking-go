@@ -179,8 +179,11 @@ func (r *PprofTaskManager) ReportPprof(taskId string, content []byte) {
 		Type:            pprofv10.PprofProfilingStatus_PPROF_PROFILING_SUCCESS,
 		ContentSize:     int32(len(content)),
 	}
-	r.logger.Infof("sending pprof data for task %s, size: %d bytes", taskId, len(content))
 
+	go r.uploadPprofData(metaData, content, taskId)
+}
+
+func (r *PprofTaskManager) uploadPprofData(metaData *pprofv10.PprofMetaData, content []byte, taskId string) {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
@@ -190,24 +193,7 @@ func (r *PprofTaskManager) ReportPprof(taskId string, content []byte) {
 		return
 	}
 
-	done := make(chan struct{})
-	go func() {
-		defer close(done)
-		r.uploadPprofData(ctx, stream, metaData, content, taskId)
-	}()
-
-	select {
-	case <-done:
-		r.logger.Infof("successfully uploaded pprof data for task %s (%d bytes)", taskId, len(content))
-	case <-ctx.Done():
-		r.logger.Errorf("pprof upload timeout for task %s", taskId)
-	}
-}
-
-// uploadPprofData upload pprof data to server
-func (r *PprofTaskManager) uploadPprofData(ctx context.Context, stream pprofv10.PprofTask_CollectClient,
-	metaData *pprofv10.PprofMetaData, content []byte, taskId string) {
-
+	// Send metadata
 	metadataMsg := &pprofv10.PprofData{
 		Metadata: metaData,
 	}
@@ -232,6 +218,7 @@ func (r *PprofTaskManager) uploadPprofData(ctx context.Context, stream pprofv10.
 	default:
 	}
 
+	// Upload content in chunks
 	chunkCount := 0
 	contentSize := len(content)
 
@@ -252,18 +239,28 @@ func (r *PprofTaskManager) uploadPprofData(ctx context.Context, stream pprofv10.
 			return
 		}
 		chunkCount++
-
 		// Check context timeout
 		select {
 		case <-ctx.Done():
-			r.logger.Errorf("context timeout during chunk upload")
+			r.logger.Errorf("context timeout during chunk upload for task %s", taskId)
 			return
 		default:
-			// Continue sending
 		}
 	}
+
 	if err := stream.CloseSend(); err != nil {
 		r.logger.Errorf("failed to close send stream: %v", err)
 		return
+	}
+
+	for {
+		_, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			r.logger.Errorf("error receiving final response for task %s: %v", taskId, err)
+			break
+		}
 	}
 }

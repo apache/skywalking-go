@@ -93,7 +93,6 @@ reporter:
     # Acknowledge, 0: none, 1: leader, -1: all
     acks: ${SW_AGENT_REPORTER_KAFKA_ACKS:1}
     
-
 log:
   # The type determines which logging type is currently used by the system.
   # The Go agent wourld use this log type to generate custom logs. It supports: "auto", "logrus", or "zap".
