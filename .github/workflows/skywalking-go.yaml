@@ -17,7 +17,7 @@
 name: CI
 
 on:
-  pull-request:
+  pull_request:
 
 jobs:
   tests:

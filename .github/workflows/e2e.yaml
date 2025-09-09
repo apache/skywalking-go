@@ -16,7 +16,7 @@
 name: E2E
 
 on:
-  pull-request:
+  pull_request:
 
 jobs:
   build:
