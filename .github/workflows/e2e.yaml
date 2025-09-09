@@ -56,6 +56,19 @@ jobs:
           - name: Kafka
             path: test/e2e/case/kafka/e2e.yaml
     steps:
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: 1.24
+      - uses: actions/checkout@v2
+      - with:
+      - submodules: true
+      - name: Install unzip
+      - run: sudo apt-get update && sudo apt-get install -y unzip
+      - name: Check Go version
+      - run: go version
+      - name: Generate data collect proto
+      - run: make generate-proto
       - uses: actions/checkout@v2
         with:
           submodules: true
