@@ -68,7 +68,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y unzip curl docker-compose
+          sudo apt-get install -y unzip
       - name: Generate data collect proto
         run: make generate-proto
       - name: Download agent binary
@@ -83,5 +83,6 @@ jobs:
           GOSUMDB: sum.golang.org
           GOROOT: /opt/hostedtoolcache/go/1.19.13/x64
           PATH: /opt/hostedtoolcache/go/1.19.13/x64/bin:${{ env.PATH }}
+          SHELL: /bin/bash
         with:
           e2e-file: ${{ matrix.case.path }}
