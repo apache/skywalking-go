@@ -82,7 +82,7 @@ jobs:
           GOPROXY: https://goproxy.cn,direct
           GOSUMDB: sum.golang.org
           GOROOT: /opt/hostedtoolcache/go/1.19.13/x64
-          PATH: /opt/hostedtoolcache/go/1.19.13/x64/bin:${{ env.PATH }}
+          PATH: /opt/hostedtoolcache/go/1.19.13/x64/bin:/usr/bin:/bin:/usr/sbin:/sbin
           SHELL: /bin/bash
         with:
           e2e-file: ${{ matrix.case.path }}
