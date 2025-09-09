@@ -23,6 +23,15 @@ export WINDOWS_HOST=`cat /etc/resolv.conf | grep nameserver | cut -d ' ' -f 2`
 sed -i "s/service:8080/$WINDOWS_HOST:8080/g" ./config/excepted.yml
 sed -i "s/HTTP_HOST=127\.0\.0\.1/HTTP_HOST=$WINDOWS_HOST/g" validator.sh
 
+# Diagnostics for host resolution/connectivity
+echo "[wsl] WINDOWS_HOST=$WINDOWS_HOST"
+echo "[wsl] resolv.conf:" && cat /etc/resolv.conf || true
+echo "[wsl] getent hosts for WINDOWS_HOST:" && getent hosts "$WINDOWS_HOST" || true
+echo "[wsl] getent hosts for host.docker.internal:" && getent hosts host.docker.internal || true
+
+# Enable verbose validator healthcheck diagnostics
+sed -i '1i export DEBUG_HEALTHCHECK=1' validator.sh
+
 compose_version=$(docker-compose version --short)
 
 if [[ $compose_version =~ ^(v)?1 ]]; then
