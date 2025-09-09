@@ -86,3 +86,4 @@ jobs:
           SHELL: /bin/bash
         with:
           e2e-file: ${{ matrix.case.path }}
+          go-version: 1.19
