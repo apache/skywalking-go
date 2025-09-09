@@ -54,6 +54,12 @@ reporter:
     authentication: ${SW_AGENT_REPORTER_GRPC_AUTHENTICATION:}
     # The interval(s) of fetching dynamic configuration from backend.
     cds_fetch_interval: ${SW_AGENT_REPORTER_GRPC_CDS_FETCH_INTERVAL:20}
+    pprof:
+      # The interval(s) of fetching pprof task from backend.
+      pprof_fetch_interval: ${SW_AGENT_REPORTER_GRPC_PPROF_TASK_FETCH_INTERVAL:20}
+      # The pprof file path generated when executing the profile task.
+      pprof_file_path: ${SW_AGENT_REPORTER_GRPC_PROFILE_PPROF_FILE_PATH:}
+
     tls:
       # Whether to enable TLS with backend.
       enable: ${SW_AGENT_REPORTER_GRPC_TLS_ENABLE:false}
@@ -86,6 +92,7 @@ reporter:
     batch_timeout_millis: ${SW_AGENT_REPORTER_KAFKA_BATCH_TIMEOUT_MILLIS:1000}
     # Acknowledge, 0: none, 1: leader, -1: all
     acks: ${SW_AGENT_REPORTER_KAFKA_ACKS:1}
+    
 
 log:
   # The type determines which logging type is currently used by the system.

@@ -19,12 +19,15 @@ package reporter
 
 import (
 	// imports required packages for gRPC reporter
+	_ "bytes"
 	_ "context"
 	_ "crypto/tls"
 	_ "crypto/x509"
 	_ "fmt"
 	_ "io"
 	_ "os"
+	_ "runtime"
+	_ "runtime/pprof"
 	_ "strconv"
 	_ "strings"
 	_ "sync"
@@ -71,5 +74,6 @@ import (
 	_ "skywalking.apache.org/repo/goapi/collect/language/profile/v3"
 	_ "skywalking.apache.org/repo/goapi/collect/logging/v3"
 	_ "skywalking.apache.org/repo/goapi/collect/management/v3"
+	_ "skywalking.apache.org/repo/goapi/collect/pprof/v10"
 	_ "skywalking.apache.org/repo/goapi/collect/servicemesh/v3"
 )

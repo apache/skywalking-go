@@ -19,8 +19,10 @@ package core
 
 import (
 	//go:nolint
+	_ "bytes"
 	_ "encoding/base64"
 	_ "fmt"
+	_ "io"
 	_ "log"
 	_ "math"
 	_ "math/rand"
@@ -30,6 +32,7 @@ import (
 	_ "runtime"
 	_ "runtime/debug"
 	_ "runtime/metrics"
+	_ "runtime/pprof"
 	_ "sort"
 	_ "strconv"
 	_ "strings"
@@ -55,4 +58,5 @@ import (
 	_ "skywalking.apache.org/repo/goapi/collect/language/agent/v3"
 	_ "skywalking.apache.org/repo/goapi/collect/language/profile/v3"
 	_ "skywalking.apache.org/repo/goapi/collect/logging/v3"
+	_ "skywalking.apache.org/repo/goapi/collect/pprof/v10"
 )

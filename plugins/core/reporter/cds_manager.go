@@ -89,6 +89,7 @@ func (r *CDSManager) InitCDS(entity *Entity, cdsWatchers []AgentConfigChangeWatc
 				time.Sleep(r.cdsInterval)
 				continue
 			}
+			r.logger.Infof("configurations: %+v, len: %d", configurations, len(configurations.GetCommands()))
 
 			if len(configurations.GetCommands()) > 0 && configurations.GetCommands()[0].Command == "ConfigurationDiscoveryCommand" {
 				command := configurations.GetCommands()[0]
