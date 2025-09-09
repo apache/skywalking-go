@@ -17,7 +17,7 @@
 name: CI
 
 on:
-  pull_request:
+  push:
 
 jobs:
   tests:
@@ -65,7 +65,16 @@ jobs:
         with:
           submodules: true
       - name: Install unzip
+        if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y unzip
+      - name: Install unzip on Windows
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+            Set-ExecutionPolicy Bypass -Scope Process -Force
+            [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+            iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+            choco install unzip -y
       - name: Generate data collect proto
         run: make generate-proto
       - name: Get dependencies
