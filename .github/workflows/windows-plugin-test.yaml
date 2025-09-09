@@ -21,7 +21,7 @@ concurrency:
   cancel-in-progress: true
 
 on:
-  push:
+  pull-request:
 
 jobs:
   test-on-windows:

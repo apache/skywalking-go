@@ -16,7 +16,7 @@
 name: E2E
 
 on:
-  push:
+  pull-request:
 
 jobs:
   build:
