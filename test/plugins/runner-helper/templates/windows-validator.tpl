@@ -88,6 +88,11 @@ for candidate in "${POSSIBLE_HOSTS[@]}"; do
   fi
 done
 
+# Sync expected file host to the selected HTTP_HOST to avoid mismatch
+if [ -f /workspace/config/excepted.yml ]; then
+  sed -i "s#service:8080#${HTTP_HOST}:8080#g" /workspace/config/excepted.yml || true
+fi
+
 echo "Checking the service health status..."
 dumpDocker "before-healthcheck"
 healthCheck "{{.Context.Config.HealthChecker}}"
