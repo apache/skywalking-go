@@ -30,11 +30,13 @@ dumpDocker() {
         echo "[DOCKER-$phase] docker ps -a"
         docker ps -a || true
         echo "[DOCKER-$phase] Container states and health:"
-        for name in $(docker ps -a --format '{{.Names}}'); do
-            docker inspect -f '{{.Name}} state={{.State.Status}} health={{if .State.Health}}{{.State.Health.Status}}{{else}}n/a{{end}}' "$name" || true
+        local ps_fmt='{{"{{"}}.Names{{"}}"}}'
+        local inspect_fmt='{{"{{"}}.Name{{"}}"}} state={{"{{"}}.State.Status{{"}}"}} health={{"{{"}}if .State.Health{{"}}"}}{{"{{"}}.State.Health.Status{{"}}"}}{{"{{"}}else{{"}}"}}n/a{{"{{"}}end{{"}}"}}'
+        for name in $(docker ps -a --format "$ps_fmt"); do
+            docker inspect -f "$inspect_fmt" "$name" || true
         done
         echo "[DOCKER-$phase] Recent logs (last 200 lines) for each container:"
-        for name in $(docker ps -a --format '{{.Names}}'); do
+        for name in $(docker ps -a --format "$ps_fmt"); do
             echo "------ logs: $name (tail -200) ------"
             docker logs --tail 200 "$name" || true
         done
