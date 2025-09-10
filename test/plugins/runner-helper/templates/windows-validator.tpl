@@ -71,7 +71,7 @@ healthCheck() {
     exitOnError "{{.Context.ScenarioName}}-{{.Context.CaseName}} url=${HEALTH_CHECK_URL}, status=${STATUS} health check failed!"
 }
 
-HTTP_HOST=127.0.0.1
+HTTP_HOST=host.docker.internal
 HTTP_PORT={{.Context.Config.ExportPort}}
 
 echo "Checking the service health status..."
