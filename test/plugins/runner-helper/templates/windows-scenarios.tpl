@@ -37,6 +37,22 @@ eval "$(grep '^export ' ./bin/startup.sh)"
 ./${project_name} &
 web_pid=$!
 
+echo "[HOST] docker ps -a (before WSL run)"
+docker ps -a || true
+echo "[HOST] Logs tail (before) for ${project_name}-oap-1 and ${project_name}-validator-1"
+for name in "${project_name}-oap-1" "${project_name}-validator-1"; do
+  echo "------ logs: $name (tail -200) ------"
+  docker logs --tail 200 "$name" || true
+done
+
 wsl-run.bat "${home}/wsl-scenarios.sh"
+
+echo "[HOST] docker ps -a (after WSL run)"
+docker ps -a || true
+echo "[HOST] Logs tail (after) for ${project_name}-oap-1 and ${project_name}-validator-1"
+for name in "${project_name}-oap-1" "${project_name}-validator-1"; do
+  echo "------ logs: $name (tail -200) ------"
+  docker logs --tail 200 "$name" || true
+done
 
 kill -9 $web_pid
