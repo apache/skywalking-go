@@ -54,6 +54,8 @@ if [[ -z ${validator_container_id} ]]; then
     status=1
     echo "[WSL] docker ps -a (startup failure)" >&2
     docker ps -a || true >&2
+    echo "[WSL] docker inspect (startup failure) for ${project_name}${separator}oap${separator}1 and ${validator_container_name}" >&2
+    docker inspect "${project_name}${separator}oap${separator}1" "${validator_container_name}" || true >&2
     echo "[WSL] Logs tail (startup failure) for ${project_name}${separator}oap${separator}1 and ${validator_container_name}" >&2
     for name in "${project_name}${separator}oap${separator}1" "${validator_container_name}"; do
         echo "------ logs: $name (tail -200) ------" >&2
@@ -63,6 +65,8 @@ else
     [[ $status -ne 0 ]] && docker logs ${validator_container_id} >&2
     echo "[WSL] docker ps -a (before teardown)" >&2
     docker ps -a || true >&2
+    echo "[WSL] docker inspect (before teardown) for ${project_name}${separator}oap${separator}1 and ${validator_container_name}" >&2
+    docker inspect "${project_name}${separator}oap${separator}1" "${validator_container_name}" || true >&2
     echo "[WSL] Logs tail (before teardown) for ${project_name}${separator}oap${separator}1 and ${validator_container_name}" >&2
     for name in "${project_name}${separator}oap${separator}1" "${validator_container_name}"; do
         echo "------ logs: $name (tail -200) ------" >&2
