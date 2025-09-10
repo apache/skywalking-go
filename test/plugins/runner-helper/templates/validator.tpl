@@ -48,7 +48,7 @@ healthCheck() {
     exitOnError "{{.Context.ScenarioName}}-{{.Context.CaseName}} url=${HEALTH_CHECK_URL}, status=${STATUS} health check failed!"
 }
 
-HTTP_HOST=127.0.0.1
+HTTP_HOST=service
 HTTP_PORT={{.Context.Config.ExportPort}}
 
 echo "Checking the service health status..."
@@ -59,11 +59,11 @@ echo "Visiting entry service..."
 sleep 5
 
 echo "Receiving actual data..."
-curl -s --max-time 3 http://localhost:12800/receiveData > /workspace/config/actual.yaml
+curl -s --max-time 3 http://oap:12800/receiveData > /workspace/config/actual.yaml
 [[ ! -f /workspace/config/actual.yaml ]] && exitOnError "{{.Context.ScenarioName}}-{{.Context.CaseName}}, 'actual.yaml' Not Found!"
 
 echo "Validating actual data..."
-response=$(curl -X POST --data-binary "@/workspace/config/excepted.yml" -s -w "\n%{http_code}" http://localhost:12800/dataValidate)
+response=$(curl -X POST --data-binary "@/workspace/config/excepted.yml" -s -w "\n%{http_code}" http://oap:12800/dataValidate)
 status_code=$(echo "$response" | tail -n1)
 response_body=$(echo "$response" | head -n -1)
 if [ "$status_code" -ne 200 ]; then
