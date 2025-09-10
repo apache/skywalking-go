@@ -47,30 +47,29 @@ dumpDocker() {
 
 healthCheck() {
     HEALTH_CHECK_URL=$1
+    echo "[DEBUG] Starting health check for URL: ${HEALTH_CHECK_URL}" >&2
     STATUS=""
     TIMES=${TIMES:-120}
     i=1
     while [[ $i -lt ${TIMES} ]];
     do
-        STATUS=$(curl --max-time 3 -is ${HEALTH_CHECK_URL} | grep -oE "HTTP/.*\s+200")
+        STATUS=$(curl --max-time 5 -is ${HEALTH_CHECK_URL} | grep -oE "HTTP/.*\s+200")
         if [[ -n "$STATUS" ]]; then
-          echo "${HEALTH_CHECK_URL}: ${STATUS}"
+          echo "[DEBUG] Success: ${HEALTH_CHECK_URL}: ${STATUS}" >&2
           return 0
         fi
         sleep 3
         i=$(($i + 1))
     done
 
-    echo "Health check failed after $TIMES attempts for ${HEALTH_CHECK_URL}." >&2
-    echo "Resolver/hosts debug:" >&2
+    echo "[ERROR] Health check failed after $TIMES attempts for ${HEALTH_CHECK_URL}." >&2
+    echo "[DEBUG] Resolver/hosts debug:" >&2
     cat /etc/resolv.conf || true >&2
     getent hosts || true >&2
-    echo "Verbose curl output:" >&2
+    echo "[DEBUG] Verbose curl output:" >&2
     curl -v --max-time 5 -is ${HEALTH_CHECK_URL} || true >&2
-    dumpDocker "on-failure"
     exitOnError "{{.Context.ScenarioName}}-{{.Context.CaseName}} url=${HEALTH_CHECK_URL}, status=${STATUS} health check failed!"
 }
-
 HTTP_HOST=127.0.0.1
 HTTP_PORT={{.Context.Config.ExportPort}}
 
@@ -81,7 +80,7 @@ POSSIBLE_HOSTS=(host.docker.internal ${WINDOWS_HOST} 127.0.0.1)
 for candidate in "${POSSIBLE_HOSTS[@]}"; do
   [ -z "$candidate" ] && continue
   echo "Probing health endpoint via $candidate:$HTTP_PORT ..."
-  if curl --max-time 3 -is "http://$candidate:$HTTP_PORT/health" | grep -qE "HTTP/.*\s+200"; then
+  if curl --max-time 5 -is "http://$candidate:$HTTP_PORT/health" | grep -qE "HTTP/.*\s+200"; then
     HTTP_HOST=$candidate
     echo "Selected HTTP_HOST=$HTTP_HOST"
     break
