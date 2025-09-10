@@ -128,14 +128,14 @@ echo "Modifying import paths in generated Go files..."
 find "$OUTPUT_BASE_DIR" -name "*.pb.go" \
      -exec sed -i 's|"skywalking\.apache\.org/repo/goapi/|"github.com/apache/skywalking-go/protocols/|g' {} \;
 
-# 重新组织目录结构，去掉所有中间目录
+
 echo "Reorganizing directory structure..."
 if [ -d "$OUTPUT_BASE_DIR/skywalking.apache.org" ]; then
-    # 将 repo/goapi/collect/... 直接移动到 protocols/collect/...
+
     if [ -d "$OUTPUT_BASE_DIR/skywalking.apache.org/repo/goapi/collect" ]; then
         mv "$OUTPUT_BASE_DIR/skywalking.apache.org/repo/goapi/collect" "$OUTPUT_BASE_DIR/"
     fi
-    # 清理空目录
+
     rm -rf "$OUTPUT_BASE_DIR/skywalking.apache.org" 2>/dev/null || true
 fi
 

@@ -27,7 +27,7 @@ healthCheck() {
     HEALTH_CHECK_URL=$1
     STATUS=""
     TIMES=${TIMES:-120}
-    
+
     # Debug: Parse URL and check host resolution
     echo "[HC-DEBUG] Checking URL: $HEALTH_CHECK_URL"
     host_part=${HEALTH_CHECK_URL#*://}
@@ -35,24 +35,24 @@ healthCheck() {
     echo "[HC-DEBUG] Host part: $host_part"
     echo "[HC-DEBUG] Host resolution:"
     getent hosts "$host_part" || echo "[HC-DEBUG] Host resolution failed for: $host_part"
-    
+
     i=1
     while [[ $i -lt ${TIMES} ]];
     do
         echo "[HC-DEBUG] Attempt $i/$TIMES: Testing $HEALTH_CHECK_URL"
-        
+
         # Debug: Show curl timing and response details
         echo "[HC-DEBUG] Curl timing test:"
         curl_timing=$(curl -s -o /dev/null -w "HTTP_CODE:%{http_code} CONNECT:%{time_connect}s STARTTRANSFER:%{time_starttransfer}s TOTAL:%{time_total}s" --max-time 3 "$HEALTH_CHECK_URL" 2>&1 || echo "curl_failed")
         echo "[HC-DEBUG] $curl_timing"
-        
+
         # Original health check logic
         STATUS=$(curl --max-time 3 -is ${HEALTH_CHECK_URL} | grep -oE "HTTP/.*\s+200")
         if [[ -n "$STATUS" ]]; then
           echo "[HC-DEBUG] SUCCESS: ${HEALTH_CHECK_URL}: ${STATUS}"
           return 0
         fi
-        
+
         echo "[HC-DEBUG] Attempt $i failed, sleeping 3s..."
         sleep 3
         i=$(($i + 1))
