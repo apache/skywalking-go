@@ -71,8 +71,22 @@ healthCheck() {
     exitOnError "{{.Context.ScenarioName}}-{{.Context.CaseName}} url=${HEALTH_CHECK_URL}, status=${STATUS} health check failed!"
 }
 
-HTTP_HOST=host.docker.internal
+HTTP_HOST=127.0.0.1
 HTTP_PORT={{.Context.Config.ExportPort}}
+
+# Auto-detect a reachable host for Windows service from container context
+WINDOWS_HOST=$(grep -m1 nameserver /etc/resolv.conf 2>/dev/null | awk '{print $2}')
+POSSIBLE_HOSTS=(host.docker.internal ${WINDOWS_HOST} 127.0.0.1)
+
+for candidate in "${POSSIBLE_HOSTS[@]}"; do
+  [ -z "$candidate" ] && continue
+  echo "Probing health endpoint via $candidate:$HTTP_PORT ..."
+  if curl --max-time 3 -is "http://$candidate:$HTTP_PORT/health" | grep -qE "HTTP/.*\s+200"; then
+    HTTP_HOST=$candidate
+    echo "Selected HTTP_HOST=$HTTP_HOST"
+    break
+  fi
+done
 
 echo "Checking the service health status..."
 dumpDocker "before-healthcheck"

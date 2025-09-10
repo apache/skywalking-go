@@ -21,6 +21,9 @@ cp -rf /mnt/d/a/skywalking-go/skywalking-go/test/plugins/workspace /root/repo/sk
 cd {{.Context.WorkSpaceDir}}
 export WINDOWS_HOST=`cat /etc/resolv.conf | grep nameserver | cut -d ' ' -f 2`
 
+# Keep validator.sh using Windows host IP for healthcheck
+sed -i "s/HTTP_HOST=127\.0\.0\.1/HTTP_HOST=$WINDOWS_HOST/g" validator.sh
+
 
 compose_version=$(docker-compose version --short)
 
