@@ -73,21 +73,27 @@ healthCheck() {
 HTTP_HOST=127.0.0.1
 HTTP_PORT={{.Context.Config.ExportPort}}
 
-# Auto-detect a reachable host for Windows service from container context
-WINDOWS_HOST=$(grep -m1 nameserver /etc/resolv.conf 2>/dev/null | awk '{print $2}')
-POSSIBLE_HOSTS=(host.docker.internal ${WINDOWS_HOST} 127.0.0.1)
+# Container uses network_mode: host, so 127.0.0.1 should work directly
+echo "[DEBUG] Waiting 10s for Windows service to start..."
+sleep 10
 
-for candidate in "${POSSIBLE_HOSTS[@]}"; do
-  [ -z "$candidate" ] && continue
-  echo "Probing health endpoint via $candidate:$HTTP_PORT ..."
-  if curl --max-time 5 -is "http://$candidate:$HTTP_PORT/health" | grep -qE "HTTP/.*\s+200"; then
-    HTTP_HOST=$candidate
-    echo "Selected HTTP_HOST=$HTTP_HOST"
-    break
-  fi
-done
+# Debug network connectivity from container side
+echo "[DEBUG] Container network debug:"
+echo "[DEBUG] - Container hostname: $(hostname)"
+echo "[DEBUG] - Container IP addresses:"
+ip addr show || ifconfig || echo "No ip/ifconfig available"
+echo "[DEBUG] - /etc/hosts content:"
+cat /etc/hosts
+echo "[DEBUG] - /etc/resolv.conf content:"
+cat /etc/resolv.conf
+echo "[DEBUG] - Testing localhost resolution:"
+nslookup localhost || echo "nslookup failed"
+echo "[DEBUG] - Testing 127.0.0.1 connectivity:"
+ping -c 1 127.0.0.1 || echo "ping 127.0.0.1 failed"
+echo "[DEBUG] - Testing port 8080 on 127.0.0.1:"
+nc -zv 127.0.0.1 8080 || telnet 127.0.0.1 8080 || echo "Port 8080 not reachable"
 
-# Sync expected file host to the selected HTTP_HOST to avoid mismatch
+# Sync expected file host to match the actual HTTP_HOST
 if [ -f /workspace/config/excepted.yml ]; then
   sed -i "s#service:8080#${HTTP_HOST}:8080#g" /workspace/config/excepted.yml || true
 fi
