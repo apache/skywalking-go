@@ -9,6 +9,5 @@ coverage.txt
 /test/plugins/workspace
 /test/plugins/dist/
 /tools/protocols/temp/
-*.pb.go
 vendor/
 VERSION
