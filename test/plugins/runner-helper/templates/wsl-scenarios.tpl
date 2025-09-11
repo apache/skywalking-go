@@ -24,17 +24,35 @@ echo "[DEBUG] - /etc/resolv.conf content:"
 cat /etc/resolv.conf || true
 echo "[DEBUG] - WSL version:"
 cat /proc/version || true
-echo "[DEBUG] - Network interfaces:"
-ip route 2>/dev/null || true
-ip addr show 2>/dev/null || ifconfig 2>/dev/null || true
+echo "[DEBUG] - Network interfaces (brief):"
+echo "[DEBUG] --- ip route BEGIN ---"
+if command -v ip >/dev/null 2>&1; then
+  ip route | sed -n '1,120p'
+  ip_rc=$?
+  echo "[DEBUG] ip route exit=$ip_rc"
+else
+  echo "[WARN] 'ip' not found"
+fi
+echo "[DEBUG] --- ip route END ---"
+echo "[DEBUG] --- ip addr BEGIN ---"
+if command -v ip >/dev/null 2>&1; then
+  ip -brief addr 2>&1 | sed -n '1,120p'
+elif command -v ifconfig >/dev/null 2>&1; then
+  ifconfig -a 2>&1 | sed -n '1,120p'
+else
+  echo "[WARN] neither 'ip' nor 'ifconfig' available"
+fi
+echo "[DEBUG] --- ip addr END ---"
 echo "[DEBUG] - Route table:"
 ip route 2>/dev/null || route -n 2>/dev/null || true
 
 # Derive Windows host IP robustly: prefer WSL default gateway (Windows vEthernet address),
 # then fallback to route table; DO NOT use resolv.conf nameserver
-WINDOWS_HOST=$(ip route 2>/dev/null | awk '/^default/ {print $3; exit}')
-if [ -z "$WINDOWS_HOST" ]; then
-  WINDOWS_HOST=$(route -n 2>/dev/null | awk '/^0.0.0.0/ {print $2; exit}')
+if command -v ip >/dev/null 2>&1; then
+  WINDOWS_HOST=$(ip route | awk '/^default/ {print $3; exit}')
+fi
+if [ -z "$WINDOWS_HOST" ] && command -v route >/dev/null 2>&1; then
+  WINDOWS_HOST=$(route -n | awk '/^0.0.0.0/ {print $2; exit}')
 fi
 if [ -z "$WINDOWS_HOST" ]; then
   WINDOWS_HOST="127.0.0.1"
