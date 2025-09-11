@@ -50,9 +50,9 @@ import (
 	_ "github.com/pkg/errors"
 
 	//go:nolint
-	_ "skywalking.apache.org/repo/goapi/collect/common/v3"
-	_ "skywalking.apache.org/repo/goapi/collect/event/v3"
-	_ "skywalking.apache.org/repo/goapi/collect/language/agent/v3"
-	_ "skywalking.apache.org/repo/goapi/collect/language/profile/v3"
-	_ "skywalking.apache.org/repo/goapi/collect/logging/v3"
+	_ "github.com/apache/skywalking-go/protocols/collect/common/v3"
+	_ "github.com/apache/skywalking-go/protocols/collect/event/v3"
+	_ "github.com/apache/skywalking-go/protocols/collect/language/agent/v3"
+	_ "github.com/apache/skywalking-go/protocols/collect/language/profile/v3"
+	_ "github.com/apache/skywalking-go/protocols/collect/logging/v3"
 )

@@ -33,7 +33,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	agentv3 "skywalking.apache.org/repo/goapi/collect/language/agent/v3"
+	agentv3 "github.com/apache/skywalking-go/protocols/collect/language/agent/v3"
 )
 
 func init() {

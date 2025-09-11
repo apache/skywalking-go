@@ -57,6 +57,12 @@ deps:
 linter:
 	$(GO_LINT) version || curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GO_PATH)/bin v1.50.0
 
+##@ General
+
+.PHONY: generate
+generate: ## generate data collect proto
+	$(SH) $(REPODIR)tools/protocols/generate.sh
+
 
 ##@ Golang
 
