@@ -21,16 +21,27 @@ cp -rf /mnt/d/a/skywalking-go/skywalking-go/test/plugins/workspace /root/repo/sk
 cd {{.Context.WorkSpaceDir}}
 echo "[DEBUG] WSL network debug:"
 echo "[DEBUG] - /etc/resolv.conf content:"
-cat /etc/resolv.conf
+cat /etc/resolv.conf || true
 echo "[DEBUG] - WSL version:"
-cat /proc/version
+cat /proc/version || true
 echo "[DEBUG] - Network interfaces:"
-ip addr show || ifconfig
+ip route 2>/dev/null || true
+ip addr show 2>/dev/null || ifconfig 2>/dev/null || true
 echo "[DEBUG] - Route table:"
-ip route || route -n
+ip route 2>/dev/null || route -n 2>/dev/null || true
 
-export WINDOWS_HOST=`cat /etc/resolv.conf | grep nameserver | cut -d ' ' -f 2`
-echo "[DEBUG] WSL detected Windows host IP: $WINDOWS_HOST"
+# Derive Windows host IP robustly: prefer WSL default gateway (Windows vEthernet address),
+# then fallback to route table; DO NOT use resolv.conf nameserver
+WINDOWS_HOST=$(ip route 2>/dev/null | awk '/^default/ {print $3; exit}')
+if [ -z "$WINDOWS_HOST" ]; then
+  WINDOWS_HOST=$(route -n 2>/dev/null | awk '/^0.0.0.0/ {print $2; exit}')
+fi
+if [ -z "$WINDOWS_HOST" ]; then
+  WINDOWS_HOST="127.0.0.1"
+  echo "[DEBUG] Fallback WINDOWS_HOST to 127.0.0.1"
+fi
+echo "[DEBUG] Resolved Windows host candidate IP: $WINDOWS_HOST"
+export WINDOWS_HOST
 
 # Keep validator.sh using Windows host IP for healthcheck
 sed -i "s/HTTP_HOST=127\.0\.0\.1/HTTP_HOST=$WINDOWS_HOST/g" validator.sh
