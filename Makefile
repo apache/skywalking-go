@@ -59,9 +59,9 @@ linter:
 
 ##@ General
 
-.PHONY: generate-proto
-generate-proto: ## generate data collect proto
-	cd tools/protocols && ./pull-proto.sh
+.PHONY: generate
+generate: ## generate data collect proto
+	$(SH) $(REPODIR)tools/protocols/generate.sh
 
 
 ##@ Golang

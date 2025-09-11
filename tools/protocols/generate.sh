@@ -21,17 +21,18 @@ set -e
 # -----------------------------
 # Configuration
 # -----------------------------
-export GOPROXY=https://goproxy.cn,direct
+#export GOPROXY=https://goproxy.cn,direct
+#export PATH="/home/runner/go/bin:$PATH"
+#export GOPATH="${GOPATH:-$HOME/go}"
 PROTOC_VERSION=3.14.0
-export PATH="/home/runner/go/bin:$PATH"
-export GOPATH="${GOPATH:-$HOME/go}"
-BASEDIR=$(dirname "$0")
-TEMPDIR="$BASEDIR"/temp
-BINDIR="$TEMPDIR"/bin
-INCLUDE_DIR="$TEMPDIR"/include
+BASEDIR="$(cd "$(dirname "$0")"; pwd)"
+TEMPDIR="$BASEDIR/temp"
+BINDIR="$TEMPDIR/bin"
+INCLUDE_DIR="$TEMPDIR/include"
 
-SUBMODULE_PATH="skywalking-data-collect-protocol"
-OUTPUT_BASE_DIR="../../protocols"
+SUBMODULE_PATH="$BASEDIR/skywalking-data-collect-protocol"
+# Use absolute output path to avoid cwd dependency
+OUTPUT_BASE_DIR="$(cd "$BASEDIR/../.."; pwd)/protocols"
 
 mkdir -p "$OUTPUT_BASE_DIR"
 mkdir -p "$BINDIR"
@@ -93,12 +94,12 @@ echo "Current go version:"
 go version
 if ! command -v protoc-gen-go &>/dev/null; then
     echo "Installing protoc-gen-go v1.26..."
-    GO111MODULE=on GOPROXY=https://goproxy.cn,direct GOSUMDB=sum.golang.google.cn go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.26.0
+    go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.26.0
 fi
 
 if ! command -v protoc-gen-go-grpc &>/dev/null; then
     echo "Installing protoc-gen-go-grpc v1.1..."
-    GO111MODULE=on GOPROXY=https://goproxy.cn,direct GOSUMDB=sum.golang.google.cn go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.1.0
+    go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.1.0
 
 fi
 
@@ -133,6 +134,8 @@ echo "Reorganizing directory structure..."
 if [ -d "$OUTPUT_BASE_DIR/skywalking.apache.org" ]; then
 
     if [ -d "$OUTPUT_BASE_DIR/skywalking.apache.org/repo/goapi/collect" ]; then
+        # Ensure target directory is clean to avoid "Directory not empty"
+        rm -rf "$OUTPUT_BASE_DIR/collect" 2>/dev/null || true
         mv "$OUTPUT_BASE_DIR/skywalking.apache.org/repo/goapi/collect" "$OUTPUT_BASE_DIR/"
     fi
 

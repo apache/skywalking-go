@@ -14,7 +14,7 @@ Release Notes.
 #### Plugins
 
 #### Documentation
-
+* Replace external `goapi` dependency with in-repo generated protocols.
 #### Bug Fixes
 
 * Fix plugin interceptors bypassed on Windows.
