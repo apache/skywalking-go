@@ -19,7 +19,18 @@
 set -ex
 cp -rf /mnt/d/a/skywalking-go/skywalking-go/test/plugins/workspace /root/repo/skywalking-go/test/plugins/
 cd {{.Context.WorkSpaceDir}}
+echo "[DEBUG] WSL network debug:"
+echo "[DEBUG] - /etc/resolv.conf content:"
+cat /etc/resolv.conf
+echo "[DEBUG] - WSL version:"
+cat /proc/version
+echo "[DEBUG] - Network interfaces:"
+ip addr show || ifconfig
+echo "[DEBUG] - Route table:"
+ip route || route -n
+
 export WINDOWS_HOST=`cat /etc/resolv.conf | grep nameserver | cut -d ' ' -f 2`
+echo "[DEBUG] WSL detected Windows host IP: $WINDOWS_HOST"
 
 # Keep validator.sh using Windows host IP for healthcheck
 sed -i "s/HTTP_HOST=127\.0\.0\.1/HTTP_HOST=$WINDOWS_HOST/g" validator.sh
