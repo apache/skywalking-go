@@ -18,12 +18,6 @@
 
 set -e
 
-# -----------------------------
-# Configuration
-# -----------------------------
-#export GOPROXY=https://goproxy.cn,direct
-#export PATH="/home/runner/go/bin:$PATH"
-#export GOPATH="${GOPATH:-$HOME/go}"
 PROTOC_VERSION=3.14.0
 BASEDIR="$(cd "$(dirname "$0")"; pwd)"
 TEMPDIR="$BASEDIR/temp"
