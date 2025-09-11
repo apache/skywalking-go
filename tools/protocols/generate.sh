@@ -137,3 +137,9 @@ if [ -d "$OUTPUT_BASE_DIR/skywalking.apache.org" ]; then
 fi
 
 echo "Code generation completed. Output directory: $OUTPUT_BASE_DIR"
+
+# -----------------------------
+# Cleanup temporary files
+# -----------------------------
+echo "Cleaning up temporary files under $TEMPDIR ..."
+rm -rf "$TEMPDIR" 2>/dev/null || true
