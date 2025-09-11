@@ -34,8 +34,36 @@ export SW_AGENT_METER_COLLECT_INTERVAL=1
 export SW_AGENT_REPORTER_CHECK_INTERVAL=5
 eval "$(grep '^export ' ./bin/startup.sh)"
 
+# HTTP server will listen on 127.0.0.1:8080 (default)
+# Container uses network_mode: host, so it should access 127.0.0.1:8080 directly
+echo "[DEBUG] Starting HTTP service: ./${project_name}"
 ./${project_name} &
 web_pid=$!
+echo "[DEBUG] HTTP service started with PID: $web_pid"
+
+# Wait a moment and check if the service is running
+sleep 2
+if ps -p $web_pid > /dev/null; then
+  echo "[DEBUG] HTTP service is running (PID: $web_pid)"
+else
+  echo "[ERROR] HTTP service failed to start or crashed immediately"
+fi
+
+# Check if port 8080 is listening
+echo "[DEBUG] Checking if port 8080 is listening..."
+netstat -an | grep :8080 || echo "[WARN] Port 8080 not found in netstat"
+
+# Try to access the health endpoint from Windows side
+echo "[DEBUG] Testing health endpoint from Windows side..."
+curl -s http://127.0.0.1:8080/health && echo " - Health check OK" || echo " - Health check FAILED"
+
+echo "[HOST] docker ps -a (before WSL run)"
+docker ps -a || true
+echo "[HOST] Logs tail (before) for ${project_name}-oap-1 and ${project_name}-validator-1"
+for name in "${project_name}-oap-1" "${project_name}-validator-1"; do
+  echo "------ logs: $name (tail -200) ------"
+  docker logs --tail 200 "$name" || true
+done
 
 wsl-run.bat "${home}/wsl-scenarios.sh"
 

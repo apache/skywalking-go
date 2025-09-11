@@ -80,7 +80,7 @@ jobs:
           - go-redisv9
           - go-restfulv3
           - gorm
-#          - kratosv2 temporary disable because it's not stable
+          #          - kratosv2 temporary disable because it's not stable
           - microv4
           - mongo
           - mysql

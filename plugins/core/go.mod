@@ -9,7 +9,6 @@ require (
 	github.com/stretchr/testify v1.8.2
 	google.golang.org/grpc v1.55.0
 	github.com/segmentio/kafka-go v0.4.47
-	skywalking.apache.org/repo/goapi v0.0.0-20250831073349-4fd1f9f19fb5
 )
 
 require (

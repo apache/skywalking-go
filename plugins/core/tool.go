@@ -27,7 +27,7 @@ import (
 
 	"github.com/google/uuid"
 
-	commonv3 "skywalking.apache.org/repo/goapi/collect/common/v3"
+	commonv3 "github.com/apache/skywalking-go/protocols/collect/common/v3"
 )
 
 // Millisecond converts time to unix millisecond
