@@ -225,7 +225,7 @@ func (m *ProfileManager) TrySetCurrentTask(task *reporter.TraceProfileTask) {
 func (m *ProfileManager) generateProfileLabels(traceSegmentID string, minDurationThreshold int64) profileLabels {
 	var l = &LabelSet{}
 
-	l = Labels(l, SegmentLabel, traceSegmentID, MinDurationLabel, strconv.FormatInt(minDurationThreshold, 10))
+	l = UpdateTraceLabels(l, SegmentLabel, traceSegmentID, MinDurationLabel, strconv.FormatInt(minDurationThreshold, 10))
 
 	return profileLabels{
 		labels: l,
@@ -297,9 +297,19 @@ func (m *ProfileManager) AddSpanId(segmentId string, spanID int32) {
 	if !ok || c.labels == nil {
 		return
 	}
-	nowLabels := m.GetPprofLabelSet().(*LabelSet)
-	afterAdd := Labels(nowLabels, SpanLabel, parseString(spanID))
+	nowLabels := m.traceLabelSet(segmentId)
+	afterAdd := UpdateTraceLabels(nowLabels, SpanLabel, parseString(spanID))
+
 	SetGoroutineLabels(afterAdd)
+}
+
+func (m *ProfileManager) traceLabelSet(segmentId string) *LabelSet {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if re, ok := m.labelSets[segmentId]; ok {
+		return re.labels
+	}
+	return nil
 }
 
 func (m *ProfileManager) IncCounter() {

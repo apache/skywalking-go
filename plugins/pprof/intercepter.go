@@ -22,6 +22,7 @@ import (
 	"errors"
 	"github.com/apache/skywalking-go/plugins/core/operator"
 	"github.com/apache/skywalking-go/plugins/core/profile"
+	"github.com/apache/skywalking-go/plugins/core/tracing"
 	"runtime/pprof"
 )
 
@@ -29,11 +30,11 @@ type SetLabelsInterceptor struct{}
 
 func (h *SetLabelsInterceptor) BeforeInvoke(invocation operator.Invocation) error {
 	c := invocation.Args()[0].(context.Context)
-	row := profile.CatchNowProfileLabel()
-	if row == nil {
+	sid := tracing.ActiveSpan().TraceSegmentID()
+	if sid == "" {
 		return nil
 	}
-
+	row := profile.CatchNowProfileLabel(sid)
 	now := profile.TurnToPprofLabel(row)
 	if l, ok := now.(pprof.LabelSet); !ok {
 		return errors.New("profile label transform error")

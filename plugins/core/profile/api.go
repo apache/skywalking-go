@@ -19,7 +19,7 @@ package profile
 
 import "github.com/apache/skywalking-go/plugins/core/operator"
 
-func CatchNowProfileLabel() interface{} {
+func CatchNowProfileLabel(segmentID string) interface{} {
 	op := operator.GetOperator()
 	if op == nil {
 		return nil
@@ -28,7 +28,7 @@ func CatchNowProfileLabel() interface{} {
 	if !ok {
 		return nil
 	}
-	re := profiler.GetPprofLabelSet()
+	re := profiler.GetPprofLabelSet(segmentID)
 	return re
 }
 

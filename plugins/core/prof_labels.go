@@ -37,35 +37,29 @@ type labelMap struct {
 	LabelSet
 }
 
-//go:linkname runtimeGetProfLabel runtime/pprof.runtime_getProfLabel
-func runtimeGetProfLabel() unsafe.Pointer
-
 //go:linkname runtimeSetProfLabel runtime/pprof.runtime_setProfLabel
 func runtimeSetProfLabel(label unsafe.Pointer)
 
-func (m *ProfileManager) GetPprofLabelSet() interface{} {
-	ptr := runtimeGetProfLabel()
-	if ptr != nil {
-		lm := (*labelMap)(ptr)
-		if lm != nil && lm.list != nil {
-			return &lm.LabelSet
-		} else {
-			return &LabelSet{list: make([]label, 0)}
-		}
-	} else {
-		return &LabelSet{list: make([]label, 0)}
+func (m *ProfileManager) GetPprofLabelSet(segmentID string) interface{} {
+	pl := m.traceLabelSet(segmentID)
+	if pl == nil {
+		return &LabelSet{}
 	}
+	return pl
 }
 
 func (m *ProfileManager) TurnToPprofLabel(l interface{}) interface{} {
 	li := l.(*LabelSet).List()
+	if len(li) == 0 {
+		return pprof.LabelSet{}
+	}
 	re := pprof.Labels(li...)
 	return re
 }
 
-func Labels(s *LabelSet, args ...string) *LabelSet {
+func UpdateTraceLabels(s *LabelSet, args ...string) *LabelSet {
 	if len(args)%2 != 0 {
-		panic("uneven number of arguments to profile.Labels")
+		panic("uneven number of arguments to profile.UpdateTraceLabels")
 	}
 
 	// add first
@@ -103,4 +97,8 @@ func (s *LabelSet) List() []string {
 
 func SetGoroutineLabels(s *LabelSet) {
 	runtimeSetProfLabel(unsafe.Pointer(s))
+}
+
+func (s *LabelSet) IsEmpty() bool {
+	return len(s.list) == 0
 }
