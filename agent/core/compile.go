@@ -58,4 +58,5 @@ import (
 	_ "github.com/apache/skywalking-go/protocols/collect/language/agent/v3"
 	_ "github.com/apache/skywalking-go/protocols/collect/language/profile/v3"
 	_ "github.com/apache/skywalking-go/protocols/collect/logging/v3"
+	_ "github.com/apache/skywalking-go/protocols/collect/pprof/v10"
 )
