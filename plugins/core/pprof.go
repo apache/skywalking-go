@@ -40,9 +40,8 @@ func init() {
 }
 
 type PprofTaskCommandImpl struct {
-	serialNumber string
 	// Pprof Task ID
-	taskId string
+	taskID string
 	// Type of profiling (CPU/Heap/Block/Mutex)
 	events string
 	// unit is minute
@@ -57,10 +56,9 @@ type PprofTaskCommandImpl struct {
 	manager       reporter.PprofReporter
 }
 
-func NewPprofTaskCommand(serialNumber, taskId, events string, duration time.Duration, createTime int64, dumpPeriod int, pprofFilePath string, logger operator.LogOperator, manager reporter.PprofReporter) reporter.PprofTaskCommand {
+func NewPprofTaskCommand(taskID, events string, duration time.Duration, createTime int64, dumpPeriod int, pprofFilePath string, logger operator.LogOperator, manager reporter.PprofReporter) reporter.PprofTaskCommand {
 	return &PprofTaskCommandImpl{
-		serialNumber:  serialNumber,
-		taskId:        taskId,
+		taskID:        taskID,
 		events:        events,
 		duration:      duration,
 		createTime:    createTime,
@@ -83,31 +81,31 @@ func (c *PprofTaskCommandImpl) GetDuration() time.Duration {
 	return c.duration
 }
 
-func (command *PprofTaskCommandImpl) StartTask() (io.Writer, error) {
+func (c *PprofTaskCommandImpl) StartTask() (io.Writer, error) {
 	var err error
 	var writer io.Writer
 
 	// For CPU profiling, check global state first
-	if command.events == reporter.EventsTypeCPU && !isRunning.CompareAndSwap(false, true) {
+	if c.events == reporter.EventsTypeCPU && !isRunning.CompareAndSwap(false, true) {
 		return nil, fmt.Errorf("CPU profiling is already running")
 	}
-	if command.pprofFilePath == "" {
+	if c.pprofFilePath == "" {
 		// sample data to buffer
 		writer = &bytes.Buffer{}
 	} else {
 		// sample data to file
-		fileName := strings.ToLower(command.events) + "_" + command.taskId + ".pprof"
-		pprofFilePath := command.pprofFilePath + fileName
+		fileName := strings.ToLower(c.events) + "_" + c.taskID + ".pprof"
+		pprofFilePath := c.pprofFilePath + fileName
 		writer, err = os.Create(pprofFilePath)
 		if err != nil {
-			if command.GetEvent() == reporter.EventsTypeCPU {
+			if c.GetEvent() == reporter.EventsTypeCPU {
 				isRunning.Store(false)
 			}
 			return nil, err
 		}
 	}
 
-	switch command.events {
+	switch c.events {
 	case reporter.EventsTypeCPU:
 		if err = pprof.StartCPUProfile(writer); err != nil {
 			isRunning.Store(false)
@@ -115,55 +113,55 @@ func (command *PprofTaskCommandImpl) StartTask() (io.Writer, error) {
 		}
 	case reporter.EventsTypeHeap:
 	case reporter.EventsTypeBlock:
-		runtime.SetBlockProfileRate(command.dumpPeriod)
+		runtime.SetBlockProfileRate(c.dumpPeriod)
 	case reporter.EventsTypeMutex:
-		runtime.SetMutexProfileFraction(command.dumpPeriod)
+		runtime.SetMutexProfileFraction(c.dumpPeriod)
 	default:
-		return nil, fmt.Errorf("unsupported profile type: %s", command.events)
+		return nil, fmt.Errorf("unsupported profile type: %s", c.events)
 	}
 
 	return writer, nil
 }
 
-func (command *PprofTaskCommandImpl) StopTask(writer io.Writer) {
+func (c *PprofTaskCommandImpl) StopTask(writer io.Writer) {
 
-	switch command.events {
+	switch c.events {
 	case reporter.EventsTypeCPU:
 		pprof.StopCPUProfile()
 		isRunning.Store(false)
 	case reporter.EventsTypeHeap:
 		if err := pprof.WriteHeapProfile(writer); err != nil {
-			command.logger.Errorf("write Heap profile error %v", err)
+			c.logger.Errorf("write Heap profile error %v", err)
 		}
 	case reporter.EventsTypeBlock:
 		if profile := pprof.Lookup("block"); profile != nil {
 			if err := profile.WriteTo(writer, 0); err != nil {
-				command.logger.Errorf("write block profile error %v", err)
+				c.logger.Errorf("write block profile error %v", err)
 			}
 		}
 		runtime.SetBlockProfileRate(0)
 	case reporter.EventsTypeMutex:
 		if profile := pprof.Lookup("mutex"); profile != nil {
 			if err := profile.WriteTo(writer, 0); err != nil {
-				command.logger.Errorf("write mutex profile error %v", err)
+				c.logger.Errorf("write mutex profile error %v", err)
 			}
 		}
 		runtime.SetMutexProfileFraction(0)
 	}
 
-	if command.pprofFilePath != "" {
+	if c.pprofFilePath != "" {
 		if file, ok := (writer).(*os.File); ok {
 			if err := file.Close(); err != nil {
-				command.logger.Errorf("failed to close pprof file: %v", err)
+				c.logger.Errorf("failed to close pprof file: %v", err)
 			}
 		}
 	}
-	command.readPprofData(command.taskId, writer)
+	c.readPprofData(c.taskID, writer)
 }
 
-func (command *PprofTaskCommandImpl) readPprofData(taskId string, writer io.Writer) {
+func (c *PprofTaskCommandImpl) readPprofData(taskId string, writer io.Writer) {
 	var data []byte
-	if command.pprofFilePath == "" {
+	if c.pprofFilePath == "" {
 		if buf, ok := writer.(*bytes.Buffer); ok {
 			data = buf.Bytes()
 		}
@@ -172,13 +170,13 @@ func (command *PprofTaskCommandImpl) readPprofData(taskId string, writer io.Writ
 			filePath := file.Name()
 			fileData, err := os.ReadFile(filePath)
 			if err != nil {
-				command.logger.Errorf("failed to read pprof file %s: %v", filePath, err)
+				c.logger.Errorf("failed to read pprof file %s: %v", filePath, err)
 			}
 			data = fileData
 			if err := os.Remove(filePath); err != nil {
-				command.logger.Errorf("failed to remove pprof file %s: %v", filePath, err)
+				c.logger.Errorf("failed to remove pprof file %s: %v", filePath, err)
 			}
 		}
 	}
-	command.manager.ReportPprof(taskId, data)
+	c.manager.ReportPprof(taskId, data)
 }

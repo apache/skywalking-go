@@ -49,7 +49,9 @@ type PprofReporter interface {
 	ReportPprof(taskId string, content []byte)
 }
 
-var NewPprofTaskCommand func(serialNumber, taskId, events string, duration time.Duration, createTime int64, dumpPeriod int, pprofFilePath string, logger operator.LogOperator, manager PprofReporter) PprofTaskCommand
+var NewPprofTaskCommand func(taskId, events string, duration time.Duration,
+	createTime int64, dumpPeriod int, pprofFilePath string,
+	logger operator.LogOperator, manager PprofReporter) PprofTaskCommand
 
 type PprofTaskManager struct {
 	logger         operator.LogOperator
@@ -63,7 +65,9 @@ type PprofTaskManager struct {
 	commands       PprofTaskCommand
 }
 
-func NewPprofTaskManager(logger operator.LogOperator, serverAddr string, pprofInterval time.Duration, connManager *ConnectionManager, pprofFilePath string) (*PprofTaskManager, error) {
+func NewPprofTaskManager(logger operator.LogOperator, serverAddr string,
+	pprofInterval time.Duration, connManager *ConnectionManager,
+	pprofFilePath string) (*PprofTaskManager, error) {
 	PprofManager := &PprofTaskManager{
 		logger:        logger,
 		serverAddr:    serverAddr,
@@ -117,7 +121,7 @@ func (r *PprofTaskManager) InitPprofTask(entity *Entity) {
 	}()
 }
 
-func (r *PprofTaskManager) HandleCommand(rawCommand *commonv3.Command) error {
+func (r *PprofTaskManager) HandleCommand(rawCommand *commonv3.Command) {
 	command := r.deserializePprofTaskCommand(rawCommand)
 	if command.GetCreateTime() > r.LastUpdateTime {
 		r.LastUpdateTime = command.GetCreateTime()
@@ -128,38 +132,33 @@ func (r *PprofTaskManager) HandleCommand(rawCommand *commonv3.Command) error {
 		writer, err := command.StartTask()
 		if err != nil {
 			r.logger.Errorf("start %s pprof error %v \n", command.GetEvent(), err)
-			return err
+			return
 		}
 		command.StopTask(writer)
-
 	} else {
 		// The CPU, Block, and Mutex sampling lasts for a duration and then stops
 		writer, err := command.StartTask()
 		if err != nil {
 			r.logger.Errorf("start CPU pprof error %v \n", err)
-			return err
+			return
 		}
 		time.AfterFunc(command.GetDuration(), func() {
 			command.StopTask(writer)
 		})
 	}
-
-	return nil
 }
 
 func (r *PprofTaskManager) deserializePprofTaskCommand(command *commonv3.Command) PprofTaskCommand {
 	args := command.Args
-	taskId := ""
-	serialNumber := ""
+	taskID := ""
 	events := ""
 	duration := 0
 	dumpPeriod := 0 // Use -1 to indicate no explicit value provided
 	var createTime int64 = 0
 	for _, pair := range args {
 		if pair.GetKey() == "SerialNumber" {
-			serialNumber = pair.GetValue()
 		} else if pair.GetKey() == "TaskId" {
-			taskId = pair.GetValue()
+			taskID = pair.GetValue()
 		} else if pair.GetKey() == "Events" {
 			events = pair.GetValue()
 		} else if pair.GetKey() == "Duration" {
@@ -176,8 +175,7 @@ func (r *PprofTaskManager) deserializePprofTaskCommand(command *commonv3.Command
 	}
 
 	return NewPprofTaskCommand(
-		serialNumber,
-		taskId,
+		taskID,
 		events,
 		time.Duration(duration)*time.Minute,
 		createTime,
@@ -188,16 +186,16 @@ func (r *PprofTaskManager) deserializePprofTaskCommand(command *commonv3.Command
 	)
 }
 
-func (r *PprofTaskManager) ReportPprof(taskId string, content []byte) {
+func (r *PprofTaskManager) ReportPprof(taskID string, content []byte) {
 	metaData := &pprofv10.PprofMetaData{
 		Service:         r.entity.ServiceName,
 		ServiceInstance: r.entity.ServiceInstanceName,
-		TaskId:          taskId,
+		TaskId:          taskID,
 		Type:            pprofv10.PprofProfilingStatus_PPROF_PROFILING_SUCCESS,
 		ContentSize:     int32(len(content)),
 	}
 
-	go r.uploadPprofData(metaData, content, taskId)
+	go r.uploadPprofData(metaData, content, taskID)
 }
 
 func (r *PprofTaskManager) uploadPprofData(metaData *pprofv10.PprofMetaData, content []byte, taskId string) {
@@ -214,7 +212,7 @@ func (r *PprofTaskManager) uploadPprofData(metaData *pprofv10.PprofMetaData, con
 	metadataMsg := &pprofv10.PprofData{
 		Metadata: metaData,
 	}
-	if err := stream.Send(metadataMsg); err != nil {
+	if err = stream.Send(metadataMsg); err != nil {
 		r.logger.Errorf("failed to send metadata: %v", err)
 		return
 	}
