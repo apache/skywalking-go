@@ -159,7 +159,7 @@ func (c *PprofTaskCommandImpl) StopTask(writer io.Writer) {
 	c.readPprofData(c.taskID, writer)
 }
 
-func (c *PprofTaskCommandImpl) readPprofData(taskId string, writer io.Writer) {
+func (c *PprofTaskCommandImpl) readPprofData(taskID string, writer io.Writer) {
 	var data []byte
 	if c.pprofFilePath == "" {
 		if buf, ok := writer.(*bytes.Buffer); ok {
@@ -178,5 +178,5 @@ func (c *PprofTaskCommandImpl) readPprofData(taskId string, writer io.Writer) {
 			}
 		}
 	}
-	c.manager.ReportPprof(taskId, data)
+	c.manager.ReportPprof(taskID, data)
 }

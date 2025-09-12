@@ -46,10 +46,10 @@ type PprofTaskCommand interface {
 	StopTask(io.Writer)
 }
 type PprofReporter interface {
-	ReportPprof(taskId string, content []byte)
+	ReportPprof(taskID string, content []byte)
 }
 
-var NewPprofTaskCommand func(taskId, events string, duration time.Duration,
+var NewPprofTaskCommand func(taskID, events string, duration time.Duration,
 	createTime int64, dumpPeriod int, pprofFilePath string,
 	logger operator.LogOperator, manager PprofReporter) PprofTaskCommand
 
@@ -198,7 +198,7 @@ func (r *PprofTaskManager) ReportPprof(taskID string, content []byte) {
 	go r.uploadPprofData(metaData, content, taskID)
 }
 
-func (r *PprofTaskManager) uploadPprofData(metaData *pprofv10.PprofMetaData, content []byte, taskId string) {
+func (r *PprofTaskManager) uploadPprofData(metaData *pprofv10.PprofMetaData, content []byte, taskID string) {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
@@ -257,7 +257,7 @@ func (r *PprofTaskManager) uploadPprofData(metaData *pprofv10.PprofMetaData, con
 		// Check context timeout
 		select {
 		case <-ctx.Done():
-			r.logger.Errorf("context timeout during chunk upload for task %s", taskId)
+			r.logger.Errorf("context timeout during chunk upload for task %s", taskID)
 			return
 		default:
 		}
@@ -274,7 +274,7 @@ func (r *PprofTaskManager) uploadPprofData(metaData *pprofv10.PprofMetaData, con
 			break
 		}
 		if err != nil {
-			r.logger.Errorf("error receiving final response for task %s: %v", taskId, err)
+			r.logger.Errorf("error receiving final response for task %s: %v", taskID, err)
 			break
 		}
 	}
