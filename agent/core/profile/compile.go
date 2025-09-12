@@ -31,11 +31,7 @@ import (
 	_ "unsafe"
 
 	//go:nolint
-	_ "github.com/google/pprof/profile"
 	_ "github.com/pkg/errors"
-
-	//go:nolint
-	_ "skywalking.apache.org/repo/goapi/collect/common/v3"
 
 	//go:nolint
 	_ "github.com/apache/skywalking-go/agent/core/operator"

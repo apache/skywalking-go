@@ -2,15 +2,13 @@ module github.com/apache/skywalking-go/plugins/core
 
 go 1.19
 
-
 require (
 	github.com/dave/dst v0.27.2
-    github.com/google/uuid v1.3.0
-    github.com/pkg/errors v0.9.1
-    github.com/stretchr/testify v1.8.2
-    google.golang.org/grpc v1.55.0
-    github.com/segmentio/kafka-go v0.4.47
-	skywalking.apache.org/repo/goapi v0.0.0-20250831073349-4fd1f9f19fb5
+	github.com/google/uuid v1.3.0
+	github.com/pkg/errors v0.9.1
+	github.com/stretchr/testify v1.8.2
+	google.golang.org/grpc v1.55.0
+	github.com/segmentio/kafka-go v0.4.47
 )
 
 require (

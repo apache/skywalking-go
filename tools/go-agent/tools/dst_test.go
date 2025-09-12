@@ -63,7 +63,7 @@ import (
 	}
 
 	for _, test := range tests {
-		f, err := decorator.ParseFile(nil, "test.go", test.file, parser.ParseComments)
+		f, err := decorator.ParseFile(nil, "main.go", test.file, parser.ParseComments)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -175,7 +175,7 @@ func main() {
 	}
 
 	for i, test := range tests {
-		file, err := decorator.ParseFile(nil, "test.go", test.fileContent, parser.ParseComments)
+		file, err := decorator.ParseFile(nil, "main.go", test.fileContent, parser.ParseComments)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -224,12 +224,12 @@ func TestImportAnalyzer(t *testing.T) {
 		content += fmt.Sprintf("func test(%s) {}", test.fieldsCode)
 
 		f := &dst.File{
-			Name:  dst.NewIdent("test.go"),
+			Name:  dst.NewIdent("main.go"),
 			Decls: GoStringToDecls(content),
 		}
 		analyzer := CreateImportAnalyzer()
-		analyzer.AnalyzeFileImports("test.go", f)
-		analyzer.AnalyzeNeedsImports("test.go", f.Decls[len(f.Decls)-1].(*dst.FuncDecl).Type.Params)
+		analyzer.AnalyzeFileImports("main.go", f)
+		analyzer.AnalyzeNeedsImports("main.go", f.Decls[len(f.Decls)-1].(*dst.FuncDecl).Type.Params)
 
 		if len(test.usedImports) != len(analyzer.usedImports) {
 			t.Fatalf("case %d: expect %d used imports, actual %d", i, len(test.usedImports), len(analyzer.usedImports))

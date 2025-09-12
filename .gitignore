@@ -8,6 +8,6 @@ coverage.txt
 /test/e2e/dist/
 /test/plugins/workspace
 /test/plugins/dist/
-*.pb.go
+/tools/protocols/temp/
 vendor/
 VERSION

@@ -23,7 +23,7 @@ import (
 	"github.com/apache/skywalking-go/plugins/core/operator"
 	"github.com/apache/skywalking-go/plugins/core/reporter"
 
-	logv3 "skywalking.apache.org/repo/goapi/collect/logging/v3"
+	logv3 "github.com/apache/skywalking-go/protocols/collect/logging/v3"
 )
 
 var tlsData interface{}

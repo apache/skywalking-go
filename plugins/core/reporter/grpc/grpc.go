@@ -20,17 +20,17 @@ package grpc
 import (
 	"context"
 	"io"
-	common "skywalking.apache.org/repo/goapi/collect/common/v3"
 	"time"
-
-	"google.golang.org/grpc/metadata"
 
 	"github.com/apache/skywalking-go/plugins/core/operator"
 	"github.com/apache/skywalking-go/plugins/core/reporter"
-	agentv3 "skywalking.apache.org/repo/goapi/collect/language/agent/v3"
-	profilev3 "skywalking.apache.org/repo/goapi/collect/language/profile/v3"
-	logv3 "skywalking.apache.org/repo/goapi/collect/logging/v3"
-	managementv3 "skywalking.apache.org/repo/goapi/collect/management/v3"
+	"google.golang.org/grpc/metadata"
+
+	common "github.com/apache/skywalking-go/protocols/collect/common/v3"
+	agentv3 "github.com/apache/skywalking-go/protocols/collect/language/agent/v3"
+	profilev3 "github.com/apache/skywalking-go/protocols/collect/language/profile/v3"
+	logv3 "github.com/apache/skywalking-go/protocols/collect/logging/v3"
+	managementv3 "github.com/apache/skywalking-go/protocols/collect/management/v3"
 )
 
 const (

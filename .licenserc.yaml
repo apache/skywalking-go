@@ -36,6 +36,9 @@ header:
     - '**/*.tmpl'
     - 'tools/go-agent/tools/testdata/*'
     - 'VERSION'
+    - 'protocols'
+    - 'tools/protocols/temp'
+    - 'tools/protocols/skywalking-data-collect-protocol'
 
   comment: on-failure
 

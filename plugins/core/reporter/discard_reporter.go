@@ -17,9 +17,7 @@
 
 package reporter
 
-import (
-	logv3 "skywalking.apache.org/repo/goapi/collect/logging/v3"
-)
+import logv3 "github.com/apache/skywalking-go/protocols/collect/logging/v3"
 
 type discardReporter struct{}
 
@@ -46,4 +44,6 @@ func (r *discardReporter) ConnectionStatus() ConnectionStatus {
 func (r *discardReporter) Close() {
 	// do nothing
 }
-func (r *discardReporter) AddProfileTaskManager(p ProfileTaskManager) {}
+func (r *discardReporter) AddProfileTaskManager(p ProfileTaskManager) {
+	// do nothing
+}

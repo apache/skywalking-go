@@ -20,9 +20,9 @@ package core
 import (
 	"github.com/apache/skywalking-go/plugins/core/operator"
 	"github.com/apache/skywalking-go/plugins/core/reporter"
+	common "github.com/apache/skywalking-go/protocols/collect/common/v3"
 	"os"
 	"runtime/pprof"
-	common "skywalking.apache.org/repo/goapi/collect/common/v3"
 	"strconv"
 	"sync"
 	"sync/atomic"

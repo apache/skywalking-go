@@ -23,8 +23,8 @@ import (
 
 	"github.com/apache/skywalking-go/plugins/core/reporter"
 
-	commonv3 "skywalking.apache.org/repo/goapi/collect/common/v3"
-	agentv3 "skywalking.apache.org/repo/goapi/collect/language/agent/v3"
+	commonv3 "github.com/apache/skywalking-go/protocols/collect/common/v3"
+	agentv3 "github.com/apache/skywalking-go/protocols/collect/language/agent/v3"
 )
 
 func NewSegmentSpan(ctx *TracingContext, defaultSpan *DefaultSpan, parentSpan SegmentSpan) (s SegmentSpan, err error) {

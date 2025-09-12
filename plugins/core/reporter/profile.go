@@ -18,7 +18,7 @@
 package reporter
 
 import (
-	common "skywalking.apache.org/repo/goapi/collect/common/v3"
+	common "github.com/apache/skywalking-go/protocols/collect/common/v3"
 )
 
 type ProfileTaskManager interface {
