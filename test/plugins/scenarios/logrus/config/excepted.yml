@@ -37,11 +37,11 @@ logItems:
           type: TEXT
           content: { text: 'fetch profile task error: rpc error: code = Unimplemented
               desc = Method not found: skywalking.v3.ProfileTask/getProfileTaskCommands' }
-          traceContext: { traceId: N/A, traceSegmentId: N/A, spanId: -1 }
-          tags:
-            data:
-              - { key: LEVEL, value: error }
-          layer: GENERAL
+        traceContext: { traceId: N/A, traceSegmentId: N/A, spanId: -1 }
+        tags:
+          data:
+            - { key: LEVEL, value: error }
+        layer: GENERAL
       - timestamp: nq 0
         endpoint: GET:/provider
         body:
