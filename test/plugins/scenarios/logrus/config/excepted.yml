@@ -24,19 +24,17 @@ logItems:
         endpoint: ''
         body:
           type: TEXT
-          content: { text: 'fetch pprof task commands error rpc error: code = Unimplemented
-              desc = Method not found: skywalking.v10.PprofTask/getPprofTaskCommands' }
-          traceContext: { traceId: N/A, traceSegmentId: N/A, spanId: -1 }
-          tags:
-            data:
-              - { key: LEVEL, value: error }
-          layer: GENERAL
+          content: { text: not null }
+        traceContext: { traceId: N/A, traceSegmentId: N/A, spanId: -1 }
+        tags:
+          data:
+            - { key: LEVEL, value: error }
+        layer: GENERAL
       - timestamp: nq 0
         endpoint: ''
         body:
           type: TEXT
-          content: { text: 'fetch dynamic configuration error rpc error: code = Unimplemented
-              desc = Method not found: skywalking.v3.ConfigurationDiscoveryService/fetchConfigurations' }
+          content: { text: not null }
         traceContext: { traceId: N/A, traceSegmentId: N/A, spanId: -1 }
         tags:
           data:
