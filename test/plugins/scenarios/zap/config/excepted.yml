@@ -18,19 +18,8 @@ segmentItems: []
 meterItems: []
 logItems:
   - serviceName: zap
-    logSize: ge 4
+    logSize: ge 3
     logs:
-      - timestamp: nq 0
-        endpoint: ''
-        body:
-          type: TEXT
-          content: { text: 'fetch profile task error: rpc error: code = Unimplemented
-              desc = Method not found: skywalking.v3.ProfileTask/getProfileTaskCommands' }
-        traceContext: { traceId: N/A, traceSegmentId: N/A, spanId: -1 }
-        tags:
-          data:
-            - { key: LEVEL, value: error }
-        layer: GENERAL
       - timestamp: nq 0
         endpoint: ''
         body:

@@ -431,7 +431,7 @@ func (r *gRPCReporter) fetchProfileTasks() {
 			// Pull tasks
 			resp, err := r.profileTaskClient.GetProfileTaskCommands(context.Background(), req)
 			if err != nil {
-				r.logger.Errorf("fetch profile task error: %v", err)
+				//r.logger.Errorf("fetch profile task error: %v", err)
 				time.Sleep(r.profileFetchInterval)
 				continue
 			}
