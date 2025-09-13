@@ -20,7 +20,6 @@ package core
 import (
 	"runtime/pprof"
 	"sort"
-	"strings"
 	"unsafe"
 )
 
@@ -31,10 +30,6 @@ type label struct {
 
 type LabelSet struct {
 	list []label
-}
-
-type labelMap struct {
-	LabelSet
 }
 
 //go:linkname runtimeSetProfLabel runtime/pprof.runtime_setProfLabel
@@ -69,7 +64,7 @@ func UpdateTraceLabels(s *LabelSet, args ...string) *LabelSet {
 
 	// sort
 	sort.SliceStable(s.list, func(i, j int) bool {
-		return strings.Compare(s.list[i].key, s.list[j].key) < 0
+		return s.list[i].key < s.list[j].key
 	})
 
 	// remove duplicates
@@ -89,8 +84,7 @@ func UpdateTraceLabels(s *LabelSet, args ...string) *LabelSet {
 func (s *LabelSet) List() []string {
 	var ret []string
 	for _, v := range s.list {
-		ret = append(ret, v.key)
-		ret = append(ret, v.value)
+		ret = append(ret, v.key, v.value)
 	}
 	return ret
 }

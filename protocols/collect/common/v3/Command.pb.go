@@ -55,7 +55,7 @@ const (
 // Args:
 //
 //	SerialNumber: String
-//	TaskId: String
+//	TaskID: String
 //	EndpointName: String
 //	Duration: Integer
 //	MinDurationThreshold: Integer
@@ -67,7 +67,7 @@ const (
 // Name: EBPFProfilingTaskQuery
 // Args:
 //
-//	TaskId: String
+//	TaskID: String
 //	ProcessId: Integer List
 //	TaskUpdateTime: Date timestamp
 //	TriggerType: Enum, value = FIXED_TIME
@@ -110,7 +110,7 @@ const (
 // Name: ContinuousProfilingReportTask
 // Args:
 //
-//	TaskId: String
+//	TaskID: String
 type Command struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

@@ -20,10 +20,11 @@ package pprof
 import (
 	"context"
 	"errors"
+	"runtime/pprof"
+
 	"github.com/apache/skywalking-go/plugins/core/operator"
 	"github.com/apache/skywalking-go/plugins/core/profile"
 	"github.com/apache/skywalking-go/plugins/core/tracing"
-	"runtime/pprof"
 )
 
 type SetLabelsInterceptor struct{}
@@ -36,12 +37,13 @@ func (h *SetLabelsInterceptor) BeforeInvoke(invocation operator.Invocation) erro
 	}
 	row := profile.CatchNowProfileLabel(sid)
 	now := profile.TurnToPprofLabel(row)
-	if l, ok := now.(pprof.LabelSet); !ok {
+	l, ok := now.(pprof.LabelSet)
+	if !ok {
 		return errors.New("profile label transform error")
-	} else {
-		c = pprof.WithLabels(c, l)
-		invocation.ChangeArg(0, c)
 	}
+	c = pprof.WithLabels(c, l)
+	invocation.ChangeArg(0, c)
+
 	return nil
 }
 

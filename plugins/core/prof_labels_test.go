@@ -28,7 +28,7 @@ func TestGetLabels(t *testing.T) {
 	p := NewProfileManager(nil)
 	re := p.generateProfileLabels("test-segmentID", 0)
 	p.labelSets["test-segmentID"] = re
-	p.AddSpanId("test-segmentID", 0)
+	p.AddSpanID("test-segmentID", 0)
 	ls := p.GetPprofLabelSet("test-segmentID").(*LabelSet)
 	ts := LabelSet{list: []label{
 		{key: "minDurationThreshold", value: "0"},
@@ -55,7 +55,7 @@ func TestTurnToPprofLabel(t *testing.T) {
 	re1 := p.TurnToPprofLabel(&LabelSet{}).(pprof.LabelSet)
 	assert.Equal(t, re1, pprof.LabelSet{})
 
-	//test Label have something
+	// test Label have something
 	re2 := p.TurnToPprofLabel(&LabelSet{list: []label{
 		{key: "minDurationThreshold", value: "0"},
 		{key: "spanID", value: "0"},

@@ -18,6 +18,6 @@
 package operator
 
 type ProfileOperator interface {
-	GetPprofLabelSet(segmentId string) interface{}
+	GetPprofLabelSet(segmentID string) interface{}
 	TurnToPprofLabel(l interface{}) interface{}
 }

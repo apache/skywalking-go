@@ -22,10 +22,10 @@ import (
 	"io"
 	"time"
 
-	"github.com/apache/skywalking-go/plugins/core/operator"
-	"github.com/apache/skywalking-go/plugins/core/reporter"
 	"google.golang.org/grpc/metadata"
 
+	"github.com/apache/skywalking-go/plugins/core/operator"
+	"github.com/apache/skywalking-go/plugins/core/reporter"
 	common "github.com/apache/skywalking-go/protocols/collect/common/v3"
 	agentv3 "github.com/apache/skywalking-go/protocols/collect/language/agent/v3"
 	profilev3 "github.com/apache/skywalking-go/protocols/collect/language/profile/v3"
@@ -453,11 +453,9 @@ func (r *gRPCReporter) AddProfileTaskManager(p reporter.ProfileTaskManager) {
 }
 
 func (r *gRPCReporter) handleProfileTask(cmd *common.Command) {
-
 	if cmd.Command != "ProfileTaskQuery" {
 		return
 	}
 
 	r.profileTaskManager.AddProfileTask(cmd.Args)
-
 }

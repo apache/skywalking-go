@@ -73,7 +73,6 @@ func (w *ProfilingWriter) Flush() {
 			data:   w.buf,
 			isLast: true,
 		}
-
 	} else {
 		w.reportCh <- profileRawData{
 			data:   nil,

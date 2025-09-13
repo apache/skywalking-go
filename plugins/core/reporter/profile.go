@@ -25,13 +25,13 @@ type ProfileTaskManager interface {
 	// AddProfileTask add new profile task
 	AddProfileTask(args []*common.KeyStringValuePair)
 	GetProfileResults() chan ProfileResult
-	ProfileFinish(taskId string)
+	ProfileFinish(taskID string)
 	RemoveProfileTask()
 }
 
 type TraceProfileTask struct {
 	SerialNumber         string // uuid
-	TaskId               string
+	TaskID               string
 	EndpointName         string // endpoint
 	Duration             int    // monitoring duration (min)
 	MinDurationThreshold int64  // starting monitoring time (ms)

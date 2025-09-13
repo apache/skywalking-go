@@ -42,7 +42,6 @@ func CreateEntrySpan(operationName string, extractor Extractor, opts ...SpanOpti
 	if err != nil {
 		return nil, err
 	}
-	//id := span.(AdaptSpan).GetTraceID()
 	return newSpanAdapter(span.(AdaptSpan)), nil
 }
 

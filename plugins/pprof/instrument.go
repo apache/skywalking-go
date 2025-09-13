@@ -19,6 +19,7 @@ package pprof
 
 import (
 	"embed"
+
 	"github.com/apache/skywalking-go/plugins/core/instrument"
 )
 

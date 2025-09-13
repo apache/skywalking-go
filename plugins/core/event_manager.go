@@ -18,9 +18,10 @@
 package core
 
 import (
-	"github.com/pkg/errors"
 	"strconv"
 	"sync"
+
+	"github.com/pkg/errors"
 )
 
 type BaseEvent string
