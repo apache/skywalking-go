@@ -56,7 +56,9 @@ type PprofTaskCommandImpl struct {
 	manager       reporter.PprofReporter
 }
 
-func NewPprofTaskCommand(taskID, events string, duration time.Duration, createTime int64, dumpPeriod int, pprofFilePath string, logger operator.LogOperator, manager reporter.PprofReporter) reporter.PprofTaskCommand {
+func NewPprofTaskCommand(taskID, events string, duration time.Duration,
+	createTime int64, dumpPeriod int, pprofFilePath string,
+	logger operator.LogOperator, manager reporter.PprofReporter) reporter.PprofTaskCommand {
 	return &PprofTaskCommandImpl{
 		taskID:        taskID,
 		events:        events,
@@ -124,7 +126,6 @@ func (c *PprofTaskCommandImpl) StartTask() (io.Writer, error) {
 }
 
 func (c *PprofTaskCommandImpl) StopTask(writer io.Writer) {
-
 	switch c.events {
 	case reporter.EventsTypeCPU:
 		pprof.StopCPUProfile()

@@ -156,8 +156,7 @@ func (r *PprofTaskManager) deserializePprofTaskCommand(command *commonv3.Command
 	dumpPeriod := 0 // Use -1 to indicate no explicit value provided
 	var createTime int64 = 0
 	for _, pair := range args {
-		if pair.GetKey() == "SerialNumber" {
-		} else if pair.GetKey() == "TaskId" {
+		if pair.GetKey() == "TaskId" {
 			taskID = pair.GetValue()
 		} else if pair.GetKey() == "Events" {
 			events = pair.GetValue()
