@@ -21,7 +21,7 @@ networks:
 
 services:
   oap:
-    image: ghcr.io/apache/skywalking-agent-test-tool/mock-collector:fa81b1b6d9caef484a65b5019efa28cac4e3d21d
+    image: ghcr.io/apache/skywalking-agent-test-tool/mock-collector:b22b7d8ba62dabdd8db1ecc52da6178b063edff7
     expose:
       - 19876
       - 12800
