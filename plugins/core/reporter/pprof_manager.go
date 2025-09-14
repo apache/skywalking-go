@@ -30,10 +30,13 @@ import (
 
 const (
 	// Pprof event types
-	EventsTypeCPU   = "cpu"
-	EventsTypeHeap  = "heap"
-	EventsTypeBlock = "block"
-	EventsTypeMutex = "mutex"
+	PprofEventsTypeCPU       = "cpu"
+	PprofEventsTypeHeap      = "heap"
+	PprofEventsTypeAllocs    = "allocs"
+	PprofEventsTypeBlock     = "block"
+	PprofEventsTypeMutex     = "mutex"
+	PprofEventsTypeThread    = "threadcreate"
+	PprofEventsTypeGoroutine = "goroutine"
 	// max chunk size for pprof data
 	maxChunkSize = 1 * 1024 * 1024
 )
@@ -68,7 +71,7 @@ type PprofTaskManager struct {
 func NewPprofTaskManager(logger operator.LogOperator, serverAddr string,
 	pprofInterval time.Duration, connManager *ConnectionManager,
 	pprofFilePath string) (*PprofTaskManager, error) {
-	PprofManager := &PprofTaskManager{
+	pprofManager := &PprofTaskManager{
 		logger:        logger,
 		serverAddr:    serverAddr,
 		pprofInterval: pprofInterval,
@@ -80,10 +83,10 @@ func NewPprofTaskManager(logger operator.LogOperator, serverAddr string,
 		if err != nil {
 			return nil, err
 		}
-		PprofManager.PprofClient = pprofv10.NewPprofTaskClient(conn)
-		PprofManager.commands = nil
+		pprofManager.PprofClient = pprofv10.NewPprofTaskClient(conn)
+		pprofManager.commands = nil
 	}
-	return PprofManager, nil
+	return pprofManager, nil
 }
 
 func (r *PprofTaskManager) InitPprofTask(entity *Entity) {
@@ -125,9 +128,12 @@ func (r *PprofTaskManager) HandleCommand(rawCommand *commonv3.Command) {
 	command := r.deserializePprofTaskCommand(rawCommand)
 	if command.GetCreateTime() > r.LastUpdateTime {
 		r.LastUpdateTime = command.GetCreateTime()
+	} else {
+		return
 	}
 
-	if command.GetEvent() == EventsTypeHeap {
+	if command.GetEvent() == PprofEventsTypeHeap || command.GetEvent() == PprofEventsTypeAllocs ||
+		command.GetEvent() == PprofEventsTypeGoroutine || command.GetEvent() == PprofEventsTypeThread {
 		// direct sampling of Heap
 		writer, err := command.StartTask()
 		if err != nil {

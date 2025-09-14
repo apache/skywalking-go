@@ -54,7 +54,7 @@ func NewGRPCReporter(logger operator.LogOperator,
 		checkInterval:    checkInterval,
 		connManager:      connManager,
 		cdsManager:       cdsManager,
-		pproftaskManager: pprofTaskManager,
+		pprofTaskManager: pprofTaskManager,
 	}
 	for _, o := range opts {
 		o(r)
@@ -89,7 +89,7 @@ type gRPCReporter struct {
 	transform        *reporter.Transform
 	connManager      *reporter.ConnectionManager
 	cdsManager       *reporter.CDSManager
-	pproftaskManager *reporter.PprofTaskManager
+	pprofTaskManager *reporter.PprofTaskManager
 }
 
 func (r *gRPCReporter) Boot(entity *reporter.Entity, cdsWatchers []reporter.AgentConfigChangeWatcher) {
@@ -98,7 +98,7 @@ func (r *gRPCReporter) Boot(entity *reporter.Entity, cdsWatchers []reporter.Agen
 	r.initSendPipeline()
 	r.check()
 	r.cdsManager.InitCDS(entity, cdsWatchers)
-	r.pproftaskManager.InitPprofTask(entity)
+	r.pprofTaskManager.InitPprofTask(entity)
 	r.bootFlag = true
 }
 

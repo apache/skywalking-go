@@ -28,6 +28,7 @@ import (
 	_ "math/rand"
 	_ "net"
 	_ "os"
+	_ "path/filepath"
 	_ "reflect"
 	_ "runtime"
 	_ "runtime/debug"
