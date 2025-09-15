@@ -18,7 +18,6 @@
 package core
 
 import (
-	"os"
 	"runtime/pprof"
 	"strconv"
 	"sync"
@@ -78,7 +77,7 @@ func (m *ProfileManager) initReportChannel() {
 			m.mu.Unlock()
 
 			if task == nil {
-				m.Log.Info("no task\n")
+				m.Log.Info("no task")
 				continue // Task has ended, ignore
 			}
 
@@ -93,15 +92,6 @@ func (m *ProfileManager) initReportChannel() {
 				m.currentTask = nil
 				m.profileEvents.BaseEventStatus[CurTaskExist] = false
 				m.mu.Unlock()
-				f, _ := os.Create("cpu.pprof.gz")
-				_, err := f.Write(d)
-				if err != nil {
-					m.Log.Info("cpu.pprof.gz write error\n")
-				}
-				err = f.Close()
-				if err != nil {
-					m.Log.Info("cpu.pprof.gz close error\n")
-				}
 			} else {
 				m.FinalReportResults <- reporter.ProfileResult{
 					TaskID:  task.taskID,
@@ -161,7 +151,7 @@ func (m *ProfileManager) AddProfileTask(args []*common.KeyStringValuePair) {
 			task.SerialNumber = arg.Value
 		}
 	}
-	m.Log.Info("adding profile task:", task, "\n")
+	m.Log.Info("adding profile task:", task)
 	if _, exists := m.TraceProfileTasks[task.TaskID]; exists {
 		return
 	}
@@ -253,13 +243,19 @@ func (m *ProfileManager) generateCurrentTask(t *reporter.TraceProfileTask) {
 	}
 }
 
-func (m *ProfileManager) TryToAddSegmentID(traceSegmentID string) {
-	if m.profileEvents.BaseEventStatus[IfProfiling] && m.currentTask != nil {
+func (m *ProfileManager) TryToAddSegmentLabelSet(traceSegmentID string) {
+	if m.currentTask != nil {
 		c := m.generateProfileLabels(traceSegmentID, m.currentTask.minDurationThreshold)
 		m.labelSets[traceSegmentID] = c
 		SetGoroutineLabels(c.labels)
 		return
 	}
+}
+
+func (m *ProfileManager) TryToRemoveSegmentLabelSet(traceSegmentID string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	delete(m.labelSets, traceSegmentID)
 }
 
 func (m *ProfileManager) monitor() {
@@ -325,10 +321,9 @@ func (m *ProfileManager) IncCounter() {
 	}
 }
 
-func (m *ProfileManager) DecCounter(segmentID string) {
+func (m *ProfileManager) DecCounter() {
 	m.mu.Lock()
 	ct := m.counter.Add(-1)
-	delete(m.labelSets, segmentID)
 	if ct == 0 {
 		m.mu.Unlock()
 		err := m.profileEvents.UpdateBaseEventStatus(HasWorthRequeue, false)

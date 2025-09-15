@@ -371,7 +371,8 @@ func newSegmentRoot(segmentSpan *SegmentSpanImpl) *RootSegmentSpan {
 			}
 		}
 		if s.tracer().ProfileManager.CheckIfProfileTarget(s.OperationName()) {
-			s.tracer().ProfileManager.DecCounter(s.SegmentID)
+			s.tracer().ProfileManager.DecCounter()
+			s.tracer().ProfileManager.TryToRemoveSegmentLabelSet(s.SegmentID)
 		}
 		s.tracer().Reporter.SendTracing(append(s.segment, s))
 	}()
