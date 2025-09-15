@@ -39,6 +39,8 @@ const (
 	PprofEventsTypeGoroutine = "goroutine"
 	// max chunk size for pprof data
 	maxChunkSize = 1 * 1024 * 1024
+	// max send queue size for pprof data
+	maxPprofSendQueueSize = 30000
 )
 
 type PprofTaskCommand interface {
@@ -66,6 +68,7 @@ type PprofTaskManager struct {
 	pprofFilePath  string
 	LastUpdateTime int64
 	commands       PprofTaskCommand
+	pprofSendCh    chan *pprofv10.PprofData
 }
 
 func NewPprofTaskManager(logger operator.LogOperator, serverAddr string,
@@ -77,6 +80,7 @@ func NewPprofTaskManager(logger operator.LogOperator, serverAddr string,
 		pprofInterval: pprofInterval,
 		connManager:   connManager,
 		pprofFilePath: pprofFilePath,
+		pprofSendCh:   make(chan *pprofv10.PprofData, maxPprofSendQueueSize),
 	}
 	if pprofInterval > 0 {
 		conn, err := connManager.GetConnection(serverAddr)
@@ -94,6 +98,7 @@ func (r *PprofTaskManager) InitPprofTask(entity *Entity) {
 		return
 	}
 	r.entity = entity
+	r.initPprofSendPipeline()
 	go func() {
 		for {
 			switch r.connManager.GetConnectionStatus(r.serverAddr) {
@@ -200,10 +205,54 @@ func (r *PprofTaskManager) ReportPprof(taskID string, content []byte) {
 		ContentSize:     int32(len(content)),
 	}
 
-	go r.uploadPprofData(metaData, content, taskID)
+	pprofData := &pprofv10.PprofData{
+		Metadata: metaData,
+		Result: &pprofv10.PprofData_Content{
+			Content: content,
+		},
+	}
+
+	defer func() {
+		if err := recover(); err != nil {
+			r.logger.Errorf("reporter pprof err %v", err)
+		}
+	}()
+	select {
+	case r.pprofSendCh <- pprofData:
+	default:
+		r.logger.Errorf("reach max pprof send buffer")
+	}
 }
 
-func (r *PprofTaskManager) uploadPprofData(metaData *pprofv10.PprofMetaData, content []byte, taskID string) {
+func (r *PprofTaskManager) initPprofSendPipeline() {
+	if r.PprofClient == nil {
+		return
+	}
+	go func() {
+		defer func() {
+			if err := recover(); err != nil {
+				r.logger.Errorf("PprofTaskManager initPprofSendPipeline panic err %v", err)
+			}
+		}()
+	StreamLoop:
+		for {
+			switch r.connManager.GetConnectionStatus(r.serverAddr) {
+			case ConnectionStatusShutdown:
+				return
+			case ConnectionStatusDisconnect:
+				time.Sleep(5 * time.Second)
+				continue StreamLoop
+			}
+
+			for pprofData := range r.pprofSendCh {
+				r.uploadPprofData(pprofData)
+			}
+			break
+		}
+	}()
+}
+
+func (r *PprofTaskManager) uploadPprofData(pprofData *pprofv10.PprofData) {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
@@ -213,9 +262,9 @@ func (r *PprofTaskManager) uploadPprofData(metaData *pprofv10.PprofMetaData, con
 		return
 	}
 
-	// Send metadata
+	// Send metadata first
 	metadataMsg := &pprofv10.PprofData{
-		Metadata: metaData,
+		Metadata: pprofData.Metadata,
 	}
 	if err = stream.Send(metadataMsg); err != nil {
 		r.logger.Errorf("failed to send metadata: %v", err)
@@ -235,10 +284,10 @@ func (r *PprofTaskManager) uploadPprofData(metaData *pprofv10.PprofMetaData, con
 	case pprofv10.PprofProfilingStatus_PPROF_EXECUTION_TASK_ERROR:
 		r.logger.Errorf("server rejected pprof upload due to execution task error")
 		return
-	default:
 	}
 
 	// Upload content in chunks
+	content := pprofData.GetContent()
 	chunkCount := 0
 	contentSize := len(content)
 
@@ -262,12 +311,15 @@ func (r *PprofTaskManager) uploadPprofData(metaData *pprofv10.PprofMetaData, con
 		// Check context timeout
 		select {
 		case <-ctx.Done():
-			r.logger.Errorf("context timeout during chunk upload for task %s", taskID)
+			r.logger.Errorf("context timeout during chunk upload for task %s", pprofData.Metadata.TaskId)
 			return
 		default:
 		}
 	}
 
+	r.closePprofStream(stream)
+}
+func (r *PprofTaskManager) closePprofStream(stream pprofv10.PprofTask_CollectClient) {
 	if err := stream.CloseSend(); err != nil {
 		r.logger.Errorf("failed to close send stream: %v", err)
 		return
@@ -279,7 +331,7 @@ func (r *PprofTaskManager) uploadPprofData(metaData *pprofv10.PprofMetaData, con
 			break
 		}
 		if err != nil {
-			r.logger.Errorf("error receiving final response for task %s: %v", taskID, err)
+			r.logger.Errorf("error receiving final response %v", err)
 			break
 		}
 	}

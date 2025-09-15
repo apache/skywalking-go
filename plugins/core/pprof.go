@@ -91,37 +91,40 @@ func (c *PprofTaskCommandImpl) closeFileWriter(writer io.Writer) {
 	}
 }
 
-func (c *PprofTaskCommandImpl) StartTask() (io.Writer, error) {
-	var err error
-	var writer io.Writer
+func (c *PprofTaskCommandImpl) getWriter() (io.Writer, error) {
+	// sample data to buffer
+	if c.pprofFilePath == "" {
 
+		return &bytes.Buffer{}, nil
+	}
+
+	// sample data to file
+	pprofFileName := filepath.Join(c.taskID, ".pprof")
+	pprofFilePath := filepath.Join(c.pprofFilePath, pprofFileName)
+	if err := os.MkdirAll(filepath.Dir(pprofFilePath), os.ModePerm); err != nil {
+		return nil, err
+	}
+
+	writer, err := os.Create(pprofFilePath)
+	if err != nil {
+		return nil, err
+	}
+
+	return writer, nil
+}
+
+func (c *PprofTaskCommandImpl) StartTask() (io.Writer, error) {
 	// For CPU profiling, check global state first
 	if c.events == reporter.PprofEventsTypeCPU && !profilingIsRunning.CompareAndSwap(false, true) {
 		return nil, fmt.Errorf("CPU profiling is already running")
 	}
 
-	// Get io.writer
-	if c.pprofFilePath == "" {
-		// sample data to buffer
-		writer = &bytes.Buffer{}
-	} else {
-		// sample data to file
-		pprofFileName := c.events + "_" + c.taskID + ".pprof"
-		pprofFilePath := filepath.Join(c.pprofFilePath, pprofFileName)
-		if err := os.MkdirAll(filepath.Dir(pprofFilePath), os.ModePerm); err != nil {
-			if c.GetEvent() == reporter.PprofEventsTypeCPU {
-				profilingIsRunning.Store(false)
-			}
-			return nil, err
+	writer, err := c.getWriter()
+	if err != nil {
+		if c.events == reporter.PprofEventsTypeCPU {
+			profilingIsRunning.Store(false)
 		}
-		writer, err = os.Create(pprofFilePath)
-		if err != nil {
-			if c.GetEvent() == reporter.PprofEventsTypeCPU {
-				profilingIsRunning.Store(false)
-				c.closeFileWriter(writer)
-			}
-			return nil, err
-		}
+		return nil, err
 	}
 
 	switch c.events {
@@ -138,11 +141,9 @@ func (c *PprofTaskCommandImpl) StartTask() (io.Writer, error) {
 	case reporter.PprofEventsTypeMutex:
 		runtime.SetMutexProfileFraction(c.dumpPeriod)
 	case reporter.PprofEventsTypeHeap:
+		runtime.MemProfileRate = c.dumpPeriod
 	case reporter.PprofEventsTypeAllocs:
-	case reporter.PprofEventsTypeGoroutine:
-	case reporter.PprofEventsTypeThread:
-	default:
-		return nil, fmt.Errorf("unsupported profile type: %s", c.events)
+		runtime.MemProfileRate = c.dumpPeriod
 	}
 
 	return writer, nil
@@ -154,26 +155,22 @@ func (c *PprofTaskCommandImpl) StopTask(writer io.Writer) {
 		pprof.StopCPUProfile()
 		profilingIsRunning.Store(false)
 	case reporter.PprofEventsTypeBlock:
-		if profile := pprof.Lookup("block"); profile != nil {
-			if err := profile.WriteTo(writer, 0); err != nil {
-				c.logger.Errorf("write block profile error %v", err)
-			}
+		if err := pprof.Lookup("block").WriteTo(writer, 0); err != nil {
+			c.logger.Errorf("write Block profile error %v", err)
 		}
 		runtime.SetBlockProfileRate(0)
 	case reporter.PprofEventsTypeMutex:
-		if profile := pprof.Lookup("mutex"); profile != nil {
-			if err := profile.WriteTo(writer, 0); err != nil {
-				c.logger.Errorf("write mutex profile error %v", err)
-			}
+		if err := pprof.Lookup("mutex").WriteTo(writer, 0); err != nil {
+			c.logger.Errorf("write Mutex profile error %v", err)
 		}
 		runtime.SetMutexProfileFraction(0)
 	case reporter.PprofEventsTypeHeap:
-		if err := pprof.WriteHeapProfile(writer); err != nil {
+		if err := pprof.Lookup("heap").WriteTo(writer, 0); err != nil {
 			c.logger.Errorf("write Heap profile error %v", err)
 		}
 	case reporter.PprofEventsTypeAllocs:
-		if err := pprof.Lookup("heap").WriteTo(writer, 0); err != nil {
-			c.logger.Errorf("write Heap profile error %v", err)
+		if err := pprof.Lookup("allocs").WriteTo(writer, 0); err != nil {
+			c.logger.Errorf("write Alloc profile error %v", err)
 		}
 	case reporter.PprofEventsTypeGoroutine:
 		if err := pprof.Lookup("goroutine").WriteTo(writer, 0); err != nil {
