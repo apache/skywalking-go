@@ -29,14 +29,6 @@ import (
 )
 
 const (
-	// Pprof event types
-	PprofEventsTypeCPU       = "cpu"
-	PprofEventsTypeHeap      = "heap"
-	PprofEventsTypeAllocs    = "allocs"
-	PprofEventsTypeBlock     = "block"
-	PprofEventsTypeMutex     = "mutex"
-	PprofEventsTypeThread    = "threadcreate"
-	PprofEventsTypeGoroutine = "goroutine"
 	// max chunk size for pprof data
 	maxChunkSize = 1 * 1024 * 1024
 	// max send queue size for pprof data
@@ -44,7 +36,7 @@ const (
 )
 
 type PprofTaskCommand interface {
-	GetEvent() string
+	GetTaskID() string
 	GetCreateTime() int64
 	GetDuration() time.Duration
 	StartTask() (io.Writer, error)
@@ -142,7 +134,7 @@ func (r *PprofTaskManager) HandleCommand(rawCommand *commonv3.Command) {
 		// direct sampling of Heap, Allocs, Goroutine, Thread
 		writer, err := command.StartTask()
 		if err != nil {
-			r.logger.Errorf("start %s pprof error %v \n", command.GetEvent(), err)
+			r.logger.Errorf("start %s pprof task error %v \n", command.GetTaskID(), err)
 			return
 		}
 		command.StopTask(writer)
@@ -150,7 +142,7 @@ func (r *PprofTaskManager) HandleCommand(rawCommand *commonv3.Command) {
 		// The CPU, Block, and Mutex sampling lasts for a duration and then stops
 		writer, err := command.StartTask()
 		if err != nil {
-			r.logger.Errorf("start %s pprof error %v \n", command.GetEvent(), err)
+			r.logger.Errorf("start %s pprof task error %v \n", command.GetTaskID(), err)
 			return
 		}
 		time.AfterFunc(command.GetDuration(), func() {

@@ -32,6 +32,17 @@ import (
 	"github.com/apache/skywalking-go/plugins/core/reporter"
 )
 
+const (
+	// Pprof event types
+	PprofEventsTypeCPU       = "cpu"
+	PprofEventsTypeHeap      = "heap"
+	PprofEventsTypeAllocs    = "allocs"
+	PprofEventsTypeBlock     = "block"
+	PprofEventsTypeMutex     = "mutex"
+	PprofEventsTypeThread    = "threadcreate"
+	PprofEventsTypeGoroutine = "goroutine"
+)
+
 // CPU profiling state to ensure only one CPU profiling task runs at a time
 var profilingIsRunning atomic.Bool
 
@@ -71,8 +82,8 @@ func NewPprofTaskCommand(taskID, events string, duration time.Duration,
 	}
 }
 
-func (c *PprofTaskCommandImpl) GetEvent() string {
-	return c.events
+func (c *PprofTaskCommandImpl) GetTaskID() string {
+	return c.taskID
 }
 
 func (c *PprofTaskCommandImpl) GetCreateTime() int64 {
@@ -84,10 +95,10 @@ func (c *PprofTaskCommandImpl) GetDuration() time.Duration {
 }
 
 func (c *PprofTaskCommandImpl) IsDirectSamplingType() bool {
-	return c.events == reporter.PprofEventsTypeHeap ||
-		c.events == reporter.PprofEventsTypeAllocs ||
-		c.events == reporter.PprofEventsTypeGoroutine ||
-		c.events == reporter.PprofEventsTypeThread
+	return c.events == PprofEventsTypeHeap ||
+		c.events == PprofEventsTypeAllocs ||
+		c.events == PprofEventsTypeGoroutine ||
+		c.events == PprofEventsTypeThread
 }
 
 func (c *PprofTaskCommandImpl) closeFileWriter(writer io.Writer) {
@@ -121,20 +132,20 @@ func (c *PprofTaskCommandImpl) getWriter() (io.Writer, error) {
 
 func (c *PprofTaskCommandImpl) StartTask() (io.Writer, error) {
 	// For CPU profiling, check global state first
-	if c.events == reporter.PprofEventsTypeCPU && !profilingIsRunning.CompareAndSwap(false, true) {
+	if c.events == PprofEventsTypeCPU && !profilingIsRunning.CompareAndSwap(false, true) {
 		return nil, fmt.Errorf("CPU profiling is already running")
 	}
 
 	writer, err := c.getWriter()
 	if err != nil {
-		if c.events == reporter.PprofEventsTypeCPU {
+		if c.events == PprofEventsTypeCPU {
 			profilingIsRunning.Store(false)
 		}
 		return nil, err
 	}
 
 	switch c.events {
-	case reporter.PprofEventsTypeCPU:
+	case PprofEventsTypeCPU:
 		if err = pprof.StartCPUProfile(writer); err != nil {
 			profilingIsRunning.Store(false)
 			if c.pprofFilePath != "" {
@@ -142,13 +153,13 @@ func (c *PprofTaskCommandImpl) StartTask() (io.Writer, error) {
 			}
 			return nil, err
 		}
-	case reporter.PprofEventsTypeBlock:
+	case PprofEventsTypeBlock:
 		runtime.SetBlockProfileRate(c.dumpPeriod)
-	case reporter.PprofEventsTypeMutex:
+	case PprofEventsTypeMutex:
 		runtime.SetMutexProfileFraction(c.dumpPeriod)
-	case reporter.PprofEventsTypeHeap:
+	case PprofEventsTypeHeap:
 		runtime.MemProfileRate = c.dumpPeriod
-	case reporter.PprofEventsTypeAllocs:
+	case PprofEventsTypeAllocs:
 		runtime.MemProfileRate = c.dumpPeriod
 	}
 
@@ -157,32 +168,32 @@ func (c *PprofTaskCommandImpl) StartTask() (io.Writer, error) {
 
 func (c *PprofTaskCommandImpl) StopTask(writer io.Writer) {
 	switch c.events {
-	case reporter.PprofEventsTypeCPU:
+	case PprofEventsTypeCPU:
 		pprof.StopCPUProfile()
 		profilingIsRunning.Store(false)
-	case reporter.PprofEventsTypeBlock:
+	case PprofEventsTypeBlock:
 		if err := pprof.Lookup("block").WriteTo(writer, 0); err != nil {
 			c.logger.Errorf("write Block profile error %v", err)
 		}
 		runtime.SetBlockProfileRate(0)
-	case reporter.PprofEventsTypeMutex:
+	case PprofEventsTypeMutex:
 		if err := pprof.Lookup("mutex").WriteTo(writer, 0); err != nil {
 			c.logger.Errorf("write Mutex profile error %v", err)
 		}
 		runtime.SetMutexProfileFraction(0)
-	case reporter.PprofEventsTypeHeap:
+	case PprofEventsTypeHeap:
 		if err := pprof.Lookup("heap").WriteTo(writer, 0); err != nil {
 			c.logger.Errorf("write Heap profile error %v", err)
 		}
-	case reporter.PprofEventsTypeAllocs:
+	case PprofEventsTypeAllocs:
 		if err := pprof.Lookup("allocs").WriteTo(writer, 0); err != nil {
 			c.logger.Errorf("write Alloc profile error %v", err)
 		}
-	case reporter.PprofEventsTypeGoroutine:
+	case PprofEventsTypeGoroutine:
 		if err := pprof.Lookup("goroutine").WriteTo(writer, 0); err != nil {
 			c.logger.Errorf("write Goroutine profile error %v", err)
 		}
-	case reporter.PprofEventsTypeThread:
+	case PprofEventsTypeThread:
 		if err := pprof.Lookup("threadcreate").WriteTo(writer, 0); err != nil {
 			c.logger.Errorf("write Thread profile error %v", err)
 		}
