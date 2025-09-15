@@ -83,6 +83,13 @@ func (c *PprofTaskCommandImpl) GetDuration() time.Duration {
 	return c.duration
 }
 
+func (c *PprofTaskCommandImpl) IsDirectSamplingType() bool {
+	return c.events == reporter.PprofEventsTypeHeap ||
+		c.events == reporter.PprofEventsTypeAllocs ||
+		c.events == reporter.PprofEventsTypeGoroutine ||
+		c.events == reporter.PprofEventsTypeThread
+}
+
 func (c *PprofTaskCommandImpl) closeFileWriter(writer io.Writer) {
 	if file, ok := writer.(*os.File); ok {
 		if err := file.Close(); err != nil {

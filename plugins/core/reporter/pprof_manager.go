@@ -49,6 +49,7 @@ type PprofTaskCommand interface {
 	GetDuration() time.Duration
 	StartTask() (io.Writer, error)
 	StopTask(io.Writer)
+	IsDirectSamplingType() bool
 }
 type PprofReporter interface {
 	ReportPprof(taskID string, content []byte)
@@ -137,9 +138,8 @@ func (r *PprofTaskManager) HandleCommand(rawCommand *commonv3.Command) {
 		return
 	}
 
-	if command.GetEvent() == PprofEventsTypeHeap || command.GetEvent() == PprofEventsTypeAllocs ||
-		command.GetEvent() == PprofEventsTypeGoroutine || command.GetEvent() == PprofEventsTypeThread {
-		// direct sampling of Heap
+	if command.IsDirectSamplingType() {
+		// direct sampling of Heap, Allocs, Goroutine, Thread
 		writer, err := command.StartTask()
 		if err != nil {
 			r.logger.Errorf("start %s pprof error %v \n", command.GetEvent(), err)
@@ -150,7 +150,7 @@ func (r *PprofTaskManager) HandleCommand(rawCommand *commonv3.Command) {
 		// The CPU, Block, and Mutex sampling lasts for a duration and then stops
 		writer, err := command.StartTask()
 		if err != nil {
-			r.logger.Errorf("start CPU pprof error %v \n", err)
+			r.logger.Errorf("start %s pprof error %v \n", command.GetEvent(), err)
 			return
 		}
 		time.AfterFunc(command.GetDuration(), func() {
