@@ -94,7 +94,6 @@ func (c *PprofTaskCommandImpl) closeFileWriter(writer io.Writer) {
 func (c *PprofTaskCommandImpl) getWriter() (io.Writer, error) {
 	// sample data to buffer
 	if c.pprofFilePath == "" {
-
 		return &bytes.Buffer{}, nil
 	}
 
