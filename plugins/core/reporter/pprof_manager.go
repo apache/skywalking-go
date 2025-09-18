@@ -67,6 +67,11 @@ type PprofTaskManager struct {
 func NewPprofTaskManager(logger operator.LogOperator, serverAddr string,
 	pprofInterval time.Duration, connManager *ConnectionManager,
 	pprofFilePath string) (*PprofTaskManager, error) {
+	if pprofInterval <= 0 {
+		var err error
+		logger.Errorf("pprof interval less than zero, pprof profiling is disabled")
+		return nil, err
+	}
 	pprofManager := &PprofTaskManager{
 		logger:        logger,
 		serverAddr:    serverAddr,
@@ -75,14 +80,12 @@ func NewPprofTaskManager(logger operator.LogOperator, serverAddr string,
 		pprofFilePath: pprofFilePath,
 		pprofSendCh:   make(chan *pprofv10.PprofData, maxPprofSendQueueSize),
 	}
-	if pprofInterval > 0 {
-		conn, err := connManager.GetConnection(serverAddr)
-		if err != nil {
-			return nil, err
-		}
-		pprofManager.PprofClient = pprofv10.NewPprofTaskClient(conn)
-		pprofManager.commands = nil
+	conn, err := connManager.GetConnection(serverAddr)
+	if err != nil {
+		return nil, err
 	}
+	pprofManager.PprofClient = pprofv10.NewPprofTaskClient(conn)
+	pprofManager.commands = nil
 	return pprofManager, nil
 }
 
@@ -139,7 +142,7 @@ func (r *PprofTaskManager) HandleCommand(rawCommand *commonv3.Command) {
 		}
 		command.StopTask(writer)
 	} else {
-		// The CPU, Block, and Mutex sampling lasts for a duration and then stops
+		// The CPU, Block and Mutex sampling lasts for a duration and then stops
 		writer, err := command.StartTask()
 		if err != nil {
 			r.logger.Errorf("start %s pprof task error %v \n", command.GetTaskID(), err)

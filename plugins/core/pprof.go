@@ -53,7 +53,7 @@ func init() {
 type PprofTaskCommandImpl struct {
 	// Pprof Task ID
 	taskID string
-	// Type of profiling (CPU/Heap/Block/Mutex)
+	// Type of profiling (CPU/Heap/Block/Mutex/Goroutine/Threadcreate/Allocs)
 	events string
 	// unit is minute
 	duration time.Duration
@@ -131,6 +131,7 @@ func (c *PprofTaskCommandImpl) getWriter() (io.Writer, error) {
 }
 
 func (c *PprofTaskCommandImpl) StartTask() (io.Writer, error) {
+	c.logger.Infof("start pprof task %s", c.taskID)
 	// For CPU profiling, check global state first
 	if c.events == PprofEventsTypeCPU && !profilingIsRunning.CompareAndSwap(false, true) {
 		return nil, fmt.Errorf("CPU profiling is already running")
@@ -157,16 +158,13 @@ func (c *PprofTaskCommandImpl) StartTask() (io.Writer, error) {
 		runtime.SetBlockProfileRate(c.dumpPeriod)
 	case PprofEventsTypeMutex:
 		runtime.SetMutexProfileFraction(c.dumpPeriod)
-	case PprofEventsTypeHeap:
-		runtime.MemProfileRate = c.dumpPeriod
-	case PprofEventsTypeAllocs:
-		runtime.MemProfileRate = c.dumpPeriod
 	}
 
 	return writer, nil
 }
 
 func (c *PprofTaskCommandImpl) StopTask(writer io.Writer) {
+	c.logger.Infof("stop pprof task %s", c.taskID)
 	switch c.events {
 	case PprofEventsTypeCPU:
 		pprof.StopCPUProfile()
