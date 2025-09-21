@@ -32,6 +32,7 @@ import (
 	"github.com/apache/skywalking-go/tools/go-agent/instrument/agentcore"
 	"github.com/apache/skywalking-go/tools/go-agent/instrument/api"
 	"github.com/apache/skywalking-go/tools/go-agent/instrument/entry"
+	"github.com/apache/skywalking-go/tools/go-agent/instrument/goroutine"
 	"github.com/apache/skywalking-go/tools/go-agent/instrument/logger"
 	"github.com/apache/skywalking-go/tools/go-agent/instrument/plugins"
 	"github.com/apache/skywalking-go/tools/go-agent/instrument/reporter"
@@ -45,6 +46,8 @@ var instruments = []api.Instrument{
 	reporter.NewInstrument(),
 	entry.NewInstrument(),
 	logger.NewInstrument(),
+	// Insert goroutine wrapper instrument to ensure labels at goroutine start
+	goroutine.NewInstrument(),
 	plugins.NewInstrument(),
 }
 
@@ -69,32 +72,33 @@ func Execute(opts *api.CompileOptions, args []string) ([]string, error) {
 }
 
 func execute0(opts *api.CompileOptions, args []string) ([]string, error) {
-	// find the instrument
-	var inst api.Instrument
+	// find all matching instruments and execute all, preserving order
+	matching := make([]api.Instrument, 0)
 	for _, ins := range instruments {
 		if ins.CouldHandle(opts) {
-			inst = ins
-			break
+			matching = append(matching, ins)
 		}
 	}
-	if inst == nil {
+	if len(matching) == 0 {
 		return args, nil
 	}
 
-	var buildDir = filepath.Dir(opts.Output)
+	buildDir := filepath.Dir(opts.Output)
 
-	// instrument existing files
-	if err := instrumentFiles(buildDir, inst, args); err != nil {
-		return nil, err
-	}
+	for _, inst := range matching {
+		// instrument existing files
+		if err := instrumentFiles(buildDir, inst, args); err != nil {
+			return nil, err
+		}
 
-	// write extra files if exist
-	files, err := inst.WriteExtraFiles(buildDir)
-	if err != nil {
-		return nil, err
-	}
-	if len(files) > 0 {
-		args = append(args, files...)
+		// write extra files if exist
+		files, err := inst.WriteExtraFiles(buildDir)
+		if err != nil {
+			return nil, err
+		}
+		if len(files) > 0 {
+			args = append(args, files...)
+		}
 	}
 
 	return args, nil

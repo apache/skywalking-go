@@ -31,11 +31,22 @@ type SetLabelsInterceptor struct{}
 
 func (h *SetLabelsInterceptor) BeforeInvoke(invocation operator.Invocation) error {
 	c := invocation.Args()[0].(context.Context)
+	if profile.IsSkywalkingInternalCtx(c) {
+		return nil
+	}
+	if tracing.ActiveSpan() == nil {
+		return nil
+	}
+	if !tracing.ActiveSpan().IsProfileTarget() {
+		return nil
+	}
 	sid := tracing.ActiveSpan().TraceSegmentID()
+	tid := tracing.ActiveSpan().TraceID()
+	spanID := tracing.ActiveSpan().SpanID()
 	if sid == "" {
 		return nil
 	}
-	row := profile.CatchNowProfileLabel(sid)
+	row := profile.CatchNowProfileLabel(tid, sid, spanID)
 	now := profile.TurnToPprofLabel(row)
 	l, ok := now.(pprof.LabelSet)
 	if !ok {

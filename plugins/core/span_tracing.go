@@ -231,6 +231,10 @@ func (s *SegmentSpanImpl) createSegmentContext(ctx *TracingContext, parent Segme
 	return
 }
 
+func (s *SegmentSpanImpl) IsProfileTarget() bool {
+	return s.DefaultSpan.IsProfileTarget()
+}
+
 type RootSegmentSpan struct {
 	*SegmentSpanImpl
 	notify  <-chan reporter.ReportedSpan
@@ -273,6 +277,10 @@ func (rs *RootSegmentSpan) createRootSegmentContext(ctx *TracingContext, _ Segme
 	rs.SpanID = i
 	rs.ParentSpanID = -1
 	return
+}
+
+func (rs *RootSegmentSpan) IsProfileTarget() bool {
+	return rs.DefaultSpan.IsProfileTarget()
 }
 
 type SnapshotSpan struct {
@@ -372,7 +380,6 @@ func newSegmentRoot(segmentSpan *SegmentSpanImpl) *RootSegmentSpan {
 		}
 		if s.tracer().ProfileManager.CheckIfProfileTarget(s.OperationName()) {
 			s.tracer().ProfileManager.DecCounter()
-			s.tracer().ProfileManager.TryToRemoveSegmentLabelSet(s.SegmentID)
 		}
 		s.tracer().Reporter.SendTracing(append(s.segment, s))
 	}()
@@ -416,4 +423,8 @@ func newSnapshotSpan(current TracingSpan) TracingSpan {
 	}
 
 	return s
+}
+
+func (s *SnapshotSpan) IsProfileTarget() bool {
+	return s.DefaultSpan.IsProfileTarget()
 }

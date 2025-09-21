@@ -40,6 +40,7 @@ type AdaptSpan interface {
 	Error(...string)
 	ErrorOccured()
 	End()
+	IsProfileTarget() bool
 }
 
 type SpanWrapper struct {
@@ -104,4 +105,8 @@ func (s *SpanWrapper) PrepareAsync() {
 
 func (s *SpanWrapper) AsyncFinish() {
 	s.Span.AsyncFinish()
+}
+
+func (s *SpanWrapper) IsProfileTarget() bool {
+	return s.Span.IsProfileTarget()
 }

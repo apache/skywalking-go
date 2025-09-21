@@ -19,34 +19,34 @@ package core
 
 import (
 	"runtime/pprof"
+	"sort"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetLabels(t *testing.T) {
-	p := NewProfileManager(nil)
-	re := p.generateProfileLabels("test-segmentID", 0)
-	p.labelSets["test-segmentID"] = re
-	p.AddSpanID("test-segmentID", 0)
-	ls := p.GetPprofLabelSet("test-segmentID").(*LabelSet)
-	ts := LabelSet{list: []label{
-		{key: "minDurationThreshold", value: "0"},
-		{key: "spanID", value: "0"},
-		{key: "traceSegmentID", value: "test-segmentID"}}}
-	assert.Equal(t, ts, *ls)
+func sortLabels(ls LabelSet) LabelSet {
+	sort.Slice(ls.list, func(i, j int) bool {
+		return ls.list[i].key < ls.list[j].key
+	})
+	return ls
 }
 
-func TestSetLabels(t *testing.T) {
-	ts := &LabelSet{list: []label{{"test1", "test1_label"}, {"test2", "test2_label"}}}
-	labels := UpdateTraceLabels(ts, "test3", "test3_label")
-	SetGoroutineLabels(labels)
+func TestGetLabels(t *testing.T) {
 	p := NewProfileManager(nil)
-	p.labelSets["test-segmentID"] = profileLabels{
-		labels: labels,
+	p.currentTask = &currentTask{
+		serialNumber:         "",
+		taskID:               "",
+		minDurationThreshold: 0,
+		endpointName:         "",
+		duration:             0,
 	}
-	re := p.GetPprofLabelSet("test-segmentID").(*LabelSet)
-	assert.Equal(t, re, ts)
+	ls := p.GetPprofLabelSet("test-TraceID", "test-segmentID", 0).(*LabelSet)
+	ts := LabelSet{list: []label{
+		{key: "spanID", value: "0"},
+		{key: "traceSegmentID", value: "test-segmentID"},
+		{key: "traceID", value: "test-TraceID"}}}
+	assert.Equal(t, sortLabels(ts), sortLabels(*ls))
 }
 
 func TestTurnToPprofLabel(t *testing.T) {

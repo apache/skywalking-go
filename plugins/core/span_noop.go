@@ -35,6 +35,10 @@ func newSnapshotNoopSpan() *NoopSpan {
 	}
 }
 
+func (*NoopSpan) IsProfileTarget() bool {
+	return false
+}
+
 func newNoopSpan(tracer *Tracer) *NoopSpan {
 	return &NoopSpan{
 		stackCount: 1,

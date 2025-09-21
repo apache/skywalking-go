@@ -36,6 +36,7 @@ type profileLabels struct {
 const (
 	maxSendQueueSize int32 = 100
 	ChunkSize              = 1024 * 1024
+	TraceLabel             = "traceID"
 	SegmentLabel           = "traceSegmentID"
 	MinDurationLabel       = "minDurationThreshold"
 	SpanLabel              = "spanID"
@@ -51,12 +52,11 @@ type currentTask struct {
 
 type ProfileManager struct {
 	mu                 sync.Mutex
-	labelSets          map[string]profileLabels
 	TraceProfileTasks  map[string]*reporter.TraceProfileTask
 	rawCh              chan profileRawData
 	FinalReportResults chan reporter.ProfileResult
 	profilingWriter    *ProfilingWriter
-	profileEvents      *EventManager
+	profileEvents      *TraceProfilingEventManager
 	currentTask        *currentTask
 	Log                operator.LogOperator
 	counter            atomic.Int32
@@ -107,7 +107,6 @@ func NewProfileManager(log operator.LogOperator) *ProfileManager {
 	pm := &ProfileManager{
 		TraceProfileTasks:  make(map[string]*reporter.TraceProfileTask),
 		FinalReportResults: make(chan reporter.ProfileResult, maxSendQueueSize),
-		labelSets:          make(map[string]profileLabels),
 		profileEvents:      NewEventManager(),
 	}
 	pm.RegisterProfileEvents()
@@ -219,12 +218,10 @@ func (m *ProfileManager) TrySetCurrentTask(task *reporter.TraceProfileTask) {
 }
 
 func (m *ProfileManager) generateProfileLabels(traceSegmentID string, minDurationThreshold int64) profileLabels {
-	var l = &LabelSet{}
-
+	var l = LabelSet{}
 	l = UpdateTraceLabels(l, SegmentLabel, traceSegmentID, MinDurationLabel, strconv.FormatInt(minDurationThreshold, 10))
-
 	return profileLabels{
-		labels: l,
+		labels: &l,
 	}
 }
 
@@ -246,16 +243,9 @@ func (m *ProfileManager) generateCurrentTask(t *reporter.TraceProfileTask) {
 func (m *ProfileManager) TryToAddSegmentLabelSet(traceSegmentID string) {
 	if m.currentTask != nil {
 		c := m.generateProfileLabels(traceSegmentID, m.currentTask.minDurationThreshold)
-		m.labelSets[traceSegmentID] = c
 		SetGoroutineLabels(c.labels)
 		return
 	}
-}
-
-func (m *ProfileManager) TryToRemoveSegmentLabelSet(traceSegmentID string) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	delete(m.labelSets, traceSegmentID)
 }
 
 func (m *ProfileManager) monitor() {
@@ -288,29 +278,18 @@ func (m *ProfileManager) monitor() {
 	case <-done:
 	}
 	pprof.StopCPUProfile()
+	err := m.profileEvents.UpdateBaseEventStatus(IfProfiling, false)
+	if err != nil {
+		m.Log.Errorf("profile event error:%v", err)
+	}
 	if m.profilingWriter != nil {
 		m.profilingWriter.Flush()
 	}
 }
 
-func (m *ProfileManager) AddSpanID(segmentID string, spanID int32) {
-	c, ok := m.labelSets[segmentID]
-	if !ok || c.labels == nil {
-		return
-	}
-	nowLabels := m.traceLabelSet(segmentID)
-	afterAdd := UpdateTraceLabels(nowLabels, SpanLabel, parseString(spanID))
-
-	SetGoroutineLabels(afterAdd)
-}
-
-func (m *ProfileManager) traceLabelSet(segmentID string) *LabelSet {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	if re, ok := m.labelSets[segmentID]; ok {
-		return re.labels
-	}
-	return nil
+func (m *ProfileManager) AddSpanID(traceID, segmentID string, spanID int32) {
+	l := m.GetPprofLabelSet(traceID, segmentID, spanID).(*LabelSet)
+	SetGoroutineLabels(l)
 }
 
 func (m *ProfileManager) IncCounter() {

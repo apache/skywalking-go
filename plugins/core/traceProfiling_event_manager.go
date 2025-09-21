@@ -48,37 +48,40 @@ type ExprNode struct {
 	Event ComplexEvent
 }
 
-// EventManager manages event states and logical rules
-type EventManager struct {
+// TraceProfilingEventManager manages event states and logical rules
+// You can register basic events and states in the manager,
+// and then define complex events by combining these basic events using logical operators (AND, OR, NOT).
+// This makes it easier to manage whether complex events can be executed.
+type TraceProfilingEventManager struct {
 	mu              sync.RWMutex
 	BaseEventStatus map[BaseEvent]bool         // current status of base events (true=enabled, false=disabled)
 	ComplexEvents   map[ComplexEvent]*ExprNode // logical expressions for complex events
 }
 
-// Create a new EventManager
-func NewEventManager() *EventManager {
-	return &EventManager{
+// Create a new TraceProfilingEventManager
+func NewEventManager() *TraceProfilingEventManager {
+	return &TraceProfilingEventManager{
 		BaseEventStatus: make(map[BaseEvent]bool),
 		ComplexEvents:   make(map[ComplexEvent]*ExprNode),
 	}
 }
 
 // Register a base event with initial status
-func (m *EventManager) RegisterBaseEvent(event BaseEvent, initialStatus bool) {
+func (m *TraceProfilingEventManager) RegisterBaseEvent(event BaseEvent, initialStatus bool) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.BaseEventStatus[event] = initialStatus
 }
 
 // Register a complex event with logical expression rules
-func (m *EventManager) RegisterComplexEvent(targetEvent ComplexEvent, expr *ExprNode) {
+func (m *TraceProfilingEventManager) RegisterComplexEvent(targetEvent ComplexEvent, expr *ExprNode) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.ComplexEvents[targetEvent] = expr
 }
 
 // Update the status of a base event
-func (m *EventManager) UpdateBaseEventStatus(event BaseEvent, status bool) error {
+func (m *TraceProfilingEventManager) UpdateBaseEventStatus(event BaseEvent, status bool) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -90,7 +93,7 @@ func (m *EventManager) UpdateBaseEventStatus(event BaseEvent, status bool) error
 }
 
 // Get the status of a base event
-func (m *EventManager) GetBaseEventStatus(event BaseEvent) (bool, error) {
+func (m *TraceProfilingEventManager) GetBaseEventStatus(event BaseEvent) (bool, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	status, ok := m.BaseEventStatus[event]
@@ -101,7 +104,7 @@ func (m *EventManager) GetBaseEventStatus(event BaseEvent) (bool, error) {
 }
 
 // Execute a complex event by evaluating its logical expression
-func (m *EventManager) ExecuteComplexEvent(event ComplexEvent) (bool, error) {
+func (m *TraceProfilingEventManager) ExecuteComplexEvent(event ComplexEvent) (bool, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	expr, ok := m.ComplexEvents[event]
@@ -112,7 +115,7 @@ func (m *EventManager) ExecuteComplexEvent(event ComplexEvent) (bool, error) {
 }
 
 // Recursively evaluate the logical expression
-func (m *EventManager) evalExpr(node *ExprNode) (bool, error) {
+func (m *TraceProfilingEventManager) evalExpr(node *ExprNode) (bool, error) {
 	if len(node.Rules) == 0 {
 		return false, errors.New("complex event has no rules")
 	}
@@ -146,7 +149,7 @@ func (m *EventManager) evalExpr(node *ExprNode) (bool, error) {
 }
 
 // Get the value of a base event for a rule (with optional NOT)
-func (m *EventManager) getRuleValue(rule Rule) (bool, error) {
+func (m *TraceProfilingEventManager) getRuleValue(rule Rule) (bool, error) {
 	baseStatus, ok := m.BaseEventStatus[rule.Event]
 	if !ok {
 		return false, errors.New("base event not registered: " + string(rule.Event))

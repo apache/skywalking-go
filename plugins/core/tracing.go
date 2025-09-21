@@ -69,16 +69,17 @@ func (t *Tracer) CreateEntrySpan(operationName string, extractor interface{}, op
 
 	span, _, err := t.createSpan0(ctx, tracingSpan, opts, withRef(ref), withSpanType(SpanTypeEntry), withOperationName(operationName))
 	if err == nil {
-		id := span.GetSegmentID()
+		sid := span.GetSegmentID()
+		tid := span.GetTraceID()
 		// check if is profile target
 		if t.ProfileManager.CheckIfProfileTarget(operationName) {
 			t.ProfileManager.IncCounter()
 			// check if is profiling
 			if t.ProfileManager.IfProfiling() {
-				t.ProfileManager.TryToAddSegmentLabelSet(id)
+				t.ProfileManager.TryToAddSegmentLabelSet(sid)
 				if segmentSpan, ok := span.(SegmentSpan); ok {
 					c := segmentSpan.GetSegmentContext()
-					t.ProfileManager.AddSpanID(id, c.SpanID)
+					t.ProfileManager.AddSpanID(tid, sid, c.SpanID)
 				}
 			}
 		}
@@ -97,13 +98,14 @@ func (t *Tracer) CreateLocalSpan(operationName string, opts ...interface{}) (s i
 
 	span, _, err := t.createSpan0(ctx, tracingSpan, opts, withSpanType(SpanTypeLocal), withOperationName(operationName))
 	if err == nil {
-		id := span.GetSegmentID()
+		sid := span.GetSegmentID()
+		tid := span.GetTraceID()
 		endpoint := span.GetOperationName()
 		if t.ProfileManager.CheckIfProfileTarget(endpoint) {
 			if segmentSpan, ok := span.(SegmentSpan); ok {
 				c := segmentSpan.GetSegmentContext()
 				if t.ProfileManager.IfProfiling() {
-					t.ProfileManager.AddSpanID(id, c.SpanID)
+					t.ProfileManager.AddSpanID(tid, sid, c.SpanID)
 				}
 			}
 		}

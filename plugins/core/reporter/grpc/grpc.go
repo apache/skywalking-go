@@ -325,6 +325,15 @@ func (r *gRPCReporter) initSendPipeline() {
 				}
 				if task.IsLast {
 					r.profileTaskManager.ProfileFinish(task.TaskID)
+					var report = profilev3.ProfileTaskFinishReport{
+						TaskId:          task.TaskID,
+						Service:         r.entity.ServiceName,
+						ServiceInstance: r.entity.ServiceInstanceName,
+					}
+					_, err = r.profileTaskClient.ReportTaskFinish(context.Background(), &report)
+					if err != nil {
+						r.logger.Errorf("report profile task finish error %v", err)
+					}
 				}
 			}
 			r.closeProfileStream(stream)

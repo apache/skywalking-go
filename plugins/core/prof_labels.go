@@ -18,9 +18,13 @@
 package core
 
 import (
+	"context"
+	"runtime"
 	"runtime/pprof"
 	"sort"
 	"unsafe"
+
+	"github.com/apache/skywalking-go/plugins/core/profile"
 )
 
 type label struct {
@@ -32,15 +36,36 @@ type LabelSet struct {
 	list []label
 }
 
-//go:linkname runtimeSetProfLabel runtime/pprof.runtime_setProfLabel
-func runtimeSetProfLabel(label unsafe.Pointer)
+type labelMap struct {
+	LabelSet
+}
 
-func (m *ProfileManager) GetPprofLabelSet(segmentID string) interface{} {
-	pl := m.traceLabelSet(segmentID)
-	if pl == nil {
-		return &LabelSet{}
+type labelMap19 map[string]string
+
+//go:linkname runtimeGetProfLabel runtime/pprof.runtime_getProfLabel
+func runtimeGetProfLabel() unsafe.Pointer
+
+func (m *ProfileManager) GetPprofLabelSet(traceID, segmentID string, spanID int32) interface{} {
+	pl := LabelSet{
+		list: make([]label, 0),
 	}
-	return pl
+	p := runtimeGetProfLabel()
+	if p != nil {
+		version := runtime.Version()
+		if version < "go1.20" {
+			// Go1.19：map[string]string -> []label
+			m := *(*labelMap19)(p)
+			pl.list = make([]label, 0, len(m))
+			for k, v := range m {
+				pl.list = append(pl.list, label{key: k, value: v})
+			}
+		} else {
+			lm := (*labelMap)(p)
+			pl.list = lm.list
+		}
+	}
+	re := UpdateTraceLabels(pl, TraceLabel, traceID, SegmentLabel, segmentID, SpanLabel, parseString(spanID))
+	return &re
 }
 
 func (m *ProfileManager) TurnToPprofLabel(l interface{}) interface{} {
@@ -52,7 +77,18 @@ func (m *ProfileManager) TurnToPprofLabel(l interface{}) interface{} {
 	return re
 }
 
-func UpdateTraceLabels(s *LabelSet, args ...string) *LabelSet {
+func (m *ProfileManager) IsSkywalkingInternalCtx(ctx interface{}) bool {
+	c := ctx.(context.Context)
+	if c == nil {
+		return false
+	}
+	if c.Value(profile.SkywalkingInternalKey) != nil {
+		return true
+	}
+	return false
+}
+
+func UpdateTraceLabels(s LabelSet, args ...string) LabelSet {
 	if len(args)%2 != 0 {
 		panic("uneven number of arguments to profile.UpdateTraceLabels")
 	}
@@ -90,9 +126,20 @@ func (s *LabelSet) List() []string {
 }
 
 func SetGoroutineLabels(s *LabelSet) {
-	runtimeSetProfLabel(unsafe.Pointer(s))
+	if s.IsEmpty() {
+		var c = context.Background()
+		pprof.SetGoroutineLabels(c)
+		return
+	}
+	ctx := context.WithValue(context.Background(), profile.PprofContextKey{}, true)
+	labels := pprof.Labels(s.List()...)
+	ctx = pprof.WithLabels(ctx, labels)
+	pprof.SetGoroutineLabels(ctx)
 }
 
 func (s *LabelSet) IsEmpty() bool {
+	if s == nil || s.list == nil {
+		return true
+	}
 	return len(s.list) == 0
 }
