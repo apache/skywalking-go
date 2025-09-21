@@ -330,7 +330,7 @@ func (r *gRPCReporter) initSendPipeline() {
 						Service:         r.entity.ServiceName,
 						ServiceInstance: r.entity.ServiceInstanceName,
 					}
-					_, err = r.profileTaskClient.ReportTaskFinish(context.Background(), &report)
+					_, err = r.profileTaskClient.ReportTaskFinish(metadata.NewOutgoingContext(context.Background(), r.connManager.GetMD()), &report)
 					if err != nil {
 						r.logger.Errorf("report profile task finish error %v", err)
 					}

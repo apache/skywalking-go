@@ -17,7 +17,7 @@
 name: publish-docker
 
 on:
-  push:
+  pull_request:
     branches:
       - main
 
