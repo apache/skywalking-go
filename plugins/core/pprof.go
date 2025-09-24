@@ -55,10 +55,11 @@ type PprofTaskCommandImpl struct {
 	taskID string
 	// Type of profiling (CPU/Heap/Block/Mutex/Goroutine/Threadcreate/Allocs)
 	events string
-	// unit is minute
+	// Unit is minute, required for CPU, Block and Mutex events
 	duration time.Duration
 	// Unix timestamp in milliseconds when the task was created
 	createTime int64
+	// Define the period of the pprof dump, required for Block and Mutex events
 	dumpPeriod int
 
 	// for pprof task service
@@ -94,11 +95,30 @@ func (c *PprofTaskCommandImpl) GetDuration() time.Duration {
 	return c.duration
 }
 
+func (c *PprofTaskCommandImpl) GetDumpPeriod() int {
+	return c.dumpPeriod
+}
+
+func (c *PprofTaskCommandImpl) IsInvalidEvent() bool {
+	return !(c.events == PprofEventsTypeHeap ||
+		c.events == PprofEventsTypeAllocs ||
+		c.events == PprofEventsTypeGoroutine ||
+		c.events == PprofEventsTypeThread ||
+		c.events == PprofEventsTypeCPU ||
+		c.events == PprofEventsTypeBlock ||
+		c.events == PprofEventsTypeMutex)
+}
+
 func (c *PprofTaskCommandImpl) IsDirectSamplingType() bool {
 	return c.events == PprofEventsTypeHeap ||
 		c.events == PprofEventsTypeAllocs ||
 		c.events == PprofEventsTypeGoroutine ||
 		c.events == PprofEventsTypeThread
+}
+
+func (c *PprofTaskCommandImpl) HasDumpPeriod() bool {
+	return c.events == PprofEventsTypeBlock ||
+		c.events == PprofEventsTypeMutex
 }
 
 func (c *PprofTaskCommandImpl) closeFileWriter(writer io.Writer) {

@@ -19,6 +19,7 @@ package reporter
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"strconv"
 	"time"
@@ -33,15 +34,20 @@ const (
 	maxChunkSize = 1 * 1024 * 1024
 	// max send queue size for pprof data
 	maxPprofSendQueueSize = 30000
+	// max duration for pprof task
+	pprofTaskDurationMaxMinute = 15 * time.Minute
 )
 
 type PprofTaskCommand interface {
 	GetTaskID() string
 	GetCreateTime() int64
 	GetDuration() time.Duration
+	GetDumpPeriod() int
 	StartTask() (io.Writer, error)
 	StopTask(io.Writer)
 	IsDirectSamplingType() bool
+	IsInvalidEvent() bool
+	HasDumpPeriod() bool
 }
 type PprofReporter interface {
 	ReportPprof(taskID string, content []byte)
@@ -68,9 +74,8 @@ func NewPprofTaskManager(logger operator.LogOperator, serverAddr string,
 	pprofInterval time.Duration, connManager *ConnectionManager,
 	pprofFilePath string) (*PprofTaskManager, error) {
 	if pprofInterval <= 0 {
-		var err error
 		logger.Errorf("pprof interval less than zero, pprof profiling is disabled")
-		return nil, err
+		return nil, fmt.Errorf("pprof interval less than zero, pprof profiling is disabled")
 	}
 	pprofManager := &PprofTaskManager{
 		logger:        logger,
@@ -90,9 +95,6 @@ func NewPprofTaskManager(logger operator.LogOperator, serverAddr string,
 }
 
 func (r *PprofTaskManager) InitPprofTask(entity *Entity) {
-	if r.PprofClient == nil {
-		return
-	}
 	r.entity = entity
 	r.initPprofSendPipeline()
 	go func() {
@@ -130,6 +132,10 @@ func (r *PprofTaskManager) HandleCommand(rawCommand *commonv3.Command) {
 	if command.GetCreateTime() > r.LastUpdateTime {
 		r.LastUpdateTime = command.GetCreateTime()
 	} else {
+		return
+	}
+	if err := r.checkCommand(command); err != nil {
+		r.logger.Errorf("check command error, cannot process this pprof task. reason: %v", err)
 		return
 	}
 
@@ -191,6 +197,24 @@ func (r *PprofTaskManager) deserializePprofTaskCommand(command *commonv3.Command
 	)
 }
 
+func (r *PprofTaskManager) checkCommand(command PprofTaskCommand) error {
+	if command.GetTaskID() == "" {
+		return fmt.Errorf("pprof task id cannot be empty, task id is %s", command.GetTaskID())
+	}
+	if command.IsInvalidEvent() {
+		return fmt.Errorf("pprof task event is invalid, task id is %s", command.GetTaskID())
+	}
+	if !command.IsDirectSamplingType() {
+		if command.GetDuration() <= 0 || command.GetDuration() > pprofTaskDurationMaxMinute {
+			return fmt.Errorf("pprof task duration must be between 0 and %v, task id is %s", pprofTaskDurationMaxMinute, command.GetTaskID())
+		}
+	}
+	if command.HasDumpPeriod() && command.GetDumpPeriod() <= 0 {
+		return fmt.Errorf("pprof task dumpperiod must be greater than 0, task id is %s", command.GetTaskID())
+	}
+	return nil
+}
+
 func (r *PprofTaskManager) ReportPprof(taskID string, content []byte) {
 	metaData := &pprofv10.PprofMetaData{
 		Service:         r.entity.ServiceName,
@@ -220,9 +244,6 @@ func (r *PprofTaskManager) ReportPprof(taskID string, content []byte) {
 }
 
 func (r *PprofTaskManager) initPprofSendPipeline() {
-	if r.PprofClient == nil {
-		return
-	}
 	go func() {
 		defer func() {
 			if err := recover(); err != nil {
