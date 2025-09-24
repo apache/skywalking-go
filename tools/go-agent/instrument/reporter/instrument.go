@@ -160,7 +160,7 @@ func (i *Instrument) generateReporterInitFile(dir, reporterType string) (string,
 	reporterInitTemplate := baseReporterInitTemplate
 	if reporterType == consts.KafkaReporter {
 		reporterInitTemplate += `
-	_, cdsManager, err := initManager(logger, checkInterval)
+	_, cdsManager, _, err := initManager(logger, checkInterval)
 	if err != nil {
 		return nil, err
 	}
@@ -169,11 +169,11 @@ func (i *Instrument) generateReporterInitFile(dir, reporterType string) (string,
 		reporterInitTemplate += kafkaReporterInitFunc
 	} else {
 		reporterInitTemplate += `
-	connManager, cdsManager, err := initManager(logger, checkInterval)
+	connManager, cdsManager, pprofTaskManager, err := initManager(logger, checkInterval)
 	if err != nil {
 		return nil, err
 	}
-	return initGRPCReporter(logger, checkInterval, connManager, cdsManager)
+	return initGRPCReporter(logger, checkInterval, connManager, cdsManager, pprofTaskManager)
 }`
 		reporterInitTemplate += grpcReporterInitFunc
 	}
@@ -208,7 +208,7 @@ func {{.InitFuncName}}(logger operator.LogOperator) (Reporter, error) {
 
 const initManagerFunc = `
 
-func initManager(logger operator.LogOperator, checkInterval time.Duration) (*ConnectionManager, *CDSManager, error) {
+func initManager(logger operator.LogOperator, checkInterval time.Duration) (*ConnectionManager, *CDSManager, *PprofTaskManager, error) {
 	authenticationVal := {{.Config.Reporter.GRPC.Authentication.ToGoStringValue}}
 	backendServiceVal := {{.Config.Reporter.GRPC.BackendService.ToGoStringValue}}
 
@@ -229,16 +229,25 @@ func initManager(logger operator.LogOperator, checkInterval time.Duration) (*Con
 		connManager, err = NewConnectionManager(logger, checkInterval, backendServiceVal, authenticationVal, nil)
 	}
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	cdsFetchIntervalVal := {{.Config.Reporter.GRPC.CDSFetchInterval.ToGoIntValue "the cds fetch interval must be number"}}
 	cdsFetchInterval := time.Second * time.Duration(cdsFetchIntervalVal)
 	cdsManager, err := NewCDSManager(logger, backendServiceVal, cdsFetchInterval, connManager)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
-	return connManager, cdsManager, nil
+
+	pprofFetchIntervalVal := {{.Config.Reporter.GRPC.Pprof.PprofFetchInterval.ToGoIntValue "the pprof fetch interval must be number"}}
+	pprofFetchInterval := time.Second * time.Duration(pprofFetchIntervalVal)
+	pprofFilePath := {{.Config.Reporter.GRPC.Pprof.PprofFilePath.ToGoStringValue}}
+	pprofTaskManager, err := NewPprofTaskManager(logger, backendServiceVal, pprofFetchInterval, connManager, pprofFilePath)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	return connManager, cdsManager, pprofTaskManager, nil
 }
 `
 
@@ -247,13 +256,14 @@ const grpcReporterInitFunc = `
 func initGRPCReporter(logger operator.LogOperator,
 					checkInterval time.Duration,
 					connManager *ConnectionManager,
-					cdsManager *CDSManager) (Reporter, error) {
+					cdsManager *CDSManager,
+					pprofTaskManager *PprofTaskManager) (Reporter, error) {
 	var opts []ReporterOption
 	maxSendQueueVal := {{.Config.Reporter.GRPC.MaxSendQueue.ToGoIntValue "the GRPC reporter max queue size must be number"}}
 	opts = append(opts, WithMaxSendQueueSize(maxSendQueueVal))
 
 	backendServiceVal := {{.Config.Reporter.GRPC.BackendService.ToGoStringValue}}
-	return NewGRPCReporter(logger, backendServiceVal, checkInterval, connManager, cdsManager, opts...)
+	return NewGRPCReporter(logger, backendServiceVal, checkInterval, connManager, cdsManager, pprofTaskManager, opts...)
 }
 `
 

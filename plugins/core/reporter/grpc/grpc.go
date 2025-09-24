@@ -42,17 +42,19 @@ func NewGRPCReporter(logger operator.LogOperator,
 	checkInterval time.Duration,
 	connManager *reporter.ConnectionManager,
 	cdsManager *reporter.CDSManager,
+	pprofTaskManager *reporter.PprofTaskManager,
 	opts ...ReporterOption,
 ) (reporter.Reporter, error) {
 	r := &gRPCReporter{
-		logger:        logger,
-		serverAddr:    serverAddr,
-		tracingSendCh: make(chan *agentv3.SegmentObject, maxSendQueueSize),
-		metricsSendCh: make(chan []*agentv3.MeterData, maxSendQueueSize),
-		logSendCh:     make(chan *logv3.LogData, maxSendQueueSize),
-		checkInterval: checkInterval,
-		connManager:   connManager,
-		cdsManager:    cdsManager,
+		logger:           logger,
+		serverAddr:       serverAddr,
+		tracingSendCh:    make(chan *agentv3.SegmentObject, maxSendQueueSize),
+		metricsSendCh:    make(chan []*agentv3.MeterData, maxSendQueueSize),
+		logSendCh:        make(chan *logv3.LogData, maxSendQueueSize),
+		checkInterval:    checkInterval,
+		connManager:      connManager,
+		cdsManager:       cdsManager,
+		pprofTaskManager: pprofTaskManager,
 	}
 	for _, o := range opts {
 		o(r)
@@ -83,10 +85,11 @@ type gRPCReporter struct {
 	checkInterval    time.Duration
 
 	// bootFlag is set if Boot be executed
-	bootFlag    bool
-	transform   *reporter.Transform
-	connManager *reporter.ConnectionManager
-	cdsManager  *reporter.CDSManager
+	bootFlag         bool
+	transform        *reporter.Transform
+	connManager      *reporter.ConnectionManager
+	cdsManager       *reporter.CDSManager
+	pprofTaskManager *reporter.PprofTaskManager
 }
 
 func (r *gRPCReporter) Boot(entity *reporter.Entity, cdsWatchers []reporter.AgentConfigChangeWatcher) {
@@ -95,6 +98,7 @@ func (r *gRPCReporter) Boot(entity *reporter.Entity, cdsWatchers []reporter.Agen
 	r.initSendPipeline()
 	r.check()
 	r.cdsManager.InitCDS(entity, cdsWatchers)
+	r.pprofTaskManager.InitPprofTask(entity)
 	r.bootFlag = true
 }
 
