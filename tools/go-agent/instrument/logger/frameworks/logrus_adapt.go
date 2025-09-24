@@ -22,12 +22,18 @@ import (
 )
 
 func UpdateLogrusLogger(l *logrus.Logger) {
-	if LogTracingContextEnable {
-		if _, wrapperd := l.Formatter.(*WrapFormat); !wrapperd {
-			l.Formatter = Wrap(l.Formatter, LogTracingContextKey)
-		}
-	}
-	ChangeLogger(NewLogrusAdapter(l))
+    if l == nil {
+        return
+    }
+    
+    if LogTracingContextEnable {
+        if _, wrapperd := l.Formatter.(*WrapFormat); !wrapperd {
+            l.Formatter = Wrap(l.Formatter, LogTracingContextKey)
+        }
+    }
+    if ChangeLogger != nil {
+        ChangeLogger(NewLogrusAdapter(l))
+    }
 }
 
 type LogrusAdapter struct {
