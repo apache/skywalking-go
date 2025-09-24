@@ -22,12 +22,21 @@ import (
 )
 
 func UpdateLogrusLogger(l *logrus.Logger) {
+	// 添加保护性检查，防止在Go 1.24中由于init顺序变更导致的nil panic
+	if l == nil {
+		return
+	}
+
 	if LogTracingContextEnable {
 		if _, wrapperd := l.Formatter.(*WrapFormat); !wrapperd {
 			l.Formatter = Wrap(l.Formatter, LogTracingContextKey)
 		}
 	}
-	ChangeLogger(NewLogrusAdapter(l))
+
+	// 确保ChangeLogger不是nil
+	if ChangeLogger != nil {
+		ChangeLogger(NewLogrusAdapter(l))
+	}
 }
 
 type LogrusAdapter struct {
