@@ -231,11 +231,6 @@ func (r *PprofTaskManager) ReportPprof(taskID string, content []byte) {
 		},
 	}
 
-	defer func() {
-		if err := recover(); err != nil {
-			r.logger.Errorf("reporter pprof err %v", err)
-		}
-	}()
 	select {
 	case r.pprofSendCh <- pprofData:
 	default:
