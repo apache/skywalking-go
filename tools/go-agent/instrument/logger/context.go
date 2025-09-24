@@ -80,7 +80,6 @@ func (span *NoopSpan) GetEndPointName() string {
 
 func GetLogContext(withEndpoint bool) interface{} {
 	operator := GetOperator()
-	// 这里增加nil校验
 	if operator == nil {
 		return nil
 	}

@@ -22,7 +22,7 @@ import (
 )
 
 func UpdateLogrusLogger(l *logrus.Logger) {
-	// 添加保护性检查，防止在Go 1.24中由于init顺序变更导致的nil panic
+	// Add a safeguard check to prevent nil panic caused by changes in init execution order
 	if l == nil {
 		return
 	}
@@ -33,7 +33,6 @@ func UpdateLogrusLogger(l *logrus.Logger) {
 		}
 	}
 
-	// 确保ChangeLogger不是nil
 	if ChangeLogger != nil {
 		ChangeLogger(NewLogrusAdapter(l))
 	}
