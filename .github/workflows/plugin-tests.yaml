@@ -21,13 +21,7 @@ concurrency:
   cancel-in-progress: true
 
 on:
-  push:
-    branches:
-      - '**'
   pull_request:
-    branches:
-      - '**'
-#  pull_request:
 
 jobs:
   build:
