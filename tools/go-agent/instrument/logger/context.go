@@ -80,14 +80,14 @@ func (span *NoopSpan) GetEndPointName() string {
 
 func GetLogContext(withEndpoint bool) interface{} {
 	operator := GetOperator()
-    if operator == nil {
-        return nil
-    }
-    report, ok := operator.LogReporter().(LogReporter)
-    if !ok || report == nil {
-        return nil
-    }
-    return report.GetLogContext(withEndpoint)
+	if operator == nil {
+		return nil
+	}
+	report, ok := operator.LogReporter().(LogReporter)
+	if !ok || report == nil {
+		return nil
+	}
+	return report.GetLogContext(withEndpoint)
 }
 
 func GetLogContextString() string {
