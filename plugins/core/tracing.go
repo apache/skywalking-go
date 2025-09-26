@@ -76,9 +76,9 @@ func (t *Tracer) CreateEntrySpan(operationName string, extractor interface{}, op
 			t.ProfileManager.IncCounter()
 			// check if is profiling
 			if t.ProfileManager.IfProfiling() {
-				t.ProfileManager.TryToAddSegmentLabelSet(sid)
 				if segmentSpan, ok := span.(SegmentSpan); ok {
 					c := segmentSpan.GetSegmentContext()
+					t.ProfileManager.TryToAddSegmentLabelSet(sid)
 					t.ProfileManager.AddSpanID(tid, sid, c.SpanID)
 				}
 			}

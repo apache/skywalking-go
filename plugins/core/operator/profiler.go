@@ -18,7 +18,7 @@
 package operator
 
 type ProfileOperator interface {
-	GetPprofLabelSet(traceID string, segmentID string, spanID int32) interface{}
+	GetNowLabels() interface{}
 	TurnToPprofLabel(l interface{}) interface{}
 	IsSkywalkingInternalCtx(ctx interface{}) bool
 }

@@ -168,9 +168,6 @@ var {{.MetricsRegisterAppendMethodName}} = _skywalking_metrics_register_append_i
 //go:linkname {{.MetricsObtainMethodName}} {{.MetricsObtainMethodName}}
 var {{.MetricsObtainMethodName}} = _skywalking_metrics_obtain_impl
 
-//go:linkname skywalkingEnsureGoroutineLabels skywalkingEnsureGoroutineLabels
-var skywalkingEnsureGoroutineLabels = _skywalking_ensure_goroutine_labels_impl
-
 //go:nosplit
 func _skywalking_get_goid_impl() int64 {
 	return {{.GoroutineIDCaster}}
@@ -245,17 +242,6 @@ func _skywalking_metrics_obtain_impl() ([]interface{}, []func()) {
 }
 
 //go:nosplit
-func _skywalking_ensure_goroutine_labels_impl() {
-    v := getg().m.curg.{{.TLSFiledName}}
-    if v == nil {
-        return
-    }
-    if s, ok := v.(ContextSnapshoter); ok && s != nil {
-        s.SetPprofLabels()
-    }
-}
-
-//go:nosplit
 func _skywalking_metrics_hook_append_impl(f func()) {
 	for {
 		tmp := atomic.Loadint32(_metricsRegisterLocker)
@@ -268,7 +254,6 @@ func _skywalking_metrics_hook_append_impl(f func()) {
 
 type ContextSnapshoter interface {
 	TakeSnapShot() interface{}
-	SetPprofLabels()
 }
 
 func goroutineChange(tls interface{}) interface{} {

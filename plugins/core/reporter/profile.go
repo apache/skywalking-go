@@ -18,6 +18,8 @@
 package reporter
 
 import (
+	"time"
+
 	common "github.com/apache/skywalking-go/protocols/collect/common/v3"
 )
 
@@ -25,7 +27,7 @@ type ProfileTaskManager interface {
 	// AddProfileTask add new profile task
 	AddProfileTask(args []*common.KeyStringValuePair)
 	GetProfileResults() chan ProfileResult
-	ProfileFinish(taskID string)
+	ProfileFinish()
 	RemoveProfileTask()
 }
 
@@ -37,11 +39,11 @@ type TraceProfileTask struct {
 	MinDurationThreshold int64  // starting monitoring time (ms)
 	DumpPeriod           int    // monitoring interval (ms)
 	MaxSamplingCount     int    // maximum number of samples
-	StartTime            int64
-	CreateTime           int64
-	Status               TaskStatus // task execution status
+	StartTime            time.Time
+	CreateTime           time.Time
+	Status               ProfileTaskStatus // task execution status
 	spanIds              []int32
-	EndTime              int64 // task deadline
+	EndTime              time.Time // task deadline
 }
 
 type ProfileResult struct {

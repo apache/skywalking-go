@@ -41,7 +41,7 @@ func TestGetLabels(t *testing.T) {
 		endpointName:         "",
 		duration:             0,
 	}
-	ls := p.GetPprofLabelSet("test-TraceID", "test-segmentID", 0).(*LabelSet)
+	ls := p.AddSkyLabels("test-TraceID", "test-segmentID", 0).(*LabelSet)
 	ts := LabelSet{list: []label{
 		{key: "spanID", value: "0"},
 		{key: "traceSegmentID", value: "test-segmentID"},

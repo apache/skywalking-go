@@ -45,7 +45,7 @@ type labelMap19 map[string]string
 //go:linkname runtimeGetProfLabel runtime/pprof.runtime_getProfLabel
 func runtimeGetProfLabel() unsafe.Pointer
 
-func (m *ProfileManager) GetPprofLabelSet(traceID, segmentID string, spanID int32) interface{} {
+func GetNowLabelSet() LabelSet {
 	pl := LabelSet{
 		list: make([]label, 0),
 	}
@@ -64,6 +64,11 @@ func (m *ProfileManager) GetPprofLabelSet(traceID, segmentID string, spanID int3
 			pl.list = lm.list
 		}
 	}
+	return pl
+}
+
+func (m *ProfileManager) AddSkyLabels(traceID, segmentID string, spanID int32) interface{} {
+	pl := GetNowLabelSet()
 	re := UpdateTraceLabels(pl, TraceLabel, traceID, SegmentLabel, segmentID, SpanLabel, parseString(spanID))
 	return &re
 }
@@ -135,6 +140,12 @@ func SetGoroutineLabels(s *LabelSet) {
 	labels := pprof.Labels(s.List()...)
 	ctx = pprof.WithLabels(ctx, labels)
 	pprof.SetGoroutineLabels(ctx)
+}
+
+// GetNowLabels Expose to operator
+func (m *ProfileManager) GetNowLabels() interface{} {
+	re := GetNowLabelSet()
+	return &re
 }
 
 func (s *LabelSet) IsEmpty() bool {

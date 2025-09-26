@@ -33,7 +33,6 @@ var (
 
 type ContextSnapshoter interface {
 	TakeSnapShot() interface{}
-	SetPprofLabels()
 }
 
 type TracingContext struct {
@@ -53,27 +52,6 @@ func (t *TracingContext) TakeSnapShot() interface{} {
 		activeSpan: snapshot,
 		Runtime:    t.Runtime.clone(),
 		ID:         NewIDContext(false),
-	}
-}
-
-func (t *TracingContext) SetPprofLabels() {
-	if t.activeSpan == nil {
-		return
-	}
-	s := t.activeSpan
-	if s.IsProfileTarget() {
-		// Build label set and set directly via runtime linkname to avoid interceptor recursion
-		sid := s.GetSegmentID()
-		tid := s.GetTraceID()
-		spanID := s.GetSpanID()
-		if sid == "" {
-			return
-		}
-		l := LabelSet{
-			make([]label, 0),
-		}
-		l = UpdateTraceLabels(l, TraceLabel, tid, SegmentLabel, sid, SpanLabel, parseString(spanID))
-		SetGoroutineLabels(&l)
 	}
 }
 

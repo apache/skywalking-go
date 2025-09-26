@@ -317,6 +317,8 @@ func (r *gRPCReporter) initSendPipeline() {
 					Payload: task.Payload,
 					IsLast:  task.IsLast,
 				}
+				r.logger.Infof("Sending profile task: TaskID='%s', PayloadSize=%d, IsLast=%v",
+					task.TaskID, len(task.Payload), task.IsLast)
 				err = stream.Send(profileData)
 				if err != nil {
 					r.logger.Errorf("send profile data error %v", err)
@@ -324,7 +326,7 @@ func (r *gRPCReporter) initSendPipeline() {
 					continue StreamLoop
 				}
 				if task.IsLast {
-					r.profileTaskManager.ProfileFinish(task.TaskID)
+					r.profileTaskManager.ProfileFinish()
 					var report = profilev3.ProfileTaskFinishReport{
 						TaskId:          task.TaskID,
 						Service:         r.entity.ServiceName,

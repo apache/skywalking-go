@@ -40,13 +40,7 @@ func (h *SetLabelsInterceptor) BeforeInvoke(invocation operator.Invocation) erro
 	if !tracing.ActiveSpan().IsProfileTarget() {
 		return nil
 	}
-	sid := tracing.ActiveSpan().TraceSegmentID()
-	tid := tracing.ActiveSpan().TraceID()
-	spanID := tracing.ActiveSpan().SpanID()
-	if sid == "" {
-		return nil
-	}
-	row := profile.CatchNowProfileLabel(tid, sid, spanID)
+	row := profile.CatchNowProfileLabel()
 	now := profile.TurnToPprofLabel(row)
 	l, ok := now.(pprof.LabelSet)
 	if !ok {

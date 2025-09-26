@@ -108,10 +108,10 @@ var (
 	ConnectionStatusShutdown   ConnectionStatus = 3
 )
 
-type TaskStatus int
+type ProfileTaskStatus int
 
 const (
-	Pending TaskStatus = iota
+	Pending ProfileTaskStatus = iota
 	Running
 	Finished
 	Reported
