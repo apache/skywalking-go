@@ -264,9 +264,7 @@ func (m *ProfileManager) TryToAddSegmentLabelSet(traceSegmentID string) {
 }
 
 func (m *ProfileManager) monitor() {
-	select {
-	case <-time.After(time.Duration(m.currentTask.duration) * time.Minute):
-	}
+	<-time.After(time.Duration(m.currentTask.duration) * time.Minute)
 	pprof.StopCPUProfile()
 	err := m.profileEvents.UpdateBaseEventStatus(IfProfiling, false)
 	if err != nil {
