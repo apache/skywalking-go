@@ -75,5 +75,6 @@ import (
 	_ "github.com/apache/skywalking-go/protocols/collect/language/profile/v3"
 	_ "github.com/apache/skywalking-go/protocols/collect/logging/v3"
 	_ "github.com/apache/skywalking-go/protocols/collect/management/v3"
+	_ "github.com/apache/skywalking-go/protocols/collect/pprof/v10"
 	_ "github.com/apache/skywalking-go/protocols/collect/servicemesh/v3"
 )

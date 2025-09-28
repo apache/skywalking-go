@@ -44,6 +44,7 @@ func NewGRPCReporter(logger operator.LogOperator,
 	profileFetchInterval time.Duration,
 	connManager *reporter.ConnectionManager,
 	cdsManager *reporter.CDSManager,
+	pprofTaskManager *reporter.PprofTaskManager,
 	opts ...ReporterOption,
 ) (reporter.Reporter, error) {
 	r := &gRPCReporter{
@@ -56,6 +57,7 @@ func NewGRPCReporter(logger operator.LogOperator,
 		profileFetchInterval: profileFetchInterval,
 		connManager:          connManager,
 		cdsManager:           cdsManager,
+		pprofTaskManager:     pprofTaskManager,
 	}
 	for _, o := range opts {
 		o(r)
@@ -89,10 +91,11 @@ type gRPCReporter struct {
 	checkInterval        time.Duration
 	profileFetchInterval time.Duration
 	// bootFlag is set if Boot be executed
-	bootFlag    bool
-	transform   *reporter.Transform
-	connManager *reporter.ConnectionManager
-	cdsManager  *reporter.CDSManager
+	bootFlag         bool
+	transform        *reporter.Transform
+	connManager      *reporter.ConnectionManager
+	cdsManager       *reporter.CDSManager
+	pprofTaskManager *reporter.PprofTaskManager
 }
 
 func (r *gRPCReporter) Boot(entity *reporter.Entity, cdsWatchers []reporter.AgentConfigChangeWatcher) {
@@ -102,6 +105,7 @@ func (r *gRPCReporter) Boot(entity *reporter.Entity, cdsWatchers []reporter.Agen
 	r.check()
 	r.fetchProfileTasks()
 	r.cdsManager.InitCDS(entity, cdsWatchers)
+	r.pprofTaskManager.InitPprofTask(entity)
 	r.bootFlag = true
 }
 

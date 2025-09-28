@@ -19,14 +19,17 @@ package core
 
 import (
 	//go:nolint
+	_ "bytes"
 	_ "context"
 	_ "encoding/base64"
 	_ "fmt"
+	_ "io"
 	_ "log"
 	_ "math"
 	_ "math/rand"
 	_ "net"
 	_ "os"
+	_ "path/filepath"
 	_ "reflect"
 	_ "runtime"
 	_ "runtime/debug"
@@ -58,4 +61,5 @@ import (
 	_ "github.com/apache/skywalking-go/protocols/collect/language/agent/v3"
 	_ "github.com/apache/skywalking-go/protocols/collect/language/profile/v3"
 	_ "github.com/apache/skywalking-go/protocols/collect/logging/v3"
+	_ "github.com/apache/skywalking-go/protocols/collect/pprof/v10"
 )
