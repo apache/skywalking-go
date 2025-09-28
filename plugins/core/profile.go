@@ -92,8 +92,9 @@ func (m *ProfileManager) initReportChannel() {
 				m.mu.Lock()
 				if m.TraceProfileTask == nil {
 					m.Log.Warn("no TraceProfileTask before finish profile")
+				} else {
+					m.TraceProfileTask.Status = reporter.Finished
 				}
-				m.TraceProfileTask.Status = reporter.Finished
 				m.currentTask = nil
 				m.profileEvents.BaseEventStatus[CurTaskExist] = false
 				m.mu.Unlock()

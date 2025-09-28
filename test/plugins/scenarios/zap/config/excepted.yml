@@ -18,13 +18,14 @@ segmentItems: []
 meterItems: []
 logItems:
   - serviceName: zap
-    logSize: ge 4
+    logSize: ge 5
     logs:
       - timestamp: nq 0
         endpoint: ''
         body:
           type: TEXT
-          content: { text: not null }
+          content: { text: 'fetch dynamic configuration error rpc error: code = Unimplemented
+                    desc = Method not found: skywalking.v3.ConfigurationDiscoveryService/fetchConfigurations' }
         traceContext: { traceId: N/A, traceSegmentId: N/A, spanId: -1 }
         tags:
           data:
@@ -34,7 +35,8 @@ logItems:
         endpoint: ''
         body:
           type: TEXT
-          content: { text: not null }
+          content: { text: 'fetch pprof task commands error rpc error: code = Unimplemented
+                    desc = Method not found: skywalking.v10.PprofTask/getPprofTaskCommands' }
         traceContext: { traceId: N/A, traceSegmentId: N/A, spanId: -1 }
         tags:
           data:
@@ -45,7 +47,7 @@ logItems:
         body:
           type: TEXT
           content: { text: 'fetch profile task error: rpc error: code = Unimplemented
-              desc = Method not found: skywalking.v3.ProfileTask/getProfileTaskCommands' }
+             desc = Method not found: skywalking.v3.ProfileTask/getProfileTaskCommands' }
         traceContext: { traceId: N/A, traceSegmentId: N/A, spanId: -1 }
         tags:
           data:
