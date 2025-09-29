@@ -21,7 +21,7 @@ concurrency:
   cancel-in-progress: true
 
 on:
-  push:
+  puLL_request:
 
 jobs:
   build:
