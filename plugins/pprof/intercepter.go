@@ -31,9 +31,6 @@ type SetLabelsInterceptor struct{}
 
 func (h *SetLabelsInterceptor) BeforeInvoke(invocation operator.Invocation) error {
 	c := invocation.Args()[0].(context.Context)
-	if profile.IsSkywalkingInternalCtx(c) {
-		return nil
-	}
 	if tracing.ActiveSpan() == nil {
 		return nil
 	}

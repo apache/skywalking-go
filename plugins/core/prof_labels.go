@@ -19,12 +19,12 @@ package core
 
 import (
 	"context"
+	"regexp"
 	"runtime"
 	"runtime/pprof"
 	"sort"
+	"strconv"
 	"unsafe"
-
-	"github.com/apache/skywalking-go/plugins/core/profile"
 )
 
 type label struct {
@@ -42,8 +42,51 @@ type labelMap struct {
 
 type labelMap19 map[string]string
 
+type labelContextKey struct{}
+
 //go:linkname runtimeGetProfLabel runtime/pprof.runtime_getProfLabel
 func runtimeGetProfLabel() unsafe.Pointer
+
+//go:linkname runtimeSetProfLabel runtime/pprof.runtime_setProfLabel
+func runtimeSetProfLabel(label unsafe.Pointer)
+
+func setGoroutineLabelsInternal(ctx context.Context) {
+	if isGoVersionLMoreThan120(runtime.Version()) {
+		ctxLabels, _ := ctx.Value(labelContextKey{}).(*labelMap)
+		runtimeSetProfLabel(unsafe.Pointer(ctxLabels))
+		return
+	}
+	ctxLabels, _ := ctx.Value(labelContextKey{}).(*labelMap19)
+	runtimeSetProfLabel(unsafe.Pointer(ctxLabels))
+}
+
+func labelValue(ctx context.Context) labelMap19 {
+	labels, _ := ctx.Value(labelContextKey{}).(*labelMap19)
+	if labels == nil {
+		return labelMap19(nil)
+	}
+	return *labels
+}
+
+func WithLabels(ctx context.Context, s LabelSet) context.Context {
+	if isGoVersionLMoreThan120(runtime.Version()) {
+		ctx = context.WithValue(ctx, labelContextKey{}, &labelMap{s})
+		return ctx
+	}
+	return withLabels19(ctx, s)
+}
+
+func withLabels19(ctx context.Context, labels LabelSet) context.Context {
+	childLabels := make(labelMap19)
+	parentLabels := labelValue(ctx)
+	for k, v := range parentLabels {
+		childLabels[k] = v
+	}
+	for _, label := range labels.list {
+		childLabels[label.key] = label.value
+	}
+	return context.WithValue(ctx, labelContextKey{}, &childLabels)
+}
 
 func GetNowLabelSet() LabelSet {
 	pl := LabelSet{
@@ -52,7 +95,7 @@ func GetNowLabelSet() LabelSet {
 	p := runtimeGetProfLabel()
 	if p != nil {
 		version := runtime.Version()
-		if version < "go1.20" {
+		if !isGoVersionLMoreThan120(version) {
 			// Go1.19：map[string]string -> []label
 			m := *(*labelMap19)(p)
 			pl.list = make([]label, 0, len(m))
@@ -65,6 +108,27 @@ func GetNowLabelSet() LabelSet {
 		}
 	}
 	return pl
+}
+
+// isGoVersionLMoreThan120 parses version strings like "go1.19.8"
+func isGoVersionLMoreThan120(version string) bool {
+	re := regexp.MustCompile(`go(\d+)\.(\d+)`)
+	sub := re.FindStringSubmatch(version)
+	if len(sub) != 3 {
+		return false
+	}
+	major, err1 := strconv.Atoi(sub[1])
+	minor, err2 := strconv.Atoi(sub[2])
+	if err1 != nil || err2 != nil {
+		return false
+	}
+	if major < 1 {
+		return false
+	}
+	if major > 1 {
+		return true
+	}
+	return minor >= 20
 }
 
 func (m *ProfileManager) AddSkyLabels(traceID, segmentID string, spanID int32) interface{} {
@@ -80,17 +144,6 @@ func (m *ProfileManager) TurnToPprofLabel(l interface{}) interface{} {
 	}
 	re := pprof.Labels(li...)
 	return re
-}
-
-func (m *ProfileManager) IsSkywalkingInternalCtx(ctx interface{}) bool {
-	c := ctx.(context.Context)
-	if c == nil {
-		return false
-	}
-	if c.Value(profile.SkywalkingInternalKey) != nil {
-		return true
-	}
-	return false
 }
 
 func UpdateTraceLabels(s LabelSet, args ...string) LabelSet {
@@ -133,13 +186,13 @@ func (s *LabelSet) List() []string {
 func SetGoroutineLabels(s *LabelSet) {
 	if s.IsEmpty() {
 		var c = context.Background()
-		pprof.SetGoroutineLabels(c)
+		setGoroutineLabelsInternal(c)
 		return
 	}
-	ctx := context.WithValue(context.Background(), profile.PprofContextKey{}, true)
-	labels := pprof.Labels(s.List()...)
-	ctx = pprof.WithLabels(ctx, labels)
-	pprof.SetGoroutineLabels(ctx)
+	var c = context.Background()
+	l := *s
+	c = WithLabels(c, l)
+	setGoroutineLabelsInternal(c)
 }
 
 // GetNowLabels Expose to operator

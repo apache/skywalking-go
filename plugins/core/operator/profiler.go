@@ -20,5 +20,4 @@ package operator
 type ProfileOperator interface {
 	GetNowLabels() interface{}
 	TurnToPprofLabel(l interface{}) interface{}
-	IsSkywalkingInternalCtx(ctx interface{}) bool
 }

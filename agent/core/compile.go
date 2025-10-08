@@ -31,6 +31,7 @@ import (
 	_ "os"
 	_ "path/filepath"
 	_ "reflect"
+	_ "regexp"
 	_ "runtime"
 	_ "runtime/debug"
 	_ "runtime/metrics"

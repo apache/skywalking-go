@@ -44,16 +44,3 @@ func TurnToPprofLabel(t interface{}) interface{} {
 	re := profiler.TurnToPprofLabel(t)
 	return re
 }
-
-func IsSkywalkingInternalCtx(ctx interface{}) bool {
-	op := operator.GetOperator()
-	if op == nil {
-		return false
-	}
-	profiler, ok := op.Profiler().(operator.ProfileOperator)
-	if !ok {
-		return false
-	}
-	re := profiler.IsSkywalkingInternalCtx(ctx)
-	return re
-}
