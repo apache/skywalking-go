@@ -21,7 +21,6 @@ import (
 	"runtime/pprof"
 	"strconv"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/apache/skywalking-go/plugins/core/operator"
@@ -61,7 +60,6 @@ type ProfileManager struct {
 	profileEvents      *TraceProfilingEventManager
 	currentTask        *currentTask
 	Log                operator.LogOperator
-	counter            atomic.Int32
 }
 
 func (m *ProfileManager) initReportChannel() {
@@ -279,28 +277,6 @@ func (m *ProfileManager) monitor() {
 func (m *ProfileManager) AddSpanID(traceID, segmentID string, spanID int32) {
 	l := m.AddSkyLabels(traceID, segmentID, spanID).(*LabelSet)
 	SetGoroutineLabels(l)
-}
-
-func (m *ProfileManager) IncCounter() {
-	m.counter.Add(1)
-	err := m.profileEvents.UpdateBaseEventStatus(HasWorthRequeue, true)
-	if err != nil {
-		m.Log.Errorf("profile event error:%v", err)
-	}
-}
-
-func (m *ProfileManager) DecCounter() {
-	m.mu.Lock()
-	ct := m.counter.Add(-1)
-	if ct == 0 {
-		m.mu.Unlock()
-		err := m.profileEvents.UpdateBaseEventStatus(HasWorthRequeue, false)
-		if err != nil {
-			m.Log.Errorf("profile event error:%v", err)
-		}
-		return
-	}
-	m.mu.Unlock()
 }
 
 func (m *ProfileManager) GetProfileResults() chan reporter.ProfileResult {

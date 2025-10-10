@@ -37,15 +37,13 @@ func (h *SetLabelsInterceptor) BeforeInvoke(invocation operator.Invocation) erro
 	if !tracing.ActiveSpan().IsProfileTarget() {
 		return nil
 	}
-	row := profile.CatchNowProfileLabel()
-	now := profile.TurnToPprofLabel(row)
+	now := profile.CatchNowProfileLabel()
 	l, ok := now.(pprof.LabelSet)
 	if !ok {
 		return errors.New("profile label transform error")
 	}
 	c = pprof.WithLabels(c, l)
 	invocation.ChangeArg(0, c)
-
 	return nil
 }
 

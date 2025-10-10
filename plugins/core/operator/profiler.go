@@ -18,6 +18,6 @@
 package operator
 
 type ProfileOperator interface {
+	//GetNowLabels get skywalking internal labels from goroutine,avoid covered by user
 	GetNowLabels() interface{}
-	TurnToPprofLabel(l interface{}) interface{}
 }

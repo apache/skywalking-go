@@ -18,41 +18,39 @@
 package core
 
 const (
-	IfProfiling     BaseEvent = "IfProfiling"
-	CurTaskExist    BaseEvent = "CurTaskExist"
-	HasWorthRequeue BaseEvent = "HasWorthRequeue"
+	IfProfiling  TraceProfilingBaseEvent = "IfProfiling"
+	CurTaskExist TraceProfilingBaseEvent = "CurTaskExist"
 
-	CouldProfile    ComplexEvent = "CouldProfile"
-	CouldSetCurTask ComplexEvent = "CouldSetCurTask"
+	CouldProfile    TraceProfilingComplexEvent = "CouldProfile"
+	CouldSetCurTask TraceProfilingComplexEvent = "CouldSetCurTask"
 )
 
 func (m *ProfileManager) RegisterProfileEvents() {
 	m.profileEvents.RegisterBaseEvent(IfProfiling, false)
 	m.profileEvents.RegisterBaseEvent(CurTaskExist, false)
-	m.profileEvents.RegisterBaseEvent(HasWorthRequeue, false)
-	var r1 = Rule{
+	var r1 = TraceProfilingRule{
 		Event: IfProfiling,
 		Op:    OpNothing,
 		IsNot: true,
 	}
-	var r2 = Rule{
+	var r2 = TraceProfilingRule{
 		Event: CurTaskExist,
 		Op:    OpAnd,
 		IsNot: false,
 	}
-	var r3 = Rule{
+	var r3 = TraceProfilingRule{
 		Event: CurTaskExist,
 		Op:    OpAnd,
 		IsNot: true,
 	}
-	m.profileEvents.RegisterComplexEvent(CouldProfile, &ExprNode{
-		Rules: []Rule{
+	m.profileEvents.RegisterComplexEvent(CouldProfile, &TraceProfilingExprNode{
+		Rules: []TraceProfilingRule{
 			r1, r2,
 		},
 		Event: CouldProfile,
 	})
-	m.profileEvents.RegisterComplexEvent(CouldSetCurTask, &ExprNode{
-		Rules: []Rule{
+	m.profileEvents.RegisterComplexEvent(CouldSetCurTask, &TraceProfilingExprNode{
+		Rules: []TraceProfilingRule{
 			r1, r3,
 		},
 		Event: CouldSetCurTask,

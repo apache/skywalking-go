@@ -137,8 +137,8 @@ func (m *ProfileManager) AddSkyLabels(traceID, segmentID string, spanID int32) i
 	return &re
 }
 
-func (m *ProfileManager) TurnToPprofLabel(l interface{}) interface{} {
-	li := l.(*LabelSet).List()
+func (m *ProfileManager) TurnToPprofLabel(l *LabelSet) pprof.LabelSet {
+	li := l.List()
 	if len(li) == 0 {
 		return pprof.LabelSet{}
 	}
@@ -195,10 +195,22 @@ func SetGoroutineLabels(s *LabelSet) {
 	setGoroutineLabelsInternal(c)
 }
 
+func extractSkyInternalLabels(s LabelSet) LabelSet {
+	re := LabelSet{list: make([]label, 0)}
+	for _, l := range s.list {
+		if l.key == SpanLabel || l.key == SegmentLabel || l.key == TraceLabel || l.key == MinDurationLabel {
+			re.list = append(re.list, l)
+		}
+	}
+	return re
+}
+
 // GetNowLabels Expose to operator
 func (m *ProfileManager) GetNowLabels() interface{} {
-	re := GetNowLabelSet()
-	return &re
+	row := GetNowLabelSet()
+	filter := extractSkyInternalLabels(row)
+	re := m.TurnToPprofLabel(&filter)
+	return re
 }
 
 func (s *LabelSet) IsEmpty() bool {

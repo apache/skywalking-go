@@ -26,6 +26,7 @@ use (
 	./plugins/rocketmq
 	./plugins/amqp
 	./plugins/pulsar
+	./plugins/pprof
 	./plugins/segmentio-kafka
 	./plugins/go-elasticsearchv8
 	./plugins/goframe
@@ -53,7 +54,6 @@ use (
 	./test/plugins/scenarios/logrus
 	./test/plugins/scenarios/zap
 	./test/plugins/scenarios/mux
-	./plugins/pprof
 	./test/plugins/scenarios/grpc
   	./test/plugins/scenarios/irisv12
 	./test/plugins/scenarios/trace-activation

@@ -24,28 +24,28 @@ import (
 	"github.com/pkg/errors"
 )
 
-type BaseEvent string
+type TraceProfilingBaseEvent string
 
-type ComplexEvent string
+type TraceProfilingComplexEvent string
 
-type LogicOp int
+type TraceProfilingLogicOp int
 
 const (
-	OpAnd     LogicOp = iota // AND: all conditions must be true
-	OpOr                     // OR: at least one condition must be true
-	OpNothing                // Do nothing, used for initial rules
+	OpAnd     TraceProfilingLogicOp = iota // AND: all conditions must be true
+	OpOr                                   // OR: at least one condition must be true
+	OpNothing                              // Do nothing, used for initial rules
 )
 
-type Rule struct {
-	Event BaseEvent
-	Op    LogicOp
+type TraceProfilingRule struct {
+	Event TraceProfilingBaseEvent
+	Op    TraceProfilingLogicOp
 	IsNot bool
 }
 
 // Expression node (used to build logical expression trees)
-type ExprNode struct {
-	Rules []Rule
-	Event ComplexEvent
+type TraceProfilingExprNode struct {
+	Rules []TraceProfilingRule
+	Event TraceProfilingComplexEvent
 }
 
 // TraceProfilingEventManager manages event states and logical rules
@@ -54,34 +54,34 @@ type ExprNode struct {
 // This makes it easier to manage whether complex events can be executed.
 type TraceProfilingEventManager struct {
 	mu              sync.RWMutex
-	BaseEventStatus map[BaseEvent]bool         // current status of base events (true=enabled, false=disabled)
-	ComplexEvents   map[ComplexEvent]*ExprNode // logical expressions for complex events
+	BaseEventStatus map[TraceProfilingBaseEvent]bool                       // current status of base events (true=enabled, false=disabled)
+	ComplexEvents   map[TraceProfilingComplexEvent]*TraceProfilingExprNode // logical expressions for complex events
 }
 
 // Create a new TraceProfilingEventManager
 func NewEventManager() *TraceProfilingEventManager {
 	return &TraceProfilingEventManager{
-		BaseEventStatus: make(map[BaseEvent]bool),
-		ComplexEvents:   make(map[ComplexEvent]*ExprNode),
+		BaseEventStatus: make(map[TraceProfilingBaseEvent]bool),
+		ComplexEvents:   make(map[TraceProfilingComplexEvent]*TraceProfilingExprNode),
 	}
 }
 
 // Register a base event with initial status
-func (m *TraceProfilingEventManager) RegisterBaseEvent(event BaseEvent, initialStatus bool) {
+func (m *TraceProfilingEventManager) RegisterBaseEvent(event TraceProfilingBaseEvent, initialStatus bool) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.BaseEventStatus[event] = initialStatus
 }
 
 // Register a complex event with logical expression rules
-func (m *TraceProfilingEventManager) RegisterComplexEvent(targetEvent ComplexEvent, expr *ExprNode) {
+func (m *TraceProfilingEventManager) RegisterComplexEvent(targetEvent TraceProfilingComplexEvent, expr *TraceProfilingExprNode) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.ComplexEvents[targetEvent] = expr
 }
 
 // Update the status of a base event
-func (m *TraceProfilingEventManager) UpdateBaseEventStatus(event BaseEvent, status bool) error {
+func (m *TraceProfilingEventManager) UpdateBaseEventStatus(event TraceProfilingBaseEvent, status bool) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -93,7 +93,7 @@ func (m *TraceProfilingEventManager) UpdateBaseEventStatus(event BaseEvent, stat
 }
 
 // Get the status of a base event
-func (m *TraceProfilingEventManager) GetBaseEventStatus(event BaseEvent) (bool, error) {
+func (m *TraceProfilingEventManager) GetBaseEventStatus(event TraceProfilingBaseEvent) (bool, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	status, ok := m.BaseEventStatus[event]
@@ -104,7 +104,7 @@ func (m *TraceProfilingEventManager) GetBaseEventStatus(event BaseEvent) (bool, 
 }
 
 // Execute a complex event by evaluating its logical expression
-func (m *TraceProfilingEventManager) ExecuteComplexEvent(event ComplexEvent) (bool, error) {
+func (m *TraceProfilingEventManager) ExecuteComplexEvent(event TraceProfilingComplexEvent) (bool, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	expr, ok := m.ComplexEvents[event]
@@ -115,7 +115,7 @@ func (m *TraceProfilingEventManager) ExecuteComplexEvent(event ComplexEvent) (bo
 }
 
 // Recursively evaluate the logical expression
-func (m *TraceProfilingEventManager) evalExpr(node *ExprNode) (bool, error) {
+func (m *TraceProfilingEventManager) evalExpr(node *TraceProfilingExprNode) (bool, error) {
 	if len(node.Rules) == 0 {
 		return false, errors.New("complex event has no rules")
 	}
@@ -149,7 +149,7 @@ func (m *TraceProfilingEventManager) evalExpr(node *ExprNode) (bool, error) {
 }
 
 // Get the value of a base event for a rule (with optional NOT)
-func (m *TraceProfilingEventManager) getRuleValue(rule Rule) (bool, error) {
+func (m *TraceProfilingEventManager) getRuleValue(rule TraceProfilingRule) (bool, error) {
 	baseStatus, ok := m.BaseEventStatus[rule.Event]
 	if !ok {
 		return false, errors.New("base event not registered: " + string(rule.Event))
