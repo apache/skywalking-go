@@ -28,7 +28,7 @@ dependencies:
     image: zookeeper:3.9.2
     hostname: zookeeper-server
   kafka-server:
-    image: bitnami/kafka:3.7.0
+    image: bitnamilegacy/kafka:3.7.0
     hostname: kafka-server
     ports:
       - 9092
