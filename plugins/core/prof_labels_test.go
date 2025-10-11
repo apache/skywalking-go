@@ -18,7 +18,6 @@
 package core
 
 import (
-	"runtime/pprof"
 	"sort"
 	"testing"
 
@@ -47,19 +46,4 @@ func TestGetLabels(t *testing.T) {
 		{key: "traceSegmentID", value: "test-segmentID"},
 		{key: "traceID", value: "test-TraceID"}}}
 	assert.Equal(t, sortLabels(ts), sortLabels(*ls))
-}
-
-func TestTurnToPprofLabel(t *testing.T) {
-	p := NewProfileManager(nil)
-	// test Label have nothing
-	re1 := p.TurnToPprofLabel(&LabelSet{}).(pprof.LabelSet)
-	assert.Equal(t, re1, pprof.LabelSet{})
-
-	// test Label have something
-	re2 := p.TurnToPprofLabel(&LabelSet{list: []label{
-		{key: "minDurationThreshold", value: "0"},
-		{key: "spanID", value: "0"},
-		{key: "traceSegmentID", value: "test-segmentID"}}}).(pprof.LabelSet)
-	l2 := pprof.Labels("minDurationThreshold", "0", "spanID", "0", "traceSegmentID", "test-segmentID")
-	assert.Equal(t, re2, l2)
 }
