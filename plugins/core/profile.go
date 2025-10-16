@@ -54,6 +54,7 @@ type currentTask struct {
 type ProfileManager struct {
 	mu                 sync.Mutex
 	TraceProfileTask   *reporter.TraceProfileTask
+	ProfileTaskQueue   []*reporter.TraceProfileTask
 	rawCh              chan profileRawData
 	FinalReportResults chan reporter.ProfileResult
 	profilingWriter    *ProfilingWriter
@@ -111,6 +112,7 @@ func NewProfileManager(log operator.LogOperator) *ProfileManager {
 	pm := &ProfileManager{
 		FinalReportResults: make(chan reporter.ProfileResult, maxSendQueueSize),
 		profileEvents:      NewEventManager(),
+		ProfileTaskQueue:   make([]*reporter.TraceProfileTask, 0),
 	}
 	pm.RegisterProfileEvents()
 
@@ -126,7 +128,7 @@ func NewProfileManager(log operator.LogOperator) *ProfileManager {
 	return pm
 }
 
-func (m *ProfileManager) AddProfileTask(args []*common.KeyStringValuePair) {
+func (m *ProfileManager) AddProfileTask(args []*common.KeyStringValuePair, t int64) int64 {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	var task reporter.TraceProfileTask
@@ -148,20 +150,21 @@ func (m *ProfileManager) AddProfileTask(args []*common.KeyStringValuePair) {
 		case "StartTime":
 			task.StartTime = time.UnixMilli(parseInt64(arg.Value))
 		case "CreateTime":
-			task.CreateTime = time.UnixMilli(parseInt64(arg.Value))
+			temp := parseInt64(arg.Value)
+			task.CreateTime = time.UnixMilli(temp)
+			if temp > t {
+				t = temp
+			}
 		case "SerialNumber":
 			task.SerialNumber = arg.Value
 		}
 	}
 	m.Log.Info("adding profile task:", task)
-	if m.TraceProfileTask != nil {
-		return
-	}
 	endTime := task.StartTime.Add(time.Duration(task.Duration) * time.Minute)
 	task.EndTime = endTime
 	task.Status = reporter.Pending
-	m.TraceProfileTask = &task
-	m.TrySetCurrentTaskAndStartProfile(&task)
+	m.addTask(&task)
+	return t
 }
 
 func (m *ProfileManager) RemoveProfileTask() {
@@ -174,6 +177,33 @@ func (m *ProfileManager) RemoveProfileTask() {
 		time.Now().After(m.TraceProfileTask.EndTime.Add(timeOut)) {
 		m.TraceProfileTask = nil
 	}
+}
+
+func (m *ProfileManager) addTask(task *reporter.TraceProfileTask) {
+	if task == nil {
+		return
+	}
+	for _, t := range m.ProfileTaskQueue {
+		if task.EndTime.After(t.StartTime) && task.StartTime.Before(t.EndTime) {
+			return
+		}
+	}
+	m.ProfileTaskQueue = append(m.ProfileTaskQueue, task)
+
+	delay := time.Until(task.StartTime)
+	if delay < 0 {
+		delay = 0
+	}
+
+	time.AfterFunc(delay, func() {
+		m.mu.Lock()
+		defer m.mu.Unlock()
+		if m.TraceProfileTask != nil {
+			return
+		}
+		m.TraceProfileTask = task
+		m.trySetCurrentTaskAndStartProfile(task)
+	})
 }
 
 func (m *ProfileManager) tryStartCPUProfiling() {
@@ -216,7 +246,7 @@ func (m *ProfileManager) IfProfiling() bool {
 	return ok
 }
 
-func (m *ProfileManager) TrySetCurrentTaskAndStartProfile(task *reporter.TraceProfileTask) {
+func (m *ProfileManager) trySetCurrentTaskAndStartProfile(task *reporter.TraceProfileTask) {
 	if m.currentTask != nil && time.Now().Before(m.currentTask.endTime.Add(timeOut)) {
 		return
 	}

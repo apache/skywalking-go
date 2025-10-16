@@ -25,7 +25,7 @@ import (
 
 type ProfileTaskManager interface {
 	// AddProfileTask add new profile task
-	AddProfileTask(args []*common.KeyStringValuePair)
+	AddProfileTask(args []*common.KeyStringValuePair, t int64) int64
 	GetProfileResults() chan ProfileResult
 	ProfileFinish()
 	RemoveProfileTask()
@@ -42,8 +42,7 @@ type TraceProfileTask struct {
 	StartTime            time.Time
 	CreateTime           time.Time
 	Status               ProfileTaskStatus // task execution status
-	spanIds              []int32
-	EndTime              time.Time // task deadline
+	EndTime              time.Time         // task deadline
 }
 
 type ProfileResult struct {

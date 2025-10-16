@@ -62,7 +62,7 @@ func NewGRPCReporter(logger operator.LogOperator,
 	for _, o := range opts {
 		o(r)
 	}
-
+	r.lastProfileCommandTime = -1
 	conn, err := connManager.GetConnection(serverAddr)
 	if err != nil {
 		return nil, err
@@ -90,6 +90,8 @@ type gRPCReporter struct {
 	profileTaskManager   reporter.ProfileTaskManager
 	checkInterval        time.Duration
 	profileFetchInterval time.Duration
+	// lastProfileCommandTime is the last timestamp we used to fetch profile commands.
+	lastProfileCommandTime int64
 	// bootFlag is set if Boot be executed
 	bootFlag         bool
 	transform        *reporter.Transform
@@ -441,6 +443,7 @@ func (r *gRPCReporter) fetchProfileTasks() {
 			req := &profilev3.ProfileTaskCommandQuery{
 				Service:         r.entity.ServiceName,
 				ServiceInstance: r.entity.ServiceInstanceName,
+				LastCommandTime: r.lastProfileCommandTime,
 			}
 
 			// Pull tasks
@@ -453,7 +456,10 @@ func (r *gRPCReporter) fetchProfileTasks() {
 
 			// Handle all returned commands
 			for _, cmd := range resp.Commands {
-				r.handleProfileTask(cmd)
+				nt := r.handleProfileTask(cmd, r.lastProfileCommandTime)
+				if nt > r.lastProfileCommandTime {
+					r.lastProfileCommandTime = nt
+				}
 			}
 
 			// Remove completed tasks
@@ -467,10 +473,10 @@ func (r *gRPCReporter) AddProfileTaskManager(p reporter.ProfileTaskManager) {
 	r.profileTaskManager = p
 }
 
-func (r *gRPCReporter) handleProfileTask(cmd *common.Command) {
+func (r *gRPCReporter) handleProfileTask(cmd *common.Command, t int64) int64 {
 	if cmd.Command != "ProfileTaskQuery" {
-		return
+		return t
 	}
-
-	r.profileTaskManager.AddProfileTask(cmd.Args)
+	nt := r.profileTaskManager.AddProfileTask(cmd.Args, t)
+	return nt
 }
