@@ -1,3 +1,5 @@
+#!/bin/bash
+#
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -14,27 +16,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-entry-service: http://${HTTP_HOST}:${HTTP_PORT}/execute
-health-checker: http://${HTTP_HOST}:${HTTP_PORT}/health
-start-script: ./bin/startup.sh
-framework: github.com/segmentio/kafka-go
-export-port: 8080
-support-version:
-  - go: 1.19
-    framework:
-      - v0.4.47
-dependencies:
-  zookeeper-server:
-    image: zookeeper:3.9.2
-    hostname: zookeeper-server
-  kafka-server:
-    image: bitnamilegacy/kafka:3.7.0
-    hostname: kafka-server
-    ports:
-      - 9092
-    environment:
-      KAFKA_ZOOKEEPER_CONNECT: "zookeeper-server:2181"
-      KAFKA_BROKER_ID: 1
-      KAFKA_LISTENERS: "PLAINTEXT://kafka-server:9092"
-    depends_on:
-      - zookeeper-server
+home="$(cd "$(dirname $0)"; pwd)"
+go build ${GO_BUILD_OPTS} -o pprof
+
+./pprof

@@ -38,8 +38,9 @@ type CorrelationConfig struct {
 }
 
 type Tracer struct {
-	ServiceEntity *reporter.Entity
-	Reporter      reporter.Reporter
+	ServiceEntity  *reporter.Entity
+	Reporter       reporter.Reporter
+	ProfileManager *ProfileManager
 	// 0 not init 1 init
 	initFlag    int32
 	Sampler     Sampler
@@ -65,6 +66,8 @@ func (t *Tracer) Init(entity *reporter.Entity, rep reporter.Reporter, samp Sampl
 	if logger != nil && !reflect.ValueOf(logger).IsZero() {
 		t.Log.ChangeLogger(logger)
 	}
+	t.ProfileManager = NewProfileManager(t.Log)
+	t.Reporter.AddProfileTaskManager(t.ProfileManager)
 	t.Reporter.Boot(entity, t.cdsWatchers)
 	t.initFlag = 1
 	t.initMetricsCollect(meterCollectSecond)

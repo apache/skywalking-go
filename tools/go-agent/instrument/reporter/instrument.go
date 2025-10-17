@@ -203,7 +203,7 @@ func {{.InitFuncName}}(logger operator.LogOperator) (Reporter, error) {
 		return NewDiscardReporter(), nil
 	}
 	checkIntervalVal := {{.Config.Reporter.CheckInterval.ToGoIntValue "the reporter check interval must be number"}}
-	checkInterval := time.Second * time.Duration(checkIntervalVal)
+    checkInterval := time.Second * time.Duration(checkIntervalVal)
 `
 
 const initManagerFunc = `
@@ -233,7 +233,7 @@ func initManager(logger operator.LogOperator, checkInterval time.Duration) (*Con
 	}
 
 	cdsFetchIntervalVal := {{.Config.Reporter.GRPC.CDSFetchInterval.ToGoIntValue "the cds fetch interval must be number"}}
-	cdsFetchInterval := time.Second * time.Duration(cdsFetchIntervalVal)
+    cdsFetchInterval := time.Second * time.Duration(cdsFetchIntervalVal)
 	cdsManager, err := NewCDSManager(logger, backendServiceVal, cdsFetchInterval, connManager)
 	if err != nil {
 		return nil, nil, nil, err
@@ -261,9 +261,11 @@ func initGRPCReporter(logger operator.LogOperator,
 	var opts []ReporterOption
 	maxSendQueueVal := {{.Config.Reporter.GRPC.MaxSendQueue.ToGoIntValue "the GRPC reporter max queue size must be number"}}
 	opts = append(opts, WithMaxSendQueueSize(maxSendQueueVal))
-
+	
 	backendServiceVal := {{.Config.Reporter.GRPC.BackendService.ToGoStringValue}}
-	return NewGRPCReporter(logger, backendServiceVal, checkInterval, connManager, cdsManager, pprofTaskManager, opts...)
+	profileFetchIntervalVal := {{.Config.Reporter.GRPC.ProfileFetchInterval.ToGoIntValue "the profile fetch interval must be number"}}
+    profileFetchInterval := time.Second * time.Duration(profileFetchIntervalVal)
+	return NewGRPCReporter(logger, backendServiceVal, checkInterval,profileFetchInterval ,connManager, cdsManager, pprofTaskManager, opts...)
 }
 `
 

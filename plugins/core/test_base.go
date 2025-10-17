@@ -47,6 +47,9 @@ func ResetTracingContext() {
 	SetGLS(nil)
 	Tracing = &Tracer{initFlag: 1, Sampler: NewConstSampler(true), Reporter: &StoreReporter{},
 		ServiceEntity: NewEntity("test", "test-instance"), meterMap: &sync.Map{}}
+	// Initialize ProfileManager to avoid nil pointer dereference
+	Tracing.ProfileManager = NewProfileManager(nil)
+	Tracing.Reporter.AddProfileTaskManager(Tracing.ProfileManager)
 	SetAsNewGoroutine()
 	ReportConnectionStatus = reporter.ConnectionStatusConnected
 }
@@ -96,3 +99,5 @@ func (r *StoreReporter) ConnectionStatus() reporter.ConnectionStatus {
 
 func (r *StoreReporter) Close() {
 }
+
+func (r *StoreReporter) AddProfileTaskManager(p reporter.ProfileTaskManager) {}

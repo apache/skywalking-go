@@ -44,3 +44,6 @@ func (r *discardReporter) ConnectionStatus() ConnectionStatus {
 func (r *discardReporter) Close() {
 	// do nothing
 }
+func (r *discardReporter) AddProfileTaskManager(p ProfileTaskManager) {
+	// do nothing
+}

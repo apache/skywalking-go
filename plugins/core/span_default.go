@@ -158,6 +158,7 @@ func (ds *DefaultSpan) ErrorOccured() {
 
 func (ds *DefaultSpan) End(changeParent bool) {
 	ds.EndTime = time.Now()
+
 	GetSo11y(ds.tracer).MeasureTracingContextCompletion(false)
 	if changeParent {
 		if ctx := getTracingContext(); ctx != nil {
@@ -210,4 +211,12 @@ func (ds *DefaultSpan) GetEndPointName() string {
 
 func (ds *DefaultSpan) GetParentSpan() interface{} {
 	return ds.Parent
+}
+
+func (ds *DefaultSpan) IsProfileTarget() bool {
+	endPoint := ds.GetEndPointName()
+	if ds.tracer.ProfileManager.IfProfiling() {
+		return ds.tracer.ProfileManager.CheckIfProfileTarget(endPoint)
+	}
+	return false
 }

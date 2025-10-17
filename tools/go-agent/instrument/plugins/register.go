@@ -40,6 +40,7 @@ import (
 	"github.com/apache/skywalking-go/plugins/microv4"
 	"github.com/apache/skywalking-go/plugins/mongo"
 	"github.com/apache/skywalking-go/plugins/mux"
+	"github.com/apache/skywalking-go/plugins/pprof"
 	"github.com/apache/skywalking-go/plugins/pulsar"
 	"github.com/apache/skywalking-go/plugins/rocketmq"
 	runtime_metrics "github.com/apache/skywalking-go/plugins/runtimemetrics"
@@ -68,6 +69,7 @@ func init() {
 	registerFramework(fiber.NewInstrument())
 	registerFramework(rocketmq.NewInstrument())
 	registerFramework(amqp.NewInstrument())
+	registerFramework(pprof.NewInstrument())
 	registerFramework(pulsar.NewInstrument())
 	registerFramework(segmentiokafka.NewInstrument())
 	registerFramework(goelasticsearchv8.NewInstrument())

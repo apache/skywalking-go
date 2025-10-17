@@ -50,4 +50,5 @@ type TracingSpan interface {
 	IsExit() bool
 	IsValid() bool
 	ParentSpan() TracingSpan
+	IsProfileTarget() bool
 }

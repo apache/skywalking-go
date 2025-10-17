@@ -108,11 +108,21 @@ var (
 	ConnectionStatusShutdown   ConnectionStatus = 3
 )
 
+type ProfileTaskStatus int
+
+const (
+	Pending ProfileTaskStatus = iota
+	Running
+	Finished
+	Reported
+)
+
 type Reporter interface {
 	Boot(entity *Entity, cdsWatchers []AgentConfigChangeWatcher)
 	SendTracing(spans []ReportedSpan)
 	SendMetrics(metrics []ReportedMeter)
 	SendLog(log *logv3.LogData)
 	ConnectionStatus() ConnectionStatus
+	AddProfileTaskManager(p ProfileTaskManager)
 	Close()
 }

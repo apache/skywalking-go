@@ -24,12 +24,13 @@ import (
 
 	"google.golang.org/grpc/metadata"
 
-	agentv3 "github.com/apache/skywalking-go/protocols/collect/language/agent/v3"
-	logv3 "github.com/apache/skywalking-go/protocols/collect/logging/v3"
-	managementv3 "github.com/apache/skywalking-go/protocols/collect/management/v3"
-
 	"github.com/apache/skywalking-go/plugins/core/operator"
 	"github.com/apache/skywalking-go/plugins/core/reporter"
+	common "github.com/apache/skywalking-go/protocols/collect/common/v3"
+	agentv3 "github.com/apache/skywalking-go/protocols/collect/language/agent/v3"
+	profilev3 "github.com/apache/skywalking-go/protocols/collect/language/profile/v3"
+	logv3 "github.com/apache/skywalking-go/protocols/collect/logging/v3"
+	managementv3 "github.com/apache/skywalking-go/protocols/collect/management/v3"
 )
 
 const (
@@ -40,26 +41,28 @@ const (
 func NewGRPCReporter(logger operator.LogOperator,
 	serverAddr string,
 	checkInterval time.Duration,
+	profileFetchInterval time.Duration,
 	connManager *reporter.ConnectionManager,
 	cdsManager *reporter.CDSManager,
 	pprofTaskManager *reporter.PprofTaskManager,
 	opts ...ReporterOption,
 ) (reporter.Reporter, error) {
 	r := &gRPCReporter{
-		logger:           logger,
-		serverAddr:       serverAddr,
-		tracingSendCh:    make(chan *agentv3.SegmentObject, maxSendQueueSize),
-		metricsSendCh:    make(chan []*agentv3.MeterData, maxSendQueueSize),
-		logSendCh:        make(chan *logv3.LogData, maxSendQueueSize),
-		checkInterval:    checkInterval,
-		connManager:      connManager,
-		cdsManager:       cdsManager,
-		pprofTaskManager: pprofTaskManager,
+		logger:               logger,
+		serverAddr:           serverAddr,
+		tracingSendCh:        make(chan *agentv3.SegmentObject, maxSendQueueSize),
+		metricsSendCh:        make(chan []*agentv3.MeterData, maxSendQueueSize),
+		logSendCh:            make(chan *logv3.LogData, maxSendQueueSize),
+		checkInterval:        checkInterval,
+		profileFetchInterval: profileFetchInterval,
+		connManager:          connManager,
+		cdsManager:           cdsManager,
+		pprofTaskManager:     pprofTaskManager,
 	}
 	for _, o := range opts {
 		o(r)
 	}
-
+	r.lastProfileCommandTime = -1
 	conn, err := connManager.GetConnection(serverAddr)
 	if err != nil {
 		return nil, err
@@ -68,22 +71,27 @@ func NewGRPCReporter(logger operator.LogOperator,
 	r.metricsClient = agentv3.NewMeterReportServiceClient(conn)
 	r.logClient = logv3.NewLogReportServiceClient(conn)
 	r.managementClient = managementv3.NewManagementServiceClient(conn)
+	r.profileTaskClient = profilev3.NewProfileTaskClient(conn)
 	return r, nil
 }
 
 type gRPCReporter struct {
-	entity           *reporter.Entity
-	serverAddr       string
-	logger           operator.LogOperator
-	tracingSendCh    chan *agentv3.SegmentObject
-	metricsSendCh    chan []*agentv3.MeterData
-	logSendCh        chan *logv3.LogData
-	traceClient      agentv3.TraceSegmentReportServiceClient
-	metricsClient    agentv3.MeterReportServiceClient
-	logClient        logv3.LogReportServiceClient
-	managementClient managementv3.ManagementServiceClient
-	checkInterval    time.Duration
-
+	entity               *reporter.Entity
+	serverAddr           string
+	logger               operator.LogOperator
+	tracingSendCh        chan *agentv3.SegmentObject
+	metricsSendCh        chan []*agentv3.MeterData
+	logSendCh            chan *logv3.LogData
+	traceClient          agentv3.TraceSegmentReportServiceClient
+	metricsClient        agentv3.MeterReportServiceClient
+	logClient            logv3.LogReportServiceClient
+	managementClient     managementv3.ManagementServiceClient
+	profileTaskClient    profilev3.ProfileTaskClient
+	profileTaskManager   reporter.ProfileTaskManager
+	checkInterval        time.Duration
+	profileFetchInterval time.Duration
+	// lastProfileCommandTime is the last timestamp we used to fetch profile commands.
+	lastProfileCommandTime int64
 	// bootFlag is set if Boot be executed
 	bootFlag         bool
 	transform        *reporter.Transform
@@ -97,6 +105,7 @@ func (r *gRPCReporter) Boot(entity *reporter.Entity, cdsWatchers []reporter.Agen
 	r.transform = reporter.NewTransform(entity)
 	r.initSendPipeline()
 	r.check()
+	r.fetchProfileTasks()
 	r.cdsManager.InitCDS(entity, cdsWatchers)
 	r.pprofTaskManager.InitPprofTask(entity)
 	r.bootFlag = true
@@ -283,6 +292,62 @@ func (r *gRPCReporter) initSendPipeline() {
 			break
 		}
 	}()
+	go func() {
+		defer func() {
+			if err := recover(); err != nil {
+				r.logger.Errorf("gRPCReporter reportProfileResult panic err %v", err)
+			}
+		}()
+
+	StreamLoop:
+		for {
+			switch r.connManager.GetConnectionStatus(r.serverAddr) {
+			case reporter.ConnectionStatusShutdown:
+				break
+			case reporter.ConnectionStatusDisconnect:
+				time.Sleep(5 * time.Second)
+				continue StreamLoop
+			}
+
+			stream, err := r.profileTaskClient.GoProfileReport(metadata.NewOutgoingContext(context.Background(), r.connManager.GetMD()))
+			if err != nil {
+				r.logger.Errorf("open profile stream error %v", err)
+				time.Sleep(5 * time.Second)
+				continue StreamLoop
+			}
+			re := r.profileTaskManager.GetProfileResults()
+
+			for task := range re {
+				profileData := &profilev3.GoProfileData{
+					TaskId:  task.TaskID,
+					Payload: task.Payload,
+					IsLast:  task.IsLast,
+				}
+				r.logger.Infof("Sending profile task: TaskID='%s', PayloadSize=%d, IsLast=%v",
+					task.TaskID, len(task.Payload), task.IsLast)
+				err = stream.Send(profileData)
+				if err != nil {
+					r.logger.Errorf("send profile data error %v", err)
+					r.closeProfileStream(stream)
+					continue StreamLoop
+				}
+				if task.IsLast {
+					r.profileTaskManager.ProfileFinish()
+					var report = profilev3.ProfileTaskFinishReport{
+						TaskId:          task.TaskID,
+						Service:         r.entity.ServiceName,
+						ServiceInstance: r.entity.ServiceInstanceName,
+					}
+					_, err = r.profileTaskClient.ReportTaskFinish(metadata.NewOutgoingContext(context.Background(), r.connManager.GetMD()), &report)
+					if err != nil {
+						r.logger.Errorf("report profile task finish error %v", err)
+					}
+				}
+			}
+			r.closeProfileStream(stream)
+			break
+		}
+	}()
 }
 
 func (r *gRPCReporter) closeTracingStream(stream agentv3.TraceSegmentReportService_CollectClient) {
@@ -305,7 +370,12 @@ func (r *gRPCReporter) closeLogStream(stream logv3.LogReportService_CollectClien
 		r.logger.Errorf("send closing error %v", err)
 	}
 }
-
+func (r *gRPCReporter) closeProfileStream(stream profilev3.ProfileTask_GoProfileReportClient) {
+	_, err := stream.CloseAndRecv()
+	if err != nil && err != io.EOF {
+		r.logger.Errorf("send profile closing error %v", err)
+	}
+}
 func (r *gRPCReporter) reportInstanceProperties() (err error) {
 	_, err = r.managementClient.ReportInstanceProperties(
 		metadata.NewOutgoingContext(context.Background(), r.connManager.GetMD()),
@@ -360,4 +430,53 @@ func (r *gRPCReporter) check() {
 			time.Sleep(r.checkInterval)
 		}
 	}()
+}
+
+func (r *gRPCReporter) fetchProfileTasks() {
+	if r.profileFetchInterval < 0 {
+		r.logger.Errorf("profile init error:profileFetchInterval is %v", r.profileFetchInterval)
+		return
+	}
+	go func() {
+		for {
+			// Construct the request
+			req := &profilev3.ProfileTaskCommandQuery{
+				Service:         r.entity.ServiceName,
+				ServiceInstance: r.entity.ServiceInstanceName,
+				LastCommandTime: r.lastProfileCommandTime,
+			}
+
+			// Pull tasks
+			resp, err := r.profileTaskClient.GetProfileTaskCommands(context.Background(), req)
+			if err != nil {
+				r.logger.Errorf("fetch profile task error: %v", err)
+				time.Sleep(r.profileFetchInterval)
+				continue
+			}
+
+			// Handle all returned commands
+			for _, cmd := range resp.Commands {
+				nt := r.handleProfileTask(cmd, r.lastProfileCommandTime)
+				if nt > r.lastProfileCommandTime {
+					r.lastProfileCommandTime = nt
+				}
+			}
+
+			// Remove completed tasks
+			r.profileTaskManager.RemoveProfileTask()
+			time.Sleep(r.profileFetchInterval)
+		}
+	}()
+}
+
+func (r *gRPCReporter) AddProfileTaskManager(p reporter.ProfileTaskManager) {
+	r.profileTaskManager = p
+}
+
+func (r *gRPCReporter) handleProfileTask(cmd *common.Command, t int64) int64 {
+	if cmd.Command != "ProfileTaskQuery" {
+		return t
+	}
+	nt := r.profileTaskManager.AddProfileTask(cmd.Args, t)
+	return nt
 }

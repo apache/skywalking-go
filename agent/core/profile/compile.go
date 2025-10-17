@@ -15,28 +15,14 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package core
+package profile
 
 import (
 	//go:nolint
 	_ "bytes"
 	_ "context"
-	_ "encoding/base64"
 	_ "fmt"
-	_ "io"
-	_ "log"
-	_ "math"
-	_ "math/rand"
-	_ "net"
-	_ "os"
-	_ "path/filepath"
-	_ "reflect"
-	_ "regexp"
-	_ "runtime"
-	_ "runtime/debug"
-	_ "runtime/metrics"
 	_ "runtime/pprof"
-	_ "sort"
 	_ "strconv"
 	_ "strings"
 	_ "sync"
@@ -45,22 +31,11 @@ import (
 	_ "unsafe"
 
 	//go:nolint
-	_ "github.com/apache/skywalking-go/agent/core/metrics"
-	_ "github.com/apache/skywalking-go/agent/core/operator"
-	_ "github.com/apache/skywalking-go/agent/core/profile"
-	_ "github.com/apache/skywalking-go/agent/core/tracing"
-	_ "github.com/apache/skywalking-go/agent/reporter"
-	_ "github.com/apache/skywalking-go/log"
-
-	//go:nolint
-	_ "github.com/google/uuid"
 	_ "github.com/pkg/errors"
 
 	//go:nolint
-	_ "github.com/apache/skywalking-go/protocols/collect/common/v3"
-	_ "github.com/apache/skywalking-go/protocols/collect/event/v3"
-	_ "github.com/apache/skywalking-go/protocols/collect/language/agent/v3"
-	_ "github.com/apache/skywalking-go/protocols/collect/language/profile/v3"
-	_ "github.com/apache/skywalking-go/protocols/collect/logging/v3"
-	_ "github.com/apache/skywalking-go/protocols/collect/pprof/v10"
+	_ "github.com/apache/skywalking-go/agent/core/operator"
+
+	//go:nolint
+	_ "github.com/apache/skywalking-go/agent/reporter"
 )
