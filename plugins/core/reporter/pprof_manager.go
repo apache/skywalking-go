@@ -143,7 +143,9 @@ func (r *PprofTaskManager) HandleCommand(rawCommand *commonv3.Command) {
 		// direct sampling of Heap, Allocs, Goroutine, Thread
 		writer, err := command.StartTask()
 		if err != nil {
-			r.logger.Errorf("start %s pprof task error %v \n", command.GetTaskID(), err)
+			err = fmt.Errorf("start %s pprof task error %v", command.GetTaskID(), err)
+			r.ReportPprofError(command.GetTaskID(), err)
+			r.logger.Errorf(err.Error())
 			return
 		}
 		command.StopTask(writer)
@@ -151,7 +153,9 @@ func (r *PprofTaskManager) HandleCommand(rawCommand *commonv3.Command) {
 		// The CPU, Block and Mutex sampling lasts for a duration and then stops
 		writer, err := command.StartTask()
 		if err != nil {
-			r.logger.Errorf("start %s pprof task error %v \n", command.GetTaskID(), err)
+			err = fmt.Errorf("start %s pprof task error %v", command.GetTaskID(), err)
+			r.ReportPprofError(command.GetTaskID(), err)
+			r.logger.Errorf(err.Error())
 			return
 		}
 		time.AfterFunc(command.GetDuration(), func() {
@@ -238,6 +242,29 @@ func (r *PprofTaskManager) ReportPprof(taskID string, content []byte) {
 	}
 }
 
+func (r *PprofTaskManager) ReportPprofError(taskID string, err error) {
+	metaData := &pprofv10.PprofMetaData{
+		Service:         r.entity.ServiceName,
+		ServiceInstance: r.entity.ServiceInstanceName,
+		TaskId:          taskID,
+		Type:            pprofv10.PprofProfilingStatus_PPROF_EXECUTION_TASK_ERROR,
+		ContentSize:     0,
+	}
+
+	pprofData := &pprofv10.PprofData{
+		Metadata: metaData,
+		Result: &pprofv10.PprofData_ErrorMessage{
+			ErrorMessage: err.Error(),
+		},
+	}
+
+	select {
+	case r.pprofSendCh <- pprofData:
+	default:
+		r.logger.Errorf("reach max pprof send buffer")
+	}
+}
+
 func (r *PprofTaskManager) initPprofSendPipeline() {
 	go func() {
 		defer func() {
@@ -291,9 +318,11 @@ func (r *PprofTaskManager) uploadPprofData(pprofData *pprofv10.PprofData) {
 	switch resp.Status {
 	case pprofv10.PprofProfilingStatus_PPROF_TERMINATED_BY_OVERSIZE:
 		r.logger.Errorf("pprof is too large to be received by the oap server")
+		r.closePprofStream(stream)
 		return
 	case pprofv10.PprofProfilingStatus_PPROF_EXECUTION_TASK_ERROR:
 		r.logger.Errorf("server rejected pprof upload due to execution task error")
+		r.closePprofStream(stream)
 		return
 	}
 
