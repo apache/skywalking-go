@@ -136,7 +136,7 @@ func (c *PprofTaskCommandImpl) getWriter() (io.Writer, error) {
 	}
 
 	// sample data to file
-	pprofFileName := filepath.Join(c.taskID, ".pprof")
+	pprofFileName := c.taskID + ".pprof"
 	pprofFilePath := filepath.Join(c.pprofFilePath, pprofFileName)
 	if err := os.MkdirAll(filepath.Dir(pprofFilePath), os.ModePerm); err != nil {
 		return nil, err
