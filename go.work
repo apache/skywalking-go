@@ -26,6 +26,7 @@ use (
 	./plugins/rocketmq
 	./plugins/amqp
 	./plugins/pulsar
+	./plugins/pprof
 	./plugins/segmentio-kafka
 	./plugins/go-elasticsearchv8
 	./plugins/goframe
@@ -72,8 +73,10 @@ use (
 	./test/plugins/scenarios/goframe
 	./test/plugins/scenarios/so11y
 	./test/plugins/scenarios/cross-goroutine
+	./test/plugins/scenarios/pprof
 
 	./tools/go-agent
 
 	./toolkit
 )
+

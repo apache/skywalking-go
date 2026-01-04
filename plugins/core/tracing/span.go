@@ -141,4 +141,6 @@ type Span interface {
 	ErrorOccured()
 	// End end the Span
 	End()
+	// check if is trace profile target
+	IsProfileTarget() bool
 }

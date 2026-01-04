@@ -23,7 +23,7 @@ import (
 	"github.com/apache/skywalking-go/plugins/core/operator"
 	"github.com/apache/skywalking-go/plugins/core/reporter"
 
-	logv3 "skywalking.apache.org/repo/goapi/collect/logging/v3"
+	logv3 "github.com/apache/skywalking-go/protocols/collect/logging/v3"
 )
 
 var tlsData interface{}
@@ -47,6 +47,9 @@ func ResetTracingContext() {
 	SetGLS(nil)
 	Tracing = &Tracer{initFlag: 1, Sampler: NewConstSampler(true), Reporter: &StoreReporter{},
 		ServiceEntity: NewEntity("test", "test-instance"), meterMap: &sync.Map{}}
+	// Initialize ProfileManager to avoid nil pointer dereference
+	Tracing.ProfileManager = NewProfileManager(nil)
+	Tracing.Reporter.AddProfileTaskManager(Tracing.ProfileManager)
 	SetAsNewGoroutine()
 	ReportConnectionStatus = reporter.ConnectionStatusConnected
 }
@@ -96,3 +99,5 @@ func (r *StoreReporter) ConnectionStatus() reporter.ConnectionStatus {
 
 func (r *StoreReporter) Close() {
 }
+
+func (r *StoreReporter) AddProfileTaskManager(p reporter.ProfileTaskManager) {}

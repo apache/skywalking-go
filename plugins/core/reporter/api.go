@@ -18,9 +18,9 @@
 package reporter
 
 import (
-	commonv3 "skywalking.apache.org/repo/goapi/collect/common/v3"
-	agentv3 "skywalking.apache.org/repo/goapi/collect/language/agent/v3"
-	logv3 "skywalking.apache.org/repo/goapi/collect/logging/v3"
+	commonv3 "github.com/apache/skywalking-go/protocols/collect/common/v3"
+	agentv3 "github.com/apache/skywalking-go/protocols/collect/language/agent/v3"
+	logv3 "github.com/apache/skywalking-go/protocols/collect/logging/v3"
 )
 
 // Tag are supported by sky-walking engine.
@@ -108,11 +108,21 @@ var (
 	ConnectionStatusShutdown   ConnectionStatus = 3
 )
 
+type ProfileTaskStatus int
+
+const (
+	Pending ProfileTaskStatus = iota
+	Running
+	Finished
+	Reported
+)
+
 type Reporter interface {
 	Boot(entity *Entity, cdsWatchers []AgentConfigChangeWatcher)
 	SendTracing(spans []ReportedSpan)
 	SendMetrics(metrics []ReportedMeter)
 	SendLog(log *logv3.LogData)
 	ConnectionStatus() ConnectionStatus
+	AddProfileTaskManager(p ProfileTaskManager)
 	Close()
 }

@@ -110,7 +110,7 @@ func startPprof() {
 	}
 	go func() {
 		if err := svr.ListenAndServe(); err != nil {
-			log.Printf("starting pprof server failure: %v", err)
+			log.Printf("starting profile server failure: %v", err)
 		}
 	}()
 }

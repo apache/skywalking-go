@@ -10,11 +10,11 @@ Release Notes.
 * Support Kafka reporter.
 * Add recover to goroutine to prevent unexpected panics.
 * Add mutex to fix some data race. 
-
+* Replace external `goapi` dependency with in-repo generated protocols. 
+* Support pprof profiling. 
 #### Plugins
 
 #### Documentation
-
 #### Bug Fixes
 
 * Fix plugin interceptors bypassed on Windows.

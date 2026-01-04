@@ -75,5 +75,5 @@ func main() {
 		writer.WriteHeader(http.StatusOK)
 	})
 
-	_ = http.ListenAndServe(":8080", nil)
+	_ = http.ListenAndServe("0.0.0.0:8080", nil)
 }

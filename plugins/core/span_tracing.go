@@ -23,8 +23,8 @@ import (
 
 	"github.com/apache/skywalking-go/plugins/core/reporter"
 
-	commonv3 "skywalking.apache.org/repo/goapi/collect/common/v3"
-	agentv3 "skywalking.apache.org/repo/goapi/collect/language/agent/v3"
+	commonv3 "github.com/apache/skywalking-go/protocols/collect/common/v3"
+	agentv3 "github.com/apache/skywalking-go/protocols/collect/language/agent/v3"
 )
 
 func NewSegmentSpan(ctx *TracingContext, defaultSpan *DefaultSpan, parentSpan SegmentSpan) (s SegmentSpan, err error) {
@@ -231,6 +231,10 @@ func (s *SegmentSpanImpl) createSegmentContext(ctx *TracingContext, parent Segme
 	return
 }
 
+func (s *SegmentSpanImpl) IsProfileTarget() bool {
+	return s.DefaultSpan.IsProfileTarget()
+}
+
 type RootSegmentSpan struct {
 	*SegmentSpanImpl
 	notify  <-chan reporter.ReportedSpan
@@ -273,6 +277,10 @@ func (rs *RootSegmentSpan) createRootSegmentContext(ctx *TracingContext, _ Segme
 	rs.SpanID = i
 	rs.ParentSpanID = -1
 	return
+}
+
+func (rs *RootSegmentSpan) IsProfileTarget() bool {
+	return rs.DefaultSpan.IsProfileTarget()
 }
 
 type SnapshotSpan struct {
@@ -412,4 +420,8 @@ func newSnapshotSpan(current TracingSpan) TracingSpan {
 	}
 
 	return s
+}
+
+func (s *SnapshotSpan) IsProfileTarget() bool {
+	return s.DefaultSpan.IsProfileTarget()
 }

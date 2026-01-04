@@ -44,7 +44,7 @@ var (
 	ReporterBasePackage     = "agent/reporter"
 
 	CopiedBasePackage = `skywalking-go(@[\d\w\.\-]+)?\/agent\/core`
-	CopiedSubPackages = []string{"", "tracing", "operator", "metrics"}
+	CopiedSubPackages = []string{"", "tracing", "operator", "metrics", "profile"}
 )
 
 type Instrument struct {
@@ -116,6 +116,17 @@ func (i *Instrument) WriteExtraFiles(dir string) ([]string, error) {
 		newVal := strings.ReplaceAll(v, `\`, `/`)
 
 		pkgUpdates[newKey] = newVal
+	}
+
+	protocolsPackages := []string{
+		"github.com/apache/skywalking-go/protocols/collect/common/v3",
+		"github.com/apache/skywalking-go/protocols/collect/language/agent/v3",
+		"github.com/apache/skywalking-go/protocols/collect/logging/v3",
+		"github.com/apache/skywalking-go/protocols/collect/management/v3",
+		"github.com/apache/skywalking-go/protocols/collect/agent/configuration/v3",
+	}
+	for _, pkg := range protocolsPackages {
+		pkgUpdates[pkg] = pkg
 	}
 
 	copiedFiles, err := tools.CopyGoFiles(core.FS, sub, dir, i.buildDSTDebugInfo, func(file *dst.File) {

@@ -18,7 +18,7 @@
 package core
 
 import (
-	agentv3 "skywalking.apache.org/repo/goapi/collect/language/agent/v3"
+	agentv3 "github.com/apache/skywalking-go/protocols/collect/language/agent/v3"
 )
 
 const noopContextValue = "N/A"
@@ -33,6 +33,10 @@ func newSnapshotNoopSpan() *NoopSpan {
 	return &NoopSpan{
 		stackCount: 0,
 	}
+}
+
+func (*NoopSpan) IsProfileTarget() bool {
+	return false
 }
 
 func newNoopSpan(tracer *Tracer) *NoopSpan {

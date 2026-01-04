@@ -60,7 +60,6 @@ func middleware() echo.MiddlewareFunc {
 			if err != nil {
 				return err
 			}
-
 			// serve the request to the next middleware
 			if err = next(c); err != nil {
 				span.Error(err.Error())

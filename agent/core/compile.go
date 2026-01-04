@@ -19,17 +19,23 @@ package core
 
 import (
 	//go:nolint
+	_ "bytes"
+	_ "context"
 	_ "encoding/base64"
 	_ "fmt"
+	_ "io"
 	_ "log"
 	_ "math"
 	_ "math/rand"
 	_ "net"
 	_ "os"
+	_ "path/filepath"
 	_ "reflect"
+	_ "regexp"
 	_ "runtime"
 	_ "runtime/debug"
 	_ "runtime/metrics"
+	_ "runtime/pprof"
 	_ "sort"
 	_ "strconv"
 	_ "strings"
@@ -41,6 +47,7 @@ import (
 	//go:nolint
 	_ "github.com/apache/skywalking-go/agent/core/metrics"
 	_ "github.com/apache/skywalking-go/agent/core/operator"
+	_ "github.com/apache/skywalking-go/agent/core/profile"
 	_ "github.com/apache/skywalking-go/agent/core/tracing"
 	_ "github.com/apache/skywalking-go/agent/reporter"
 	_ "github.com/apache/skywalking-go/log"
@@ -50,9 +57,10 @@ import (
 	_ "github.com/pkg/errors"
 
 	//go:nolint
-	_ "skywalking.apache.org/repo/goapi/collect/common/v3"
-	_ "skywalking.apache.org/repo/goapi/collect/event/v3"
-	_ "skywalking.apache.org/repo/goapi/collect/language/agent/v3"
-	_ "skywalking.apache.org/repo/goapi/collect/language/profile/v3"
-	_ "skywalking.apache.org/repo/goapi/collect/logging/v3"
+	_ "github.com/apache/skywalking-go/protocols/collect/common/v3"
+	_ "github.com/apache/skywalking-go/protocols/collect/event/v3"
+	_ "github.com/apache/skywalking-go/protocols/collect/language/agent/v3"
+	_ "github.com/apache/skywalking-go/protocols/collect/language/profile/v3"
+	_ "github.com/apache/skywalking-go/protocols/collect/logging/v3"
+	_ "github.com/apache/skywalking-go/protocols/collect/pprof/v10"
 )
