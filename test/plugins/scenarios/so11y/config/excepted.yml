@@ -131,5 +131,5 @@ meterItems:
           name: sw_go_created_tracing_context_counter
           tags:
             - {name: created_by, value: sampler}
-        singleValue: 4.0
+        singleValue: 6.0
 logItems: [ ]
