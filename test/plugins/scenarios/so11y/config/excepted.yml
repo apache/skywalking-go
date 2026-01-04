@@ -56,6 +56,21 @@ segmentItems:
               - { key: http.method, value: GET }
               - { key: url, value: 'localhost:8080/propagated' }
               - { key: status_code, value: '200' }
+          - operationName: GET:/ignored.html
+            parentSpanId: 0
+            spanId: 2
+            spanLayer: Http
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 5005
+            isError: false
+            spanType: Exit
+            peer: localhost:8080
+            skipAnalysis: false
+            tags:
+              - { key: http.method, value: GET }
+              - { key: url, value: 'localhost:8080/ignored.html' }
+              - { key: status_code, value: '200' }
           - operationName: GET:/so11y
             parentSpanId: -1
             spanId: 0
