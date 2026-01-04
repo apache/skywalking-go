@@ -266,14 +266,6 @@ func (s *ContextSnapshot) IsValid() bool {
 }
 
 func (t *Tracer) createNoop(operationName string) (*TracingContext, TracingSpan, bool) {
-	if !t.InitSuccess() || t.Reporter.ConnectionStatus() == reporter.ConnectionStatusDisconnect {
-		GetSo11y(t).MeasureTracingContextCreation(false, true)
-		return nil, newNoopSpan(t), true
-	}
-	if tracerIgnore(operationName, t.ignoreSuffix, t.traceIgnorePath) {
-		GetSo11y(t).MeasureTracingContextCreation(false, true)
-		return nil, newNoopSpan(t), true
-	}
 	ctx := getTracingContext()
 	if ctx != nil {
 		span := ctx.ActiveSpan()
@@ -283,6 +275,14 @@ func (t *Tracer) createNoop(operationName string) (*TracingContext, TracingSpan,
 			noop.enterNoSpan()
 		}
 		return ctx, span, ok
+	}
+	if !t.InitSuccess() || t.Reporter.ConnectionStatus() == reporter.ConnectionStatusDisconnect {
+		GetSo11y(t).MeasureTracingContextCreation(false, true)
+		return nil, newNoopSpan(t), true
+	}
+	if tracerIgnore(operationName, t.ignoreSuffix, t.traceIgnorePath) {
+		GetSo11y(t).MeasureTracingContextCreation(false, true)
+		return nil, newNoopSpan(t), true
 	}
 	ctx = NewTracingContext()
 	return ctx, nil, false
