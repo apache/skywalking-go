@@ -96,13 +96,13 @@ meterItems:
             - {name: source, value: ignore}
         singleValue: 0.0
       - meterId:
-          name: sw_go_finished_tracing_context_counter
-          tags: []
-        singleValue: 4.0
-      - meterId:
           name: sw_go_finished_ignored_context_counter
           tags: []
-        singleValue: 2.0
+        singleValue: 0.0
+      - meterId:
+          name: sw_go_finished_tracing_context_counter
+          tags: []
+        singleValue: 6.0
       - meterId:
           name: sw_go_tracing_context_performance
           tags: []
