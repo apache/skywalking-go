@@ -113,7 +113,7 @@ func (s *SpanContext) Encode(injector func(headerKey, headerValue string) error)
 	return nil
 }
 
-// DecodeSW6 converts string header to SpanContext
+// DecodeSW8 converts string header to SpanContext
 func (s *SpanContext) DecodeSW8(header string) error {
 	if header == "" {
 		return errEmptyHeader
@@ -159,7 +159,7 @@ func (s *SpanContext) DecodeSW8(header string) error {
 	return nil
 }
 
-// EncodeSW6 converts SpanContext to string header
+// EncodeSW8 converts SpanContext to string header
 func (s *SpanContext) EncodeSW8() string {
 	return strings.Join([]string{
 		strconv.Itoa(int(s.Sample)),
