@@ -18,19 +18,19 @@
 package log
 
 type Logger interface {
-	WithField(key string, value interface{}) Logger
+	WithField(key string, value any) Logger
 	// Info logs to the INFO log.
-	Info(args ...interface{})
+	Info(args ...any)
 	// Infof logs to the INFO log.
-	Infof(format string, args ...interface{})
+	Infof(format string, args ...any)
 	// Warn logs to the WARNING and INFO logs.
-	Warn(args ...interface{})
+	Warn(args ...any)
 	// Warnf logs to the WARNING and INFO logs.
-	Warnf(format string, args ...interface{})
+	Warnf(format string, args ...any)
 	// Error logs to the ERROR, WARNING, and INFO logs.
-	Error(args ...interface{})
+	Error(args ...any)
 	// Errorf logs to the ERROR, WARNING, and INFO logs.
-	Errorf(format string, args ...interface{})
+	Errorf(format string, args ...any)
 }
 
 // SetLogger for connect the agent with program
