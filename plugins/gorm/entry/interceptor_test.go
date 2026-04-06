@@ -81,6 +81,30 @@ func TestInterceptor(t *testing.T) {
 	}
 }
 
+func TestInterceptorWithPrepareStmt(t *testing.T) {
+	defer core.ResetTracingContext()
+
+	interceptor := &OpenInterceptor{}
+	db, err := gorm.Open(NewTestDialector(&mysql.DatabaseInfo{PeerAddress: peerAddress}), &gorm.Config{
+		PrepareStmt:          true,
+		DisableAutomaticPing: true,
+	})
+	assert.Nil(t, err, "failed to open database")
+	assert.NotNil(t, db, "failed to open database")
+	err = interceptor.AfterInvoke(nil, db, err)
+	assert.Nil(t, err, "failed to invoke AfterInvoke")
+
+	res := db.Exec("select * from test where id = ?", "1")
+	assert.Equal(t, errConnectionExecute, res.Error, "failed to invoke prepared statement")
+
+	time.Sleep(100 * time.Millisecond)
+	spans := core.GetReportedSpans()
+	assert.NotNil(t, spans, "spans should not be nil")
+	assert.Equal(t, 1, len(spans), "spans length should be 1")
+	assert.Equal(t, peerAddress, spans[0].Peer(), "peer should be localhost:3306")
+	assert.Equal(t, int32(5012), spans[0].ComponentID(), "component id should be 5012")
+}
+
 type TestDialector struct {
 	gorm.Dialector
 	field interface{}
@@ -104,8 +128,7 @@ func (i *TestDialector) SetSkyWalkingDynamicField(v interface{}) {
 	i.field = v
 }
 
-type TestConnPool struct {
-}
+type TestConnPool struct{}
 
 func (i *TestConnPool) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
 	return nil, errConnectionExecute
