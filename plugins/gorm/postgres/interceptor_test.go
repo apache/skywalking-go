@@ -20,12 +20,16 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"testing"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/apache/skywalking-go/plugins/core/operator"
+
 	driver "gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 func TestPostgresDatabaseInfoFromOpen(t *testing.T) {
@@ -90,6 +94,46 @@ func TestBuildPeerAddressSpecialCases(t *testing.T) {
 	cfg, err = pgx.ParseConfig("host=2001:db8::1 user=postgres password=password dbname=test port=5432 sslmode=disable")
 	assert.Nil(t, err)
 	assert.Equal(t, "[2001:db8::1]:5432", buildPeerAddress(cfg))
+}
+
+func TestInitializeInterceptorSetsConnPoolDatabaseInfo(t *testing.T) {
+	dialector := driver.Open("host=postgres-init user=postgres password=password dbname=test port=5432 sslmode=disable")
+	connPool := &testConnPool{}
+	db := &gorm.DB{Config: &gorm.Config{}}
+	db.ConnPool = connPool
+
+	err := (&InitializeInterceptor{}).AfterInvoke(operator.NewInvocation(dialector, db), nil)
+	assert.Nil(t, err)
+
+	info, ok := connPool.GetSkyWalkingDynamicField().(*DatabaseInfo)
+	assert.True(t, ok)
+	assert.NotNil(t, info)
+	assert.Equal(t, "postgres-init:5432", info.Peer())
+	assert.Equal(t, "PostgreSQL", info.DBType())
+	assert.Equal(t, int32(22), info.ComponentID())
+}
+
+func TestInitializeInterceptorKeepsExistingConnPoolDatabaseInfo(t *testing.T) {
+	existing := &testSQLDatabaseInfo{peer: "postgres-from-sql:5432"}
+	dialector := driver.Open("host=postgres-init user=postgres password=password dbname=test port=5432 sslmode=disable")
+	connPool := &testConnPool{field: existing}
+	db := &gorm.DB{Config: &gorm.Config{}}
+	db.ConnPool = connPool
+
+	err := (&InitializeInterceptor{}).AfterInvoke(operator.NewInvocation(dialector, db), nil)
+	assert.Nil(t, err)
+	assert.Same(t, existing, connPool.GetSkyWalkingDynamicField())
+}
+
+func TestInitializeInterceptorSkipsOnInitializeError(t *testing.T) {
+	dialector := driver.Open("host=postgres-init user=postgres password=password dbname=test port=5432 sslmode=disable")
+	connPool := &testConnPool{}
+	db := &gorm.DB{Config: &gorm.Config{}}
+	db.ConnPool = connPool
+
+	err := (&InitializeInterceptor{}).AfterInvoke(operator.NewInvocation(dialector, db), errors.New("init failed"))
+	assert.Nil(t, err)
+	assert.Nil(t, connPool.GetSkyWalkingDynamicField())
 }
 
 type testConnPool struct {

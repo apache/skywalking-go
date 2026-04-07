@@ -66,8 +66,15 @@ func (i *Instrument) Points() []*instrument.Point {
 		},
 		{
 			PackagePath: "",
-			At: instrument.NewStructEnhance("Dialector",
-				instrument.WithFiledType("", "*Config")),
+			At: instrument.NewMethodEnhance("Dialector", "Initialize",
+				instrument.WithArgsCount(1), instrument.WithArgType(0, "*gorm.DB"),
+				instrument.WithResultCount(1), instrument.WithResultType(0, "error")),
+			Interceptor: "InitializeInterceptor",
+		},
+		{
+			PackagePath: "",
+			At: instrument.NewStructEnhance("Config",
+				instrument.WithFiledType("Conn", "gorm.ConnPool")),
 		},
 	}
 }

@@ -18,13 +18,12 @@
 package postgres
 
 import (
-	"strconv"
-	"strings"
-
 	"github.com/jackc/pgx/v5"
 	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 
 	"github.com/apache/skywalking-go/plugins/core/operator"
+	"github.com/apache/skywalking-go/plugins/core/tracing"
 )
 
 const postgreSQLComponentID int32 = 22
@@ -87,37 +86,17 @@ func buildPeerAddress(cfg *pgx.ConnConfig) string {
 	if cfg == nil {
 		return ""
 	}
-	addresses := make([]string, 0, len(cfg.Fallbacks)+1)
-	addresses = appendPeerAddress(addresses, cfg.Host, cfg.Port)
+	fallbacks := make([]tracing.PostgreSQLAddress, 0, len(cfg.Fallbacks))
 	for _, fallback := range cfg.Fallbacks {
 		if fallback == nil {
 			continue
 		}
-		addresses = appendPeerAddress(addresses, fallback.Host, fallback.Port)
+		fallbacks = append(fallbacks, tracing.PostgreSQLAddress{Host: fallback.Host, Port: fallback.Port})
 	}
-	return strings.Join(addresses, ",")
-}
-
-func appendPeerAddress(addresses []string, host string, port uint16) []string {
-	if host == "" {
-		return addresses
-	}
-	address := host + ":" + strconv.Itoa(int(port))
-	if strings.HasPrefix(host, "/") {
-		if strings.HasSuffix(host, "/") {
-			address = host + ".s.PGSQL." + strconv.Itoa(int(port))
-		} else {
-			address = host + "/.s.PGSQL." + strconv.Itoa(int(port))
-		}
-	} else if strings.Count(host, ":") > 1 && !strings.HasPrefix(host, "[") {
-		address = "[" + host + "]:" + strconv.Itoa(int(port))
-	}
-	for _, existed := range addresses {
-		if existed == address {
-			return addresses
-		}
-	}
-	return append(addresses, address)
+	return tracing.BuildPostgreSQLPeer(
+		tracing.PostgreSQLAddress{Host: cfg.Host, Port: cfg.Port},
+		fallbacks,
+	)
 }
 
 func buildDBInfoFromConn(conn interface{}) *DatabaseInfo {
@@ -159,4 +138,53 @@ func (i *InstanceInterceptor) AfterInvoke(invocation operator.Invocation, result
 		}
 	}
 	return nil
+}
+
+type InitializeInterceptor struct {
+}
+
+func (i *InitializeInterceptor) BeforeInvoke(invocation operator.Invocation) error {
+	return nil
+}
+
+func (i *InitializeInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {
+	if err, ok := result[0].(error); ok && err != nil {
+		return nil
+	}
+	db, ok := invocation.Args()[0].(*gorm.DB)
+	if !ok || db == nil || db.ConnPool == nil {
+		return nil
+	}
+	connPool, ok := db.ConnPool.(operator.EnhancedInstance)
+	if !ok || connPool == nil {
+		return nil
+	}
+	if connPool.GetSkyWalkingDynamicField() != nil {
+		return nil
+	}
+	dbInfo := buildDBInfoFromInvocation(invocation)
+	if dbInfo == nil {
+		return nil
+	}
+	connPool.SetSkyWalkingDynamicField(dbInfo)
+	return nil
+}
+
+func buildDBInfoFromInvocation(invocation operator.Invocation) *DatabaseInfo {
+	if invocation == nil {
+		return nil
+	}
+	if caller, ok := invocation.CallerInstance().(operator.EnhancedInstance); ok && caller != nil {
+		if dbInfo := adaptSQLDatabaseInfo(caller.GetSkyWalkingDynamicField()); dbInfo != nil {
+			return dbInfo
+		}
+	}
+	switch caller := invocation.CallerInstance().(type) {
+	case *postgres.Dialector:
+		return buildDBInfoFromDialector(caller)
+	case postgres.Dialector:
+		return buildDBInfoFromDialectorValue(caller)
+	default:
+		return nil
+	}
 }

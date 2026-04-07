@@ -3,7 +3,6 @@ module github.com/apache/skywalking-go/plugins/gorm
 go 1.19
 
 require (
-	github.com/apache/skywalking-go/plugins/core v0.0.0-20260210074111-924fc3238ad2
 	github.com/go-sql-driver/mysql v1.7.1
 	github.com/jackc/pgx/v5 v5.5.5
 	github.com/stretchr/testify v1.8.2

@@ -1,7 +1,5 @@
 github.com/apache/skywalking-go v0.6.1-0.20260210074111-924fc3238ad2 h1:vLuZSawY5RPhBIg3Hz/RfCPuhQjjpPsTPIhLp6Ndd2o=
 github.com/apache/skywalking-go v0.6.1-0.20260210074111-924fc3238ad2/go.mod h1:EIbOxJezWSf22p4P0p0RAgpEOvaN0sNQAtfYPX2wAyc=
-github.com/apache/skywalking-go/plugins/core v0.0.0-20260210074111-924fc3238ad2 h1:RBRr5CXeoxK/uNfeRQqCZM/k6VxuGMriNaB+tZAhu0Y=
-github.com/apache/skywalking-go/plugins/core v0.0.0-20260210074111-924fc3238ad2/go.mod h1:pOd//wrJ9lx9TwCbX6KSxfwf0756WFBstn3qIV/hboY=
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
 github.com/dave/dst v0.27.2 h1:4Y5VFTkhGLC1oddtNwuxxe36pnyLxMFXT51FOzH8Ekc=
 github.com/dave/dst v0.27.2/go.mod h1:jHh6EOibnHgcUW3WjKHisiooEkYwqpHLBSX1iOBhEyc=
