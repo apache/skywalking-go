@@ -32,8 +32,9 @@ func (n *ParseInterceptor) BeforeInvoke(invocation operator.Invocation) error {
 }
 
 func (n *ParseInterceptor) AfterInvoke(invocation operator.Invocation, results ...interface{}) error {
-	if cfg, ok := results[0].(*mysql.Config); ok && cfg != nil && tracing.GetRuntimeContextValue("needInfo") == true {
-		tracing.SetRuntimeContextValue("info", &DBInfo{Addr: cfg.Addr})
+	if cfg, ok := results[0].(*mysql.Config); ok && cfg != nil &&
+		tracing.GetRuntimeContextValue(tracing.SQLNeedInfoRuntimeContextKey) == true {
+		tracing.SetRuntimeContextValue(tracing.SQLInfoRuntimeContextKey, &DBInfo{Addr: cfg.Addr})
 	}
 	return nil
 }

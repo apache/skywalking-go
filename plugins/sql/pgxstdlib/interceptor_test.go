@@ -32,14 +32,14 @@ func TestOpenConnectorBuildDBInfoFromDSN(t *testing.T) {
 	core.ResetTracingContext()
 	defer core.ResetTracingContext()
 
-	tracing.SetRuntimeContextValue("needInfo", true)
+	tracing.SetRuntimeContextValue(tracing.SQLNeedInfoRuntimeContextKey, true)
 
 	interceptor := &OpenConnectorInterceptor{}
 	dsn := "postgres://user:password@postgres:5432/database?sslmode=disable"
 	err := interceptor.AfterInvoke(operator.NewInvocation(nil, dsn), nil, nil)
 	assert.Nil(t, err)
 
-	info, ok := tracing.GetRuntimeContextValue("info").(*DBInfo)
+	info, ok := tracing.GetRuntimeContextValue(tracing.SQLInfoRuntimeContextKey).(*DBInfo)
 	assert.True(t, ok)
 	assert.Equal(t, "postgres:5432", info.Peer())
 	assert.Equal(t, int32(22), info.ComponentID())

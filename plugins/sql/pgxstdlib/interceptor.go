@@ -34,12 +34,12 @@ func (i *OpenConnectorInterceptor) BeforeInvoke(invocation operator.Invocation) 
 }
 
 func (i *OpenConnectorInterceptor) AfterInvoke(invocation operator.Invocation, results ...interface{}) error {
-	if tracing.GetRuntimeContextValue("needInfo") != true {
+	if tracing.GetRuntimeContextValue(tracing.SQLNeedInfoRuntimeContextKey) != true {
 		return nil
 	}
 	info := i.buildDBInfo(invocation)
 	if info != nil {
-		tracing.SetRuntimeContextValue("info", info)
+		tracing.SetRuntimeContextValue(tracing.SQLInfoRuntimeContextKey, info)
 	}
 	return nil
 }

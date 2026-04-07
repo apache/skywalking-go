@@ -24,9 +24,6 @@ import (
 	"github.com/apache/skywalking-go/plugins/core/tracing"
 )
 
-var needInfoKey = "needInfo"
-var infoKey = "info"
-
 type InstanceInterceptor struct {
 }
 
@@ -37,15 +34,15 @@ type InstanceInfo interface {
 }
 
 func (n *InstanceInterceptor) BeforeInvoke(invocation operator.Invocation) error {
-	tracing.SetRuntimeContextValue(needInfoKey, true)
+	tracing.SetRuntimeContextValue(tracing.SQLNeedInfoRuntimeContextKey, true)
 	return nil
 }
 
 func (n *InstanceInterceptor) AfterInvoke(invocation operator.Invocation, results ...interface{}) error {
-	tracing.SetRuntimeContextValue(needInfoKey, nil)
-	info, ok := tracing.GetRuntimeContextValue(infoKey).(InstanceInfo)
-	tracing.SetRuntimeContextValue(needInfoKey, nil)
-	tracing.SetRuntimeContextValue(infoKey, nil)
+	tracing.SetRuntimeContextValue(tracing.SQLNeedInfoRuntimeContextKey, nil)
+	info, ok := tracing.GetRuntimeContextValue(tracing.SQLInfoRuntimeContextKey).(InstanceInfo)
+	tracing.SetRuntimeContextValue(tracing.SQLNeedInfoRuntimeContextKey, nil)
+	tracing.SetRuntimeContextValue(tracing.SQLInfoRuntimeContextKey, nil)
 	if !ok || info == nil {
 		return nil
 	}
