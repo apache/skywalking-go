@@ -7,8 +7,8 @@ require (
 	github.com/jackc/pgx/v5 v5.5.5
 	github.com/stretchr/testify v1.8.2
 	gorm.io/driver/mysql v1.5.1
-	gorm.io/driver/postgres v1.5.11
-	gorm.io/gorm v1.25.10
+	gorm.io/driver/postgres v1.5.2
+	gorm.io/gorm v1.25.1
 )
 
 require (

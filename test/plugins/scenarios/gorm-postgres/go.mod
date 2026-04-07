@@ -4,8 +4,8 @@ go 1.19
 
 require (
 	github.com/apache/skywalking-go v0.0.0-20230519025440-37fd080ca733
-	gorm.io/driver/postgres v1.5.11
-	gorm.io/gorm v1.25.10
+	gorm.io/driver/postgres v1.5.2
+	gorm.io/gorm v1.25.1
 )
 
 require (

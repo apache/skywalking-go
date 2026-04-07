@@ -22,7 +22,7 @@ export-port: 8080
 support-version:
   - go: 1.19
     framework:
-      - v1.5.11
+      - v1.5.2
 dependencies:
   postgres-server:
     image: postgres:15-alpine
