@@ -166,8 +166,11 @@ if [[ ! -f $go_agent ]]; then
     exitWithMessage "cannot found 'go-agent' in directory ${home}/dist"
 fi
 
-yq e '.support-version[].go' $configuration | while read -r go_version; do
-frameworks=$(yq e ".support-version[] | select(.go == \"$go_version\") | .framework[]" $configuration)
+index=0
+while [ $index -lt $support_version_count ]; do
+go_version=$(yq e ".support-version[$index].go" $configuration)
+excepted_file=$(yq e ".support-version[$index].excepted-file // \"\"" $configuration)
+frameworks=$(yq e ".support-version[$index].framework[]" $configuration)
 if [[ "$framework_name" == "go" ]]; then
   frameworks=("native")
 fi
@@ -198,6 +201,14 @@ for framework_version in $frameworks; do
     replace "s|$framework_name v.*|$framework_name $framework_version|" go.mod
   fi
 
+  # replace excepted file when the current support-version entry specifies a custom one.
+  if [[ -n "$excepted_file" && "$excepted_file" != "null" ]]; then
+    if [[ ! -f "$excepted_file" ]]; then
+      exitWithMessage "cannot found '${excepted_file}' for ${case_name}"
+    fi
+    cp "$excepted_file" config/excepted.yml
+  fi
+
   # run runner helper for prepare running docker-compose
   ${plugin_runner_helper} \
     -workspace ${case_home} \
@@ -221,6 +232,7 @@ for framework_version in $frameworks; do
   num_of_testcases=$(($num_of_testcases+1))
 
 done
+  index=$((index+1))
   if [[ $os == "windows" ]]; then
     break
   fi

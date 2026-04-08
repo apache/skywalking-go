@@ -32,6 +32,10 @@ support-version:
       - v1.24.5
       - v1.25.0
       - v1.25.1
+  - go: 1.19
+    framework:
+      - v1.25.10
+    excepted-file: config/excepted-gorm-v1.25.10.yml
 dependencies:
   mysql-server:
     image: mysql:5.7
