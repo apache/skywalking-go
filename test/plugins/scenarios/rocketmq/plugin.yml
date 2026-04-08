@@ -25,13 +25,13 @@ support-version:
       - v2.1.2
 dependencies:
   mqnamesrv:
-    image: apache/rocketmq:5.1.4
+    image: apache/rocketmq:5.3.2
     hostname: mqnamesrv
     ports:
       - 9876
     command: ["sh", "mqnamesrv"]
   mqbroker:
-    image: apache/rocketmq:5.1.4
+    image: apache/rocketmq:5.3.2
     hostname: mqbroker
     depends_on:
      - mqnamesrv
@@ -40,7 +40,7 @@ dependencies:
       - 10911
       - 10912
     volumes:
-      - "./config/broker.conf:/opt/rocketmq-5.1.4/conf/broker.conf"
+      - "./config/broker.conf:/home/rocketmq/rocketmq-5.3.2/conf/broker.conf"
     command: ["sh", "mqbroker", "autoCreateTopicEnable=true"]
     environment:
       NAMESRV_ADDR: "mqnamesrv:9876"
