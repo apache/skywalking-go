@@ -66,7 +66,7 @@ func (i *OpenInterceptor) AfterInvoke(invocation operator.Invocation, result ...
 }
 
 func (i *OpenInterceptor) setupDatabaseInfo(db *gorm.DB) DatabaseInfo {
-	if db.Config == nil || db.Config.Dialector == nil {
+	if db == nil || db.Config == nil || db.Config.Dialector == nil {
 		return nil
 	}
 	ins, ok := db.Config.Dialector.(operator.EnhancedInstance)

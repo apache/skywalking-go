@@ -21,11 +21,13 @@ metrics based on the tracing data.
   * `microv4`: [Go-Micro](https://github.com/go-micro/go-micro) tested v4.6.0 to v4.10.2.
   * `grpc` : [gRPC](https://github.com/grpc/grpc-go) tested v1.55.0 to v1.64.0.
 * Database Client
-  * `gorm`: [GORM](https://github.com/go-gorm/gorm) tested v1.22.0 to v1.25.1.
+  * `gorm`: [GORM](https://github.com/go-gorm/gorm) tested v1.22.0 to v1.25.10.
     * [MySQL Driver](https://github.com/go-gorm/mysql)
+    * [PostgreSQL Driver](https://github.com/go-gorm/postgres) tested v1.5.2 to v1.6.0.
   * `mongo`: [Mongo](https://github.com/mongodb/mongo-go-driver) tested v1.11.1 to v1.11.7.
   * `sql`: [Native SQL](https://pkg.go.dev/database/sql) tested go v1.19 to go v1.23.
     * [MySQL Driver](https://github.com/go-sql-driver/mysql) tested v1.4.0 to v1.7.1.
+    * [pgx/v5 stdlib](https://github.com/jackc/pgx/tree/master/stdlib) tested v5.5.5 to v5.7.2.
   * `go-elasticsearchv8`: [go-elasticsearch](https://github.com/elastic/go-elasticsearch) tested v8.10.0 to v8.11.1.
 * Cache Client
   * `go-redisv9`: [go-redis](https://github.com/redis/go-redis) tested v9.0.3 to v9.0.5.

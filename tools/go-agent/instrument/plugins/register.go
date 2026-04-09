@@ -33,6 +33,7 @@ import (
 	"github.com/apache/skywalking-go/plugins/goframe"
 	gorm_entry "github.com/apache/skywalking-go/plugins/gorm/entry"
 	gorm_mysql "github.com/apache/skywalking-go/plugins/gorm/mysql"
+	gorm_postgres "github.com/apache/skywalking-go/plugins/gorm/postgres"
 	"github.com/apache/skywalking-go/plugins/grpc"
 	"github.com/apache/skywalking-go/plugins/http"
 	"github.com/apache/skywalking-go/plugins/irisv12"
@@ -47,6 +48,7 @@ import (
 	segmentiokafka "github.com/apache/skywalking-go/plugins/segmentio-kafka"
 	sql_entry "github.com/apache/skywalking-go/plugins/sql/entry"
 	sql_mysql "github.com/apache/skywalking-go/plugins/sql/mysql"
+	sql_pgxstdlib "github.com/apache/skywalking-go/plugins/sql/pgxstdlib"
 )
 
 var instruments = make([]instrument.Instrument, 0)
@@ -81,10 +83,12 @@ func init() {
 	// gorm related instruments
 	registerFramework(gorm_entry.NewInstrument())
 	registerFramework(gorm_mysql.NewInstrument())
+	registerFramework(gorm_postgres.NewInstrument())
 
 	// sql related instruments
 	registerFramework(sql_entry.NewInstrument())
 	registerFramework(sql_mysql.NewInstrument())
+	registerFramework(sql_pgxstdlib.NewInstrument())
 
 	// echov4 related instruments
 	registerFramework(echov4.NewInstrument())
