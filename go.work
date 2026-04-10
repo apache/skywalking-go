@@ -47,10 +47,12 @@ use (
 	./test/plugins/scenarios/go-redisv9
 	./test/plugins/scenarios/go-restfulv3
 	./test/plugins/scenarios/gorm
+	./test/plugins/scenarios/gorm-postgres
 	./test/plugins/scenarios/kratosv2
 	./test/plugins/scenarios/microv4
 	./test/plugins/scenarios/mongo
 	./test/plugins/scenarios/mysql
+	./test/plugins/scenarios/postgres
 	./test/plugins/scenarios/logrus
 	./test/plugins/scenarios/zap
 	./test/plugins/scenarios/mux

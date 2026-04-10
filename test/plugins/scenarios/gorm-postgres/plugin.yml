@@ -17,36 +17,34 @@
 entry-service: http://${HTTP_HOST}:${HTTP_PORT}/execute
 health-checker: http://${HTTP_HOST}:${HTTP_PORT}/health
 start-script: ./bin/startup.sh
-framework: gorm.io/gorm
+framework: gorm.io/driver/postgres
 export-port: 8080
 support-version:
   - go: 1.19
     framework:
-      - v1.22.0
-      - v1.23.0
-      - v1.24.0
-      - v1.24.1
-      - v1.24.2
-      - v1.24.3
-      - v1.24.4
-      - v1.24.5
-      - v1.25.0
-      - v1.25.1
+      - v1.5.2
+      - v1.5.4
   - go: 1.19
     framework:
-      - v1.25.10
+      - v1.5.10
+      - v1.5.11
+    excepted-file: config/excepted-gorm-v1.25.10.yml
+  - go: 1.20
+    framework:
+      - v1.6.0
     excepted-file: config/excepted-gorm-v1.25.10.yml
 dependencies:
-  mysql-server:
-    image: mysql:5.7
-    hostname: mysql-server
+  postgres-server:
+    image: postgres:15-alpine
+    hostname: postgres-server
     expose:
-      - "3306"
+      - "5432"
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: test
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "password"
+      POSTGRES_DB: "test"
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d test"]
       interval: 5s
       timeout: 60s
       retries: 120
