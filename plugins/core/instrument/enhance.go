@@ -81,8 +81,71 @@ func generateTypeNameByExp(exp dst.Expr) string {
 		data = "..." + generateTypeNameByExp(n.Elt)
 	case *dst.ArrayType:
 		data = "[]" + generateTypeNameByExp(n.Elt)
+	case *dst.FuncType:
+		data = generateFuncTypeName(n)
+	case *dst.ChanType:
+		data = generateChanTypeName(n)
 	default:
 		return ""
 	}
 	return data
+}
+
+func generateFuncTypeName(n *dst.FuncType) string {
+	result := "func("
+	if n.Params != nil {
+		for i, field := range n.Params.List {
+			if i > 0 {
+				result += ", "
+			}
+			if len(field.Names) > 0 {
+				for j, name := range field.Names {
+					if j > 0 {
+						result += ", "
+					}
+					result += name.Name + " " + generateTypeNameByExp(field.Type)
+				}
+			} else {
+				result += generateTypeNameByExp(field.Type)
+			}
+		}
+	}
+	result += ")"
+	if n.Results != nil && len(n.Results.List) > 0 {
+		if len(n.Results.List) == 1 && len(n.Results.List[0].Names) == 0 {
+			result += " " + generateTypeNameByExp(n.Results.List[0].Type)
+		} else {
+			result += " ("
+			for i, field := range n.Results.List {
+				if i > 0 {
+					result += ", "
+				}
+				if len(field.Names) > 0 {
+					for j, name := range field.Names {
+						if j > 0 {
+							result += ", "
+						}
+						result += name.Name + " " + generateTypeNameByExp(field.Type)
+					}
+				} else {
+					result += generateTypeNameByExp(field.Type)
+				}
+			}
+			result += ")"
+		}
+	}
+	return result
+}
+
+func generateChanTypeName(n *dst.ChanType) string {
+	switch n.Dir {
+	case dst.SEND | dst.RECV:
+		return "chan " + generateTypeNameByExp(n.Value)
+	case dst.SEND:
+		return "chan<- " + generateTypeNameByExp(n.Value)
+	case dst.RECV:
+		return "<-chan " + generateTypeNameByExp(n.Value)
+	default:
+		return "chan " + generateTypeNameByExp(n.Value)
+	}
 }
