@@ -113,6 +113,77 @@ func TestGenerateTypeNameByExp_FuncType(t *testing.T) {
 			},
 			"func(context.Context, *primitive.SendResult, error)",
 		},
+		{
+			"func with named params ignores names",
+			&dst.FuncType{
+				Params: &dst.FieldList{List: []*dst.Field{
+					{Names: []*dst.Ident{dst.NewIdent("ctx")}, Type: &dst.SelectorExpr{X: dst.NewIdent("context"), Sel: dst.NewIdent("Context")}},
+					{Names: []*dst.Ident{dst.NewIdent("err")}, Type: dst.NewIdent("error")},
+				}},
+			},
+			"func(context.Context, error)",
+		},
+		{
+			"func with multi-name field expands types",
+			&dst.FuncType{
+				Params: &dst.FieldList{List: []*dst.Field{
+					{Names: []*dst.Ident{dst.NewIdent("a"), dst.NewIdent("b")}, Type: dst.NewIdent("int")},
+					{Names: []*dst.Ident{dst.NewIdent("s")}, Type: dst.NewIdent("string")},
+				}},
+			},
+			"func(int, int, string)",
+		},
+		{
+			"func with named single result ignores name",
+			&dst.FuncType{
+				Params: &dst.FieldList{List: []*dst.Field{
+					{Type: dst.NewIdent("int")},
+				}},
+				Results: &dst.FieldList{List: []*dst.Field{
+					{Names: []*dst.Ident{dst.NewIdent("err")}, Type: dst.NewIdent("error")},
+				}},
+			},
+			"func(int) error",
+		},
+		{
+			"func with named multiple results ignores names",
+			&dst.FuncType{
+				Params: &dst.FieldList{List: []*dst.Field{
+					{Type: dst.NewIdent("int")},
+				}},
+				Results: &dst.FieldList{List: []*dst.Field{
+					{Names: []*dst.Ident{dst.NewIdent("n")}, Type: dst.NewIdent("int")},
+					{Names: []*dst.Ident{dst.NewIdent("err")}, Type: dst.NewIdent("error")},
+				}},
+			},
+			"func(int) (int, error)",
+		},
+		{
+			"func with multi-name result field expands types",
+			&dst.FuncType{
+				Params: &dst.FieldList{List: []*dst.Field{
+					{Type: dst.NewIdent("string")},
+				}},
+				Results: &dst.FieldList{List: []*dst.Field{
+					{Names: []*dst.Ident{dst.NewIdent("x"), dst.NewIdent("y")}, Type: dst.NewIdent("int")},
+				}},
+			},
+			"func(string) (int, int)",
+		},
+		{
+			"func with named params and results from real code",
+			&dst.FuncType{
+				Params: &dst.FieldList{List: []*dst.Field{
+					{Names: []*dst.Ident{dst.NewIdent("ctx")}, Type: &dst.SelectorExpr{X: dst.NewIdent("context"), Sel: dst.NewIdent("Context")}},
+					{Names: []*dst.Ident{dst.NewIdent("req")}, Type: &dst.StarExpr{X: &dst.SelectorExpr{X: dst.NewIdent("http"), Sel: dst.NewIdent("Request")}}},
+				}},
+				Results: &dst.FieldList{List: []*dst.Field{
+					{Names: []*dst.Ident{dst.NewIdent("resp")}, Type: &dst.StarExpr{X: &dst.SelectorExpr{X: dst.NewIdent("http"), Sel: dst.NewIdent("Response")}}},
+					{Names: []*dst.Ident{dst.NewIdent("err")}, Type: dst.NewIdent("error")},
+				}},
+			},
+			"func(context.Context, *http.Request) (*http.Response, error)",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

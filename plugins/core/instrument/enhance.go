@@ -94,41 +94,55 @@ func generateTypeNameByExp(exp dst.Expr) string {
 func generateFuncTypeName(n *dst.FuncType) string {
 	result := "func("
 	if n.Params != nil {
-		for i, field := range n.Params.List {
-			if i > 0 {
-				result += ", "
+		first := true
+		for _, field := range n.Params.List {
+			count := len(field.Names)
+			if count == 0 {
+				count = 1
 			}
-			if len(field.Names) > 0 {
-				for j, name := range field.Names {
-					if j > 0 {
-						result += ", "
-					}
-					result += name.Name + " " + generateTypeNameByExp(field.Type)
+			for k := 0; k < count; k++ {
+				if !first {
+					result += ", "
 				}
-			} else {
 				result += generateTypeNameByExp(field.Type)
+				first = false
 			}
 		}
 	}
 	result += ")"
 	if n.Results != nil && len(n.Results.List) > 0 {
-		if len(n.Results.List) == 1 && len(n.Results.List[0].Names) == 0 {
-			result += " " + generateTypeNameByExp(n.Results.List[0].Type)
+		totalResults := 0
+		for _, field := range n.Results.List {
+			if len(field.Names) == 0 {
+				totalResults++
+			} else {
+				totalResults += len(field.Names)
+			}
+		}
+		if totalResults == 1 {
+			for _, field := range n.Results.List {
+				count := len(field.Names)
+				if count == 0 {
+					count = 1
+				}
+				for k := 0; k < count; k++ {
+					result += " " + generateTypeNameByExp(field.Type)
+				}
+			}
 		} else {
 			result += " ("
-			for i, field := range n.Results.List {
-				if i > 0 {
-					result += ", "
+			first := true
+			for _, field := range n.Results.List {
+				count := len(field.Names)
+				if count == 0 {
+					count = 1
 				}
-				if len(field.Names) > 0 {
-					for j, name := range field.Names {
-						if j > 0 {
-							result += ", "
-						}
-						result += name.Name + " " + generateTypeNameByExp(field.Type)
+				for k := 0; k < count; k++ {
+					if !first {
+						result += ", "
 					}
-				} else {
 					result += generateTypeNameByExp(field.Type)
+					first = false
 				}
 			}
 			result += ")"
