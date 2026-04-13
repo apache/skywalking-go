@@ -53,9 +53,7 @@ func TestGenerateTypeNameByExp_FuncType(t *testing.T) {
 	}{
 		{
 			"func with no params no results",
-			&dst.FuncType{
-				Params: &dst.FieldList{},
-			},
+			&dst.FuncType{Params: &dst.FieldList{}},
 			"func()",
 		},
 		{
@@ -113,6 +111,20 @@ func TestGenerateTypeNameByExp_FuncType(t *testing.T) {
 			},
 			"func(context.Context, *primitive.SendResult, error)",
 		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, generateTypeNameByExp(tt.expr))
+		})
+	}
+}
+
+func TestGenerateTypeNameByExp_FuncType_NamedFields(t *testing.T) {
+	tests := []struct {
+		name     string
+		expr     dst.Expr
+		expected string
+	}{
 		{
 			"func with named params ignores names",
 			&dst.FuncType{
