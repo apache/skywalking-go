@@ -94,61 +94,47 @@ func generateTypeNameByExp(exp dst.Expr) string {
 func generateFuncTypeName(n *dst.FuncType) string {
 	result := "func("
 	if n.Params != nil {
-		first := true
-		for _, field := range n.Params.List {
-			count := len(field.Names)
-			if count == 0 {
-				count = 1
-			}
-			for k := 0; k < count; k++ {
-				if !first {
-					result += ", "
-				}
-				result += generateTypeNameByExp(field.Type)
-				first = false
-			}
-		}
+		result += joinFieldTypes(n.Params.List, ", ")
 	}
 	result += ")"
 	if n.Results != nil && len(n.Results.List) > 0 {
-		totalResults := 0
-		for _, field := range n.Results.List {
-			if len(field.Names) == 0 {
-				totalResults++
-			} else {
-				totalResults += len(field.Names)
-			}
+		result += generateFuncResultTypes(n.Results.List)
+	}
+	return result
+}
+
+func joinFieldTypes(fields []*dst.Field, sep string) string {
+	result := ""
+	first := true
+	for _, field := range fields {
+		count := len(field.Names)
+		if count == 0 {
+			count = 1
 		}
-		if totalResults == 1 {
-			for _, field := range n.Results.List {
-				count := len(field.Names)
-				if count == 0 {
-					count = 1
-				}
-				for k := 0; k < count; k++ {
-					result += " " + generateTypeNameByExp(field.Type)
-				}
+		for k := 0; k < count; k++ {
+			if !first {
+				result += sep
 			}
-		} else {
-			result += " ("
-			first := true
-			for _, field := range n.Results.List {
-				count := len(field.Names)
-				if count == 0 {
-					count = 1
-				}
-				for k := 0; k < count; k++ {
-					if !first {
-						result += ", "
-					}
-					result += generateTypeNameByExp(field.Type)
-					first = false
-				}
-			}
-			result += ")"
+			result += generateTypeNameByExp(field.Type)
+			first = false
 		}
 	}
 	return result
+}
+
+func generateFuncResultTypes(fields []*dst.Field) string {
+	totalResults := 0
+	for _, field := range fields {
+		if len(field.Names) == 0 {
+			totalResults++
+		} else {
+			totalResults += len(field.Names)
+		}
+	}
+	if totalResults == 1 {
+		return " " + joinFieldTypes(fields, ", ")
+	}
+	return " (" + joinFieldTypes(fields, ", ") + ")"
 }
 
 func generateChanTypeName(n *dst.ChanType) string {
