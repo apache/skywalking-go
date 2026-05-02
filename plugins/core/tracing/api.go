@@ -169,7 +169,7 @@ func GetCorrelationContextValue(key string) string {
 	return op.Tracing().(operator.TracingOperator).GetCorrelationContextValue(key)
 }
 
-// SetRuntimeContextValue sets the value of the key in the correlation context.
+// SetCorrelationContextValue sets the value of the key in the correlation context.
 func SetCorrelationContextValue(key, val string) {
 	op := operator.GetOperator()
 	if op != nil {
