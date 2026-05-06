@@ -35,6 +35,11 @@ func (s *nativeStream) Context() context.Context {
 	return s.ctx
 }
 
+//skywalking:native google.golang.org/grpc/internal/transport ServerStream
+type nativeServerStream struct {
+	nativeStream
+}
+
 //skywalking:native google.golang.org/grpc ClientConn
 type nativeClientConn struct {
 }

@@ -19,6 +19,7 @@ Release Notes.
 
 * Fix plugin interceptors bypassed on Windows.
 * Fix wrong tracing context switch when trace ignore plugin activated.
+* Fix gRPC server streaming plugin panic on grpc-go v1.69+ where `transport.Stream` was replaced by `transport.ServerStream`.
 
 #### Issues and PR
 - All issues are [here](https://github.com/apache/skywalking/milestone/238?closed=1)

@@ -21,6 +21,8 @@ import (
 	"embed"
 	"testing"
 
+	"github.com/dave/dst"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/apache/skywalking-go/plugins/core/instrument"
@@ -116,4 +118,130 @@ func (i *TestInstrument) Points() []*instrument.Point {
 
 func (i *TestInstrument) FS() *embed.FS {
 	return nil
+}
+
+func TestInstrument_validateMethodInsMatch_WithArgTypeFilters(t *testing.T) {
+	inst := &Instrument{}
+
+	handleStreamV1 := &dst.FuncDecl{
+		Name: dst.NewIdent("handleStream"),
+		Recv: &dst.FieldList{List: []*dst.Field{
+			{Type: &dst.StarExpr{X: dst.NewIdent("Server")}},
+		}},
+		Type: &dst.FuncType{
+			Params: &dst.FieldList{List: []*dst.Field{
+				{Type: &dst.SelectorExpr{X: dst.NewIdent("transport"), Sel: dst.NewIdent("ServerTransport")}},
+				{Type: &dst.StarExpr{X: &dst.SelectorExpr{X: dst.NewIdent("transport"), Sel: dst.NewIdent("Stream")}}},
+			}},
+		},
+	}
+
+	handleStreamV2 := &dst.FuncDecl{
+		Name: dst.NewIdent("handleStream"),
+		Recv: &dst.FieldList{List: []*dst.Field{
+			{Type: &dst.StarExpr{X: dst.NewIdent("Server")}},
+		}},
+		Type: &dst.FuncType{
+			Params: &dst.FieldList{List: []*dst.Field{
+				{Type: &dst.SelectorExpr{X: dst.NewIdent("transport"), Sel: dst.NewIdent("ServerTransport")}},
+				{Type: &dst.StarExpr{X: &dst.SelectorExpr{X: dst.NewIdent("transport"), Sel: dst.NewIdent("ServerStream")}}},
+			}},
+		},
+	}
+
+	matcherV1 := &instrument.EnhanceMatcher{
+		Type:     instrument.EnhanceTypeMethod,
+		Name:     "handleStream",
+		Receiver: "*Server",
+		MethodFilters: []instrument.MethodFilterOption{
+			instrument.WithArgType(0, "transport.ServerTransport"),
+			instrument.WithArgType(1, "*transport.Stream"),
+		},
+	}
+
+	matcherV2 := &instrument.EnhanceMatcher{
+		Type:     instrument.EnhanceTypeMethod,
+		Name:     "handleStream",
+		Receiver: "*Server",
+		MethodFilters: []instrument.MethodFilterOption{
+			instrument.WithArgType(0, "transport.ServerTransport"),
+			instrument.WithArgType(1, "*transport.ServerStream"),
+		},
+	}
+
+	tests := []struct {
+		name    string
+		matcher *instrument.EnhanceMatcher
+		node    *dst.FuncDecl
+		want    bool
+	}{
+		{"V1 matcher matches V1 signature", matcherV1, handleStreamV1, true},
+		{"V1 matcher does not match V2 signature", matcherV1, handleStreamV2, false},
+		{"V2 matcher does not match V1 signature", matcherV2, handleStreamV1, false},
+		{"V2 matcher matches V2 signature", matcherV2, handleStreamV2, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := inst.validateMethodInsMatch(tt.matcher, tt.node, nil)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestInstrument_validateMethodInsMatch_WithResultTypeFilter(t *testing.T) {
+	inst := &Instrument{}
+
+	sendResponseDecl := &dst.FuncDecl{
+		Name: dst.NewIdent("sendResponse"),
+		Recv: &dst.FieldList{List: []*dst.Field{
+			{Type: &dst.StarExpr{X: dst.NewIdent("Server")}},
+		}},
+		Type: &dst.FuncType{
+			Params: &dst.FieldList{List: []*dst.Field{}},
+			Results: &dst.FieldList{List: []*dst.Field{
+				{Type: dst.NewIdent("error")},
+			}},
+		},
+	}
+
+	matcher := &instrument.EnhanceMatcher{
+		Type:     instrument.EnhanceTypeMethod,
+		Name:     "sendResponse",
+		Receiver: "*Server",
+		MethodFilters: []instrument.MethodFilterOption{
+			instrument.WithResultType(0, "error"),
+		},
+	}
+
+	assert.True(t, inst.validateMethodInsMatch(matcher, sendResponseDecl, nil))
+}
+
+func TestInstrument_validateMethodInsMatch_ReceiverMismatch(t *testing.T) {
+	inst := &Instrument{}
+
+	methodDecl := &dst.FuncDecl{
+		Name: dst.NewIdent("handleStream"),
+		Recv: &dst.FieldList{List: []*dst.Field{
+			{Type: &dst.StarExpr{X: dst.NewIdent("ClientConn")}},
+		}},
+		Type: &dst.FuncType{
+			Params: &dst.FieldList{List: []*dst.Field{
+				{Type: &dst.SelectorExpr{X: dst.NewIdent("transport"), Sel: dst.NewIdent("ServerTransport")}},
+				{Type: &dst.StarExpr{X: &dst.SelectorExpr{X: dst.NewIdent("transport"), Sel: dst.NewIdent("Stream")}}},
+			}},
+		},
+	}
+
+	matcher := &instrument.EnhanceMatcher{
+		Type:     instrument.EnhanceTypeMethod,
+		Name:     "handleStream",
+		Receiver: "*Server",
+		MethodFilters: []instrument.MethodFilterOption{
+			instrument.WithArgType(0, "transport.ServerTransport"),
+			instrument.WithArgType(1, "*transport.Stream"),
+		},
+	}
+
+	assert.False(t, inst.validateMethodInsMatch(matcher, methodDecl, nil))
 }

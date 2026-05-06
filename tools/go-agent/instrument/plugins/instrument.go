@@ -540,7 +540,9 @@ func (i *Instrument) validateMethodInsMatch(matcher *instrument.EnhanceMatcher, 
 			return false
 		}
 		var name = tools.GenerateTypeNameByExp(node.Recv.List[0].Type)
-		return name == matcher.Receiver
+		if name != matcher.Receiver {
+			return false
+		}
 	}
 	for _, filter := range matcher.MethodFilters {
 		if !filter(node, allFiles) {
