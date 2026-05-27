@@ -12,13 +12,16 @@ Release Notes.
 * Add mutex to fix some data race. 
 * Replace external `goapi` dependency with in-repo generated protocols. 
 * Support pprof profiling. 
+
 #### Plugins
 
 #### Documentation
+
 #### Bug Fixes
 
 * Fix plugin interceptors bypassed on Windows.
 * Fix wrong tracing context switch when trace ignore plugin activated.
+* Fix data race when sending trace data to reporter.
 
 #### Issues and PR
 - All issues are [here](https://github.com/apache/skywalking/milestone/238?closed=1)

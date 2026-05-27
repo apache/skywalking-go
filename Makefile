@@ -89,6 +89,24 @@ test: ## Run E2E scenario tests
 		fi; \
 	done
 
+.PHONY: test-race
+test-race: ## Run data-race regression tests (TestRace*) under the race detector
+	@$(LOG_TARGET)
+	@for dir in $$(find . -name go.mod -exec dirname {} \; ); do \
+  		if [[ $$dir == "./test/"* ]]; then \
+			continue; \
+		fi; \
+		cd $$dir; \
+		echo "Race testing $$dir"; \
+		go test -race -run '^TestRace' ./...; \
+		test_status=$$?; \
+		cd ${REPODIR}; \
+		if [ $$test_status -ne 0 ]; then \
+			echo "Error occurred during race test, exiting..."; \
+			exit $$test_status; \
+		fi; \
+	done
+
 .PHONY: lint
 lint: linter ## Run golangci-lint linter
 	@$(LOG_TARGET)
