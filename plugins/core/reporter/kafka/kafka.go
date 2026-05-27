@@ -148,7 +148,7 @@ func (r *kafkaReporter) initSendPipeline() {
 func (r *kafkaReporter) marshalWithRecover(marshal func() ([]byte, error)) (payload []byte, recovered bool, err error) {
 	defer func() {
 		if rec := recover(); rec != nil {
-			r.logger.Errorf("kafkaReporter recovered from panic while marshalling, skip current message: %v", rec)
+			r.logger.Errorf("kafkaReporter recovered from panic while marshaling, skip current message: %v", rec)
 			recovered = true
 		}
 	}()
