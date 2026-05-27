@@ -39,7 +39,7 @@ jobs:
         with:
           submodules: true
       - name: Log in to the Container registry
-        uses: docker/login-action@v1.10.0
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
         with:
           registry: ${{ env.HUB }}
           username: ${{ github.actor }}
