@@ -182,6 +182,27 @@ func (r *gRPCReporter) closeGRPCConn() {
 	}
 }
 
+// sendWithRecover invokes send and recovers from a panic raised while encoding or
+// transmitting a single message, so that one corrupted payload cannot tear down the
+// whole send pipeline. On a recovered panic it logs via the existing logger and
+// returns recovered=true, telling the caller to skip the current message and keep
+// streaming the rest.
+//
+// Such a panic originates in protobuf size/marshal computation (the #13885 crash),
+// which runs before any bytes are written to the stream, so the stream stays valid
+// and may be reused for the next message. Should a panic ever leave the stream
+// inconsistent, the following send returns an error and the caller reconnects.
+func (r *gRPCReporter) sendWithRecover(send func() error) (recovered bool, err error) {
+	defer func() {
+		if rec := recover(); rec != nil {
+			r.logger.Errorf("gRPCReporter recovered from panic while sending, skip current message: %v", rec)
+			recovered = true
+		}
+	}()
+	err = send()
+	return recovered, err
+}
+
 // nolint
 func (r *gRPCReporter) initSendPipeline() {
 	if r.traceClient == nil {
@@ -210,9 +231,12 @@ func (r *gRPCReporter) initSendPipeline() {
 				continue StreamLoop
 			}
 			for s := range r.tracingSendCh {
-				err = stream.Send(s)
-				if err != nil {
-					r.logger.Errorf("send segment error %v", err)
+				recovered, sendErr := r.sendWithRecover(func() error { return stream.Send(s) })
+				if recovered {
+					continue
+				}
+				if sendErr != nil {
+					r.logger.Errorf("send segment error %v", sendErr)
 					r.closeTracingStream(stream)
 					continue StreamLoop
 				}
@@ -245,11 +269,14 @@ func (r *gRPCReporter) initSendPipeline() {
 				continue StreamLoop
 			}
 			for s := range r.metricsSendCh {
-				err = stream.Send(&agentv3.MeterDataCollection{
-					MeterData: s,
+				recovered, sendErr := r.sendWithRecover(func() error {
+					return stream.Send(&agentv3.MeterDataCollection{MeterData: s})
 				})
-				if err != nil {
-					r.logger.Errorf("send metrics error %v", err)
+				if recovered {
+					continue
+				}
+				if sendErr != nil {
+					r.logger.Errorf("send metrics error %v", sendErr)
 					r.closeMetricsStream(stream)
 					continue StreamLoop
 				}
@@ -281,9 +308,12 @@ func (r *gRPCReporter) initSendPipeline() {
 				continue StreamLoop
 			}
 			for s := range r.logSendCh {
-				err = stream.Send(s)
-				if err != nil {
-					r.logger.Errorf("send log error %v", err)
+				recovered, sendErr := r.sendWithRecover(func() error { return stream.Send(s) })
+				if recovered {
+					continue
+				}
+				if sendErr != nil {
+					r.logger.Errorf("send log error %v", sendErr)
 					r.closeLogStream(stream)
 					continue StreamLoop
 				}
@@ -325,9 +355,12 @@ func (r *gRPCReporter) initSendPipeline() {
 				}
 				r.logger.Infof("Sending profile task: TaskID='%s', PayloadSize=%d, IsLast=%v",
 					task.TaskID, len(task.Payload), task.IsLast)
-				err = stream.Send(profileData)
-				if err != nil {
-					r.logger.Errorf("send profile data error %v", err)
+				recovered, sendErr := r.sendWithRecover(func() error { return stream.Send(profileData) })
+				if recovered {
+					continue
+				}
+				if sendErr != nil {
+					r.logger.Errorf("send profile data error %v", sendErr)
 					r.closeProfileStream(stream)
 					continue StreamLoop
 				}

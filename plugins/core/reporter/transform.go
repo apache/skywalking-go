@@ -20,6 +20,7 @@ package reporter
 import (
 	"time"
 
+	commonv3 "github.com/apache/skywalking-go/protocols/collect/common/v3"
 	agentv3 "github.com/apache/skywalking-go/protocols/collect/language/agent/v3"
 )
 
@@ -60,8 +61,8 @@ func (r *Transform) TransformSegmentObject(spans []ReportedSpan) *agentv3.Segmen
 			SpanLayer:     s.SpanLayer(),
 			ComponentId:   s.ComponentID(),
 			IsError:       s.IsError(),
-			Tags:          s.Tags(),
-			Logs:          s.Logs(),
+			Tags:          copyKeyStringValuePairs(s.Tags()),
+			Logs:          copyLogs(s.Logs()),
 		}
 		srr := make([]*agentv3.SegmentReference, 0)
 		if i == (spanSize-1) && spanCtx.GetParentSpanID() > -1 {
@@ -91,6 +92,42 @@ func (r *Transform) TransformSegmentObject(spans []ReportedSpan) *agentv3.Segmen
 		segmentObject.Spans[i].Refs = srr
 	}
 	return segmentObject
+}
+
+// copyLogs returns a deep copy of the span logs for the same reason as
+// copyKeyStringValuePairs.
+func copyLogs(logs []*agentv3.Log) []*agentv3.Log {
+	if len(logs) == 0 {
+		return nil
+	}
+	cp := make([]*agentv3.Log, 0, len(logs))
+	for _, log := range logs {
+		if log == nil {
+			continue
+		}
+		cp = append(cp, &agentv3.Log{Time: log.Time, Data: copyKeyStringValuePairs(log.Data)})
+	}
+	return cp
+}
+
+// copyKeyStringValuePairs returns a deep copy of a key/value pair slice (span tags,
+// or a log's data) so that the reported SegmentObject never shares mutable backing
+// storage with the live span. Without this copy the reporter marshals the slice in a
+// different goroutine while the span may still be mutated (e.g. when a span is
+// mistakenly shared across goroutines), corrupting the protobuf message during encode
+// (apache/skywalking#13885). Nil elements are skipped and an empty input returns nil.
+func copyKeyStringValuePairs(pairs []*commonv3.KeyStringValuePair) []*commonv3.KeyStringValuePair {
+	if len(pairs) == 0 {
+		return nil
+	}
+	cp := make([]*commonv3.KeyStringValuePair, 0, len(pairs))
+	for _, p := range pairs {
+		if p == nil {
+			continue
+		}
+		cp = append(cp, &commonv3.KeyStringValuePair{Key: p.Key, Value: p.Value})
+	}
+	return cp
 }
 
 func (r *Transform) TransformMeterData(metrics []ReportedMeter) []*agentv3.MeterData {

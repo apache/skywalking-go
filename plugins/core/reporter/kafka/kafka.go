@@ -141,11 +141,29 @@ func (r *kafkaReporter) initSendPipeline() {
 	go r.logSendLoop()
 }
 
+// marshalWithRecover invokes marshal and recovers from a panic raised while encoding
+// a single message, so that one corrupted payload cannot tear down the whole send
+// loop. On a recovered panic it logs via the existing logger and returns
+// recovered=true, telling the caller to skip the current message and keep going.
+func (r *kafkaReporter) marshalWithRecover(marshal func() ([]byte, error)) (payload []byte, recovered bool, err error) {
+	defer func() {
+		if rec := recover(); rec != nil {
+			r.logger.Errorf("kafkaReporter recovered from panic while marshalling, skip current message: %v", rec)
+			recovered = true
+		}
+	}()
+	payload, err = marshal()
+	return payload, recovered, err
+}
+
 func (r *kafkaReporter) tracingSendLoop() {
 	consecutiveErrors := 0
 	logFrequency := 30
 	for s := range r.tracingSendCh {
-		payload, err := proto.Marshal(s)
+		payload, recovered, err := r.marshalWithRecover(func() ([]byte, error) { return proto.Marshal(s) })
+		if recovered {
+			continue
+		}
 		if err != nil {
 			r.logger.Errorf("marshal segment error %v", err)
 			continue
@@ -172,9 +190,12 @@ func (r *kafkaReporter) metricsSendLoop() {
 	consecutiveErrors := 0
 	logFrequency := 30
 	for s := range r.metricsSendCh {
-		payload, err := proto.Marshal(&agentv3.MeterDataCollection{
-			MeterData: s,
+		payload, recovered, err := r.marshalWithRecover(func() ([]byte, error) {
+			return proto.Marshal(&agentv3.MeterDataCollection{MeterData: s})
 		})
+		if recovered {
+			continue
+		}
 		if err != nil {
 			r.logger.Errorf("marshal metrics error %v", err)
 			continue
@@ -201,7 +222,10 @@ func (r *kafkaReporter) logSendLoop() {
 	consecutiveErrors := 0
 	logFrequency := 30
 	for s := range r.logSendCh {
-		payload, err := proto.Marshal(s)
+		payload, recovered, err := r.marshalWithRecover(func() ([]byte, error) { return proto.Marshal(s) })
+		if recovered {
+			continue
+		}
 		if err != nil {
 			r.logger.Errorf("marshal log error %v", err)
 			continue
