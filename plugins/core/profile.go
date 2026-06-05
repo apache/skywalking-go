@@ -18,6 +18,7 @@
 package core
 
 import (
+	"runtime/debug"
 	"runtime/pprof"
 	"strconv"
 	"sync"
@@ -67,43 +68,56 @@ func (m *ProfileManager) initReportChannel() {
 	// Original channel for receiving raw data chunks sent by the Writer
 	rawCh := make(chan profileRawData, maxSendQueueSize)
 	m.rawCh = rawCh
-	var d []byte
 	// Start a goroutine to supplement each data chunk with business information
 	go func() {
 		for rawResult := range rawCh {
-			d = append(d, rawResult.data...)
-			m.mu.Lock()
-			// Get business information from currentTask
-			if m.currentTask == nil {
-				m.Log.Info("no task")
-				m.mu.Unlock()
-				continue // Task has ended, ignore
-			}
-			task := m.currentTask
-			m.mu.Unlock()
+			// The recover wraps a single chunk: this goroutine has no other
+			// protection and a panic here would kill the whole process. The
+			// locked sections below use deferred unlocks so a panic can never
+			// leak a held mutex into the next iteration.
+			func() {
+				defer func() {
+					if err := recover(); err != nil {
+						m.Log.Errorf("profile report panic: %v, stack: %s", err, debug.Stack())
+					}
+				}()
+				// Get business information from currentTask
+				var task *currentTask
+				func() {
+					m.mu.Lock()
+					defer m.mu.Unlock()
+					task = m.currentTask
+				}()
+				if task == nil {
+					m.Log.Info("no task")
+					return // Task has ended, ignore
+				}
 
-			if rawResult.isLast {
-				m.FinalReportResults <- reporter.ProfileResult{
-					TaskID:  task.taskID,
-					Payload: rawResult.data,
-					IsLast:  rawResult.isLast,
-				}
-				m.mu.Lock()
-				if m.TraceProfileTask == nil {
-					m.Log.Warn("no TraceProfileTask before finish profile")
+				if rawResult.isLast {
+					m.FinalReportResults <- reporter.ProfileResult{
+						TaskID:  task.taskID,
+						Payload: rawResult.data,
+						IsLast:  rawResult.isLast,
+					}
+					func() {
+						m.mu.Lock()
+						defer m.mu.Unlock()
+						if m.TraceProfileTask == nil {
+							m.Log.Warn("no TraceProfileTask before finish profile")
+						} else {
+							m.TraceProfileTask.Status = reporter.Finished
+						}
+						m.currentTask = nil
+						m.profileEvents.BaseEventStatus[CurTaskExist] = false
+					}()
 				} else {
-					m.TraceProfileTask.Status = reporter.Finished
+					m.FinalReportResults <- reporter.ProfileResult{
+						TaskID:  task.taskID,
+						Payload: rawResult.data,
+						IsLast:  rawResult.isLast,
+					}
 				}
-				m.currentTask = nil
-				m.profileEvents.BaseEventStatus[CurTaskExist] = false
-				m.mu.Unlock()
-			} else {
-				m.FinalReportResults <- reporter.ProfileResult{
-					TaskID:  task.taskID,
-					Payload: rawResult.data,
-					IsLast:  rawResult.isLast,
-				}
-			}
+			}()
 		}
 	}()
 }

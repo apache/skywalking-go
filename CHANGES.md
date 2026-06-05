@@ -22,6 +22,8 @@ Release Notes.
 * Fix plugin interceptors bypassed on Windows.
 * Fix wrong tracing context switch when trace ignore plugin activated.
 * Fix data race when sending trace data to reporter.
+* Fix multiple data races in span lifecycle, correlation context and segment collection.
+* Add recover protection for the metrics, profile and segment-transform goroutines.
 
 #### Issues and PR
 - All issues are [here](https://github.com/apache/skywalking/milestone/238?closed=1)

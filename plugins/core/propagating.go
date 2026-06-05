@@ -50,7 +50,11 @@ type SpanContext struct {
 	ParentSpanID          int32             `json:"parent_span_id"`
 	Sample                int8              `json:"sample"`
 	Valid                 bool              `json:"valid"`
-	CorrelationContext    map[string]string `json:"correlation_context"`
+	// CorrelationContext here is intentionally a plain map (NOT the
+	// synchronized core.CorrelationContext): SpanContext is the short-lived,
+	// single-goroutine wire-format struct holding a decoded inbound header or
+	// a Snapshot() copy for outbound encoding.
+	CorrelationContext map[string]string `json:"correlation_context"`
 }
 
 func (s *SpanContext) GetTraceID() string {

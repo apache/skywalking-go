@@ -46,7 +46,11 @@ func init() {
 func ResetTracingContext() {
 	SetGLS(nil)
 	Tracing = &Tracer{initFlag: 1, Sampler: NewConstSampler(true), Reporter: &StoreReporter{},
-		ServiceEntity: NewEntity("test", "test-instance"), meterMap: &sync.Map{}}
+		ServiceEntity: NewEntity("test", "test-instance"), meterMap: &sync.Map{},
+		// production Boot always sets the correlation config; the tests must
+		// too, otherwise correlation APIs nil-dereference (found by the
+		// hostile-workload e2e). Values mirror the agent defaults.
+		correlation: &CorrelationConfig{MaxKeyCount: 3, MaxValueSize: 128}}
 	// Initialize ProfileManager to avoid nil pointer dereference
 	Tracing.ProfileManager = NewProfileManager(nil)
 	Tracing.Reporter.AddProfileTaskManager(Tracing.ProfileManager)
@@ -65,10 +69,18 @@ func SetAsNewGoroutine() {
 }
 
 func GetReportedSpans() []reporter.ReportedSpan {
-	return Tracing.Reporter.(*StoreReporter).Spans
+	sr := Tracing.Reporter.(*StoreReporter)
+	sr.mu.Lock()
+	defer sr.mu.Unlock()
+	return append([]reporter.ReportedSpan(nil), sr.Spans...)
 }
 
+// StoreReporter is the in-memory test reporter. SendTracing is invoked from
+// the per-segment collector goroutines while tests read the results, so the
+// storage must be synchronized (this used to be the test-harness data race
+// that kept the full suite from running under -race).
 type StoreReporter struct {
+	mu      sync.Mutex
 	Spans   []reporter.ReportedSpan
 	Metrics []reporter.ReportedMeter
 	Logs    []*logv3.LogData
@@ -82,14 +94,20 @@ func (r *StoreReporter) Boot(entity *reporter.Entity, cdsWatchers []reporter.Age
 }
 
 func (r *StoreReporter) SendTracing(spans []reporter.ReportedSpan) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	r.Spans = append(r.Spans, spans...)
 }
 
 func (r *StoreReporter) SendMetrics(metrics []reporter.ReportedMeter) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	r.Metrics = append(r.Metrics, metrics...)
 }
 
 func (r *StoreReporter) SendLog(log *logv3.LogData) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	r.Logs = append(r.Logs, log)
 }
 

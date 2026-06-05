@@ -89,7 +89,12 @@ func NewTracingContext() *TracingContext {
 }
 
 func (r *RuntimeContext) clone() *RuntimeContext {
-	newData := make(map[string]interface{})
+	if len(r.data) == 0 {
+		// clone runs on every context capture AND continue; skipping the empty
+		// map allocation matters because most requests never set runtime values
+		return &RuntimeContext{}
+	}
+	newData := make(map[string]interface{}, len(r.data))
 	for k, v := range r.data {
 		newData[k] = v
 	}
@@ -104,8 +109,11 @@ func (r *RuntimeContext) Get(key string) interface{} {
 
 func (r *RuntimeContext) Set(key string, value interface{}) {
 	if value == nil {
-		delete(r.data, key)
+		delete(r.data, key) // no-op on a nil map
 		return
+	}
+	if r.data == nil { // lazily allocated, see clone()
+		r.data = make(map[string]interface{})
 	}
 	r.data[key] = value
 }

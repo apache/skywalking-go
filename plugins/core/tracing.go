@@ -147,7 +147,10 @@ func (t *Tracer) CreateExitSpan(operationName, peer string, injector interface{}
 	spanContext.ParentServiceInstance = t.ServiceEntity.ServiceInstanceName
 	spanContext.ParentEndpoint = firstSpan.GetOperationName()
 	spanContext.AddressUsedAtClient = peer
-	spanContext.CorrelationContext = reportedSpan.GetSegmentContext().CorrelationContext
+	// Snapshot, not the live map: the propagation header encoding iterates this
+	// map while other goroutines of the segment may concurrently set correlation
+	// values, which would be a fatal concurrent map iteration and map write.
+	spanContext.CorrelationContext = reportedSpan.GetSegmentContext().CorrelationContext.Snapshot()
 
 	err = spanContext.Encode(injector.(tracing.InjectorWrapper).Fun())
 	if err != nil {
@@ -207,7 +210,11 @@ func (t *Tracer) ContinueContext(snapshot interface{}) {
 		ctx.activeSpanLock.Lock()
 		defer ctx.activeSpanLock.Unlock()
 		ctx.activeSpan = snap.activeSpan
-		ctx.Runtime = snap.runtime
+		// Clone on continue as well (capture already clones): the same snapshot
+		// may be continued by multiple goroutines (e.g. the send and receive
+		// goroutines of one gRPC stream), and sharing one RuntimeContext map
+		// between them would be a fatal concurrent map read/write.
+		ctx.Runtime = snap.runtime.clone()
 	}
 }
 
@@ -220,11 +227,10 @@ func (t *Tracer) GetCorrelationContextValue(key string) string {
 	if span == nil {
 		return ""
 	}
-	switch reportedSpan := span.(type) {
-	case *SegmentSpanImpl:
-		return reportedSpan.Context().GetCorrelationContextValue(key)
-	case *RootSegmentSpan:
-		return reportedSpan.Context().GetCorrelationContextValue(key)
+	switch span.(type) {
+	case *SegmentSpanImpl, *RootSegmentSpan:
+		segCtx := span.(SegmentSpan).GetSegmentContext()
+		return segCtx.GetCorrelationContextValue(key)
 	default:
 		return ""
 	}
@@ -235,30 +241,30 @@ func (t *Tracer) SetCorrelationContextValue(key, value string) {
 	if span == nil {
 		return
 	}
-	switch reportedSpan := span.(type) {
-	case *SegmentSpanImpl:
+	switch span.(type) {
+	case *SegmentSpanImpl, *RootSegmentSpan:
 		if len(value) > t.correlation.MaxValueSize {
 			return
 		}
-		if len(reportedSpan.GetSegmentContext().CorrelationContext) >= t.correlation.MaxKeyCount {
+		segCtx := span.(SegmentSpan).GetSegmentContext()
+		// Len/Set are two separate lock acquisitions, so concurrent writers can
+		// exceed MaxKeyCount by a few entries. The limit is a soft bound (same
+		// behavior as the pre-synchronization bare map) - keeping the two calls
+		// separate avoids a combined check-and-set API for a non-issue.
+		if segCtx.CorrelationContext.Len() >= t.correlation.MaxKeyCount {
 			return
 		}
-		reportedSpan.Context().SetCorrelationContextValue(key, value)
-	case *RootSegmentSpan:
-		if len(value) > t.correlation.MaxValueSize {
-			return
-		}
-		if len(reportedSpan.GetSegmentContext().CorrelationContext) >= t.correlation.MaxKeyCount {
-			return
-		}
-		reportedSpan.Context().SetCorrelationContextValue(key, value)
+		segCtx.SetCorrelationContextValue(key, value)
 	default:
 	}
 }
 
 type ContextSnapshot struct {
 	activeSpan TracingSpan
-	runtime    *RuntimeContext
+	// runtime is cloned at capture time and treated as IMMUTABLE afterwards:
+	// ContinueContext may read it concurrently from several goroutines (it
+	// clones again per continue), so never mutate it through the snapshot.
+	runtime *RuntimeContext
 }
 
 func (s *ContextSnapshot) IsValid() bool {
