@@ -19,6 +19,8 @@ package core
 
 import (
 	"fmt"
+	"runtime/debug"
+	"sync"
 	"sync/atomic"
 
 	"github.com/apache/skywalking-go/plugins/core/reporter"
@@ -50,16 +52,20 @@ func NewSegmentSpan(ctx *TracingContext, defaultSpan *DefaultSpan, parentSpan Se
 
 // SegmentContext is the context in a segment
 type SegmentContext struct {
-	TraceID            string
-	SegmentID          string
-	SpanID             int32
-	ParentSpanID       int32
-	ParentSegmentID    string
-	collect            chan<- reporter.ReportedSpan
+	TraceID         string
+	SegmentID       string
+	SpanID          int32
+	ParentSpanID    int32
+	ParentSegmentID string
+	collect         chan<- reporter.ReportedSpan
+	// collectorDone is closed when the segment collector goroutine exits. Late
+	// senders select on it instead of risking a send on a closed data channel
+	// (receiving from a closed channel is always safe, sending never is).
+	collectorDone      chan struct{}
 	refNum             *int32
 	spanIDGenerator    *int32
 	FirstSpan          TracingSpan `json:"-"`
-	CorrelationContext map[string]string
+	CorrelationContext *CorrelationContext
 }
 
 func (c *SegmentContext) GetTraceID() string {
@@ -83,14 +89,11 @@ func (c *SegmentContext) GetParentSegmentID() string {
 }
 
 func (c *SegmentContext) GetCorrelationContextValue(key string) string {
-	return c.CorrelationContext[key]
+	return c.CorrelationContext.Get(key)
 }
 
 func (c *SegmentContext) SetCorrelationContextValue(key, value string) {
-	c.CorrelationContext[key] = value
-	if value == "" {
-		delete(c.CorrelationContext, key)
-	}
+	c.CorrelationContext.Set(key, value)
 }
 
 type SegmentSpan interface {
@@ -108,11 +111,7 @@ type SegmentSpanImpl struct {
 
 // For TracingSpan
 func (s *SegmentSpanImpl) End() {
-	if !s.IsValid() {
-		return
-	}
-	s.DefaultSpan.End(true)
-	if !s.DefaultSpan.InAsyncMode {
+	if s.DefaultSpan.endSyncAndFreeze() {
 		s.end0()
 	}
 }
@@ -120,19 +119,39 @@ func (s *SegmentSpanImpl) End() {
 func (s *SegmentSpanImpl) AsyncFinish() {
 	s.DefaultSpan.AsyncFinish()
 	s.DefaultSpan.End(false)
-	s.end0()
+	if s.DefaultSpan.endAndFreeze() {
+		s.end0()
+	}
 }
 
 func (s *SegmentSpanImpl) end0() {
 	go func() {
-		s.SegmentContext.collect <- s
+		select {
+		case s.SegmentContext.collect <- s:
+		case <-s.SegmentContext.collectorDone:
+			// The collector already exited (unreachable once the freeze
+			// functions - endSyncAndFreeze/endAndFreeze - guarantee a single
+			// end0 per span, kept as defense in depth): drop the span instead
+			// of panicking on a closed channel send or blocking forever.
+		}
 	}()
 }
+
 func (s *SegmentSpanImpl) GetDefaultSpan() *DefaultSpan {
 	return &s.DefaultSpan
 }
 
 // For Reported TracingSpan
+//
+// The ReportedSpan accessors below are intentionally NOT locked. Their safety
+// rests on three guarantees that must be preserved together (re-review all of
+// them before changing any one):
+//  1. every mutator holds opLock and drops the write once ended==true;
+//  2. endAndFreeze sets ended=true under opLock, so the span data can no
+//     longer change after it returns;
+//  3. the span reaches the collector goroutine through the end0 channel send,
+//     whose happens-before edge publishes all pre-freeze writes to the reader.
+// Therefore reporter.Transform always observes immutable data here.
 
 func (s *SegmentSpanImpl) Context() reporter.SegmentContext {
 	return &s.SegmentContext
@@ -207,13 +226,13 @@ func (s *SegmentSpanImpl) createSegmentContext(ctx *TracingContext, parent Segme
 		s.SegmentContext = SegmentContext{}
 		if len(s.DefaultSpan.Refs) > 0 {
 			s.TraceID = s.DefaultSpan.Refs[0].GetTraceID()
-			s.CorrelationContext = s.DefaultSpan.Refs[0].(*SpanContext).CorrelationContext
+			s.CorrelationContext = newCorrelationContextFrom(s.DefaultSpan.Refs[0].(*SpanContext).CorrelationContext)
 		} else {
 			s.TraceID, err = GenerateGlobalID(ctx)
 			if err != nil {
 				return err
 			}
-			s.CorrelationContext = make(map[string]string)
+			s.CorrelationContext = newCorrelationContext()
 		}
 	} else {
 		s.SegmentContext = parent.GetSegmentContext()
@@ -226,7 +245,7 @@ func (s *SegmentSpanImpl) createSegmentContext(ctx *TracingContext, parent Segme
 		s.SegmentContext.FirstSpan = s
 	}
 	if s.CorrelationContext == nil {
-		s.CorrelationContext = make(map[string]string)
+		s.CorrelationContext = newCorrelationContext()
 	}
 	return
 }
@@ -243,11 +262,7 @@ type RootSegmentSpan struct {
 }
 
 func (rs *RootSegmentSpan) End() {
-	if !rs.IsValid() {
-		return
-	}
-	rs.DefaultSpan.End(true)
-	if !rs.InAsyncMode {
+	if rs.DefaultSpan.endSyncAndFreeze() {
 		rs.end0()
 	}
 }
@@ -255,15 +270,19 @@ func (rs *RootSegmentSpan) End() {
 func (rs *RootSegmentSpan) AsyncFinish() {
 	rs.DefaultSpan.AsyncFinish()
 	rs.DefaultSpan.End(false)
-	rs.end0()
+	if rs.DefaultSpan.endAndFreeze() {
+		rs.end0()
+	}
 }
 
 func (rs *RootSegmentSpan) end0() {
-	defer func() {
-		_ = recover()
-	}()
-	if rs != nil && rs.doneCh != nil && rs.SegmentContext.refNum != nil {
-		rs.doneCh <- atomic.SwapInt32(rs.SegmentContext.refNum, -1)
+	if rs == nil || rs.doneCh == nil || rs.SegmentContext.refNum == nil {
+		return
+	}
+	select {
+	case rs.doneCh <- atomic.SwapInt32(rs.SegmentContext.refNum, -1):
+	case <-rs.SegmentContext.collectorDone:
+		// see SegmentSpanImpl.end0
 	}
 }
 
@@ -363,10 +382,34 @@ func newSegmentRoot(segmentSpan *SegmentSpanImpl) *RootSegmentSpan {
 	s.notify = ch
 	s.segment = make([]reporter.ReportedSpan, 0, 10)
 	s.doneCh = make(chan int32)
+	s.collectorDone = make(chan struct{})
 	go func() {
 		total := -1
-		defer close(ch)
-		defer close(s.doneCh)
+		// Closing collectorDone (instead of the data channels) lets late
+		// senders exit safely through their select; the unclosed channels are
+		// reclaimed by the GC. It is closed right after the collect loop stops
+		// receiving (so a late sender never blocks behind a slow
+		// Reporter.SendTracing) and kept in a defer as well so that even a
+		// panic below cannot leave senders blocked forever. Both call sites
+		// run on this goroutine, so the plain bool needs no synchronization.
+		doneClosed := false
+		closeDone := func() {
+			if !doneClosed {
+				doneClosed = true
+				close(s.collectorDone)
+			}
+		}
+		defer closeDone()
+		defer func() {
+			// Defense in depth: a panic here would kill the process since this
+			// goroutine has no other recover.
+			if err := recover(); err != nil {
+				defer func() { _ = recover() }() // a panicking logger must not re-kill us
+				if tr := s.tracer(); tr != nil && tr.Log != nil {
+					tr.Log.Errorf("segment collector panic: %v, stack: %s", err, debug.Stack())
+				}
+			}
+		}()
 		for {
 			select {
 			case span := <-s.notify:
@@ -378,6 +421,9 @@ func newSegmentRoot(segmentSpan *SegmentSpanImpl) *RootSegmentSpan {
 				break
 			}
 		}
+		// the loop above is the only receiver: unblock late senders before the
+		// (possibly slow) reporter call
+		closeDone()
 		s.tracer().Reporter.SendTracing(append(s.segment, s))
 	}()
 	return s
@@ -396,26 +442,24 @@ func newSnapshotSpan(current TracingSpan) TracingSpan {
 	}
 
 	segCtx := segmentSpan.GetSegmentContext()
-	copiedCorrelation := make(map[string]string)
-	for k, v := range segCtx.CorrelationContext {
-		copiedCorrelation[k] = v
-	}
 	s := &SnapshotSpan{
 		DefaultSpan: DefaultSpan{
 			OperationName: segmentSpan.GetOperationName(),
 			Refs:          nil,
 			tracer:        segmentSpan.tracer(),
 			Peer:          segmentSpan.GetPeer(),
+			opLock:        &sync.Mutex{}, // keep the "opLock is never nil" invariant
 		},
 		SegmentContext: SegmentContext{
 			TraceID:            segCtx.GetTraceID(),
 			SegmentID:          segCtx.SegmentID,
 			SpanID:             segCtx.SpanID,
 			collect:            segCtx.collect,
+			collectorDone:      segCtx.collectorDone,
 			refNum:             segCtx.refNum,
 			spanIDGenerator:    segCtx.spanIDGenerator,
 			FirstSpan:          segCtx.FirstSpan,
-			CorrelationContext: copiedCorrelation,
+			CorrelationContext: segCtx.CorrelationContext.Clone(),
 		},
 	}
 

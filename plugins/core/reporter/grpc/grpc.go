@@ -116,16 +116,19 @@ func (r *gRPCReporter) ConnectionStatus() reporter.ConnectionStatus {
 }
 
 func (r *gRPCReporter) SendTracing(spans []reporter.ReportedSpan) {
-	segmentObject := r.transform.TransformSegmentObject(spans)
-	if segmentObject == nil {
-		return
-	}
+	// The recover must be registered BEFORE the transform call: SendTracing
+	// runs on the segment collector goroutine, so a panic escaping from the
+	// transform (or the channel send below, e.g. on a closed tracingSendCh)
+	// would otherwise kill the whole process.
 	defer func() {
-		// recover the panic caused by close tracingSendCh
 		if err := recover(); err != nil {
 			r.logger.Errorf("reporter segment err %v", err)
 		}
 	}()
+	segmentObject := r.transform.TransformSegmentObject(spans)
+	if segmentObject == nil {
+		return
+	}
 	select {
 	case r.tracingSendCh <- segmentObject:
 	default:

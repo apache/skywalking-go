@@ -45,12 +45,14 @@ func buildReportedSpan() *SegmentSpanImpl {
 			OperationName: "users/SELECT",
 			Peer:          "127.0.0.1:5432",
 			SpanType:      SpanTypeExit,
+			opLock:        &sync.Mutex{},
 		},
 		SegmentContext: SegmentContext{
-			TraceID:      "trace-id",
-			SegmentID:    "segment-id",
-			SpanID:       0,
-			ParentSpanID: -1,
+			TraceID:            "trace-id",
+			SegmentID:          "segment-id",
+			SpanID:             0,
+			ParentSpanID:       -1,
+			CorrelationContext: newCorrelationContext(),
 		},
 	}
 }
@@ -188,4 +190,226 @@ func TestRaceReporterNeverPanicsWhileSpanMutated(t *testing.T) {
 	if atomic.LoadInt32(&panicked) > 0 {
 		t.Fatalf("reporter panicked %d time(s) - the #13885 crash regressed", atomic.LoadInt32(&panicked))
 	}
+}
+
+// wireCollector attaches a working collector harness (collect channel +
+// collectorDone) to the span so End()/AsyncFinish() can run their real end0
+// path inside tests. It returns the channel the span will be delivered on.
+func wireCollector(t *testing.T, span *SegmentSpanImpl) chan reporter.ReportedSpan {
+	ch := make(chan reporter.ReportedSpan, 8)
+	done := make(chan struct{})
+	span.SegmentContext.collect = ch
+	span.SegmentContext.collectorDone = done
+	span.DefaultSpan.EndTime = time.Time{} // not ended yet
+	span.DefaultSpan.ended = false
+	span.DefaultSpan.tracer = Tracing // so11y bookkeeping in End needs a tracer
+	t.Cleanup(func() { close(done) }) // release any straggling end0 goroutine
+	return ch
+}
+
+// TestRaceConcurrentMutators reproduces the "crossed span" misuse (e.g. the gorm
+// plugin handing the same live span to two goroutines through a shared
+// *gorm.DB): several goroutines mutate ONE span concurrently, repeatedly
+// rewriting the same tag key in place - the exact write that used to tear the
+// string header read by the reporter. With the per-span lock this must be
+// race-detector clean; before the fix this test reports races immediately.
+func TestRaceConcurrentMutators(t *testing.T) {
+	span := buildReportedSpan()
+	const workers = 4
+	var stop int32
+	var wg sync.WaitGroup
+	wg.Add(workers)
+	for w := 0; w < workers; w++ {
+		go func(w int) {
+			defer wg.Done()
+			for i := 0; atomic.LoadInt32(&stop) == 0; i++ {
+				span.Tag("db.statement", fmt.Sprintf("select %d from t%d", i, w)) // same-key in-place rewrite
+				span.Tag(fmt.Sprintf("k-%d-%d", w, i%8), "v")
+				span.Log("event", fmt.Sprintf("w%d-%d", w, i))
+				span.SetOperationName(fmt.Sprintf("op-%d-%d", w, i))
+				span.SetPeer("10.0.0.1:3306")
+				span.Error("boom")
+			}
+		}(w)
+	}
+	time.Sleep(200 * time.Millisecond)
+	atomic.StoreInt32(&stop, 1)
+	wg.Wait()
+}
+
+// TestRaceMutateAfterFreezeWhileReporting verifies the lock-free reporting
+// guarantee: once endAndFreeze returns, the reporter may transform and marshal
+// the span without locks even though other goroutines are still calling
+// mutators (their writes are dropped under the lock without touching data).
+func TestRaceMutateAfterFreezeWhileReporting(t *testing.T) {
+	span := buildReportedSpan()
+	for i := 0; i < 16; i++ {
+		span.Tag(fmt.Sprintf("key-%d", i), "init")
+		span.Log("event", fmt.Sprintf("log-%d", i))
+	}
+
+	var stop int32
+	var wg sync.WaitGroup
+	wg.Add(3)
+	for w := 0; w < 3; w++ {
+		go func(w int) {
+			defer wg.Done()
+			for i := 0; atomic.LoadInt32(&stop) == 0; i++ {
+				span.Tag(fmt.Sprintf("key-%d", i%16), fmt.Sprintf("late-%d-%d", w, i))
+				span.Log("late", "v")
+				span.SetOperationName("late-op")
+				span.Error("late")
+			}
+		}(w)
+	}
+
+	time.Sleep(50 * time.Millisecond) // let some pre-freeze writes land (race builds are slow)
+	if !span.endAndFreeze() {
+		t.Fatal("first endAndFreeze must return true")
+	}
+
+	transform := reporter.NewTransform(&reporter.Entity{
+		ServiceName:         "svc",
+		ServiceInstanceName: "inst",
+	})
+	// 50 iterations: the race detector is a binary signal, more iterations add
+	// wall time (~7s -> ~2s under -race) without adding coverage
+	for i := 0; i < 50; i++ {
+		seg := transform.TransformSegmentObject([]reporter.ReportedSpan{span})
+		if seg == nil {
+			t.Fatal("nil segment")
+		}
+		if _, err := proto.Marshal(seg); err != nil {
+			t.Fatalf("marshal segment: %v", err)
+		}
+	}
+
+	atomic.StoreInt32(&stop, 1)
+	wg.Wait()
+}
+
+// TestRaceDoubleEnd races two End() calls on the same span and asserts the
+// segment collector receives the span exactly once (the old IsValid check-then-
+// act allowed duplicated end0 sends, corrupting the segment accounting).
+func TestRaceDoubleEnd(t *testing.T) {
+	ResetTracingContext()
+	defer ResetTracingContext()
+	span := buildReportedSpan()
+	ch := wireCollector(t, span)
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+	for i := 0; i < 2; i++ {
+		go func() {
+			defer wg.Done()
+			span.End()
+		}()
+	}
+	wg.Wait()
+
+	received := 0
+	select {
+	case <-ch:
+		received++
+	case <-time.After(2 * time.Second):
+	}
+	// grace period for a (buggy) duplicated delivery
+	select {
+	case <-ch:
+		received++
+	case <-time.After(200 * time.Millisecond):
+	}
+	if received != 1 {
+		t.Fatalf("expected the span to be collected exactly once, got %d", received)
+	}
+}
+
+// TestRaceAsyncFinishVsMutators covers the async span pattern (gRPC streaming,
+// toolkit async API): one goroutine keeps tagging while another finishes the
+// span asynchronously. Both AsyncFinish/End themselves and the mutators must be
+// fully synchronized; before the fix AsyncFinish/End were unlocked even in
+// async mode.
+func TestRaceAsyncFinishVsMutators(t *testing.T) {
+	ResetTracingContext()
+	defer ResetTracingContext()
+	span := buildReportedSpan()
+	ch := wireCollector(t, span)
+	span.PrepareAsync()
+
+	var stop int32
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for i := 0; atomic.LoadInt32(&stop) == 0; i++ {
+			span.Tag("async-key", fmt.Sprintf("v-%d", i))
+			span.Log("async", "v")
+		}
+	}()
+
+	span.End() // async mode: does not finish the span
+
+	finished := make(chan struct{})
+	go func() {
+		defer close(finished)
+		span.AsyncFinish()
+	}()
+	<-finished
+
+	atomic.StoreInt32(&stop, 1)
+	wg.Wait()
+
+	select {
+	case <-ch:
+	case <-time.After(time.Second):
+		t.Fatal("async finished span was never collected")
+	}
+}
+
+// TestRaceHostileWorkload runs the full end-to-end hostile workload (see
+// span_hostile_workload_test.go) in-process under the race detector: every
+// misuse pattern from the #13885 audit against the real pipeline must be free
+// of data races. The no-panic/no-throw property of the same workload is
+// asserted by TestE2ESpanCrashSafety in a child process.
+func TestRaceHostileWorkload(t *testing.T) {
+	segments, marshals := runHostileSpanWorkload(1500 * time.Millisecond)
+	if segments == 0 || marshals == 0 {
+		t.Fatalf("hostile workload processed no data (segments=%d marshals=%d)", segments, marshals)
+	}
+}
+
+// TestRaceCorrelationSetVsSnapshot covers the correlation storage: concurrent
+// writers and snapshot/encode readers used to race on a bare map, which is an
+// unrecoverable "concurrent map iteration and map write" fatal error in
+// production.
+func TestRaceCorrelationSetVsSnapshot(t *testing.T) {
+	c := newCorrelationContext()
+	var stop int32
+	var wg sync.WaitGroup
+	wg.Add(4)
+	for w := 0; w < 2; w++ {
+		go func(w int) {
+			defer wg.Done()
+			for i := 0; atomic.LoadInt32(&stop) == 0; i++ {
+				c.Set(fmt.Sprintf("k%d", i%4), fmt.Sprintf("v-%d-%d", w, i))
+				if i%8 == 0 {
+					c.Set(fmt.Sprintf("k%d", i%4), "") // delete path
+				}
+			}
+		}(w)
+	}
+	for r := 0; r < 2; r++ {
+		go func() {
+			defer wg.Done()
+			for atomic.LoadInt32(&stop) == 0 {
+				_ = c.Snapshot()
+				_ = c.Get("k1")
+				_ = c.Len()
+				_ = c.Clone()
+			}
+		}()
+	}
+	time.Sleep(200 * time.Millisecond)
+	atomic.StoreInt32(&stop, 1)
+	wg.Wait()
 }

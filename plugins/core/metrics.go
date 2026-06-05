@@ -19,6 +19,7 @@ package core
 
 import (
 	"math"
+	"runtime/debug"
 	"sort"
 	"strings"
 	"sync/atomic"
@@ -40,9 +41,21 @@ func (t *Tracer) initMetricsCollect(meterCollectSecond int) {
 		for {
 			time.Sleep(collectDuration)
 
-			t.reachNotInitMetrics()
+			// The recover wraps a single iteration: this goroutine has no other
+			// protection and the collect path executes user-registered meter
+			// callbacks, whose panic would otherwise kill the whole process.
+			func() {
+				defer func() {
+					if err := recover(); err != nil {
+						if t.Log != nil {
+							t.Log.Errorf("metrics collect panic: %v, stack: %s", err, debug.Stack())
+						}
+					}
+				}()
+				t.reachNotInitMetrics()
 
-			t.sendMetrics()
+				t.sendMetrics()
+			}()
 		}
 	}()
 }
