@@ -47,6 +47,11 @@ func newCorrelationContext() *CorrelationContext {
 // newCorrelationContextFrom builds a store pre-filled with a copy of m
 // (typically the correlation decoded from the inbound propagation headers).
 func newCorrelationContextFrom(m map[string]string) *CorrelationContext {
+	if len(m) == 0 {
+		// keep the lazy inner-map allocation (see newCorrelationContext):
+		// most inbound requests carry no correlation values
+		return &CorrelationContext{}
+	}
 	c := &CorrelationContext{data: make(map[string]string, len(m))}
 	for k, v := range m {
 		c.data[k] = v

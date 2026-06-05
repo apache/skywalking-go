@@ -64,14 +64,10 @@ type DefaultSpan struct {
 	// span leaked across goroutines would otherwise flood the log with one
 	// line per dropped write.
 	droppedLogged bool
-	// reuseCount tracks the extra logical owners of this span: CreateEntrySpan/
-	// CreateExitSpan hand the existing active span back to a nested plugin when
-	// the span types match (the reuse rule in tracing.go), and every owner
-	// calls End exactly once. Each reuse increments the counter and each
-	// non-final End only decrements it (see endSyncAndFreeze), so the span is
-	// frozen and reported by the LAST End - otherwise the inner owner's End
-	// (e.g. the sql driver below gorm) would freeze the span while the outer
-	// owner still has tags to write. Guarded by opLock.
+	// reuseCount counts the extra logical owners that the span reuse rule in
+	// CreateEntrySpan/CreateExitSpan hands this span to. Every owner calls End
+	// exactly once and only the LAST End freezes and reports the span (see
+	// enterReuse and endSyncAndFreeze). Guarded by opLock.
 	reuseCount int
 }
 

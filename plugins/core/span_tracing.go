@@ -387,9 +387,19 @@ func newSegmentRoot(segmentSpan *SegmentSpanImpl) *RootSegmentSpan {
 		total := -1
 		// Closing collectorDone (instead of the data channels) lets late
 		// senders exit safely through their select; the unclosed channels are
-		// reclaimed by the GC. It must stay in a defer so that even a panic
-		// below cannot leave senders blocked forever.
-		defer close(s.collectorDone)
+		// reclaimed by the GC. It is closed right after the collect loop stops
+		// receiving (so a late sender never blocks behind a slow
+		// Reporter.SendTracing) and kept in a defer as well so that even a
+		// panic below cannot leave senders blocked forever. Both call sites
+		// run on this goroutine, so the plain bool needs no synchronization.
+		doneClosed := false
+		closeDone := func() {
+			if !doneClosed {
+				doneClosed = true
+				close(s.collectorDone)
+			}
+		}
+		defer closeDone()
 		defer func() {
 			// Defense in depth: a panic here would kill the process since this
 			// goroutine has no other recover.
@@ -411,6 +421,9 @@ func newSegmentRoot(segmentSpan *SegmentSpanImpl) *RootSegmentSpan {
 				break
 			}
 		}
+		// the loop above is the only receiver: unblock late senders before the
+		// (possibly slow) reporter call
+		closeDone()
 		s.tracer().Reporter.SendTracing(append(s.segment, s))
 	}()
 	return s
