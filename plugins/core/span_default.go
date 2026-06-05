@@ -64,6 +64,15 @@ type DefaultSpan struct {
 	// span leaked across goroutines would otherwise flood the log with one
 	// line per dropped write.
 	droppedLogged bool
+	// reuseCount tracks the extra logical owners of this span: CreateEntrySpan/
+	// CreateExitSpan hand the existing active span back to a nested plugin when
+	// the span types match (the reuse rule in tracing.go), and every owner
+	// calls End exactly once. Each reuse increments the counter and each
+	// non-final End only decrements it (see endSyncAndFreeze), so the span is
+	// frozen and reported by the LAST End - otherwise the inner owner's End
+	// (e.g. the sql driver below gorm) would freeze the span while the outer
+	// owner still has tags to write. Guarded by opLock.
+	reuseCount int
 }
 
 func NewDefaultSpan(tracer *Tracer, parent TracingSpan) *DefaultSpan {
@@ -254,6 +263,18 @@ func (ds *DefaultSpan) endAndFreeze() bool {
 	return true
 }
 
+// enterReuse registers one more owner of this span. It is called from the span
+// reuse branches of CreateEntrySpan/CreateExitSpan when the active span is
+// handed to a nested plugin; that owner's End then only decrements the counter
+// (see endSyncAndFreeze) instead of freezing the span.
+func (ds *DefaultSpan) enterReuse() {
+	ds.opLock.Lock()
+	defer ds.opLock.Unlock()
+	if !ds.ended {
+		ds.reuseCount++
+	}
+}
+
 // endSyncAndFreeze performs the whole synchronous End() path in ONE critical
 // section - the "already ended" fast check, the EndTime write and the freeze
 // decision used to take three separate lock round-trips per span end. It
@@ -263,6 +284,20 @@ func (ds *DefaultSpan) endAndFreeze() bool {
 // PrepareAsync/End pair free of data races).
 func (ds *DefaultSpan) endSyncAndFreeze() bool {
 	ds.opLock.Lock()
+	if ds.reuseCount > 0 {
+		// a nested owner of a reused span (see enterReuse) finished: this is
+		// not the last End, so keep the span open - the outer owner still
+		// writes to it (e.g. gorm tags db.statement after the sql driver's
+		// End) and will freeze it with its own End. Restoring the active span
+		// is kept here because the nested plugin expects its End to pop the
+		// span, exactly like before the freeze mechanism.
+		ds.reuseCount--
+		ds.opLock.Unlock()
+		if ctx := getTracingContext(); ctx != nil {
+			ctx.SaveActiveSpan(ds.Parent)
+		}
+		return false
+	}
 	if !ds.EndTime.IsZero() { // already ended
 		ds.opLock.Unlock()
 		return false

@@ -57,6 +57,11 @@ func (t *Tracer) CreateEntrySpan(operationName string, extractor interface{}, op
 	// if parent span is entry span, then use parent span as result
 	if tracingSpan != nil && tracingSpan.IsEntry() && reflect.ValueOf(tracingSpan).Type() != snapshotType {
 		tracingSpan.SetOperationName(operationName)
+		// the caller becomes one more owner of the reused span and will call
+		// End on it: count the reuse so only the last End freezes the span
+		if segmentSpan, ok := tracingSpan.(SegmentSpan); ok {
+			segmentSpan.GetDefaultSpan().enterReuse()
+		}
 		return tracingSpan, nil
 	}
 	var ref = &SpanContext{}
@@ -123,6 +128,11 @@ func (t *Tracer) CreateExitSpan(operationName, peer string, injector interface{}
 
 	// if parent span is exit span, then use parent span as result
 	if tracingSpan != nil && tracingSpan.IsExit() && reflect.ValueOf(tracingSpan).Type() != snapshotType {
+		// the caller becomes one more owner of the reused span and will call
+		// End on it: count the reuse so only the last End freezes the span
+		if segmentSpan, ok := tracingSpan.(SegmentSpan); ok {
+			segmentSpan.GetDefaultSpan().enterReuse()
+		}
 		return tracingSpan, nil
 	}
 	span, noop, err := t.createSpan0(ctx, tracingSpan, opts, withSpanType(SpanTypeExit), withOperationName(operationName), withPeer(peer))
