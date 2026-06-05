@@ -31,10 +31,12 @@ type benchNopReporter struct{}
 
 func (benchNopReporter) Boot(entity *reporter.Entity, cdsWatchers []reporter.AgentConfigChangeWatcher) {
 }
-func (benchNopReporter) SendTracing(spans []reporter.ReportedSpan)           {}
-func (benchNopReporter) SendMetrics(metrics []reporter.ReportedMeter)        {}
-func (benchNopReporter) SendLog(log *logv3.LogData)                          {}
-func (benchNopReporter) ConnectionStatus() reporter.ConnectionStatus         { return reporter.ConnectionStatusConnected }
+func (benchNopReporter) SendTracing(spans []reporter.ReportedSpan)    {}
+func (benchNopReporter) SendMetrics(metrics []reporter.ReportedMeter) {}
+func (benchNopReporter) SendLog(log *logv3.LogData)                   {}
+func (benchNopReporter) ConnectionStatus() reporter.ConnectionStatus {
+	return reporter.ConnectionStatusConnected
+}
 func (benchNopReporter) Close()                                              {}
 func (benchNopReporter) AddProfileTaskManager(p reporter.ProfileTaskManager) {}
 

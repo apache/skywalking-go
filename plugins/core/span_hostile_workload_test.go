@@ -170,10 +170,12 @@ func (r *pipelineReporter) closeAndWait() {
 
 func (r *pipelineReporter) Boot(entity *reporter.Entity, cdsWatchers []reporter.AgentConfigChangeWatcher) {
 }
-func (r *pipelineReporter) SendMetrics(metrics []reporter.ReportedMeter)        {}
-func (r *pipelineReporter) SendLog(log *logv3.LogData)                          {}
-func (r *pipelineReporter) ConnectionStatus() reporter.ConnectionStatus        { return reporter.ConnectionStatusConnected }
-func (r *pipelineReporter) Close()                                             {}
+func (r *pipelineReporter) SendMetrics(metrics []reporter.ReportedMeter) {}
+func (r *pipelineReporter) SendLog(log *logv3.LogData)                   {}
+func (r *pipelineReporter) ConnectionStatus() reporter.ConnectionStatus {
+	return reporter.ConnectionStatusConnected
+}
+func (r *pipelineReporter) Close()                                              {}
 func (r *pipelineReporter) AddProfileTaskManager(p reporter.ProfileTaskManager) {}
 
 // ---------------------------------------------------------------------------
@@ -388,7 +390,7 @@ func snapshotChaosFlow(i int) {
 
 // runHostileSpanWorkload runs every hostile flow concurrently against the real
 // pipeline for roughly d, under aggressive GC. It returns the number of
-// segments transformed and payloads marshalled so callers can assert the
+// segments transformed and payloads marshaled so callers can assert the
 // pipeline actually processed work.
 func runHostileSpanWorkload(d time.Duration) (segments, marshals int64) {
 	restore := installGoroutineLocalGLS()

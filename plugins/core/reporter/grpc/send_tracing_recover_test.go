@@ -43,18 +43,18 @@ func (l *capturingLogger) Errorf(format string, args ...interface{})           {
 // simulating a corrupted span reaching SendTracing.
 type panicReportedSpan struct{}
 
-func (panicReportedSpan) Context() reporter.SegmentContext       { panic("corrupted span") }
-func (panicReportedSpan) Refs() []reporter.SpanContext           { return nil }
-func (panicReportedSpan) StartTime() int64                       { return 0 }
-func (panicReportedSpan) EndTime() int64                         { return 0 }
-func (panicReportedSpan) OperationName() string                  { return "op" }
-func (panicReportedSpan) Peer() string                           { return "" }
-func (panicReportedSpan) SpanType() agentv3.SpanType             { return agentv3.SpanType_Exit }
-func (panicReportedSpan) SpanLayer() agentv3.SpanLayer           { return agentv3.SpanLayer_Database }
-func (panicReportedSpan) IsError() bool                          { return false }
-func (panicReportedSpan) Tags() []*commonv3.KeyStringValuePair   { return nil }
-func (panicReportedSpan) Logs() []*agentv3.Log                   { return nil }
-func (panicReportedSpan) ComponentID() int32                     { return 0 }
+func (panicReportedSpan) Context() reporter.SegmentContext     { panic("corrupted span") }
+func (panicReportedSpan) Refs() []reporter.SpanContext         { return nil }
+func (panicReportedSpan) StartTime() int64                     { return 0 }
+func (panicReportedSpan) EndTime() int64                       { return 0 }
+func (panicReportedSpan) OperationName() string                { return "op" }
+func (panicReportedSpan) Peer() string                         { return "" }
+func (panicReportedSpan) SpanType() agentv3.SpanType           { return agentv3.SpanType_Exit }
+func (panicReportedSpan) SpanLayer() agentv3.SpanLayer         { return agentv3.SpanLayer_Database }
+func (panicReportedSpan) IsError() bool                        { return false }
+func (panicReportedSpan) Tags() []*commonv3.KeyStringValuePair { return nil }
+func (panicReportedSpan) Logs() []*agentv3.Log                 { return nil }
+func (panicReportedSpan) ComponentID() int32                   { return 0 }
 
 // TestSendTracingRecoversTransformPanic guards the recover placement in
 // SendTracing: it must be registered BEFORE the transform call, because

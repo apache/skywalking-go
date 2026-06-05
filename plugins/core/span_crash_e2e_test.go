@@ -73,7 +73,8 @@ func TestE2ESpanCrashSafety(t *testing.T) {
 		}
 		env = append(env, kv)
 	}
-	cmd.Env = append(env, e2eChildEnv+"=1", "GODEBUG="+godebug)
+	env = append(env, e2eChildEnv+"=1", "GODEBUG="+godebug)
+	cmd.Env = env
 	out, err := cmd.CombinedOutput()
 	output := string(out)
 
@@ -90,7 +91,7 @@ func TestE2ESpanCrashSafety(t *testing.T) {
 		t.Fatalf("child never reached the completion marker:\n--- child output ---\n%s", output)
 	}
 
-	// sanity: the pipeline must have actually transformed and marshalled work,
+	// sanity: the pipeline must have actually transformed and marshaled work,
 	// otherwise the e2e silently tested nothing
 	segments := parseE2ECounter(t, output, "segments")
 	marshals := parseE2ECounter(t, output, "marshals")

@@ -41,15 +41,15 @@ var (
 )
 
 type SpanContext struct {
-	TraceID               string            `json:"trace_id"`
-	ParentSegmentID       string            `json:"parent_segment_id"`
-	ParentService         string            `json:"parent_service"`
-	ParentServiceInstance string            `json:"parent_service_instance"`
-	ParentEndpoint        string            `json:"parent_endpoint"`
-	AddressUsedAtClient   string            `json:"address_used_at_client"`
-	ParentSpanID          int32             `json:"parent_span_id"`
-	Sample                int8              `json:"sample"`
-	Valid                 bool              `json:"valid"`
+	TraceID               string `json:"trace_id"`
+	ParentSegmentID       string `json:"parent_segment_id"`
+	ParentService         string `json:"parent_service"`
+	ParentServiceInstance string `json:"parent_service_instance"`
+	ParentEndpoint        string `json:"parent_endpoint"`
+	AddressUsedAtClient   string `json:"address_used_at_client"`
+	ParentSpanID          int32  `json:"parent_span_id"`
+	Sample                int8   `json:"sample"`
+	Valid                 bool   `json:"valid"`
 	// CorrelationContext here is intentionally a plain map (NOT the
 	// synchronized core.CorrelationContext): SpanContext is the short-lived,
 	// single-goroutine wire-format struct holding a decoded inbound header or
