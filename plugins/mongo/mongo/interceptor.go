@@ -79,6 +79,11 @@ func (m *NewClientInterceptor) BeforeInvoke(invocation operator.Invocation) erro
 					span.Tag(tracing.TagDBStatement, m.gettingStatements(startedEvent))
 				}
 
+				// Succeeded/Failed may fire on a DIFFERENT goroutine, so the
+				// completion goes through the async machinery; End() also pops
+				// the span off this goroutine's active stack immediately.
+				span.PrepareAsync()
+				span.End()
 				syncMap.Put(fmt.Sprintf("%d", startedEvent.RequestID), span)
 			},
 			Succeeded: func(ctx context.Context, succeededEvent *event.CommandSucceededEvent) {
@@ -86,7 +91,7 @@ func (m *NewClientInterceptor) BeforeInvoke(invocation operator.Invocation) erro
 					configuredMonitor.Succeeded(ctx, succeededEvent)
 				}
 				if span, ok := syncMap.Remove(fmt.Sprintf("%d", succeededEvent.RequestID)); ok && span != nil {
-					span.(tracing.Span).End()
+					span.(tracing.Span).AsyncFinish()
 				}
 			},
 			Failed: func(ctx context.Context, failedEvent *event.CommandFailedEvent) {
@@ -95,7 +100,7 @@ func (m *NewClientInterceptor) BeforeInvoke(invocation operator.Invocation) erro
 				}
 				if span, ok := syncMap.Remove(fmt.Sprintf("%d", failedEvent.RequestID)); ok && span != nil {
 					span.(tracing.Span).Error(failedEvent.Failure)
-					span.(tracing.Span).End()
+					span.(tracing.Span).AsyncFinish()
 				}
 			},
 		}

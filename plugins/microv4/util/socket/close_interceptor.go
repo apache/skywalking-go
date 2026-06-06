@@ -30,11 +30,16 @@ func (n *CloseInterceptor) BeforeInvoke(invocation operator.Invocation) error {
 
 func (n *CloseInterceptor) AfterInvoke(invocation operator.Invocation, results ...interface{}) error {
 	instance := invocation.CallerInstance().(operator.EnhancedInstance)
-	span := instance.GetSkyWalkingDynamicField()
-	if span == nil {
+	data, ok := instance.GetSkyWalkingDynamicField().(*InjectData)
+	if !ok || data == nil {
 		return nil
 	}
-	span.(*InjectData).Span.AsyncFinish()
-	instance.SetSkyWalkingDynamicField(nil)
+	// one-shot under concurrent Close calls; the winner also clears the
+	// dynamic field so a socket reused for a new connection gets a fresh
+	// span instead of being blocked by the stale InjectData
+	data.finished.Do(func() {
+		data.Span.AsyncFinish()
+		instance.SetSkyWalkingDynamicField(nil)
+	})
 	return nil
 }

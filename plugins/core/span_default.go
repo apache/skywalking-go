@@ -47,10 +47,11 @@ type DefaultSpan struct {
 	AsyncModeFinished bool
 
 	// opLock guards the mutable fields above (OperationName, Peer, Layer,
-	// ComponentID, Tags, Logs, IsError, EndTime, the async flags) together with
-	// the ended flag. SpanType, Parent, Refs, StartTime and tracer are
+	// ComponentID, Tags, Logs, Refs, IsError, EndTime, the async flags)
+	// together with the ended flag. SpanType, Parent, StartTime and tracer are
 	// write-once during construction - before the span is ever shared - and are
 	// therefore read without the lock (IsEntry/IsExit/ParentSpan/StartTime).
+	// Refs is also appended by ExtractContext; reporting reads it after the freeze.
 	// It must stay a pointer: DefaultSpan is copied by value when it is embedded
 	// into SegmentSpanImpl/SnapshotSpan, and an embedded sync.Mutex value would
 	// trip the go vet copylocks check.
@@ -257,6 +258,18 @@ func (ds *DefaultSpan) endAndFreeze() bool {
 	}
 	ds.ended = true
 	return true
+}
+
+// appendRef attaches one more segment reference to this span (see
+// Tracer.ExtractContext); late appends after the freeze are dropped.
+func (ds *DefaultSpan) appendRef(ref reporter.SpanContext) {
+	ds.opLock.Lock()
+	defer ds.opLock.Unlock()
+	if ds.ended {
+		ds.logDroppedWrite("ref", "")
+		return
+	}
+	ds.Refs = append(ds.Refs, ref)
 }
 
 // enterReuse registers one more owner of this span. It is called from the span

@@ -308,54 +308,71 @@ func (r *kafkaReporter) check() {
 		time.Sleep(r.checkInterval)
 		instancePropertiesSubmitted := false
 		for {
-			if !instancePropertiesSubmitted {
-				instanceProperties := &managementv3.InstanceProperties{
-					Service:         r.entity.ServiceName,
-					ServiceInstance: r.entity.ServiceInstanceName,
-					Properties:      r.entity.Props,
-				}
-				payload, err := proto.Marshal(instanceProperties)
-				if err != nil {
-					r.logger.Errorf("marshal instance properties error %v", err)
-					time.Sleep(r.checkInterval)
-					continue
-				}
-				ctx := context.WithValue(context.Background(), internalReporterContextKey, true)
-				err = r.writer.WriteMessages(ctx, kafka.Message{
-					Topic: r.topicManagement,
-					Key:   []byte(topicKeyRegister + r.entity.ServiceInstanceName),
-					Value: payload,
-				})
-				if err != nil {
-					r.logger.Errorf("send instance properties to kafka error %v", err)
-					time.Sleep(r.checkInterval)
-					continue
-				}
-				instancePropertiesSubmitted = true
-			}
-
-			ping := &managementv3.InstancePingPkg{
-				Service:         r.entity.ServiceName,
-				ServiceInstance: r.entity.ServiceInstanceName,
-			}
-			payload, err := proto.Marshal(ping)
-			if err != nil {
-				r.logger.Errorf("marshal instance ping error %v", err)
-				time.Sleep(r.checkInterval)
-				continue
-			}
-			ctx := context.WithValue(context.Background(), internalReporterContextKey, true)
-			err = r.writer.WriteMessages(ctx, kafka.Message{
-				Topic: r.topicManagement,
-				Key:   []byte(r.entity.ServiceInstanceName),
-				Value: payload,
-			})
-			if err != nil {
-				r.logger.Errorf("send instance ping to kafka error %v", err)
-			}
+			// The recover wraps a single iteration: this long-lived goroutine
+			// has no other protection and a panic in the kafka writer would
+			// otherwise kill the whole process.
+			func() {
+				defer func() {
+					if rec := recover(); rec != nil {
+						r.logger.Errorf("kafkaReporter recovered from panic while checking the instance: %v", rec)
+					}
+				}()
+				instancePropertiesSubmitted = r.checkOnce(instancePropertiesSubmitted)
+			}()
 			time.Sleep(r.checkInterval)
 		}
 	}()
+}
+
+// checkOnce submits the instance properties (until that succeeded once) and
+// the keep-alive ping of one round; it returns whether the instance
+// properties have been submitted.
+func (r *kafkaReporter) checkOnce(instancePropertiesSubmitted bool) bool {
+	if !instancePropertiesSubmitted {
+		instanceProperties := &managementv3.InstanceProperties{
+			Service:         r.entity.ServiceName,
+			ServiceInstance: r.entity.ServiceInstanceName,
+			Properties:      r.entity.Props,
+		}
+		payload, err := proto.Marshal(instanceProperties)
+		if err != nil {
+			r.logger.Errorf("marshal instance properties error %v", err)
+			return false
+		}
+		ctx := context.WithValue(context.Background(), internalReporterContextKey, true)
+		err = r.writer.WriteMessages(ctx, kafka.Message{
+			Topic: r.topicManagement,
+			Key:   []byte(topicKeyRegister + r.entity.ServiceInstanceName),
+			Value: payload,
+		})
+		if err != nil {
+			r.logger.Errorf("send instance properties to kafka error %v", err)
+			return false
+		}
+	}
+
+	// this point is only reachable once the instance properties have been
+	// submitted (this round or a previous one) - every failure path above
+	// returns false first - so the returns below all report true
+	ping := &managementv3.InstancePingPkg{
+		Service:         r.entity.ServiceName,
+		ServiceInstance: r.entity.ServiceInstanceName,
+	}
+	payload, err := proto.Marshal(ping)
+	if err != nil {
+		r.logger.Errorf("marshal instance ping error %v", err)
+		return true
+	}
+	ctx := context.WithValue(context.Background(), internalReporterContextKey, true)
+	err = r.writer.WriteMessages(ctx, kafka.Message{
+		Topic: r.topicManagement,
+		Key:   []byte(r.entity.ServiceInstanceName),
+		Value: payload,
+	})
+	if err != nil {
+		r.logger.Errorf("send instance ping to kafka error %v", err)
+	}
+	return true
 }
 
 func (r *kafkaReporter) ConnectionStatus() reporter.ConnectionStatus {

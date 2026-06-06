@@ -24,6 +24,13 @@ Release Notes.
 * Fix data race when sending trace data to reporter.
 * Fix multiple data races in span lifecycle, correlation context and segment collection.
 * Add recover protection for the metrics, profile and segment-transform goroutines.
+* Fix the RocketMQ batch consumer span: report once with one segment reference per message (new `ExtractContext` API).
+* Fix nil dereference and wrong span ownership in the RocketMQ/Pulsar async producer callbacks.
+* Fix concurrent finish flags of the gRPC streaming client and the go-micro socket close.
+* Fix the MongoDB command span to complete through the async API (events may fire on different goroutines).
+* Fix the gorm span storage to be per-statement and the mux response writer wrapping a nil writer.
+* Add recover protection for the kafka instance-check and gRPC profile-fetch goroutines.
+* Fix unsynchronized consumer-tag map access in the AMQP plugin (fatal concurrent map read/write).
 
 #### Issues and PR
 - All issues are [here](https://github.com/apache/skywalking/milestone/238?closed=1)

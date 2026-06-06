@@ -20,6 +20,7 @@ package grpc
 import (
 	"context"
 	"strings"
+	"sync/atomic"
 
 	"google.golang.org/grpc/metadata"
 
@@ -39,8 +40,10 @@ type contextData struct {
 	// endSnapShot is the snapshot that the span has ended
 	// When the service is completely finished, it should be continued
 	endSnapShot tracing.ContextSnapshot
-	// interceptFinish is whether to intercept finish()
-	interceptFinish bool
+	// interceptFinish is whether to intercept finish(). RecvMsg writes it on
+	// the user goroutine while Finish may consume it from a gRPC-internal
+	// goroutine, so it is atomic; the CAS consumer also makes finish one-shot.
+	interceptFinish atomic.Bool
 }
 
 func (h *ClientStreamingInterceptor) BeforeInvoke(invocation operator.Invocation) error {
@@ -87,7 +90,6 @@ func (h *ClientStreamingInterceptor) AfterInvoke(invocation operator.Invocation,
 		asyncSpan:        span,
 		continueSnapShot: continueSnapShot,
 		endSnapShot:      tracing.CaptureContext(),
-		interceptFinish:  false,
 	})
 	return nil
 }

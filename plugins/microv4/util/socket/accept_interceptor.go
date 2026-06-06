@@ -18,6 +18,8 @@
 package socket
 
 import (
+	"sync"
+
 	"github.com/apache/skywalking-go/plugins/core/operator"
 	"github.com/apache/skywalking-go/plugins/core/tracing"
 )
@@ -26,6 +28,11 @@ import (
 type InjectData struct {
 	Span     tracing.Span
 	Snapshot tracing.ContextSnapshot
+	// finished makes the AsyncFinish of the connection span one-shot under
+	// concurrent Close calls (see close_interceptor.go). sync.Once on purpose:
+	// injected files may only import what go-micro's util/socket package
+	// already imports - "sync" via its pool.go, "sync/atomic" is unavailable.
+	finished sync.Once
 }
 
 type AcceptInterceptor struct {

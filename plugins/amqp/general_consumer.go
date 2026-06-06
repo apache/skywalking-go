@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"sync"
 	"sync/atomic"
 
 	"github.com/rabbitmq/amqp091-go"
@@ -41,7 +42,32 @@ const (
 )
 
 var consumerSeq uint64
-var queueConsumerTagMapping = make(map[string]string)
+
+// queueConsumerTagMapping is touched from three goroutines (Consume writes,
+// the SDK delivery dispatch reads, Close deletes) - unsynchronized access is
+// a fatal concurrent map read/write, so it only goes through the accessors.
+var (
+	queueConsumerTagMapping = make(map[string]string)
+	queueConsumerTagLock    sync.RWMutex
+)
+
+func registerConsumerQueue(consumerTag, queue string) {
+	queueConsumerTagLock.Lock()
+	defer queueConsumerTagLock.Unlock()
+	queueConsumerTagMapping[consumerTag] = queue
+}
+
+func consumerQueue(consumerTag string) string {
+	queueConsumerTagLock.RLock()
+	defer queueConsumerTagLock.RUnlock()
+	return queueConsumerTagMapping[consumerTag]
+}
+
+func removeConsumerQueue(consumerTag string) {
+	queueConsumerTagLock.Lock()
+	defer queueConsumerTagLock.Unlock()
+	delete(queueConsumerTagMapping, consumerTag)
+}
 
 func GeneralConsumersSendAfterInvoke(invocation operator.Invocation, results ...interface{}) error {
 	if foundConsumer := results[0].(bool); !foundConsumer {
@@ -49,7 +75,8 @@ func GeneralConsumersSendAfterInvoke(invocation operator.Invocation, results ...
 	}
 	consumerTag, _ := invocation.Args()[0].(string)
 	delivery, _ := invocation.Args()[1].(*Delivery)
-	operationName := amqpConsumerPrefix + queueConsumerTagMapping[consumerTag] + "/" + consumerTag + amqpConsumerSuffix
+	queue := consumerQueue(consumerTag)
+	operationName := amqpConsumerPrefix + queue + "/" + consumerTag + amqpConsumerSuffix
 	channel, _ := delivery.Acknowledger.(*nativeChannel)
 	peer := getPeerInfo(channel.connection)
 
@@ -59,7 +86,7 @@ func GeneralConsumersSendAfterInvoke(invocation operator.Invocation, results ...
 	}, tracing.WithLayer(tracing.SpanLayerMQ),
 		tracing.WithComponent(ConsumerComponentID),
 		tracing.WithTag(tracing.TagMQBroker, peer),
-		tracing.WithTag(tracing.TagMQQueue, queueConsumerTagMapping[consumerTag]),
+		tracing.WithTag(tracing.TagMQQueue, queue),
 		tracing.WithTag(tracing.TagMQMsgID, delivery.MessageId),
 		tracing.WithTag(tagMQConsumerTag, consumerTag),
 		tracing.WithTag(tagMQCorrelationID, delivery.CorrelationId),
@@ -80,7 +107,7 @@ func GeneralConsumerBeforeInvoke(invocation operator.Invocation, args amqp091.Ta
 	if consumerTag == "" {
 		consumerTag = uniqueConsumerTag()
 	}
-	queueConsumerTagMapping[consumerTag] = queue
+	registerConsumerQueue(consumerTag, queue)
 	return nil
 }
 
@@ -89,7 +116,7 @@ func GeneralConsumerCloseBeforeInvoke(invocation operator.Invocation) error {
 	consumers.Lock()
 	defer consumers.Unlock()
 	for consumerTag := range consumers.chans {
-		delete(queueConsumerTagMapping, consumerTag)
+		removeConsumerQueue(consumerTag)
 	}
 	return nil
 }
