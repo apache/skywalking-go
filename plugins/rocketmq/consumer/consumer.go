@@ -43,34 +43,55 @@ func (c *SwConsumerInterceptor) BeforeInvoke(invocation operator.Invocation) err
 	pushConsumer := invocation.CallerInstance().(*nativepushConsumer)
 	peer := strings.Join(pushConsumer.client.GetNameSrv().AddrList(), semicolon)
 	subMsgs := invocation.Args()[1].([]*primitive.MessageExt)
-	if len(subMsgs) == 0 {
-		return nil
+	span, err := createConsumerEntrySpan(subMsgs, peer)
+	if err != nil || span == nil {
+		return err
 	}
-	topic, addr := subMsgs[0].Topic, subMsgs[0].StoreHost
-	operationName := rmqConsumerPrefix + topic + rmqConsumerSuffix
-
-	var (
-		span tracing.Span
-		err  error
-	)
-	for _, msg := range subMsgs {
-		span, err = tracing.CreateEntrySpan(operationName, func(headerKey string) (string, error) {
-			return msg.GetProperty(headerKey), nil
-		},
-			tracing.WithLayer(tracing.SpanLayerMQ),
-			tracing.WithComponent(rmqConsumerComponentID),
-			tracing.WithTag(tracing.TagMQTopic, topic),
-			tracing.WithTag(tagMQMsgID, msg.MsgId),
-			tracing.WithTag(tagMQOffsetMsgID, msg.OffsetMsgId),
-		)
-		if err != nil {
-			return err
-		}
-	}
-	span.Tag(tracing.TagMQBroker, addr)
-	span.SetPeer(peer)
 	invocation.SetContext(span)
 	return nil
+}
+
+// createConsumerEntrySpan creates ONE entry span for the whole batch from the
+// first message and attaches every remaining message as an extra segment
+// reference, mirroring the Java agent. One span per message must be avoided:
+// the reuse rule would hand back the same span N times while AfterInvoke
+// calls End only once, so the span would never be reported.
+func createConsumerEntrySpan(subMsgs []*primitive.MessageExt, peer string) (tracing.Span, error) {
+	if len(subMsgs) == 0 {
+		return nil, nil
+	}
+	first := subMsgs[0]
+	topic := first.Topic
+	msgIDs := make([]string, 0, len(subMsgs))
+	offsetMsgIDs := make([]string, 0, len(subMsgs))
+	for _, msg := range subMsgs {
+		msgIDs = append(msgIDs, msg.MsgId)
+		offsetMsgIDs = append(offsetMsgIDs, msg.OffsetMsgId)
+	}
+
+	span, err := tracing.CreateEntrySpan(rmqConsumerPrefix+topic+rmqConsumerSuffix, func(headerKey string) (string, error) {
+		return first.GetProperty(headerKey), nil
+	},
+		tracing.WithLayer(tracing.SpanLayerMQ),
+		tracing.WithComponent(rmqConsumerComponentID),
+		tracing.WithTag(tracing.TagMQTopic, topic),
+		tracing.WithTag(tagMQMsgID, strings.Join(msgIDs, semicolon)),
+		tracing.WithTag(tagMQOffsetMsgID, strings.Join(offsetMsgIDs, semicolon)),
+	)
+	if err != nil {
+		return nil, err
+	}
+	for _, msg := range subMsgs[1:] {
+		extractMsg := msg
+		// a broken header on a single message must not lose the batch span,
+		// so the error is intentionally ignored
+		_ = tracing.ExtractContext(func(headerKey string) (string, error) {
+			return extractMsg.GetProperty(headerKey), nil
+		})
+	}
+	span.Tag(tracing.TagMQBroker, first.StoreHost)
+	span.SetPeer(peer)
+	return span, nil
 }
 
 func (c *SwConsumerInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {

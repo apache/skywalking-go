@@ -65,35 +65,48 @@ func (s *SendAsyncInterceptor) BeforeInvoke(invocation operator.Invocation) erro
 	continueSnapShot := tracing.CaptureContext()
 	zuper := invocation.Args()[2].(func(id MessageID, message *ProducerMessage, err error))
 
+	// enhance async callback method: the agent part is fully isolated inside
+	// traceAsyncSendCallback (see its doc), the user callback runs after it
 	callbackFunc := func(id MessageID, message *ProducerMessage, err error) {
-		defer tracing.CleanContext()
-		tracing.ContinueContext(continueSnapShot)
-		operationName = pulsarAsyncPrefix + topic + pulsarCallbackSuffix
-
-		localSpan, localErr := tracing.CreateLocalSpan(operationName,
-			tracing.WithComponent(pulsarAsyncComponentID),
-			tracing.WithLayer(tracing.SpanLayerMQ),
-			tracing.WithTag(tracing.TagMQTopic, nativeProducer.topic),
-		)
-		if localErr != nil {
-			zuper(id, message, err)
-			return
-		}
-		if err != nil {
-			span.Error(err.Error())
-		}
-		localSpan.Tag(tracing.TagMQBroker, lookup.PhysicalAddr.String())
-		localSpan.Tag(tracing.TagMQMsgID, id.String())
-
+		traceAsyncSendCallback(continueSnapShot, topic, nativeProducer.topic, peer, lookup.PhysicalAddr.String(), id, err)
 		zuper(id, message, err)
-		localSpan.SetPeer(peer)
-		localSpan.End()
 	}
 
 	span.SetPeer(peer)
 	invocation.ChangeArg(2, callbackFunc)
 	invocation.SetContext(span)
 	return nil
+}
+
+// traceAsyncSendCallback records the async send result on a NEW local span -
+// never on the exit span, already ended by AfterInvoke. It runs on an SDK
+// goroutine without framework recover, so the agent logic is fully wrapped in
+// its own recover; the user callback runs outside, never swallowed.
+func traceAsyncSendCallback(snapshot tracing.ContextSnapshot, opTopic, tagTopic, peer, broker string, id MessageID, sendErr error) {
+	defer tracing.CleanContext()
+	defer func() {
+		// no logging channel exists on this goroutine, drop on purpose
+		_ = recover()
+	}()
+	tracing.ContinueContext(snapshot)
+
+	localSpan, err := tracing.CreateLocalSpan(pulsarAsyncPrefix+opTopic+pulsarCallbackSuffix,
+		tracing.WithComponent(pulsarAsyncComponentID),
+		tracing.WithLayer(tracing.SpanLayerMQ),
+		tracing.WithTag(tracing.TagMQTopic, tagTopic),
+	)
+	if err != nil {
+		return
+	}
+	if sendErr != nil {
+		localSpan.Error(sendErr.Error())
+	}
+	localSpan.Tag(tracing.TagMQBroker, broker)
+	if id != nil { // nil when the send failed
+		localSpan.Tag(tracing.TagMQMsgID, id.String())
+	}
+	localSpan.SetPeer(peer)
+	localSpan.End()
 }
 
 func (s *SendAsyncInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {

@@ -31,12 +31,8 @@ func (h *ClientFinishInterceptor) BeforeInvoke(invocation operator.Invocation) e
 		return nil
 	}
 	contextdata := csEnhanced.GetSkyWalkingDynamicField().(*contextData)
-	if !contextdata.interceptFinish {
+	if !finishStreamSpan(contextdata) {
 		return nil
-	}
-	contextdata.interceptFinish = false
-	if contextdata.asyncSpan != nil {
-		contextdata.asyncSpan.AsyncFinish()
 	}
 	cs := invocation.CallerInstance().(*nativeclientStream)
 	method := cs.callHdr.Method
@@ -50,4 +46,18 @@ func (h *ClientFinishInterceptor) BeforeInvoke(invocation operator.Invocation) e
 
 func (h *ClientFinishInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {
 	return nil
+}
+
+// finishStreamSpan consumes the one-shot finish flag and finishes the async
+// stream span. Only the first caller wins: either RecvMsg never armed the
+// finish, or a concurrent Finish already consumed it - so two racing Finish
+// calls can never both run the AsyncFinish.
+func finishStreamSpan(contextdata *contextData) bool {
+	if !contextdata.interceptFinish.CompareAndSwap(true, false) {
+		return false
+	}
+	if contextdata.asyncSpan != nil {
+		contextdata.asyncSpan.AsyncFinish()
+	}
+	return true
 }

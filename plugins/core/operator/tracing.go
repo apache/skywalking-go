@@ -21,6 +21,9 @@ type TracingOperator interface {
 	CreateEntrySpan(operationName string, extractor interface{}, opts ...interface{}) (s interface{}, err error)
 	CreateLocalSpan(operationName string, opts ...interface{}) (s interface{}, err error)
 	CreateExitSpan(operationName, peer string, injector interface{}, opts ...interface{}) (s interface{}, err error)
+	// ExtractContext attaches the context carried by extractor to the current
+	// active entry span as one more segment reference (batch consumers).
+	ExtractContext(extractor interface{}) error
 	ActiveSpan() interface{} // to Span
 
 	GetRuntimeContextValue(key string) interface{}

@@ -68,7 +68,7 @@ func newResponseWriter(val interface{}) http.ResponseWriter {
 	case http.Hijacker:
 		rw = newWriterWrapperWithHijacker(sourceWriter, sourceWriter.(http.Hijacker))
 	default:
-		rw = newWriterWrapper(rw)
+		rw = newWriterWrapper(sourceWriter)
 	}
 	return rw
 }

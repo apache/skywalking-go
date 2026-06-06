@@ -63,40 +63,56 @@ func (sa *SendASyncInterceptor) BeforeInvoke(invocation operator.Invocation) err
 
 	continueSnapShot := tracing.CaptureContext()
 	zuper := invocation.Args()[1].(func(ctx context.Context, result *primitive.SendResult, err error))
-	// enhance async callback method
+	// enhance async callback method: the agent part is fully isolated inside
+	// traceAsyncSendCallback (see its doc), the user callback runs after it
 	callbackFunc := func(ctx context.Context, sendResult *primitive.SendResult, err error) {
-		defer tracing.CleanContext()
-		tracing.ContinueContext(continueSnapShot)
-		operationName = rmqASyncSendPrefix + topic + rmqCallbackSuffix
-
-		localSpan, localErr := tracing.CreateLocalSpan(operationName,
-			tracing.WithComponent(rmqASyncComponentID),
-			tracing.WithLayer(tracing.SpanLayerMQ),
-			tracing.WithTag(tracing.TagMQTopic, topic),
-		)
-		if localErr != nil {
-			zuper(ctx, sendResult, err)
-			return
-		}
-		if err != nil {
-			span.Error(err.Error())
-		}
-		localSpan.Tag(tracing.TagMQStatus, SendStatusStr(sendResult.Status))
-		localSpan.Tag(tracing.TagMQQueue, fmt.Sprintf("%d", sendResult.MessageQueue.QueueId))
-		localSpan.Tag(tracing.TagMQBroker, defaultProducer.client.GetNameSrv().
-			FindBrokerAddrByName(sendResult.MessageQueue.BrokerName))
-		localSpan.Tag(tracing.TagMQMsgID, sendResult.MsgID)
-		localSpan.Tag(aSyncTagMQOffsetMsgID, sendResult.OffsetMsgID)
-
+		traceAsyncSendCallback(continueSnapShot, topic, peer, sendResult, err, func(brokerName string) string {
+			return defaultProducer.client.GetNameSrv().FindBrokerAddrByName(brokerName)
+		})
 		zuper(ctx, sendResult, err)
-		localSpan.SetPeer(peer)
-		localSpan.End()
 	}
 
 	span.SetPeer(peer)
 	invocation.ChangeArg(1, callbackFunc)
 	invocation.SetContext(span)
 	return nil
+}
+
+// traceAsyncSendCallback records the async send result on a NEW local span -
+// never on the exit span, already ended by AfterInvoke. It runs on an SDK
+// goroutine without framework recover, so the agent logic is fully wrapped in
+// its own recover; the user callback runs outside, never swallowed.
+func traceAsyncSendCallback(snapshot tracing.ContextSnapshot, topic, peer string,
+	sendResult *primitive.SendResult, sendErr error, brokerAddr func(brokerName string) string) {
+	defer tracing.CleanContext()
+	defer func() {
+		// no logging channel exists on this goroutine, drop on purpose
+		_ = recover()
+	}()
+	tracing.ContinueContext(snapshot)
+
+	localSpan, err := tracing.CreateLocalSpan(rmqASyncSendPrefix+topic+rmqCallbackSuffix,
+		tracing.WithComponent(rmqASyncComponentID),
+		tracing.WithLayer(tracing.SpanLayerMQ),
+		tracing.WithTag(tracing.TagMQTopic, topic),
+	)
+	if err != nil {
+		return
+	}
+	if sendErr != nil {
+		localSpan.Error(sendErr.Error())
+	}
+	if sendResult != nil { // nil when the send failed
+		localSpan.Tag(tracing.TagMQStatus, SendStatusStr(sendResult.Status))
+		if sendResult.MessageQueue != nil {
+			localSpan.Tag(tracing.TagMQQueue, fmt.Sprintf("%d", sendResult.MessageQueue.QueueId))
+			localSpan.Tag(tracing.TagMQBroker, brokerAddr(sendResult.MessageQueue.BrokerName))
+		}
+		localSpan.Tag(tracing.TagMQMsgID, sendResult.MsgID)
+		localSpan.Tag(aSyncTagMQOffsetMsgID, sendResult.OffsetMsgID)
+	}
+	localSpan.SetPeer(peer)
+	localSpan.End()
 }
 
 func (sa *SendASyncInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {

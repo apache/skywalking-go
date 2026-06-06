@@ -169,6 +169,38 @@ func (t *Tracer) CreateExitSpan(operationName, peer string, injector interface{}
 	return span, nil
 }
 
+// ExtractContext decodes the propagated context carried by extractor and
+// attaches it to the current active entry span as one more segment reference,
+// merging the carried correlation values - the equivalent of the Java agent's
+// ContextManager.extract, used by batch consumers to link every upstream
+// message to the single entry span.
+func (t *Tracer) ExtractContext(extractor interface{}) error {
+	ctx := getTracingContext()
+	if ctx == nil || ctx.ActiveSpan() == nil {
+		return nil
+	}
+	segmentSpan, ok := ctx.ActiveSpan().(SegmentSpan)
+	if !ok || !segmentSpan.GetDefaultSpan().IsEntry() {
+		// only an entry span carries upstream references, mirroring the Java agent
+		return nil
+	}
+	ref := &SpanContext{}
+	if err := ref.Decode(extractor.(tracing.ExtractorWrapper).Fun()); err != nil {
+		return err
+	}
+	if !ref.Valid {
+		return nil
+	}
+	segmentSpan.GetDefaultSpan().appendRef(ref)
+	// merge the carried correlation into the segment, last write wins
+	// (mirroring the Java agent's extractCorrelationTo)
+	correlation := segmentSpan.GetSegmentContext().CorrelationContext
+	for k, v := range ref.CorrelationContext {
+		correlation.Set(k, v)
+	}
+	return nil
+}
+
 func (t *Tracer) ActiveSpan() interface{} {
 	ctx := getTracingContext()
 	if ctx == nil || ctx.ActiveSpan() == nil {

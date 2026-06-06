@@ -475,34 +475,49 @@ func (r *gRPCReporter) fetchProfileTasks() {
 	}
 	go func() {
 		for {
-			// Construct the request
-			req := &profilev3.ProfileTaskCommandQuery{
-				Service:         r.entity.ServiceName,
-				ServiceInstance: r.entity.ServiceInstanceName,
-				LastCommandTime: r.lastProfileCommandTime,
-			}
-
-			// Pull tasks
-			resp, err := r.profileTaskClient.GetProfileTaskCommands(context.Background(), req)
-			if err != nil {
-				r.logger.Errorf("fetch profile task error: %v", err)
-				time.Sleep(r.profileFetchInterval)
-				continue
-			}
-
-			// Handle all returned commands
-			for _, cmd := range resp.Commands {
-				nt := r.handleProfileTask(cmd, r.lastProfileCommandTime)
-				if nt > r.lastProfileCommandTime {
-					r.lastProfileCommandTime = nt
-				}
-			}
-
-			// Remove completed tasks
-			r.profileTaskManager.RemoveProfileTask()
+			// The recover wraps a single iteration: this long-lived goroutine
+			// has no other protection and a panic while handling the profile
+			// commands would otherwise kill the whole process.
+			func() {
+				defer func() {
+					if rec := recover(); rec != nil {
+						r.logger.Errorf("gRPCReporter recovered from panic while fetching profile tasks: %v", rec)
+					}
+				}()
+				r.fetchProfileTasksOnce()
+			}()
 			time.Sleep(r.profileFetchInterval)
 		}
 	}()
+}
+
+// fetchProfileTasksOnce pulls and handles the pending profile task commands of
+// one polling round.
+func (r *gRPCReporter) fetchProfileTasksOnce() {
+	// Construct the request
+	req := &profilev3.ProfileTaskCommandQuery{
+		Service:         r.entity.ServiceName,
+		ServiceInstance: r.entity.ServiceInstanceName,
+		LastCommandTime: r.lastProfileCommandTime,
+	}
+
+	// Pull tasks
+	resp, err := r.profileTaskClient.GetProfileTaskCommands(context.Background(), req)
+	if err != nil {
+		r.logger.Errorf("fetch profile task error: %v", err)
+		return
+	}
+
+	// Handle all returned commands
+	for _, cmd := range resp.Commands {
+		nt := r.handleProfileTask(cmd, r.lastProfileCommandTime)
+		if nt > r.lastProfileCommandTime {
+			r.lastProfileCommandTime = nt
+		}
+	}
+
+	// Remove completed tasks
+	r.profileTaskManager.RemoveProfileTask()
 }
 
 func (r *gRPCReporter) AddProfileTaskManager(p reporter.ProfileTaskManager) {

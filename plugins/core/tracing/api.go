@@ -86,6 +86,22 @@ func CreateExitSpan(operationName, peer string, injector Injector, opts ...SpanO
 	return newSpanAdapter(span.(AdaptSpan)), nil
 }
 
+// ExtractContext attaches the context carried by extractor to the current
+// active entry span as one more segment reference, so a batch consumer can
+// link every upstream message to its single entry span. It returns an error
+// only for a nil extractor or a carrier that fails to decode; no active
+// entry span or an empty carrier is a silent no-op.
+func ExtractContext(extractor Extractor) error {
+	if extractor == nil {
+		return errParameter
+	}
+	op := operator.GetOperator()
+	if op == nil {
+		return nil
+	}
+	return op.Tracing().(operator.TracingOperator).ExtractContext(extractorWrapper(extractor))
+}
+
 // ActiveSpan returns the current active span, it can be got the current span in the current goroutine.
 // If the current goroutine is not in the context of the span, it will return nil.
 // If get the span from other goroutine, it can only get information but cannot be operated.

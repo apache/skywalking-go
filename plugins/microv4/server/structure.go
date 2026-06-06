@@ -17,10 +17,17 @@
 
 package server
 
-import "github.com/apache/skywalking-go/plugins/core/tracing"
+import (
+	"sync"
+
+	"github.com/apache/skywalking-go/plugins/core/tracing"
+)
 
 //skywalking:ref_generate go-micro.dev/v4/util/socket InjectData
 type InjectData struct {
 	Span     tracing.Span
 	Snapshot tracing.ContextSnapshot
+	// finished mirrors the real definition in util/socket/accept_interceptor.go
+	// (the two declarations must stay structurally identical for ref_generate)
+	finished sync.Once
 }

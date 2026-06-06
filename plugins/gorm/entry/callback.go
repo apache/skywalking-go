@@ -31,6 +31,16 @@ func beforeCallback(dbInfo DatabaseInfo, op string) func(db *gorm.DB) {
 	return func(db *gorm.DB) {
 		tableName := db.Statement.Table
 		operation := fmt.Sprintf("%s/%s", tableName, op)
+		// a leftover span on this very Statement means a chained *gorm.DB is
+		// shared across goroutines (unsupported by gorm): the previous span is
+		// about to be overwritten and lost, so make the misuse visible
+		if leftover, ok := db.InstanceGet(spanKey); ok {
+			if _, isSpan := leftover.(tracing.Span); isSpan {
+				db.Logger.Warn(db.Statement.Context,
+					"gorm:skywalking found an unfinished span on the statement, "+
+						"the *gorm.DB is probably shared across goroutines; its trace data will be lost")
+			}
+		}
 		s, err := tracing.CreateExitSpan(operation, dbInfo.Peer(), func(k, v string) error {
 			return nil
 		}, tracing.WithComponent(dbInfo.ComponentID()),
@@ -42,18 +52,24 @@ func beforeCallback(dbInfo DatabaseInfo, op string) func(db *gorm.DB) {
 			return
 		}
 
-		db.Set(spanKey, s)
+		// InstanceSet keys by the Statement pointer: gorm's Statement.clone
+		// copies plain db.Set Settings into every Session/Transaction clone,
+		// which let a derived operation pick up - and end - the OUTER span
+		db.InstanceSet(spanKey, s)
 	}
 }
 
 func afterCallback(dbInfo DatabaseInfo) func(db *gorm.DB) {
 	return func(db *gorm.DB) {
 		// get span from db instance's context
-		spanInterface, _ := db.Get(spanKey)
+		spanInterface, _ := db.InstanceGet(spanKey)
 		span, ok := spanInterface.(tracing.Span)
 		if !ok {
 			return
 		}
+		// the span is consumed: a later operation on the same statement must
+		// not see it as a leftover
+		db.InstanceSet(spanKey, nil)
 
 		defer span.End()
 
