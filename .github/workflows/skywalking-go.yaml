@@ -25,10 +25,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
-      - name: Set up Go 1.19
+      - name: Set up Go 1.24
         uses: actions/setup-go@v2
         with:
-          go-version: 1.19
+          go-version: 1.24
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2
         with:
@@ -50,7 +50,7 @@ jobs:
       fail-fast: true
       matrix:
         os: [ ubuntu-latest, windows-latest ]
-        go-version: [ 1.19 ]
+        go-version: [ 1.24, 1.25, 1.26 ]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     steps:

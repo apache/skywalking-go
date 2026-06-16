@@ -1,6 +1,6 @@
 module github.com/apache/skywalking-go/plugins/irisv12
 
-go 1.19
+go 1.24
 
 require (
 	github.com/kataras/iris/v12 v12.2.0

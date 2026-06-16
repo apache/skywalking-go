@@ -1,6 +1,6 @@
 module github.com/apache/skywalking-go/plugins/rocketmq
 
-go 1.19
+go 1.24
 
 require (
 	github.com/apache/rocketmq-client-go/v2 v2.1.2 // indirect

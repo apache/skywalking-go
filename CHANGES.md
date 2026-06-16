@@ -12,6 +12,7 @@ Release Notes.
 * Add mutex to fix some data race. 
 * Replace external `goapi` dependency with in-repo generated protocols. 
 * Support pprof profiling. 
+* Align the agent with the supported Go releases (retire EOL Go 1.19-1.23): publish Go 1.24, 1.25, 1.26 base images, bump the module `go.mod` floor to Go 1.24, and run the CI build, plugin, and e2e jobs on Go 1.24-1.26.
 
 #### Plugins
 
