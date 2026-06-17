@@ -22,7 +22,6 @@ package core
 import "embed"
 
 // FS is export the file system for the core module for file copy.
-// go:nolint
 //
 //go:embed *
 var FS embed.FS

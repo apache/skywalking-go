@@ -55,7 +55,7 @@ deps:
 	$(GO_GET) -v -t -d ./...
 
 linter:
-	$(GO_LINT) version || curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GO_PATH)/bin v1.50.0
+	$(GO_LINT) version || curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/v1.64.8/install.sh | sh -s -- -b $(GO_PATH)/bin v1.64.8
 
 ##@ General
 
