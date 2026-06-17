@@ -20,13 +20,13 @@ start-script: ./bin/startup.sh
 framework: github.com/jackc/pgx/v5
 export-port: 8080
 support-version:
-  - go: 1.19
+  - go: 1.24
     framework:
       - v5.5.5
-  - go: 1.20
+  - go: 1.24
     framework:
       - v5.6.0
-  - go: 1.21
+  - go: 1.24
     framework:
       - v5.7.2
 dependencies:

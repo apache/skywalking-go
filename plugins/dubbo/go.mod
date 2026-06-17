@@ -1,6 +1,6 @@
 module github.com/apache/skywalking-go/plugins/dubbo
 
-go 1.19
+go 1.24
 
 require dubbo.apache.org/dubbo-go/v3 v3.0.5
 

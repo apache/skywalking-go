@@ -1,6 +1,6 @@
 module github.com/apache/skywalking-go/plugins/microv4
 
-go 1.19
+go 1.24
 
 require (
 	github.com/Microsoft/go-winio v0.6.0 // indirect
