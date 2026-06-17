@@ -20,27 +20,12 @@ start-script: ./bin/startup.sh
 framework: github.com/go-sql-driver/mysql
 export-port: 8080
 support-version:
-  - go: 1.19
+  - go: 1.24
     framework:
       - v1.4.0
       - v1.4.1
       - v1.5.0
       - v1.6.0
-      - v1.7.1
-  - go: 1.19
-    framework:
-      - v1.7.1
-  - go: 1.20
-    framework:
-      - v1.7.1
-  - go: 1.21
-    framework:
-      - v1.7.1
-  - go: 1.22
-    framework:
-      - v1.7.1
-  - go: 1.23
-    framework:
       - v1.7.1
 dependencies:
   mysql:
