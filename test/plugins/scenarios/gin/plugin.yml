@@ -23,3 +23,9 @@ support-version:
   - go: 1.24
     framework:
       - v1.9.0
+  - go: 1.25
+    framework:
+      - v1.10.1
+  - go: 1.26
+    framework:
+      - v1.10.1

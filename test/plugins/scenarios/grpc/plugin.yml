@@ -30,3 +30,9 @@ support-version:
       - v1.60.0
       - v1.62.0
       - v1.64.0
+  - go: 1.25
+    framework:
+      - v1.81.1
+  - go: 1.26
+    framework:
+      - v1.81.1

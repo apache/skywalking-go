@@ -3,7 +3,7 @@ The following plugins provide the distributed tracing capability, and the OAP ba
 metrics based on the tracing data.
 
 * HTTP Server
-  * `gin`: [Gin](https://github.com/gin-gonic/gin) tested v1.7.0 to v1.9.0.
+  * `gin`: [Gin](https://github.com/gin-gonic/gin) tested v1.7.0 to v1.9.0 and v1.10.1.
   * `http`: [Native HTTP](https://pkg.go.dev/net/http) tested go v1.24 to go v1.26.
   * `go-restfulv3`: [Go-Restful](https://github.com/emicklei/go-restful) tested v3.7.1 to 3.10.2.
   * `mux`: [Mux](https://github.com/gorilla/mux) tested v1.7.0 to v1.8.0.
@@ -19,7 +19,7 @@ metrics based on the tracing data.
   * `dubbo`: [Dubbo](https://github.com/apache/dubbo-go) tested v3.0.1 to v3.0.5.
   * `kratosv2`: [Kratos](https://github.com/go-kratos/kratos) tested v2.3.1 to v2.6.2.
   * `microv4`: [Go-Micro](https://github.com/go-micro/go-micro) tested v4.6.0 to v4.10.2.
-  * `grpc` : [gRPC](https://github.com/grpc/grpc-go) tested v1.55.0 to v1.64.0.
+  * `grpc` : [gRPC](https://github.com/grpc/grpc-go) tested v1.55.0 to v1.64.0 and v1.81.1.
 * Database Client
   * `gorm`: [GORM](https://github.com/go-gorm/gorm) tested v1.22.0 to v1.25.10.
     * [MySQL Driver](https://github.com/go-gorm/mysql)

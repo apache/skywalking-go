@@ -33,6 +33,12 @@ WORKDIR /skywalking-go/test/plugins/workspace/{{.Context.ScenarioName}}/{{.Conte
 RUN echo "replace github.com/apache/skywalking-go/toolkit => ../../../../../toolkit" >> ./go.mod
 {{ end }}
 RUN go mod tidy
+{{ if .GreaterThanGo18 -}}
+# go mod tidy may raise the scenario module's Go directive to a patch release
+# (for example 1.25.0). Refresh the workspace directive so Go does not reject
+# the generated module as requiring a newer version than go.work.
+RUN go work use .
+{{ end }}
 
 ENV GO_BUILD_OPTS=" -toolexec \"/skywalking-go{{.ToolExecPath}}\" -a -work "
 

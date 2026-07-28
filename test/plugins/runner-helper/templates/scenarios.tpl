@@ -19,10 +19,12 @@
 set -ex
 
 compose_version=$(docker-compose version --short)
+compose_major=${compose_version#v}
+compose_major=${compose_major%%.*}
 
-if [[ $compose_version =~ ^(v)?1 ]]; then
+if [[ $compose_major == "1" ]]; then
     separator="_"
-elif [[ $compose_version =~ ^(v)?2 ]]; then
+elif [[ $compose_major =~ ^[0-9]+$ ]] && (( compose_major >= 2 )); then
     separator="-"
 else
     echo "Unsupported Docker Compose version: $compose_version"
