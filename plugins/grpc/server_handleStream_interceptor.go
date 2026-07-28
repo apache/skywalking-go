@@ -18,6 +18,9 @@
 package grpc
 
 import (
+	"context"
+	"fmt"
+
 	"google.golang.org/grpc/metadata"
 
 	"github.com/apache/skywalking-go/plugins/core/operator"
@@ -27,8 +30,20 @@ import (
 type ServerHandleStreamInterceptor struct {
 }
 
+type serverTransportStream interface {
+	Method() string
+	Context() context.Context
+}
+
 func (h *ServerHandleStreamInterceptor) BeforeInvoke(invocation operator.Invocation) error {
-	stream := invocation.Args()[1].(*nativeStream)
+	args := invocation.Args()
+	if len(args) < 2 {
+		return fmt.Errorf("grpc handleStream expects at least 2 arguments, got %d", len(args))
+	}
+	stream, ok := args[1].(serverTransportStream)
+	if !ok {
+		return fmt.Errorf("unsupported grpc server transport stream type %T", args[1])
+	}
 	method := stream.Method()
 	ctx := stream.Context()
 	md, _ := metadata.FromIncomingContext(ctx)
