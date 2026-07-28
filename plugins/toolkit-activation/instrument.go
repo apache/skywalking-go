@@ -115,7 +115,7 @@ func metricPoint() []*instrument.Point {
 }
 
 func tracePoint() []*instrument.Point {
-	return []*instrument.Point{
+	points := []*instrument.Point{
 		{
 			PackagePath: "trace", At: instrument.NewStructEnhance("SpanRef"),
 		},
@@ -167,14 +167,10 @@ func tracePoint() []*instrument.Point {
 			PackagePath: "trace", At: instrument.NewMethodEnhance("*SpanRef", "AddEvent"),
 			Interceptor: "AsyncAddEventInterceptor",
 		},
-		{
-			PackagePath: "trace", At: instrument.NewMethodEnhance("*SpanRef", "End"),
-			Interceptor: "SpanRefEndInterceptor",
-		},
-		{
-			PackagePath: "trace", At: instrument.NewMethodEnhance("*SpanRef", "SetOperationName"),
-			Interceptor: "SpanRefSetOperationNameInterceptor",
-		},
+	}
+	points = append(points, spanRefLifecyclePoints()...)
+
+	return append(points, []*instrument.Point{
 		{
 			PackagePath: "trace", At: instrument.NewStaticMethodEnhance("AddEvent"),
 			Interceptor: "AddEventInterceptor",
@@ -214,6 +210,19 @@ func tracePoint() []*instrument.Point {
 		{
 			PackagePath: "trace", At: instrument.NewStaticMethodEnhance("Error"),
 			Interceptor: "ErrorIntercepter",
+		},
+	}...)
+}
+
+func spanRefLifecyclePoints() []*instrument.Point {
+	return []*instrument.Point{
+		{
+			PackagePath: "trace", At: instrument.NewMethodEnhance("*SpanRef", "End"),
+			Interceptor: "SpanRefEndInterceptor",
+		},
+		{
+			PackagePath: "trace", At: instrument.NewMethodEnhance("*SpanRef", "SetOperationName"),
+			Interceptor: "SpanRefSetOperationNameInterceptor",
 		},
 	}
 }
