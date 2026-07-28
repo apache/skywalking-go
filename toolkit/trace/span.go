@@ -40,6 +40,17 @@ func (*SpanRef) PrepareAsync() {
 func (*SpanRef) AsyncFinish() {
 }
 
+// End finishes the span referenced by SpanRef.
+//
+// End must be called from the goroutine that created the span and in LIFO
+// order. Use PrepareAsync, StopSpan, and AsyncFinish for cross-goroutine work.
+func (*SpanRef) End() {
+}
+
+// SetOperationName resets the operation name of the span referenced by SpanRef.
+func (*SpanRef) SetOperationName(string) {
+}
+
 // nolint
 func (*SpanRef) SetTag(key string, value string) {
 }

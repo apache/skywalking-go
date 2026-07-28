@@ -73,6 +73,22 @@ Use `trace.StopSpan()` API to stop current span
 trace.StopSpan()
 ```
 
+When the application retains the returned `SpanRef`, use `SpanRef.End()` to
+finish that exact span and `SpanRef.SetOperationName()` to rename it:
+
+```go
+spanRef, err := trace.CreateLocalSpan("originalName")
+if err == nil {
+    spanRef.SetOperationName("operationName")
+    spanRef.End()
+}
+```
+
+`SpanRef.End()` must be called from the goroutine that created the span and in
+LIFO order. For cross-goroutine work, use the asynchronous lifecycle described
+below. `trace.StopSpan()` remains available for applications that manage spans
+through the current tracing context.
+
 ### Add Span’s Tag and Log
 
 Use `trace.AddLog()` to record log in span.

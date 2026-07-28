@@ -168,6 +168,14 @@ func tracePoint() []*instrument.Point {
 			Interceptor: "AsyncAddEventInterceptor",
 		},
 		{
+			PackagePath: "trace", At: instrument.NewMethodEnhance("*SpanRef", "End"),
+			Interceptor: "SpanRefEndInterceptor",
+		},
+		{
+			PackagePath: "trace", At: instrument.NewMethodEnhance("*SpanRef", "SetOperationName"),
+			Interceptor: "SpanRefSetOperationNameInterceptor",
+		},
+		{
 			PackagePath: "trace", At: instrument.NewStaticMethodEnhance("AddEvent"),
 			Interceptor: "AddEventInterceptor",
 		},

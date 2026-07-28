@@ -217,6 +217,30 @@ segmentItems:
             logs:
               - logEvent:
                   - { key: debug, value: foo }
+          - operationName: testSpanRefLifecycle_success
+            parentSpanId: 8
+            spanId: 15
+            spanLayer: Unknown
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 0
+            isError: false
+            spanType: Local
+            peer: ''
+            skipAnalysis: false
+            tags:
+              - { key: spanRefLifecycle, value: success }
+          - operationName: testSpanRefLifecycleSibling
+            parentSpanId: 8
+            spanId: 16
+            spanLayer: Unknown
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 0
+            isError: false
+            spanType: Local
+            peer: ''
+            skipAnalysis: false
           - operationName: GET:/consumer
             parentSpanId: -1
             spanId: 0

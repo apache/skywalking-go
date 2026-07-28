@@ -124,3 +124,13 @@ func testAsyncInCrossGoroutine() {
 	}()
 	<-ch
 }
+
+func testSpanRefLifecycle() {
+	span, _ := trace.CreateLocalSpan("testSpanRefLifecycle_failed")
+	span.SetOperationName("testSpanRefLifecycle_success")
+	span.SetTag("spanRefLifecycle", "success")
+	span.End()
+
+	sibling, _ := trace.CreateLocalSpan("testSpanRefLifecycleSibling")
+	sibling.End()
+}

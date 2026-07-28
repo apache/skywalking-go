@@ -43,6 +43,7 @@ func consumerHandler(w http.ResponseWriter, r *http.Request) {
 	testComponent()
 	testAsyncInCrossGoroutine()
 	testEvent()
+	testSpanRefLifecycle()
 }
 
 func main() {
