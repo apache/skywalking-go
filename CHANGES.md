@@ -13,13 +13,17 @@ Release Notes.
 * Replace external `goapi` dependency with in-repo generated protocols. 
 * Support pprof profiling. 
 * Align the agent with the supported Go releases (retire EOL Go 1.19-1.23): publish Go 1.24, 1.25, 1.26 base images, bump the module `go.mod` floor to Go 1.24, and run the CI build, plugin, and e2e jobs on Go 1.24-1.26.
+* Support managing toolkit spans across goroutines through `SpanRef`.
 
 #### Plugins
+
+* Support gRPC v1.81.1 with Go 1.25 and Go 1.26.
 
 #### Documentation
 
 #### Bug Fixes
 
+* Fix gRPC server tracing with recent internal stream types.
 * Fix plugin interceptors bypassed on Windows.
 * Fix wrong tracing context switch when trace ignore plugin activated.
 * Fix data race when sending trace data to reporter.
