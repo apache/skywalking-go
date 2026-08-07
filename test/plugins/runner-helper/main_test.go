@@ -93,10 +93,15 @@ func TestRenderDockerFilePinsAgentToLocalModule(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			want := `RUN echo "replace github.com/apache/skywalking-go => ../../../../../" >> ` +
+			want := "RUN go mod edit -replace=github.com/apache/skywalking-go=../../../../../ " +
 				"test/plugins/workspace/microv4/go1.24-v4.6.0/go.mod"
 			if !strings.Contains(string(content), want) {
 				t.Fatalf("generated Dockerfile does not contain %q:\n%s", want, content)
+			}
+			// Appending the directive would corrupt a go.mod that does not end
+			// with a newline, as test/plugins/scenarios/pulsar/go.mod does not.
+			if strings.Contains(string(content), `"replace github.com/apache/skywalking-go`) {
+				t.Fatalf("generated Dockerfile appends the replace directive instead of using go mod edit:\n%s", content)
 			}
 		})
 	}

@@ -25,14 +25,16 @@ RUN mkdir -p /gotmp
 # `go mod tidy` ignores go.work, so it would otherwise resolve
 # github.com/apache/skywalking-go to the latest released version from the module
 # proxy instead of the code under test. Pin it to the local module explicitly.
-RUN echo "replace github.com/apache/skywalking-go => ../../../../../" >> test/plugins/workspace/{{.Context.ScenarioName}}/{{.Context.CaseName}}/go.mod
+# `go mod edit` is used instead of appending the directive, because not every
+# scenario go.mod ends with a newline.
+RUN go mod edit -replace=github.com/apache/skywalking-go=../../../../../ test/plugins/workspace/{{.Context.ScenarioName}}/{{.Context.CaseName}}/go.mod
 {{ if .GreaterThanGo18 -}}
 RUN go work use test/plugins/workspace/{{.Context.ScenarioName}}/{{.Context.CaseName}}
 {{ end -}}
 
 WORKDIR /skywalking-go/test/plugins/workspace/{{.Context.ScenarioName}}/{{.Context.CaseName}}/
 {{ if .Context.Config.Toolkit -}}
-RUN echo "replace github.com/apache/skywalking-go/toolkit => ../../../../../toolkit" >> ./go.mod
+RUN go mod edit -replace=github.com/apache/skywalking-go/toolkit=../../../../../toolkit
 {{ end }}
 RUN go mod tidy
 {{ if .GreaterThanGo18 -}}
