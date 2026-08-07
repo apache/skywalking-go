@@ -22,10 +22,12 @@ COPY . .
 {{ if .Context.DebugMode -}}
 RUN mkdir -p /gotmp
 {{ end -}}
+# `go mod tidy` ignores go.work, so it would otherwise resolve
+# github.com/apache/skywalking-go to the latest released version from the module
+# proxy instead of the code under test. Pin it to the local module explicitly.
+RUN echo "replace github.com/apache/skywalking-go => ../../../../../" >> test/plugins/workspace/{{.Context.ScenarioName}}/{{.Context.CaseName}}/go.mod
 {{ if .GreaterThanGo18 -}}
 RUN go work use test/plugins/workspace/{{.Context.ScenarioName}}/{{.Context.CaseName}}
-{{ else }}
-RUN echo "replace github.com/apache/skywalking-go => ../../../../../" >> test/plugins/workspace/{{.Context.ScenarioName}}/{{.Context.CaseName}}/go.mod
 {{ end -}}
 
 WORKDIR /skywalking-go/test/plugins/workspace/{{.Context.ScenarioName}}/{{.Context.CaseName}}/
