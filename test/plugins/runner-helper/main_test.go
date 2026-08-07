@@ -93,10 +93,18 @@ func TestRenderDockerFilePinsAgentToLocalModule(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			want := "RUN go mod edit -replace=github.com/apache/skywalking-go=../../../../../ " +
-				"test/plugins/workspace/microv4/go1.24-v4.6.0/go.mod"
-			if !strings.Contains(string(content), want) {
-				t.Fatalf("generated Dockerfile does not contain %q:\n%s", want, content)
+			wants := []string{
+				"RUN go mod edit -replace=github.com/apache/skywalking-go=../../../../../ " +
+					"test/plugins/workspace/microv4/go1.24-v4.6.0/go.mod",
+				// Keeps the pre-split genproto monolith out of the graph, where it
+				// would collide with google.golang.org/genproto/googleapis/rpc.
+				"RUN go mod edit -require=google.golang.org/genproto@v0.0.0-20230530153820-e85fd2cbaebc " +
+					"test/plugins/workspace/microv4/go1.24-v4.6.0/go.mod",
+			}
+			for _, want := range wants {
+				if !strings.Contains(string(content), want) {
+					t.Fatalf("generated Dockerfile does not contain %q:\n%s", want, content)
+				}
 			}
 			// Appending the directive would corrupt a go.mod that does not end
 			// with a newline, as test/plugins/scenarios/pulsar/go.mod does not.

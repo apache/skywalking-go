@@ -28,6 +28,14 @@ RUN mkdir -p /gotmp
 # `go mod edit` is used instead of appending the directive, because not every
 # scenario go.mod ends with a newline.
 RUN go mod edit -replace=github.com/apache/skywalking-go=../../../../../ test/plugins/workspace/{{.Context.ScenarioName}}/{{.Context.CaseName}}/go.mod
+# google.golang.org/genproto moved googleapis/rpc/* into the separate
+# google.golang.org/genproto/googleapis/rpc module on 2023-05-30. Older
+# scenarios drag the pre-split monolith into the graph, where it collides with
+# the split module that google.golang.org/grpc requires, and every import of
+# googleapis/rpc/* then fails with "ambiguous import". Raise the monolith to the
+# first version that no longer carries those packages so the two can coexist.
+# Scenarios that do not need the monolith at all drop it again during tidy.
+RUN go mod edit -require=google.golang.org/genproto@v0.0.0-20230530153820-e85fd2cbaebc test/plugins/workspace/{{.Context.ScenarioName}}/{{.Context.CaseName}}/go.mod
 {{ if .GreaterThanGo18 -}}
 RUN go work use test/plugins/workspace/{{.Context.ScenarioName}}/{{.Context.CaseName}}
 {{ end -}}
