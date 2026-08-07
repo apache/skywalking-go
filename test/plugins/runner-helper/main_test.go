@@ -66,6 +66,55 @@ func TestRenderDockerFileRefreshesWorkspaceGoDirective(t *testing.T) {
 	}
 }
 
+func TestRenderDockerFilePinsAgentToLocalModule(t *testing.T) {
+	// `go mod tidy` ignores go.work, so without an explicit replace the scenario
+	// would resolve github.com/apache/skywalking-go from the module proxy.
+	for _, goVersion := range []string{"1.17", "1.18", "1.25", "1.26"} {
+		t.Run(goVersion, func(t *testing.T) {
+			projectDir := t.TempDir()
+			workspaceDir := filepath.Join(projectDir, "workspace")
+			if err := os.MkdirAll(workspaceDir, 0o755); err != nil {
+				t.Fatal(err)
+			}
+			context := &Context{
+				WorkSpaceDir: workspaceDir,
+				ProjectDir:   projectDir,
+				GoVersion:    goVersion,
+				ScenarioName: "microv4",
+				CaseName:     "go1.24-v4.6.0",
+				GoAgentPath:  filepath.Join(projectDir, "agent"),
+				Config:       &Config{StartScript: "./bin/startup.sh"},
+			}
+
+			if err := RenderDockerFile(context); err != nil {
+				t.Fatal(err)
+			}
+			content, err := os.ReadFile(filepath.Join(workspaceDir, "Dockerfile"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			wants := []string{
+				"RUN go mod edit -replace=github.com/apache/skywalking-go=../../../../../ " +
+					"test/plugins/workspace/microv4/go1.24-v4.6.0/go.mod",
+				// Keeps the pre-split genproto monolith out of the graph, where it
+				// would collide with google.golang.org/genproto/googleapis/rpc.
+				"RUN go mod edit -require=google.golang.org/genproto@v0.0.0-20230530153820-e85fd2cbaebc " +
+					"test/plugins/workspace/microv4/go1.24-v4.6.0/go.mod",
+			}
+			for _, want := range wants {
+				if !strings.Contains(string(content), want) {
+					t.Fatalf("generated Dockerfile does not contain %q:\n%s", want, content)
+				}
+			}
+			// Appending the directive would corrupt a go.mod that does not end
+			// with a newline, as test/plugins/scenarios/pulsar/go.mod does not.
+			if strings.Contains(string(content), `"replace github.com/apache/skywalking-go`) {
+				t.Fatalf("generated Dockerfile appends the replace directive instead of using go mod edit:\n%s", content)
+			}
+		})
+	}
+}
+
 func TestRenderScenariosAcceptsModernComposeMajorVersions(t *testing.T) {
 	workspaceDir := t.TempDir()
 	context := &Context{

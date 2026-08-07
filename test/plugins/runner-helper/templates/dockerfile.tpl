@@ -22,15 +22,27 @@ COPY . .
 {{ if .Context.DebugMode -}}
 RUN mkdir -p /gotmp
 {{ end -}}
+# `go mod tidy` ignores go.work, so it would otherwise resolve
+# github.com/apache/skywalking-go to the latest released version from the module
+# proxy instead of the code under test. Pin it to the local module explicitly.
+# `go mod edit` is used instead of appending the directive, because not every
+# scenario go.mod ends with a newline.
+RUN go mod edit -replace=github.com/apache/skywalking-go=../../../../../ test/plugins/workspace/{{.Context.ScenarioName}}/{{.Context.CaseName}}/go.mod
+# google.golang.org/genproto moved googleapis/rpc/* into the separate
+# google.golang.org/genproto/googleapis/rpc module on 2023-05-30. Older
+# scenarios drag the pre-split monolith into the graph, where it collides with
+# the split module that google.golang.org/grpc requires, and every import of
+# googleapis/rpc/* then fails with "ambiguous import". Raise the monolith to the
+# first version that no longer carries those packages so the two can coexist.
+# Scenarios that do not need the monolith at all drop it again during tidy.
+RUN go mod edit -require=google.golang.org/genproto@v0.0.0-20230530153820-e85fd2cbaebc test/plugins/workspace/{{.Context.ScenarioName}}/{{.Context.CaseName}}/go.mod
 {{ if .GreaterThanGo18 -}}
 RUN go work use test/plugins/workspace/{{.Context.ScenarioName}}/{{.Context.CaseName}}
-{{ else }}
-RUN echo "replace github.com/apache/skywalking-go => ../../../../../" >> test/plugins/workspace/{{.Context.ScenarioName}}/{{.Context.CaseName}}/go.mod
 {{ end -}}
 
 WORKDIR /skywalking-go/test/plugins/workspace/{{.Context.ScenarioName}}/{{.Context.CaseName}}/
 {{ if .Context.Config.Toolkit -}}
-RUN echo "replace github.com/apache/skywalking-go/toolkit => ../../../../../toolkit" >> ./go.mod
+RUN go mod edit -replace=github.com/apache/skywalking-go/toolkit=../../../../../toolkit
 {{ end }}
 RUN go mod tidy
 {{ if .GreaterThanGo18 -}}
