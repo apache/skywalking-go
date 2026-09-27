@@ -64,9 +64,7 @@ retries apply only to the idempotent `reportInstanceProperties` RPC on
 
 RPC deadlines and stream cancellation bound individual operations. Bound send
 timeouts and connection-state watchers help unblock half-open peers so
-`pick_first` can move to a standby. Multi-address connections bypass
-`HTTP_PROXY` / `HTTPS_PROXY`; provide a direct network route to the OAP ports.
-The single-address path retains its existing proxy behavior.
+`pick_first` can move to a standby.
 
 ### TLS ServerName per address
 

@@ -268,8 +268,10 @@ func (r *gRPCReporter) initSendPipeline() {
 					continue StreamLoop
 				}
 			}
-			cancel()
+			// Graceful drain: CloseAndRecv before cancel so OAP can ack in-flight
+			// data. BoundSend still cancels if close hangs.
 			r.closeTracingStream(cancel, stream)
+			cancel()
 			r.closeGRPCConn()
 			break
 		}
@@ -319,8 +321,8 @@ func (r *gRPCReporter) initSendPipeline() {
 					continue StreamLoop
 				}
 			}
-			cancel()
 			r.closeMetricsStream(cancel, stream)
+			cancel()
 			break
 		}
 	}()
@@ -365,8 +367,8 @@ func (r *gRPCReporter) initSendPipeline() {
 					continue StreamLoop
 				}
 			}
-			cancel()
 			r.closeLogStream(cancel, stream)
+			cancel()
 			break
 		}
 	}()
@@ -436,8 +438,8 @@ func (r *gRPCReporter) initSendPipeline() {
 					}
 				}
 			}
-			cancel()
 			r.closeProfileStream(cancel, stream)
+			cancel()
 			break
 		}
 	}()

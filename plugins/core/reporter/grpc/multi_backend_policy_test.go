@@ -18,7 +18,6 @@ package grpc
 
 import (
 	"context"
-	"io"
 	"net"
 	"sync/atomic"
 	"testing"
@@ -43,16 +42,13 @@ type failingAcknowledgementServer struct {
 
 func (s *failingAcknowledgementServer) Collect(stream agentv3.TraceSegmentReportService_CollectServer) error {
 	s.calls.Add(1)
-	for {
-		_, err := stream.Recv()
-		if err == io.EOF {
-			return status.Error(s.code, "collector failed after receiving the segment")
-		}
-		if err != nil {
-			return err
-		}
-		s.count.Add(1)
+	_, err := stream.Recv()
+	if err != nil {
+		return err
 	}
+	s.count.Add(1)
+	// Fail while the client stream is still active (not only after CloseAndRecv).
+	return status.Error(s.code, "collector failed after receiving the segment")
 }
 
 func serveFailingAcknowledgements(t *testing.T, server *failingAcknowledgementServer) string {
@@ -77,69 +73,107 @@ func TestMultiBackendDoesNotReplayOrRotateOnRPCError(t *testing.T) {
 		codes.Unauthenticated, codes.PermissionDenied,
 	} {
 		t.Run(code.String(), func(t *testing.T) {
-			server := &failingAcknowledgementServer{code: code}
-			peer := &failingAcknowledgementServer{code: code}
-			backends := serveFailingAcknowledgements(t, server) + "," + serveFailingAcknowledgements(t, peer)
-
-			oldTimeout, oldGrace := reporter.BoundSendTimeoutForTest(), reporter.BoundSendCancelGraceForTest()
-			reporter.SetBoundSendTimeoutForTest(400 * time.Millisecond)
-			reporter.SetBoundSendCancelGraceForTest(100 * time.Millisecond)
-			t.Cleanup(func() {
-				reporter.SetBoundSendTimeoutForTest(oldTimeout)
-				reporter.SetBoundSendCancelGraceForTest(oldGrace)
-			})
-
-			logger := &capturingLogger{}
-			auth := ""
-			if code == codes.Unauthenticated || code == codes.PermissionDenied {
-				auth = "token"
-			}
-			cm, err := reporter.NewConnectionManager(logger, time.Second, backends, auth, nil)
-			if err != nil {
-				t.Fatal(err)
-			}
-			t.Cleanup(cm.Close)
-			conn, err := cm.GetConnection(backends)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if _, holdErr := cm.GetConnection(backends); holdErr != nil {
-				t.Fatal(holdErr)
-			}
-
-			cds, cdsErr := reporter.NewCDSManager(logger, backends, 0, cm)
-			if cdsErr != nil {
-				t.Fatal(cdsErr)
-			}
-			pprof, pprofErr := reporter.NewPprofTaskManager(logger, backends, time.Hour, cm, t.TempDir())
-			if pprofErr != nil {
-				t.Fatal(pprofErr)
-			}
-			rep, repErr := NewGRPCReporter(logger, backends, time.Second, time.Hour, cm, cds, pprof)
-			if repErr != nil {
-				t.Fatal(repErr)
-			}
-			r := rep.(*gRPCReporter)
-			entity := &reporter.Entity{ServiceName: "policy", ServiceInstanceName: "inst"}
-			r.entity = entity
-			r.transform = reporter.NewTransform(entity)
-			r.initSendPipeline()
-			t.Cleanup(func() { r.Close() })
-
-			r.tracingSendCh <- &agentv3.SegmentObject{TraceId: "first", TraceSegmentId: "first"}
-			r.tracingSendCh <- &agentv3.SegmentObject{TraceId: "second", TraceSegmentId: "second"}
-			deadline := time.Now().Add(5 * time.Second)
-			for time.Now().Before(deadline) && server.count.Load()+peer.count.Load() < 2 {
-				time.Sleep(20 * time.Millisecond)
-			}
-			got := server.count.Load() + peer.count.Load()
-			if got != 2 {
-				t.Fatalf("collectors received %d segments, want exactly 2 without replay", got)
-			}
-			if cm.PeekConnection(backends) != conn {
-				t.Fatal("RPC path replaced the shared channel")
-			}
+			runNoReplayOnRPCErrorCase(t, code)
 		})
+	}
+}
+
+type noReplayFixture struct {
+	server *failingAcknowledgementServer
+	peer   *failingAcknowledgementServer
+	cm     *reporter.ConnectionManager
+	conn   *grpc.ClientConn
+	r      *gRPCReporter
+}
+
+func setupNoReplayHarness(t *testing.T, code codes.Code) noReplayFixture {
+	t.Helper()
+	server := &failingAcknowledgementServer{code: code}
+	peer := &failingAcknowledgementServer{code: code}
+	backends := serveFailingAcknowledgements(t, server) + "," + serveFailingAcknowledgements(t, peer)
+
+	oldTimeout := reporter.BoundSendTimeoutForTest()
+	reporter.SetBoundSendTimeoutForTest(400 * time.Millisecond)
+	t.Cleanup(func() { reporter.SetBoundSendTimeoutForTest(oldTimeout) })
+
+	auth := ""
+	if code == codes.Unauthenticated || code == codes.PermissionDenied {
+		auth = "token"
+	}
+	logger := &capturingLogger{}
+	cm, err := reporter.NewConnectionManager(logger, time.Second, backends, auth, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(cm.Close)
+	conn, err := cm.GetConnection(backends)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, holdErr := cm.GetConnection(backends); holdErr != nil {
+		t.Fatal(holdErr)
+	}
+	cds, cdsErr := reporter.NewCDSManager(logger, backends, 0, cm)
+	if cdsErr != nil {
+		t.Fatal(cdsErr)
+	}
+	pprof, pprofErr := reporter.NewPprofTaskManager(logger, backends, time.Hour, cm, t.TempDir())
+	if pprofErr != nil {
+		t.Fatal(pprofErr)
+	}
+	rep, repErr := NewGRPCReporter(logger, backends, time.Second, time.Hour, cm, cds, pprof)
+	if repErr != nil {
+		t.Fatal(repErr)
+	}
+	r := rep.(*gRPCReporter)
+	entity := &reporter.Entity{ServiceName: "policy", ServiceInstanceName: "inst"}
+	r.entity = entity
+	r.transform = reporter.NewTransform(entity)
+	r.initSendPipeline()
+	t.Cleanup(func() { r.Close() })
+	return noReplayFixture{server: server, peer: peer, cm: cm, conn: conn, r: r}
+}
+
+func runNoReplayOnRPCErrorCase(t *testing.T, code codes.Code) {
+	t.Helper()
+	f := setupNoReplayHarness(t, code)
+	segCount := func() int32 { return f.server.count.Load() + f.peer.count.Load() }
+	segCalls := func() int32 { return f.server.calls.Load() + f.peer.calls.Load() }
+
+	f.r.tracingSendCh <- &agentv3.SegmentObject{TraceId: "first", TraceSegmentId: "first"}
+	waitUntil(t, 5*time.Second, func() bool { return segCount() >= 1 })
+	if segCount() != 1 {
+		t.Fatalf("first segment not received")
+	}
+
+	// Next Send observes the stream RPC error, discards this probe, reopens Collect.
+	f.r.tracingSendCh <- &agentv3.SegmentObject{TraceId: "probe", TraceSegmentId: "probe"}
+	waitUntil(t, 5*time.Second, func() bool { return segCalls() >= 2 })
+	if segCount() != 1 {
+		t.Fatalf("collectors received %d segments, want 1 (no replay after RPC error)", segCount())
+	}
+	if segCalls() < 2 {
+		t.Fatalf("Collect opened %d times, want >=2 after RPC error reconnect", segCalls())
+	}
+	if f.cm.PeekConnection(f.r.serverAddr) != f.conn {
+		t.Fatal("RPC path replaced the shared channel")
+	}
+
+	f.r.tracingSendCh <- &agentv3.SegmentObject{TraceId: "second", TraceSegmentId: "second"}
+	waitUntil(t, 5*time.Second, func() bool { return segCount() >= 2 })
+	if segCount() != 2 {
+		t.Fatalf("after reconnect collectors received %d, want 2", segCount())
+	}
+}
+
+func waitUntil(t *testing.T, timeout time.Duration, ok func() bool) {
+	t.Helper()
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		if ok() {
+			return
+		}
+		time.Sleep(20 * time.Millisecond)
 	}
 }
 

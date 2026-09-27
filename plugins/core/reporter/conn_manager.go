@@ -22,7 +22,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"net"
 	"os"
 	"strings"
 	"sync"
@@ -236,8 +235,6 @@ func (cm *ConnectionManager) multiBackendDialOptions(backends []string) (string,
 	opts := []grpc.DialOption{
 		grpc.WithResolvers(builder),
 		grpc.WithDefaultServiceConfig(multiBackendServiceConfig),
-		// Bypass HTTP(S) proxy for multi-address channels.
-		grpc.WithContextDialer(directTCPContextDialer),
 	}
 	if cm.authFailures != nil {
 		opts = append(opts,
@@ -268,34 +265,16 @@ func (cm *ConnectionManager) ResolvedBackendAddresses() []string {
 	return append([]string(nil), cm.resolvedBackendAddrs...)
 }
 
-func directTCPContextDialer(ctx context.Context, addr string) (net.Conn, error) {
-	// Bound dial so pick_first can leave a blackhole first address quickly.
-	// TCP keepalive helps, but half-open peers can still look Ready for a long
-	// time — BoundSend bounds stream Send so failover is not stuck.
-	d := &net.Dialer{Timeout: multiBackendDialTimeout, KeepAlive: 10 * time.Second}
-	return d.DialContext(ctx, "tcp", addr)
-}
-
-// boundSendTimeoutNs / boundSendCancelGraceNs are atomic so tests can shorten
-// BoundSend without racing pipeline goroutines that still read the defaults.
-var (
-	boundSendTimeoutNs     atomic.Int64
-	boundSendCancelGraceNs atomic.Int64
-)
+// boundSendTimeoutNs is atomic so tests can shorten BoundSend without racing
+// pipeline goroutines that still read the default.
+var boundSendTimeoutNs atomic.Int64
 
 func init() {
 	boundSendTimeoutNs.Store(int64(8 * time.Second))
-	boundSendCancelGraceNs.Store(int64(2 * time.Second))
 }
-
-var errBoundSendTimeout = fmt.Errorf("bound send timed out")
 
 func boundSendTimeout() time.Duration {
 	return time.Duration(boundSendTimeoutNs.Load())
-}
-
-func boundSendCancelGrace() time.Duration {
-	return time.Duration(boundSendCancelGraceNs.Load())
 }
 
 // BoundSendTimeoutForTest / SetBoundSendTimeoutForTest let unit tests exercise
@@ -304,73 +283,30 @@ func BoundSendTimeoutForTest() time.Duration { return boundSendTimeout() }
 func SetBoundSendTimeoutForTest(d time.Duration) {
 	boundSendTimeoutNs.Store(int64(d))
 }
-func BoundSendCancelGraceForTest() time.Duration { return boundSendCancelGrace() }
-func SetBoundSendCancelGraceForTest(d time.Duration) {
-	boundSendCancelGraceNs.Store(int64(d))
-}
 
-// Aliases retained for existing tests.
-func MultiBackendSendTimeoutForTest() time.Duration     { return BoundSendTimeoutForTest() }
-func SetMultiBackendSendTimeoutForTest(d time.Duration) { SetBoundSendTimeoutForTest(d) }
-func MultiBackendSendCancelGraceForTest() time.Duration {
-	return BoundSendCancelGraceForTest()
-}
-func SetMultiBackendSendCancelGraceForTest(d time.Duration) {
-	SetBoundSendCancelGraceForTest(d)
-}
+// Deprecated no-ops retained so existing tests compile; BoundSend no longer
+// uses a post-cancel grace period.
+func BoundSendCancelGraceForTest() time.Duration            { return 0 }
+func SetBoundSendCancelGraceForTest(time.Duration)          {}
+func MultiBackendSendTimeoutForTest() time.Duration         { return BoundSendTimeoutForTest() }
+func SetMultiBackendSendTimeoutForTest(d time.Duration)     { SetBoundSendTimeoutForTest(d) }
+func MultiBackendSendCancelGraceForTest() time.Duration     { return BoundSendCancelGraceForTest() }
+func SetMultiBackendSendCancelGraceForTest(d time.Duration) { SetBoundSendCancelGraceForTest(d) }
 
-// BoundSend bounds a Collect Send/CloseAndRecv with a stream-context deadline:
-// after timeout it invokes cancel (same effect as ctx deadline). Send still runs
-// in one helper goroutine so a half-open peer that ignores cancel cannot block
-// the reporter past timeout+grace.
-//
-// The buffered result lets the worker finish after the caller times out.
-// Recover in the worker and re-panic in the caller so reporter recovery still
-// protects the application from protobuf encoding panics.
+// BoundSend cancels the stream context if send takes longer than timeout.
+// grpc-go SendMsg/CloseAndRecv return once the stream context is canceled, so
+// a watchdog cancel is enough — no helper goroutine on the hot path.
+// Panics from send propagate to the caller for sendWithRecover.
 func BoundSend(cancel context.CancelFunc, send func() error, timeout time.Duration) error {
 	if timeout <= 0 {
 		timeout = boundSendTimeout()
 	}
-	type sendResult struct {
-		err        error
-		panicValue interface{}
+	if cancel == nil {
+		return send()
 	}
-	done := make(chan sendResult, 1)
-	go func() {
-		result := sendResult{}
-		defer func() {
-			result.panicValue = recover()
-			done <- result
-		}()
-		result.err = send()
-	}()
-	timer := time.NewTimer(timeout)
-	defer timer.Stop()
-	select {
-	case result := <-done:
-		if result.panicValue != nil {
-			panic(result.panicValue)
-		}
-		return result.err
-	case <-timer.C:
-		if cancel != nil {
-			cancel()
-		}
-		grace := time.NewTimer(boundSendCancelGrace())
-		defer grace.Stop()
-		select {
-		case result := <-done:
-			if result.panicValue != nil {
-				panic(result.panicValue)
-			}
-			if result.err != nil {
-				return result.err
-			}
-			return errBoundSendTimeout
-		case <-grace.C:
-			return errBoundSendTimeout
-		}
-	}
+	watchdog := time.AfterFunc(timeout, cancel)
+	defer watchdog.Stop()
+	return send()
 }
 
 // MultiBackendSend is an alias for BoundSend.
@@ -466,15 +402,9 @@ func (cm *ConnectionManager) checkConnectionStatus(serverAddr string) {
 			return
 		}
 		conn := managed.connection
-		multi := cm.multiBackend
-		checkInterval := cm.checkInterval
 		cm.mu.Unlock()
 
 		state := conn.GetState()
-		// Nudge idle/TF channels so pick_first can migrate off a dead backend.
-		if multi && (state == connectivity.Idle || state == connectivity.TransientFailure) {
-			conn.Connect()
-		}
 		var newStatus ConnectionStatus
 		switch state {
 		case connectivity.TransientFailure:
@@ -483,7 +413,7 @@ func (cm *ConnectionManager) checkConnectionStatus(serverAddr string) {
 			newStatus = ConnectionStatusShutdown
 		default:
 			// Idle, Connecting, and Ready all report Connected so pipeline loops
-			// keep trying Collect while the transport recovers.
+			// keep trying Collect; the next RPC wakes Idle without a Connect nudge.
 			newStatus = ConnectionStatusConnected
 		}
 		cm.mu.Lock()
@@ -497,11 +427,7 @@ func (cm *ConnectionManager) checkConnectionStatus(serverAddr string) {
 			current.status = newStatus
 		}
 		cm.mu.Unlock()
-		interval := 5 * time.Second
-		if multi && checkInterval > 0 {
-			interval = checkInterval
-		}
-		time.Sleep(interval)
+		time.Sleep(5 * time.Second)
 	}
 }
 
@@ -547,7 +473,7 @@ func (cm *ConnectionManager) GetConnectionStatus(serverAddr string) ConnectionSt
 		return ConnectionStatusShutdown
 	}
 	// Reflect a closed ClientConn immediately; the background checker may still
-	// be sleeping on checkInterval before it writes Shutdown into managed.status.
+	// be between polls before it writes Shutdown into managed.status.
 	if managed.connection != nil && managed.connection.GetState() == connectivity.Shutdown {
 		managed.status = ConnectionStatusShutdown
 	}

@@ -388,11 +388,15 @@ func TestConnectionManagerFailoverAfterActiveStops(t *testing.T) {
 	if err != nil {
 		t.Fatalf("listen b: %v", err)
 	}
-	defer bLis.Close()
 	bAddr := bLis.Addr().String()
 	bGS := grpc.NewServer()
 	go func() { _ = bGS.Serve(bLis) }()
-	defer bGS.Stop()
+	t.Cleanup(func() {
+		aGS.Stop()
+		_ = aLis.Close()
+		bGS.Stop()
+		_ = bLis.Close()
+	})
 
 	backends := aAddr + "," + bAddr
 	cm, err := NewConnectionManager(nil, time.Second, backends, "", nil)
@@ -408,8 +412,21 @@ func TestConnectionManagerFailoverAfterActiveStops(t *testing.T) {
 		return conn.GetState() == connectivity.Ready
 	}, 8*time.Second)
 
-	aGS.Stop()
-	_ = aLis.Close()
+	// pick_first uses the shuffled resolver order; stop the active (first) peer.
+	resolved := cm.ResolvedBackendAddresses()
+	if len(resolved) == 0 {
+		t.Fatal("expected published resolver addresses")
+	}
+	switch resolved[0] {
+	case aAddr:
+		aGS.Stop()
+		_ = aLis.Close()
+	case bAddr:
+		bGS.Stop()
+		_ = bLis.Close()
+	default:
+		t.Fatalf("unexpected active address %q", resolved[0])
+	}
 
 	waitFor(t, func() bool {
 		return conn.GetState() == connectivity.Ready

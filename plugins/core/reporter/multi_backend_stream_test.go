@@ -163,20 +163,34 @@ func TestBoundSendCancelsOnTimeout(t *testing.T) {
 	}
 }
 
-func TestBoundSendReturnsWhenSendIgnoresCancel(t *testing.T) {
-	// Half-open peers may not unblock Send/CloseAndRecv after ctx cancel.
-	// BoundSend must still return so the reporter can recreate + standby.
-	start := time.Now()
-	err := BoundSend(func() {}, func() error {
-		time.Sleep(30 * time.Second)
-		return nil
-	}, 50*time.Millisecond)
-	elapsed := time.Since(start)
-	if err == nil {
-		t.Fatal("expected timeout error when send ignores cancel")
+func TestBoundSendWatchdogInvokesCancel(t *testing.T) {
+	// Watchdog cancel is what unblocks real gRPC SendMsg; verify it fires.
+	canceled := make(chan struct{})
+	cancel := func() {
+		select {
+		case <-canceled:
+		default:
+			close(canceled)
+		}
 	}
-	if elapsed > 5*time.Second {
-		t.Fatalf("BoundSend blocked too long after cancel: %v", elapsed)
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- BoundSend(cancel, func() error {
+			select {
+			case <-canceled:
+				return context.Canceled
+			case <-time.After(5 * time.Second):
+				return nil
+			}
+		}, 50*time.Millisecond)
+	}()
+	select {
+	case err := <-errCh:
+		if err == nil {
+			t.Fatal("expected canceled send error")
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("BoundSend did not return after watchdog cancel")
 	}
 }
 
