@@ -156,6 +156,8 @@ func setupMultiReporter(t *testing.T, backends string) *gRPCReporter {
 	gr.transform = reporter.NewTransform(entity)
 	gr.initSendPipeline()
 	gr.bootFlag = true
+	// Close the reporter before restoring BoundSend timeouts so pipeline
+	// goroutines are not still reading those atomics during Cleanup.
 	t.Cleanup(func() { gr.Close() })
 	return gr
 }
@@ -227,7 +229,7 @@ func TestMultiBackendReporterAutoFailsOverAfterActiveStops(t *testing.T) {
 }
 
 // TestMultiBackendReporterMetricsAndLogFailOver covers CollectBatch / log Collect
-// reconnect after active stop (Codex: not only trace).
+// reconnect after active stop.
 func TestMultiBackendReporterMetricsAndLogFailOver(t *testing.T) {
 	a := serveBackendMocks(t)
 	b := serveBackendMocks(t)

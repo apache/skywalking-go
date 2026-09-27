@@ -133,7 +133,7 @@ func main() {
 	http.HandleFunc("/correlation", correlationHandler)
 	// Lightweight probes for multi-backend failover e2e (no downstream call).
 	// Unique /sw-failover-probe/{token} paths identify the active collector
-	// (Node remote-e2e/static-failover style) without relying on buffered /info.
+	// without relying on buffered /info.
 	http.HandleFunc("/sw-failover-probe", failoverProbeHandler)
 	http.HandleFunc("/sw-failover-probe/", failoverProbeHandler)
 

@@ -162,7 +162,10 @@ func (i *Instrument) generateReporterInitFile(dir, reporterType string) (string,
 		reporterInitTemplate += `
 	_, cdsManager, _, err := initManager(logger, checkInterval)
 	if err == errNoValidBackendService {
-		return NewDiscardReporter(), nil
+		if logger != nil {
+			logger.Warnf("%v; Kafka reporter continues without CDS", err)
+		}
+		return initKafkaReporter(logger, checkInterval, nil)
 	}
 	if err != nil {
 		return nil, err

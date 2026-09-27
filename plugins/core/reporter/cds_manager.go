@@ -18,7 +18,6 @@
 package reporter
 
 import (
-	"context"
 	"time"
 
 	"github.com/apache/skywalking-go/plugins/core/operator"
@@ -79,14 +78,7 @@ func (r *CDSManager) InitCDS(entity *Entity, cdsWatchers []AgentConfigChangeWatc
 				continue
 			}
 
-			ctx := context.Background()
-			cancel := func() {}
-			if r.connManager.IsMultiBackend() {
-				ctx, cancel = BackendRPCContext(r.serverAddr, r.cdsInterval)
-				if conn := r.connManager.PeekConnection(r.serverAddr); conn != nil {
-					r.cdsClient = configuration.NewConfigurationDiscoveryServiceClient(conn)
-				}
-			}
+			ctx, cancel := BackendRPCContext(r.serverAddr, r.cdsInterval)
 			configurations, err := r.cdsClient.FetchConfigurations(ctx, &configuration.ConfigurationSyncRequest{
 				Service: r.entity.ServiceName,
 				Uuid:    r.cdsService.UUID,

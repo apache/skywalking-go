@@ -88,7 +88,7 @@ func TestMultiBackendCollectSendFailsOverAfterActiveStops(t *testing.T) {
 	go WatchConnCancelOnUnready(ctx, cancel, conn)
 
 	seg := &agentv3.SegmentObject{TraceId: "t1", TraceSegmentId: "s1"}
-	if sendErr := MultiBackendSend(cancel, func() error { return stream.Send(seg) }, time.Second); sendErr != nil {
+	if sendErr := BoundSend(cancel, func() error { return stream.Send(seg) }, time.Second); sendErr != nil {
 		t.Fatalf("initial Send: %v", sendErr)
 	}
 	waitFor(t, func() bool { return aSrv.count.Load()+bSrv.count.Load() >= 1 }, 5*time.Second)
@@ -104,8 +104,8 @@ func TestMultiBackendCollectSendFailsOverAfterActiveStops(t *testing.T) {
 		standby = aSrv
 	}
 
-	// Bound Send: either errors quickly or is canceled by MultiBackendSend.
-	_ = MultiBackendSend(cancel, func() error {
+	// Bound Send: either errors quickly or is canceled by BoundSend.
+	_ = BoundSend(cancel, func() error {
 		return stream.Send(&agentv3.SegmentObject{TraceId: "t2", TraceSegmentId: "s2"})
 	}, 2*time.Second)
 	cancel()
@@ -151,10 +151,10 @@ func serveTrace(t *testing.T, srv agentv3.TraceSegmentReportServiceServer) (net.
 	return lis, gs
 }
 
-func TestMultiBackendSendCancelsOnTimeout(t *testing.T) {
+func TestBoundSendCancelsOnTimeout(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	err := MultiBackendSend(cancel, func() error {
+	err := BoundSend(cancel, func() error {
 		<-ctx.Done()
 		return ctx.Err()
 	}, 50*time.Millisecond)
@@ -163,11 +163,11 @@ func TestMultiBackendSendCancelsOnTimeout(t *testing.T) {
 	}
 }
 
-func TestMultiBackendSendReturnsWhenSendIgnoresCancel(t *testing.T) {
+func TestBoundSendReturnsWhenSendIgnoresCancel(t *testing.T) {
 	// Half-open peers may not unblock Send/CloseAndRecv after ctx cancel.
-	// MultiBackendSend must still return so the reporter can recreate + standby.
+	// BoundSend must still return so the reporter can recreate + standby.
 	start := time.Now()
-	err := MultiBackendSend(func() {}, func() error {
+	err := BoundSend(func() {}, func() error {
 		time.Sleep(30 * time.Second)
 		return nil
 	}, 50*time.Millisecond)
@@ -176,7 +176,7 @@ func TestMultiBackendSendReturnsWhenSendIgnoresCancel(t *testing.T) {
 		t.Fatal("expected timeout error when send ignores cancel")
 	}
 	if elapsed > 5*time.Second {
-		t.Fatalf("MultiBackendSend blocked too long after cancel: %v", elapsed)
+		t.Fatalf("BoundSend blocked too long after cancel: %v", elapsed)
 	}
 }
 
@@ -204,7 +204,7 @@ func TestMultiBackendStatusReflectsConnClose(t *testing.T) {
 	}
 }
 
-func TestMultiBackendSendPanicReachesCaller(t *testing.T) {
+func TestBoundSendPanicReachesCaller(t *testing.T) {
 	for _, afterCancel := range []bool{false, true} {
 		name := "immediate"
 		if afterCancel {
@@ -216,7 +216,7 @@ func TestMultiBackendSendPanicReachesCaller(t *testing.T) {
 			var recovered interface{}
 			func() {
 				defer func() { recovered = recover() }()
-				_ = MultiBackendSend(cancel, func() error {
+				_ = BoundSend(cancel, func() error {
 					if afterCancel {
 						<-ctx.Done()
 					}
@@ -226,7 +226,7 @@ func TestMultiBackendSendPanicReachesCaller(t *testing.T) {
 			if recovered != "protobuf marshal panic" {
 				t.Fatalf("caller recovered %v, want original panic", recovered)
 			}
-			if err := MultiBackendSend(cancel, func() error { return nil }, time.Second); err != nil {
+			if err := BoundSend(cancel, func() error { return nil }, time.Second); err != nil {
 				t.Fatalf("next send failed: %v", err)
 			}
 		})

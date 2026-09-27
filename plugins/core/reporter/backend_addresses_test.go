@@ -97,7 +97,7 @@ func hasExactAddresses(state resolver.State, want []string) bool {
 	return reflect.DeepEqual(got, want)
 }
 
-func TestBackendAuthorityFollowsFirstConfiguredEndpoint(t *testing.T) {
+func TestBackendResolverServerNamePerAddress(t *testing.T) {
 	cases := map[string][]string{
 		"hostnames": {testBackendAddrA, testBackendAddrB},
 		"mixed":     {testIPLiteralAddr, testBackendAddr},
@@ -106,16 +106,17 @@ func TestBackendAuthorityFollowsFirstConfiguredEndpoint(t *testing.T) {
 	}
 	for name, backends := range cases {
 		t.Run(name, func(t *testing.T) {
-			if got := firstBackendAuthority(backends); got != backends[0] {
-				t.Fatalf("authority=%q, want %q", got, backends[0])
-			}
 			addrs := configuredAddressesAsResolverState(backends)
 			if !hasExactAddresses(resolver.State{Addresses: addrs}, backends) {
 				t.Fatalf("addresses=%+v", addrs)
 			}
-			for _, addr := range addrs {
-				if addr.ServerName != "" {
-					t.Fatalf("endpoint %q overrides fixed authority with %q", addr.Addr, addr.ServerName)
+			for i, addr := range addrs {
+				host, _, err := net.SplitHostPort(backends[i])
+				if err != nil {
+					t.Fatalf("split %q: %v", backends[i], err)
+				}
+				if addr.ServerName != host {
+					t.Fatalf("endpoint %q ServerName=%q, want %q", addr.Addr, addr.ServerName, host)
 				}
 			}
 		})
@@ -239,42 +240,34 @@ func TestMultiBackendChannelAuthority(t *testing.T) {
 	defer b.Close()
 	defer bServer.Stop()
 	backends := "invalid," + a.Addr().String() + "," + b.Addr().String()
-	for _, override := range []string{"", "common.example.com"} {
-		t.Run("override="+override, func(t *testing.T) {
-			creds := &recordingAuthorityCredentials{
-				TransportCredentials: insecure.NewCredentials(), serverName: override, authorities: make(chan string, 10),
-			}
-			logger := &captureAuthLogger{}
-			cm, err := NewConnectionManager(logger, time.Second, backends, "", creds)
-			if err != nil {
-				t.Fatal(err)
-			}
-			defer cm.Close()
-			if _, err := cm.GetConnection(backends); err != nil {
-				t.Fatal(err)
-			}
-			want := a.Addr().String()
-			if override != "" {
-				want = override
-			}
-			select {
-			case got := <-creds.authorities:
-				if got != want {
-					t.Fatalf("handshake authority=%q, want %q", got, want)
-				}
-			case <-time.After(5 * time.Second):
-				t.Fatal("transport handshake did not start")
-			}
-			if !cm.IsMultiBackend() {
-				t.Fatal("two valid endpoints must use the multi-backend policy")
-			}
-			if _, err := cm.GetConnection(backends); err != nil {
-				t.Fatal(err)
-			}
-			if len(logger.warnings) != 1 || !strings.Contains(logger.warnings[0], "invalid") || len(logger.errors) != 0 {
-				t.Fatalf("warnings=%v errors=%v", logger.warnings, logger.errors)
-			}
-		})
+	aHost, _, _ := net.SplitHostPort(a.Addr().String())
+	bHost, _, _ := net.SplitHostPort(b.Addr().String())
+	creds := &recordingAuthorityCredentials{
+		TransportCredentials: insecure.NewCredentials(), authorities: make(chan string, 10),
+	}
+	logger := &captureAuthLogger{}
+	cm, err := NewConnectionManager(logger, time.Second, backends, "", creds)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cm.Close()
+	if _, err := cm.GetConnection(backends); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case got := <-creds.authorities:
+		// Per-address ServerName uses the endpoint host (IP literal here).
+		if got != aHost && got != bHost {
+			t.Fatalf("handshake authority=%q, want %q or %q", got, aHost, bHost)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("transport handshake did not start")
+	}
+	if !cm.IsMultiBackend() {
+		t.Fatal("two valid endpoints must use the multi-backend policy")
+	}
+	if len(logger.warnings) != 1 || !strings.Contains(logger.warnings[0], "invalid") || len(logger.errors) != 0 {
+		t.Fatalf("warnings=%v errors=%v", logger.warnings, logger.errors)
 	}
 }
 
@@ -490,8 +483,8 @@ func TestConnectionManagerNoValidBackends(t *testing.T) {
 			if len(logger.warnings) != tc.warnings || len(logger.errors) != 0 {
 				t.Fatalf("warnings=%v errors=%v", logger.warnings, logger.errors)
 			}
-			if !strings.Contains(logger.warnings[len(logger.warnings)-1], "reporter is disabled") {
-				t.Fatalf("missing disabled warning: %v", logger.warnings)
+			if !strings.Contains(logger.warnings[len(logger.warnings)-1], "no valid backend") {
+				t.Fatalf("missing no-valid warning: %v", logger.warnings)
 			}
 		})
 	}

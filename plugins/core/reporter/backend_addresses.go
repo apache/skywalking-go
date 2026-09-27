@@ -97,20 +97,18 @@ func isIPLiteralHost(host string) bool {
 	return net.ParseIP(host) != nil
 }
 
-// firstBackendAuthority keeps the first valid configured endpoint, including its port,
-// as the channel authority regardless of the shuffled dial order.
-func firstBackendAuthority(backends []string) string {
-	if len(backends) == 0 {
-		return ""
-	}
-	return backends[0]
-}
-
+// configuredAddressesAsResolverState builds resolver addresses with ServerName
+// set from each endpoint's host so TLS SNI / certificate verification follows
+// the dialed backend rather than a fixed channel authority.
 func configuredAddressesAsResolverState(backends []string) []resolver.Address {
 	addresses := make([]resolver.Address, 0, len(backends))
 	for _, cfg := range backends {
-		// Inherit the fixed channel authority or explicit credential override.
-		addresses = append(addresses, resolver.Address{Addr: cfg})
+		host, _, err := net.SplitHostPort(cfg)
+		if err != nil {
+			addresses = append(addresses, resolver.Address{Addr: cfg})
+			continue
+		}
+		addresses = append(addresses, resolver.Address{Addr: cfg, ServerName: host})
 	}
 	return addresses
 }

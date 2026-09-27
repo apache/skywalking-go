@@ -20,14 +20,10 @@ package grpc
 import (
 	"context"
 	"io"
-	"sync/atomic"
 	"time"
 
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/metadata"
-	"google.golang.org/grpc/status"
 
 	"github.com/apache/skywalking-go/plugins/core/operator"
 	"github.com/apache/skywalking-go/plugins/core/reporter"
@@ -54,10 +50,7 @@ func NewGRPCReporter(logger operator.LogOperator,
 	pprofTaskManager *reporter.PprofTaskManager,
 	opts ...ReporterOption,
 ) (reporter.Reporter, error) {
-	shutdownCtx, shutdownCancel := context.WithCancel(context.Background())
 	r := &gRPCReporter{
-		shutdownCtx:          shutdownCtx,
-		shutdownCancel:       shutdownCancel,
 		logger:               logger,
 		serverAddr:           serverAddr,
 		tracingSendCh:        make(chan *agentv3.SegmentObject, maxSendQueueSize),
@@ -75,34 +68,15 @@ func NewGRPCReporter(logger operator.LogOperator,
 	r.lastProfileCommandTime = -1
 	conn, err := connManager.GetConnection(serverAddr)
 	if err != nil {
-		shutdownCancel()
 		return nil, err
 	}
-	r.serviceClients.Store(newGrpcServiceClients(conn))
+	r.conn = conn
+	r.traceClient = agentv3.NewTraceSegmentReportServiceClient(conn)
+	r.metricsClient = agentv3.NewMeterReportServiceClient(conn)
+	r.logClient = logv3.NewLogReportServiceClient(conn)
+	r.managementClient = managementv3.NewManagementServiceClient(conn)
+	r.profileTaskClient = profilev3.NewProfileTaskClient(conn)
 	return r, nil
-}
-
-// grpcServiceClients is an immutable snapshot of generated stubs for one ClientConn.
-// Readers load the atomic pointer and use the local copy so bind/recreate cannot
-// race with in-flight RPCs (Codex P2).
-type grpcServiceClients struct {
-	conn       *grpc.ClientConn
-	trace      agentv3.TraceSegmentReportServiceClient
-	metrics    agentv3.MeterReportServiceClient
-	log        logv3.LogReportServiceClient
-	management managementv3.ManagementServiceClient
-	profile    profilev3.ProfileTaskClient
-}
-
-func newGrpcServiceClients(conn *grpc.ClientConn) *grpcServiceClients {
-	return &grpcServiceClients{
-		conn:       conn,
-		trace:      agentv3.NewTraceSegmentReportServiceClient(conn),
-		metrics:    agentv3.NewMeterReportServiceClient(conn),
-		log:        logv3.NewLogReportServiceClient(conn),
-		management: managementv3.NewManagementServiceClient(conn),
-		profile:    profilev3.NewProfileTaskClient(conn),
-	}
 }
 
 type gRPCReporter struct {
@@ -112,6 +86,12 @@ type gRPCReporter struct {
 	tracingSendCh        chan *agentv3.SegmentObject
 	metricsSendCh        chan []*agentv3.MeterData
 	logSendCh            chan *logv3.LogData
+	conn                 *grpc.ClientConn
+	traceClient          agentv3.TraceSegmentReportServiceClient
+	metricsClient        agentv3.MeterReportServiceClient
+	logClient            logv3.LogReportServiceClient
+	managementClient     managementv3.ManagementServiceClient
+	profileTaskClient    profilev3.ProfileTaskClient
 	profileTaskManager   reporter.ProfileTaskManager
 	checkInterval        time.Duration
 	profileFetchInterval time.Duration
@@ -123,14 +103,6 @@ type gRPCReporter struct {
 	connManager      *reporter.ConnectionManager
 	cdsManager       *reporter.CDSManager
 	pprofTaskManager *reporter.PprofTaskManager
-	// serviceClients holds the latest stub bundle; published atomically.
-	serviceClients atomic.Pointer[grpcServiceClients]
-	shutdownCtx    context.Context
-	shutdownCancel context.CancelFunc
-}
-
-func (r *gRPCReporter) clients() *grpcServiceClients {
-	return r.serviceClients.Load()
 }
 
 func (r *gRPCReporter) Boot(entity *reporter.Entity, cdsWatchers []reporter.AgentConfigChangeWatcher) {
@@ -200,9 +172,6 @@ func (r *gRPCReporter) SendLog(log *logv3.LogData) {
 }
 
 func (r *gRPCReporter) Close() {
-	if r.connManager.IsMultiBackend() && r.shutdownCancel != nil {
-		r.shutdownCancel()
-	}
 	if r.bootFlag {
 		if r.tracingSendCh != nil {
 			close(r.tracingSendCh)
@@ -210,7 +179,7 @@ func (r *gRPCReporter) Close() {
 		if r.metricsSendCh != nil {
 			close(r.metricsSendCh)
 		}
-		if r.connManager.IsMultiBackend() && r.logSendCh != nil {
+		if r.logSendCh != nil {
 			close(r.logSendCh)
 		}
 	} else {
@@ -245,135 +214,17 @@ func (r *gRPCReporter) sendWithRecover(send func() error) (recovered bool, err e
 	return recovered, err
 }
 
-// pipelineSend wraps stream Send. Multi-backend paths bound Send duration so a
-// half-open connection after docker kill cannot stall the Collect loop forever.
+// pipelineSend wraps stream Send with BoundSend so a half-open connection cannot
+// stall the Collect loop forever.
 func (r *gRPCReporter) pipelineSend(cancel context.CancelFunc, send func() error) (recovered bool, err error) {
 	return r.sendWithRecover(func() error {
-		if r.connManager.IsMultiBackend() {
-			return reporter.MultiBackendSend(cancel, send, 0)
-		}
-		return send()
+		return reporter.BoundSend(cancel, send, 0)
 	})
-}
-
-func (r *gRPCReporter) kickMultiBackendConnect() {
-	if !r.connManager.IsMultiBackend() {
-		return
-	}
-	if conn := r.connManager.PeekConnection(r.serverAddr); conn != nil {
-		state := conn.GetState()
-		if state == connectivity.Idle || state == connectivity.TransientFailure {
-			conn.Connect()
-		}
-	}
-}
-
-// reportMultiBackendError leaves transport recovery to gRPC. An RPC failure
-// does not mean the active backend is unreachable, and closing the shared
-// channel would also interrupt healthy telemetry streams.
-func (r *gRPCReporter) reportMultiBackendError(operation string, err error) {
-	switch status.Code(err) {
-	case codes.Unauthenticated, codes.PermissionDenied:
-		// The connection interceptor already emits a throttled diagnostic.
-		return
-	default:
-		r.logger.Errorf("%s: %v", operation, err)
-	}
-	r.kickMultiBackendConnect()
-}
-
-// Wait before taking more telemetry out of the queue during a transport outage.
-// RPC errors on a Ready channel do not enter this wait or change backend order.
-func (r *gRPCReporter) waitForMultiBackendReady() bool {
-	ctx := r.shutdownCtx
-	if ctx == nil {
-		ctx = context.Background()
-	}
-	conn := r.connManager.PeekConnection(r.serverAddr)
-	if conn == nil {
-		return false
-	}
-	for ctx.Err() == nil {
-		state := conn.GetState()
-		switch state {
-		case connectivity.Ready:
-			return true
-		case connectivity.Shutdown:
-			return false
-		case connectivity.Idle:
-			conn.Connect()
-		default:
-		}
-		if !conn.WaitForStateChange(ctx, state) {
-			return false
-		}
-	}
-	return false
-}
-
-// multiBackendTraceSendLoop sends a snapshot of the queue on each Collect
-// stream. Batching amortizes acknowledgements without replaying a failed batch.
-func (r *gRPCReporter) multiBackendTraceSendLoop() {
-	defer r.closeGRPCConn()
-	for r.waitForMultiBackendReady() {
-		s, ok := <-r.tracingSendCh
-		if !ok {
-			return
-		}
-		if !r.waitForMultiBackendReady() {
-			return
-		}
-		queued := len(r.tracingSendCh)
-		segments := make([]*agentv3.SegmentObject, 1, queued+1)
-		segments[0] = s
-		for i := 0; i < queued; i++ {
-			segments = append(segments, <-r.tracingSendCh)
-		}
-		if err := r.sendTraceSegmentsMulti(segments); err != nil {
-			// A failed acknowledgement may follow successful ingestion. Do not
-			// replay this segment: OAP does not deduplicate Collect requests.
-			r.reportMultiBackendError("send segment error", err)
-		}
-	}
-}
-
-func (r *gRPCReporter) sendTraceSegmentsMulti(segments []*agentv3.SegmentObject) error {
-	c := r.clients()
-	if c == nil {
-		return io.ErrUnexpectedEOF
-	}
-	ctx, cancel, stopOpen := reporter.BackendStreamContext(r.serverAddr, r.checkInterval)
-	defer cancel()
-	stream, err := c.trace.Collect(metadata.NewOutgoingContext(ctx, r.connManager.GetMD()))
-	if timedOut := stopOpen(); err != nil || timedOut {
-		if err == nil {
-			err = ctx.Err()
-		}
-		return err
-	}
-	for _, segment := range segments {
-		recovered, sendErr := r.pipelineSend(cancel, func() error { return stream.Send(segment) })
-		if recovered {
-			continue
-		}
-		if sendErr != nil {
-			return sendErr
-		}
-	}
-	// CloseAndRecv must not block forever on a half-open peer after docker kill.
-	closeErr := reporter.MultiBackendSend(cancel, func() error {
-		_, err := stream.CloseAndRecv()
-		if err == io.EOF {
-			return nil
-		}
-		return err
-	}, 0)
-	return closeErr
 }
 
 // nolint
 func (r *gRPCReporter) initSendPipeline() {
-	if r.clients() == nil {
+	if r.traceClient == nil {
 		return
 	}
 	go func() {
@@ -382,15 +233,8 @@ func (r *gRPCReporter) initSendPipeline() {
 				r.logger.Errorf("gRPCReporter initSendPipeline trace client Collect panic err %v", err)
 			}
 		}()
-		if r.connManager.IsMultiBackend() {
-			r.multiBackendTraceSendLoop()
-			return
-		}
 	StreamLoop:
 		for {
-			if r.connManager.IsMultiBackend() && !r.waitForMultiBackendReady() {
-				return
-			}
 			switch r.connManager.GetConnectionStatus(r.serverAddr) {
 			case reporter.ConnectionStatusShutdown:
 				return
@@ -399,33 +243,33 @@ func (r *gRPCReporter) initSendPipeline() {
 				continue StreamLoop
 			}
 
-			c := r.clients()
-			if c == nil {
-				time.Sleep(5 * time.Second)
-				continue StreamLoop
-			}
-			var (
-				stream agentv3.TraceSegmentReportService_CollectClient
-				err    error
-			)
-			stream, err = c.trace.Collect(metadata.NewOutgoingContext(context.Background(), r.connManager.GetMD()))
-			if err != nil {
+			ctx, cancel, stopOpen := reporter.BackendStreamContext(r.serverAddr, r.checkInterval)
+			stream, err := r.traceClient.Collect(metadata.NewOutgoingContext(ctx, r.connManager.GetMD()))
+			if timedOut := stopOpen(); err != nil || timedOut {
+				cancel()
+				if err == nil {
+					err = ctx.Err()
+				}
 				r.logger.Errorf("open stream error %v", err)
 				time.Sleep(5 * time.Second)
 				continue StreamLoop
 			}
+			go reporter.WatchConnCancelOnUnready(ctx, cancel, r.conn)
+
 			for s := range r.tracingSendCh {
-				recovered, sendErr := r.sendWithRecover(func() error { return stream.Send(s) })
+				recovered, sendErr := r.pipelineSend(cancel, func() error { return stream.Send(s) })
 				if recovered {
 					continue
 				}
 				if sendErr != nil {
 					r.logger.Errorf("send segment error %v", sendErr)
-					r.closeTracingStream(stream)
+					cancel()
+					r.closeTracingStream(cancel, stream)
 					continue StreamLoop
 				}
 			}
-			r.closeTracingStream(stream)
+			cancel()
+			r.closeTracingStream(cancel, stream)
 			r.closeGRPCConn()
 			break
 		}
@@ -438,9 +282,6 @@ func (r *gRPCReporter) initSendPipeline() {
 		}()
 	StreamLoop:
 		for {
-			if r.connManager.IsMultiBackend() && !r.waitForMultiBackendReady() {
-				return
-			}
 			switch r.connManager.GetConnectionStatus(r.serverAddr) {
 			case reporter.ConnectionStatusShutdown:
 				return
@@ -449,39 +290,19 @@ func (r *gRPCReporter) initSendPipeline() {
 				continue StreamLoop
 			}
 
-			c := r.clients()
-			if c == nil {
+			ctx, cancel, stopOpen := reporter.BackendStreamContext(r.serverAddr, r.checkInterval)
+			stream, err := r.metricsClient.CollectBatch(metadata.NewOutgoingContext(ctx, r.connManager.GetMD()))
+			if timedOut := stopOpen(); err != nil || timedOut {
+				cancel()
+				if err == nil {
+					err = ctx.Err()
+				}
+				r.logger.Errorf("open stream error %v", err)
 				time.Sleep(5 * time.Second)
 				continue StreamLoop
 			}
-			var (
-				stream agentv3.MeterReportService_CollectBatchClient
-				err    error
-				cancel = func() {}
-			)
-			if r.connManager.IsMultiBackend() {
-				var ctx context.Context
-				var stopOpen func() bool
-				ctx, cancel, stopOpen = reporter.BackendStreamContext(r.serverAddr, r.checkInterval)
-				stream, err = c.metrics.CollectBatch(metadata.NewOutgoingContext(ctx, r.connManager.GetMD()))
-				if timedOut := stopOpen(); err != nil || timedOut {
-					cancel()
-					if err == nil {
-						err = ctx.Err()
-					}
-					r.reportMultiBackendError("open stream error", err)
-					time.Sleep(5 * time.Second)
-					continue StreamLoop
-				}
-				go reporter.WatchConnCancelOnUnready(ctx, cancel, c.conn)
-			} else {
-				stream, err = c.metrics.CollectBatch(metadata.NewOutgoingContext(context.Background(), r.connManager.GetMD()))
-				if err != nil {
-					r.logger.Errorf("open stream error %v", err)
-					time.Sleep(5 * time.Second)
-					continue StreamLoop
-				}
-			}
+			go reporter.WatchConnCancelOnUnready(ctx, cancel, r.conn)
+
 			for s := range r.metricsSendCh {
 				recovered, sendErr := r.pipelineSend(cancel, func() error {
 					return stream.Send(&agentv3.MeterDataCollection{MeterData: s})
@@ -490,22 +311,16 @@ func (r *gRPCReporter) initSendPipeline() {
 					continue
 				}
 				if sendErr != nil {
-					// Cancel before CloseAndRecv: on multi-backend a half-open peer
-					// can hang CloseAndRecv forever and block reconnect.
+					// Cancel before CloseAndRecv: a half-open peer can hang
+					// CloseAndRecv forever and block reconnect.
 					cancel()
-					if r.connManager.IsMultiBackend() {
-						r.reportMultiBackendError("send metrics error", sendErr)
-					} else {
-						r.logger.Errorf("send metrics error %v", sendErr)
-						r.closeMetricsStream(stream)
-					}
+					r.logger.Errorf("send metrics error %v", sendErr)
+					r.closeMetricsStream(cancel, stream)
 					continue StreamLoop
 				}
 			}
 			cancel()
-			if !r.connManager.IsMultiBackend() {
-				r.closeMetricsStream(stream)
-			}
+			r.closeMetricsStream(cancel, stream)
 			break
 		}
 	}()
@@ -517,9 +332,6 @@ func (r *gRPCReporter) initSendPipeline() {
 		}()
 	StreamLoop:
 		for {
-			if r.connManager.IsMultiBackend() && !r.waitForMultiBackendReady() {
-				return
-			}
 			switch r.connManager.GetConnectionStatus(r.serverAddr) {
 			case reporter.ConnectionStatusShutdown:
 				return
@@ -528,39 +340,19 @@ func (r *gRPCReporter) initSendPipeline() {
 				continue StreamLoop
 			}
 
-			c := r.clients()
-			if c == nil {
+			ctx, cancel, stopOpen := reporter.BackendStreamContext(r.serverAddr, r.checkInterval)
+			stream, err := r.logClient.Collect(metadata.NewOutgoingContext(ctx, r.connManager.GetMD()))
+			if timedOut := stopOpen(); err != nil || timedOut {
+				cancel()
+				if err == nil {
+					err = ctx.Err()
+				}
+				r.logger.Errorf("open stream error %v", err)
 				time.Sleep(5 * time.Second)
 				continue StreamLoop
 			}
-			var (
-				stream logv3.LogReportService_CollectClient
-				err    error
-				cancel = func() {}
-			)
-			if r.connManager.IsMultiBackend() {
-				var ctx context.Context
-				var stopOpen func() bool
-				ctx, cancel, stopOpen = reporter.BackendStreamContext(r.serverAddr, r.checkInterval)
-				stream, err = c.log.Collect(metadata.NewOutgoingContext(ctx, r.connManager.GetMD()))
-				if timedOut := stopOpen(); err != nil || timedOut {
-					cancel()
-					if err == nil {
-						err = ctx.Err()
-					}
-					r.reportMultiBackendError("open stream error", err)
-					time.Sleep(5 * time.Second)
-					continue StreamLoop
-				}
-				go reporter.WatchConnCancelOnUnready(ctx, cancel, c.conn)
-			} else {
-				stream, err = c.log.Collect(metadata.NewOutgoingContext(context.Background(), r.connManager.GetMD()))
-				if err != nil {
-					r.logger.Errorf("open stream error %v", err)
-					time.Sleep(5 * time.Second)
-					continue StreamLoop
-				}
-			}
+			go reporter.WatchConnCancelOnUnready(ctx, cancel, r.conn)
+
 			for s := range r.logSendCh {
 				recovered, sendErr := r.pipelineSend(cancel, func() error { return stream.Send(s) })
 				if recovered {
@@ -568,19 +360,13 @@ func (r *gRPCReporter) initSendPipeline() {
 				}
 				if sendErr != nil {
 					cancel()
-					if r.connManager.IsMultiBackend() {
-						r.reportMultiBackendError("send log error", sendErr)
-					} else {
-						r.logger.Errorf("send log error %v", sendErr)
-						r.closeLogStream(stream)
-					}
+					r.logger.Errorf("send log error %v", sendErr)
+					r.closeLogStream(cancel, stream)
 					continue StreamLoop
 				}
 			}
 			cancel()
-			if !r.connManager.IsMultiBackend() {
-				r.closeLogStream(stream)
-			}
+			r.closeLogStream(cancel, stream)
 			break
 		}
 	}()
@@ -593,9 +379,6 @@ func (r *gRPCReporter) initSendPipeline() {
 
 	StreamLoop:
 		for {
-			if r.connManager.IsMultiBackend() && !r.waitForMultiBackendReady() {
-				return
-			}
 			switch r.connManager.GetConnectionStatus(r.serverAddr) {
 			case reporter.ConnectionStatusShutdown:
 				return
@@ -604,39 +387,19 @@ func (r *gRPCReporter) initSendPipeline() {
 				continue StreamLoop
 			}
 
-			c := r.clients()
-			if c == nil {
+			ctx, cancel, stopOpen := reporter.BackendStreamContext(r.serverAddr, r.checkInterval)
+			stream, err := r.profileTaskClient.GoProfileReport(metadata.NewOutgoingContext(ctx, r.connManager.GetMD()))
+			if timedOut := stopOpen(); err != nil || timedOut {
+				cancel()
+				if err == nil {
+					err = ctx.Err()
+				}
+				r.logger.Errorf("open profile stream error %v", err)
 				time.Sleep(5 * time.Second)
 				continue StreamLoop
 			}
-			var (
-				stream profilev3.ProfileTask_GoProfileReportClient
-				err    error
-				cancel = func() {}
-			)
-			if r.connManager.IsMultiBackend() {
-				var ctx context.Context
-				var stopOpen func() bool
-				ctx, cancel, stopOpen = reporter.BackendStreamContext(r.serverAddr, r.checkInterval)
-				stream, err = c.profile.GoProfileReport(metadata.NewOutgoingContext(ctx, r.connManager.GetMD()))
-				if timedOut := stopOpen(); err != nil || timedOut {
-					cancel()
-					if err == nil {
-						err = ctx.Err()
-					}
-					r.reportMultiBackendError("open profile stream error", err)
-					time.Sleep(5 * time.Second)
-					continue StreamLoop
-				}
-				go reporter.WatchConnCancelOnUnready(ctx, cancel, c.conn)
-			} else {
-				stream, err = c.profile.GoProfileReport(metadata.NewOutgoingContext(context.Background(), r.connManager.GetMD()))
-				if err != nil {
-					r.logger.Errorf("open profile stream error %v", err)
-					time.Sleep(5 * time.Second)
-					continue StreamLoop
-				}
-			}
+			go reporter.WatchConnCancelOnUnready(ctx, cancel, r.conn)
+
 			re := r.profileTaskManager.GetProfileResults()
 
 			for task := range re {
@@ -653,12 +416,8 @@ func (r *gRPCReporter) initSendPipeline() {
 				}
 				if sendErr != nil {
 					cancel()
-					if r.connManager.IsMultiBackend() {
-						r.reportMultiBackendError("send profile data error", sendErr)
-					} else {
-						r.logger.Errorf("send profile data error %v", sendErr)
-						r.closeProfileStream(stream)
-					}
+					r.logger.Errorf("send profile data error %v", sendErr)
+					r.closeProfileStream(cancel, stream)
 					continue StreamLoop
 				}
 				if task.IsLast {
@@ -668,91 +427,88 @@ func (r *gRPCReporter) initSendPipeline() {
 						Service:         r.entity.ServiceName,
 						ServiceInstance: r.entity.ServiceInstanceName,
 					}
-					pc := r.clients()
-					if pc == nil {
-						pc = c
-					}
-					if r.connManager.IsMultiBackend() {
-						finishCtx, finishCancel := reporter.BackendRPCContext(r.serverAddr, r.checkInterval)
-						_, err = pc.profile.ReportTaskFinish(
-							metadata.NewOutgoingContext(finishCtx, r.connManager.GetMD()), &report)
-						finishCancel()
-					} else {
-						_, err = pc.profile.ReportTaskFinish(metadata.NewOutgoingContext(context.Background(), r.connManager.GetMD()), &report)
-					}
+					finishCtx, finishCancel := reporter.BackendRPCContext(r.serverAddr, r.checkInterval)
+					_, err = r.profileTaskClient.ReportTaskFinish(
+						metadata.NewOutgoingContext(finishCtx, r.connManager.GetMD()), &report)
+					finishCancel()
 					if err != nil {
 						r.logger.Errorf("report profile task finish error %v", err)
 					}
 				}
 			}
 			cancel()
-			if !r.connManager.IsMultiBackend() {
-				r.closeProfileStream(stream)
-			}
+			r.closeProfileStream(cancel, stream)
 			break
 		}
 	}()
 }
 
-func (r *gRPCReporter) closeTracingStream(stream agentv3.TraceSegmentReportService_CollectClient) {
-	_, err := stream.CloseAndRecv()
-	if err != nil && err != io.EOF {
+// close*Stream runs CloseAndRecv under BoundSend so a half-open peer cannot
+// stall StreamLoop (and pick_first failover) after Send already failed.
+func (r *gRPCReporter) closeTracingStream(cancel context.CancelFunc, stream agentv3.TraceSegmentReportService_CollectClient) {
+	if err := reporter.BoundSend(cancel, func() error {
+		_, err := stream.CloseAndRecv()
+		if err == io.EOF {
+			return nil
+		}
+		return err
+	}, 0); err != nil {
 		r.logger.Errorf("send closing error %v", err)
 	}
 }
 
-func (r *gRPCReporter) closeMetricsStream(stream agentv3.MeterReportService_CollectBatchClient) {
-	_, err := stream.CloseAndRecv()
-	if err != nil && err != io.EOF {
+func (r *gRPCReporter) closeMetricsStream(cancel context.CancelFunc, stream agentv3.MeterReportService_CollectBatchClient) {
+	if err := reporter.BoundSend(cancel, func() error {
+		_, err := stream.CloseAndRecv()
+		if err == io.EOF {
+			return nil
+		}
+		return err
+	}, 0); err != nil {
 		r.logger.Errorf("send closing error %v", err)
 	}
 }
 
-func (r *gRPCReporter) closeLogStream(stream logv3.LogReportService_CollectClient) {
-	_, err := stream.CloseAndRecv()
-	if err != nil && err != io.EOF {
+func (r *gRPCReporter) closeLogStream(cancel context.CancelFunc, stream logv3.LogReportService_CollectClient) {
+	if err := reporter.BoundSend(cancel, func() error {
+		_, err := stream.CloseAndRecv()
+		if err == io.EOF {
+			return nil
+		}
+		return err
+	}, 0); err != nil {
 		r.logger.Errorf("send closing error %v", err)
 	}
 }
-func (r *gRPCReporter) closeProfileStream(stream profilev3.ProfileTask_GoProfileReportClient) {
-	_, err := stream.CloseAndRecv()
-	if err != nil && err != io.EOF {
+
+func (r *gRPCReporter) closeProfileStream(cancel context.CancelFunc, stream profilev3.ProfileTask_GoProfileReportClient) {
+	if err := reporter.BoundSend(cancel, func() error {
+		_, err := stream.CloseAndRecv()
+		if err == io.EOF {
+			return nil
+		}
+		return err
+	}, 0); err != nil {
 		r.logger.Errorf("send profile closing error %v", err)
 	}
 }
 func (r *gRPCReporter) reportInstanceProperties() (err error) {
-	c := r.clients()
-	if c == nil {
-		return io.ErrUnexpectedEOF
-	}
-	ctx := context.Background()
-	cancel := func() {}
-	if r.connManager.IsMultiBackend() {
-		ctx, cancel = reporter.BackendRPCContext(r.serverAddr, r.checkInterval)
-	}
-	_, err = c.management.ReportInstanceProperties(
+	ctx, cancel := reporter.BackendRPCContext(r.serverAddr, r.checkInterval)
+	defer cancel()
+	_, err = r.managementClient.ReportInstanceProperties(
 		metadata.NewOutgoingContext(ctx, r.connManager.GetMD()),
 		&managementv3.InstanceProperties{
 			Service:         r.entity.ServiceName,
 			ServiceInstance: r.entity.ServiceInstanceName,
 			Properties:      r.entity.Props,
 		})
-	cancel()
 	return err
 }
 
 func (r *gRPCReporter) sendKeepAlive() error {
-	c := r.clients()
-	if c == nil {
-		return io.ErrUnexpectedEOF
-	}
-	ctx := context.Background()
-	cancel := func() {}
-	if r.connManager.IsMultiBackend() {
-		ctx, cancel = reporter.BackendRPCContext(r.serverAddr, r.checkInterval)
-	}
+	ctx, cancel := reporter.BackendRPCContext(r.serverAddr, r.checkInterval)
 	defer cancel()
-	_, err := c.management.KeepAlive(
+	_, err := r.managementClient.KeepAlive(
 		metadata.NewOutgoingContext(ctx, r.connManager.GetMD()),
 		&managementv3.InstancePingPkg{
 			Service:         r.entity.ServiceName,
@@ -762,7 +518,7 @@ func (r *gRPCReporter) sendKeepAlive() error {
 }
 
 func (r *gRPCReporter) check() {
-	if r.checkInterval < 0 || r.clients() == nil {
+	if r.checkInterval < 0 || r.managementClient == nil {
 		return
 	}
 	go func() {
@@ -778,23 +534,19 @@ func (r *gRPCReporter) check() {
 			case reporter.ConnectionStatusShutdown:
 				return
 			case reporter.ConnectionStatusDisconnect:
-				if r.connManager.IsMultiBackend() {
-					instancePropertiesSubmitted = false
-				}
+				// Re-register after a transport outage so a pick_first standby
+				// that does not share instance metadata still learns this agent.
+				instancePropertiesSubmitted = false
 				time.Sleep(r.checkInterval)
 				continue
 			}
 
-			if !instancePropertiesSubmitted || (r.connManager.IsMultiBackend() && propertyRefreshHeartbeats >= 10) {
+			if !instancePropertiesSubmitted || propertyRefreshHeartbeats >= 10 {
 				err := r.reportInstanceProperties()
 				if err != nil {
-					if r.connManager.IsMultiBackend() {
-						r.reportMultiBackendError("report serviceInstance properties error", err)
-					} else {
-						r.logger.Errorf("report serviceInstance properties error %v", err)
-						time.Sleep(r.checkInterval)
-						continue
-					}
+					// Keep heartbeats flowing; a properties failure must not
+					// stall the management loop or block failover recovery.
+					r.logger.Errorf("report serviceInstance properties error %v", err)
 				} else {
 					instancePropertiesSubmitted = true
 					propertyRefreshHeartbeats = 0
@@ -802,11 +554,7 @@ func (r *gRPCReporter) check() {
 			}
 
 			if err := r.sendKeepAlive(); err != nil {
-				if r.connManager.IsMultiBackend() {
-					r.reportMultiBackendError("send keep alive signal error", err)
-				} else {
-					r.logger.Errorf("send keep alive signal error %v", err)
-				}
+				r.logger.Errorf("send keep alive signal error %v", err)
 			}
 			propertyRefreshHeartbeats++
 			time.Sleep(r.checkInterval)
@@ -847,18 +595,12 @@ func (r *gRPCReporter) fetchProfileTasksOnce() {
 		LastCommandTime: r.lastProfileCommandTime,
 	}
 
-	// Pull tasks
-	ctx := context.Background()
-	cancel := func() {}
-	if r.connManager.IsMultiBackend() {
-		ctx, cancel = reporter.BackendRPCContext(r.serverAddr, r.profileFetchInterval)
-	}
-	c := r.clients()
-	if c == nil {
+	ctx, cancel := reporter.BackendRPCContext(r.serverAddr, r.profileFetchInterval)
+	defer cancel()
+	if r.profileTaskClient == nil {
 		return
 	}
-	resp, err := c.profile.GetProfileTaskCommands(ctx, req)
-	cancel()
+	resp, err := r.profileTaskClient.GetProfileTaskCommands(ctx, req)
 	if err != nil {
 		r.logger.Errorf("fetch profile task error: %v", err)
 		return

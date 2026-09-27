@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Node-aligned static failover (remote-e2e/static-failover):
+# Static multi-backend failover:
 # 1) resolve active via unique GET:/sw-failover-probe/{token} span
 # 2) kill that compose service
 # 3) assert standby POST:/info + toolkit log counts grow (trace + log paths)

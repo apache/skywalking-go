@@ -40,7 +40,6 @@ jobs:
       - name: Test Race
         run: make test-race
       - name: Test Race (reporter packages)
-        # Codex: run the full multi-backend packages under -race, not only TestRace*.
         run: go test -race -count=1 -timeout 180s ./plugins/core/reporter/ ./plugins/core/reporter/grpc/
       - name: Lint
         run: make lint

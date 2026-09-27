@@ -22,10 +22,7 @@ import (
 	"fmt"
 	"io"
 	"strconv"
-	"sync/atomic"
 	"time"
-
-	"google.golang.org/grpc"
 
 	"github.com/apache/skywalking-go/plugins/core/operator"
 	commonv3 "github.com/apache/skywalking-go/protocols/collect/common/v3"
@@ -70,45 +67,7 @@ type PprofTaskManager struct {
 	LastUpdateTime int64
 	commands       PprofTaskCommand
 	pprofSendCh    chan *pprofv10.PprofData
-	// pprofClientBundle is swapped atomically so poll vs upload cannot race
-	// on the client interface field (Codex P2).
-	pprofClientBundle atomic.Pointer[pprofClientBundle]
-}
-
-type pprofClientBundle struct {
-	conn   *grpc.ClientConn
-	client pprofv10.PprofTaskClient
-}
-
-func (r *PprofTaskManager) storePprofClient(conn *grpc.ClientConn, client pprofv10.PprofTaskClient) {
-	if client == nil {
-		return
-	}
-	r.pprofClientBundle.Store(&pprofClientBundle{conn: conn, client: client})
-}
-
-func (r *PprofTaskManager) loadPprofClient() pprofv10.PprofTaskClient {
-	b := r.pprofClientBundle.Load()
-	if b == nil {
-		return nil
-	}
-	return b.client
-}
-
-// currentPprofClient returns a stub bound to the latest PeekConnection for
-// multi-backend, publishing a new bundle only when the ClientConn identity changes.
-func (r *PprofTaskManager) currentPprofClient() pprofv10.PprofTaskClient {
-	if r.connManager != nil && r.connManager.IsMultiBackend() {
-		if conn := r.connManager.PeekConnection(r.serverAddr); conn != nil {
-			if cur := r.pprofClientBundle.Load(); cur != nil && cur.conn == conn {
-				return cur.client
-			}
-			client := pprofv10.NewPprofTaskClient(conn)
-			r.storePprofClient(conn, client)
-			return client
-		}
-	}
-	return r.loadPprofClient()
+	pprofClient    pprofv10.PprofTaskClient
 }
 
 func NewPprofTaskManager(logger operator.LogOperator, serverAddr string,
@@ -130,7 +89,7 @@ func NewPprofTaskManager(logger operator.LogOperator, serverAddr string,
 	if err != nil {
 		return nil, err
 	}
-	pprofManager.storePprofClient(conn, pprofv10.NewPprofTaskClient(conn))
+	pprofManager.pprofClient = pprofv10.NewPprofTaskClient(conn)
 	pprofManager.commands = nil
 	return pprofManager, nil
 }
@@ -147,18 +106,13 @@ func (r *PprofTaskManager) InitPprofTask(entity *Entity) {
 				time.Sleep(r.pprofInterval)
 				continue
 			}
-			ctx := context.Background()
-			cancel := func() {}
-			if r.connManager.IsMultiBackend() {
-				ctx, cancel = BackendRPCContext(r.serverAddr, r.pprofInterval)
-			}
-			client := r.currentPprofClient()
-			if client == nil {
+			ctx, cancel := BackendRPCContext(r.serverAddr, r.pprofInterval)
+			if r.pprofClient == nil {
 				cancel()
 				time.Sleep(r.pprofInterval)
 				continue
 			}
-			pprofCommand, err := client.GetPprofTaskCommands(ctx, &pprofv10.PprofTaskCommandQuery{
+			pprofCommand, err := r.pprofClient.GetPprofTaskCommands(ctx, &pprofv10.PprofTaskCommandQuery{
 				Service:         r.entity.ServiceName,
 				ServiceInstance: r.entity.ServiceInstanceName,
 				LastCommandTime: r.LastUpdateTime,
@@ -354,14 +308,13 @@ func (r *PprofTaskManager) uploadPprofData(pprofData *pprofv10.PprofData) {
 }
 
 func (r *PprofTaskManager) uploadPprofDataOnce(pprofData *pprofv10.PprofData) error {
-	client := r.currentPprofClient()
-	if client == nil {
+	if r.pprofClient == nil {
 		return fmt.Errorf("pprof client unavailable")
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	stream, err := client.Collect(ctx)
+	stream, err := r.pprofClient.Collect(ctx)
 	if err != nil {
 		return fmt.Errorf("start collect stream: %w", err)
 	}

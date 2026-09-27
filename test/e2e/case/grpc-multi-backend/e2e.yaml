@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Multi-backend gRPC reporter e2e (aligned with Node remote-e2e/static-failover):
+# Multi-backend gRPC reporter e2e:
 # two healthy mock collectors → identify active via unique probe → kill it →
 # assert standby POST:/info + toolkit log count growth.
 

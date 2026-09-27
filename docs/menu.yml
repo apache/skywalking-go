@@ -42,8 +42,6 @@ catalog:
           path: /en/agent/plugin-configurations
         - name: Transport Layer Security (TLS)
           path: /en/advanced-features/grpc-tls
-        - name: gRPC Backend Troubleshooting
-          path: /en/advanced-features/grpc-backend-troubleshooting
         - name: Kafka Reporter
           path: /en/advanced-features/kafka-reporter
         - name: Manual APIs

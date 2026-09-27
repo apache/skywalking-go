@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Node-aligned multi-backend e2e (remote-e2e/static-failover):
+# Multi-backend e2e:
 # two healthy mock collectors → identify active → kill it → assert standby
 # receives traffic via pick_first.
 

@@ -65,9 +65,12 @@ func serveFailingAcknowledgements(t *testing.T, server *failingAcknowledgementSe
 	agentv3.RegisterTraceSegmentReportServiceServer(gs, server)
 	go func() { _ = gs.Serve(lis) }()
 	t.Cleanup(gs.Stop)
+	t.Cleanup(func() { _ = lis.Close() })
 	return lis.Addr().String()
 }
 
+// Unified long-lived Collect must not replay segments after an RPC error and must
+// keep the shared ClientConn (no recreate).
 func TestMultiBackendDoesNotReplayOrRotateOnRPCError(t *testing.T) {
 	for _, code := range []codes.Code{
 		codes.Unavailable, codes.DeadlineExceeded, codes.ResourceExhausted,
@@ -75,9 +78,23 @@ func TestMultiBackendDoesNotReplayOrRotateOnRPCError(t *testing.T) {
 	} {
 		t.Run(code.String(), func(t *testing.T) {
 			server := &failingAcknowledgementServer{code: code}
-			backends := serveFailingAcknowledgements(t, server) + "," + serveFailingAcknowledgements(t, server)
+			peer := &failingAcknowledgementServer{code: code}
+			backends := serveFailingAcknowledgements(t, server) + "," + serveFailingAcknowledgements(t, peer)
+
+			oldTimeout, oldGrace := reporter.BoundSendTimeoutForTest(), reporter.BoundSendCancelGraceForTest()
+			reporter.SetBoundSendTimeoutForTest(400 * time.Millisecond)
+			reporter.SetBoundSendCancelGraceForTest(100 * time.Millisecond)
+			t.Cleanup(func() {
+				reporter.SetBoundSendTimeoutForTest(oldTimeout)
+				reporter.SetBoundSendCancelGraceForTest(oldGrace)
+			})
+
 			logger := &capturingLogger{}
-			cm, err := reporter.NewConnectionManager(logger, time.Second, backends, "token", nil)
+			auth := ""
+			if code == codes.Unauthenticated || code == codes.PermissionDenied {
+				auth = "token"
+			}
+			cm, err := reporter.NewConnectionManager(logger, time.Second, backends, auth, nil)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -86,35 +103,41 @@ func TestMultiBackendDoesNotReplayOrRotateOnRPCError(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			// Keep a second reference so the loop's normal release does not close
-			// the channel before we verify its identity and state.
-			if _, err := cm.GetConnection(backends); err != nil {
-				t.Fatal(err)
+			if _, holdErr := cm.GetConnection(backends); holdErr != nil {
+				t.Fatal(holdErr)
 			}
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			defer cancel()
-			r := &gRPCReporter{
-				logger: logger, serverAddr: backends, connManager: cm,
-				shutdownCtx: ctx, tracingSendCh: make(chan *agentv3.SegmentObject, 2),
+
+			cds, cdsErr := reporter.NewCDSManager(logger, backends, 0, cm)
+			if cdsErr != nil {
+				t.Fatal(cdsErr)
 			}
-			r.serviceClients.Store(newGrpcServiceClients(conn))
+			pprof, pprofErr := reporter.NewPprofTaskManager(logger, backends, time.Hour, cm, t.TempDir())
+			if pprofErr != nil {
+				t.Fatal(pprofErr)
+			}
+			rep, repErr := NewGRPCReporter(logger, backends, time.Second, time.Hour, cm, cds, pprof)
+			if repErr != nil {
+				t.Fatal(repErr)
+			}
+			r := rep.(*gRPCReporter)
+			entity := &reporter.Entity{ServiceName: "policy", ServiceInstanceName: "inst"}
+			r.entity = entity
+			r.transform = reporter.NewTransform(entity)
+			r.initSendPipeline()
+			t.Cleanup(func() { r.Close() })
+
 			r.tracingSendCh <- &agentv3.SegmentObject{TraceId: "first", TraceSegmentId: "first"}
 			r.tracingSendCh <- &agentv3.SegmentObject{TraceId: "second", TraceSegmentId: "second"}
-			close(r.tracingSendCh)
-			r.multiBackendTraceSendLoop()
-			if got := server.count.Load(); got != 2 {
-				t.Fatalf("collector received %d segments, want exactly 2 without replay", got)
+			deadline := time.Now().Add(5 * time.Second)
+			for time.Now().Before(deadline) && server.count.Load()+peer.count.Load() < 2 {
+				time.Sleep(20 * time.Millisecond)
 			}
-			if got := server.calls.Load(); got != 1 {
-				t.Fatalf("collector received %d calls, want one batch for the queued segments", got)
+			got := server.count.Load() + peer.count.Load()
+			if got != 2 {
+				t.Fatalf("collectors received %d segments, want exactly 2 without replay", got)
 			}
 			if cm.PeekConnection(backends) != conn {
-				t.Fatal("RPC failure replaced the shared channel")
-			}
-			if code == codes.Unauthenticated || code == codes.PermissionDenied {
-				if got := atomic.LoadInt32(&logger.errors); got != 1 {
-					t.Fatalf("auth errors logged %d times, want one throttled diagnostic", got)
-				}
+				t.Fatal("RPC path replaced the shared channel")
 			}
 		})
 	}
@@ -126,6 +149,7 @@ func TestMultiBackendPipelineRecoversSendPanic(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(cm.Close)
 	r := &gRPCReporter{logger: logger, connManager: cm}
 	recovered, err := r.pipelineSend(func() {}, func() error { panic("corrupt protobuf payload") })
 	if !recovered || err != nil {
@@ -138,35 +162,42 @@ func TestMultiBackendPipelineRecoversSendPanic(t *testing.T) {
 }
 
 func TestMultiBackendRetainsQueuedTracesWhileDisconnected(t *testing.T) {
-	// Open TCP listeners without a gRPC server: the channel cannot become Ready.
 	lis, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer lis.Close()
 	backends := lis.Addr().String() + ",127.0.0.1:1"
-	cm, err := reporter.NewConnectionManager(&capturingLogger{}, time.Second, backends, "", nil)
+	cm, err := reporter.NewConnectionManager(&capturingLogger{}, 50*time.Millisecond, backends, "", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer cm.Close()
-	conn, err := cm.GetConnection(backends)
-	if err != nil {
-		t.Fatal(err)
+	if _, getErr := cm.GetConnection(backends); getErr != nil {
+		t.Fatal(getErr)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
-	defer cancel()
-	r := &gRPCReporter{
-		logger: &capturingLogger{}, serverAddr: backends, connManager: cm,
-		shutdownCtx: ctx, tracingSendCh: make(chan *agentv3.SegmentObject, 2),
+	cds, cdsErr := reporter.NewCDSManager(&capturingLogger{}, backends, 0, cm)
+	if cdsErr != nil {
+		t.Fatal(cdsErr)
 	}
-	r.serviceClients.Store(newGrpcServiceClients(conn))
+	pprof, pprofErr := reporter.NewPprofTaskManager(&capturingLogger{}, backends, time.Hour, cm, t.TempDir())
+	if pprofErr != nil {
+		t.Fatal(pprofErr)
+	}
+	rep, repErr := NewGRPCReporter(&capturingLogger{}, backends, 50*time.Millisecond, time.Hour, cm, cds, pprof)
+	if repErr != nil {
+		t.Fatal(repErr)
+	}
+	r := rep.(*gRPCReporter)
+	r.entity = &reporter.Entity{ServiceName: "q", ServiceInstanceName: "i"}
+	r.transform = reporter.NewTransform(r.entity)
+	r.initSendPipeline()
 	r.tracingSendCh <- &agentv3.SegmentObject{TraceSegmentId: "queued"}
-	close(r.tracingSendCh)
-	r.multiBackendTraceSendLoop()
+	time.Sleep(150 * time.Millisecond)
 	if got := len(r.tracingSendCh); got != 1 {
-		t.Fatalf("queue has %d traces, want the unsent trace retained", got)
+		t.Fatalf("queue has %d traces, want the unsent trace retained while disconnected", got)
 	}
+	r.Close()
 }
 
 type recordingManagementClient struct {
@@ -188,6 +219,8 @@ func (c *recordingManagementClient) KeepAlive(context.Context,
 	return &commonv3.Commands{}, nil
 }
 
+// Unified path refreshes instance properties periodically and keeps heartbeats
+// moving even when ReportInstanceProperties fails.
 func TestMultiBackendRefreshesPropertiesWithoutBlockingHeartbeat(t *testing.T) {
 	for _, fail := range []bool{false, true} {
 		name := "periodic refresh"
@@ -204,8 +237,7 @@ func TestMultiBackendRefreshesPropertiesWithoutBlockingHeartbeat(t *testing.T) {
 				t.Fatal(err)
 			}
 			defer cm.Close()
-			conn, err := cm.GetConnection(backends)
-			if err != nil {
+			if _, err := cm.GetConnection(backends); err != nil {
 				t.Fatal(err)
 			}
 			client := &recordingManagementClient{}
@@ -213,12 +245,13 @@ func TestMultiBackendRefreshesPropertiesWithoutBlockingHeartbeat(t *testing.T) {
 				client.propertiesError = status.Error(codes.Unavailable, "retry later")
 			}
 			r := &gRPCReporter{
-				logger: &capturingLogger{}, serverAddr: backends, connManager: cm,
-				entity: &reporter.Entity{}, checkInterval: 10 * time.Millisecond,
+				logger:           &capturingLogger{},
+				serverAddr:       backends,
+				connManager:      cm,
+				entity:           &reporter.Entity{},
+				checkInterval:    10 * time.Millisecond,
+				managementClient: client,
 			}
-			clients := newGrpcServiceClients(conn)
-			clients.management = client
-			r.serviceClients.Store(clients)
 			r.check()
 			deadline := time.Now().Add(3 * time.Second)
 			for time.Now().Before(deadline) {

@@ -29,7 +29,7 @@ import (
 const staticBackendScheme = "skywalking-static"
 
 // staticBackendResolverBuilder publishes a fixed comma-separated backend list to
-// gRPC (Node sw-static style). Entries are literal host:port endpoints.
+// gRPC. Entries are literal host:port endpoints.
 type staticBackendResolverBuilder struct {
 	logger      operator.LogOperator
 	backends    []string
