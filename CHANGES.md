@@ -6,6 +6,8 @@ Release Notes.
 ------------------
 #### Features
 
+* Support multi-address gRPC backends with `pick_first` failover.
+
 #### Plugins
 
 #### Documentation

@@ -39,8 +39,6 @@ jobs:
         run: make test
       - name: Test Race
         run: make test-race
-      - name: Test Race (reporter packages)
-        run: go test -race -count=1 -timeout 180s ./plugins/core/reporter/ ./plugins/core/reporter/grpc/
       - name: Lint
         run: make lint
 
