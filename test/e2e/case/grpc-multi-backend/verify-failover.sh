@@ -15,9 +15,10 @@
 # limitations under the License.
 
 # Static multi-backend failover:
-# 1) resolve active via unique GET:/sw-failover-probe/{token} span
+# 1) resolve active via unique GET:/sw-failover-probe/{token} span (consumer-only)
 # 2) kill that compose service
-# 3) assert standby POST:/info + toolkit log counts grow (trace + log paths)
+# 3) assert consumer-specific standby growth (toolkit log + new unique probe),
+#    not POST:/info alone (provider may already be on standby and false-pass)
 #
 # Keep waits short: long probe polls × infra-e2e retries previously hit the
 # 90m GHA job timeout. Idempotent after the active collector was killed.
@@ -89,28 +90,34 @@ dump_debug() {
 
 assert_standby() {
   local data_url="$1"
-  local before_info after_info before_log after_log
-  # Required: business span + toolkit log growth after kill (not health-only,
-  # not a long unique-probe poll that can exceed the GHA job timeout).
-  before_info="$(count_needle "${data_url}" "POST:/info")"
+  local before_log after_log before_probe after_probe
+  # Consumer-specific only: toolkit log growth + a fresh unique probe after kill.
+  # Do not rely on POST:/info — provider may already report that on standby.
   before_log="$(count_needle "${data_url}" "${LOG_NEEDLE}")"
+  send_unique_probe
+  before_probe="$(count_needle "${data_url}" "${PROBE_NEEDLE}")"
   send_info 5
-  sleep 15
-  after_info="$(count_needle "${data_url}" "POST:/info")"
+  # Re-send the same unique probe plus traffic so consumer Collect can fail over.
+  for ((i = 0; i < 5; i++)); do
+    curl -sf --max-time 5 "${CONSUMER_HOST}${PROBE_PATH}" >/dev/null || true
+    sleep 2
+  done
+  sleep 10
   after_log="$(count_needle "${data_url}" "${LOG_NEEDLE}")"
+  after_probe="$(count_needle "${data_url}" "${PROBE_NEEDLE}")"
 
-  if [[ "${after_info}" -le "${before_info}" ]]; then
-    echo "standby missing post-failover POST:/info growth (${before_info}->${after_info}): ${data_url}" >&2
-    dump_debug "${data_url}"
-    exit 1
-  fi
   if [[ "${after_log}" -le "${before_log}" ]]; then
-    echo "standby missing post-failover log growth (${LOG_NEEDLE} ${before_log}->${after_log}): ${data_url}" >&2
+    echo "standby missing post-failover consumer log growth (${LOG_NEEDLE} ${before_log}->${after_log}): ${data_url}" >&2
+    dump_debug "${data_url}"
+    exit 1
+  fi
+  if [[ "${after_probe}" -le "${before_probe}" ]]; then
+    echo "standby missing post-failover consumer probe growth (${PROBE_NEEDLE} ${before_probe}->${after_probe}): ${data_url}" >&2
     dump_debug "${data_url}"
     exit 1
   fi
 
-  echo "standby ok info ${before_info}->${after_info} log ${before_log}->${after_log}" >&2
+  echo "standby ok consumer log ${before_log}->${after_log} probe ${before_probe}->${after_probe}" >&2
   echo "status: ok"
 }
 

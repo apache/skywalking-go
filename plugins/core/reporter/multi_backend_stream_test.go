@@ -79,7 +79,7 @@ func TestMultiBackendCollectSendFailsOverAfterActiveStops(t *testing.T) {
 	}
 	client := agentv3.NewTraceSegmentReportServiceClient(conn)
 
-	ctx, cancel, stopOpen := BackendStreamContext(backends, time.Second)
+	ctx, cancel, stopOpen := BackendStreamContext(time.Second)
 	stream, err := client.Collect(metadata.NewOutgoingContext(ctx, cm.GetMD()))
 	if timedOut := stopOpen(); err != nil || timedOut {
 		cancel()
@@ -149,6 +149,84 @@ func serveTrace(t *testing.T, srv agentv3.TraceSegmentReportServiceServer) (net.
 	agentv3.RegisterTraceSegmentReportServiceServer(gs, srv)
 	go func() { _ = gs.Serve(lis) }()
 	return lis, gs
+}
+
+// peekConnection reads the managed ClientConn without changing refCount (test helper).
+func peekConnection(cm *ConnectionManager, serverAddr string) *grpc.ClientConn {
+	cm.mu.Lock()
+	defer cm.mu.Unlock()
+	managed, exists := cm.connManager[serverAddr]
+	if !exists {
+		return nil
+	}
+	return managed.connection
+}
+
+// TestMultiBackendPerAddrDialTimeoutFailsOverPastBlackhole proves a first address
+// that accepts TCP but never completes the gRPC handshake cannot starve the
+// standby: each dial is capped by multiBackendPerAddrDialTimeout.
+func TestMultiBackendPerAddrDialTimeoutFailsOverPastBlackhole(t *testing.T) {
+	blackhole, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("blackhole listen: %v", err)
+	}
+	defer blackhole.Close()
+	// Never Accept — TCP connects into the backlog, then HTTP/2 handshake hangs.
+
+	healthySrv := &countingTraceServer{}
+	healthyLis, healthyGS := serveTrace(t, healthySrv)
+	defer healthyLis.Close()
+	defer healthyGS.Stop()
+
+	blackholeAddr := blackhole.Addr().String()
+	healthyAddr := healthyLis.Addr().String()
+
+	var cm *ConnectionManager
+	var conn *grpc.ClientConn
+	deadline := time.Now().Add(30 * time.Second)
+	for time.Now().Before(deadline) {
+		backends := blackholeAddr + "," + healthyAddr
+		var cmErr error
+		cm, cmErr = NewConnectionManager(nil, time.Second, backends, "", nil)
+		if cmErr != nil {
+			t.Fatalf("NewConnectionManager: %v", cmErr)
+		}
+		conn, cmErr = cm.GetConnection(backends)
+		if cmErr != nil {
+			cm.Close()
+			t.Fatalf("GetConnection: %v", cmErr)
+		}
+		// Wait briefly for the resolver to publish the shuffled order.
+		publishDeadline := time.Now().Add(3 * time.Second)
+		var resolved []string
+		for time.Now().Before(publishDeadline) {
+			resolved = cm.ResolvedBackendAddresses()
+			if len(resolved) == 2 {
+				break
+			}
+			time.Sleep(20 * time.Millisecond)
+		}
+		if len(resolved) == 2 && resolved[0] == blackholeAddr {
+			break
+		}
+		cm.Close()
+		cm = nil
+		conn = nil
+	}
+	if cm == nil || conn == nil {
+		t.Fatal("could not obtain a channel with blackhole as first resolved address")
+	}
+	defer cm.Close()
+
+	waitFor(t, func() bool {
+		return conn.GetState() == connectivity.Ready
+	}, 15*time.Second)
+
+	client := agentv3.NewTraceSegmentReportServiceClient(conn)
+	if sendErr := sendTraceProbe(client, cm.GetMD(), "blackhole-failover"); sendErr != nil {
+		t.Fatalf("probe after blackhole failover: %v", sendErr)
+	}
+	waitFor(t, func() bool { return healthySrv.count.Load() >= 1 }, 5*time.Second)
 }
 
 func TestBoundSendCancelsOnTimeout(t *testing.T) {
@@ -278,7 +356,7 @@ func TestConcurrentGetRelease(t *testing.T) {
 					t.Error("acquired connection closed while its reference is held")
 				}
 				_ = cm.ReleaseConnection(backends)
-				_ = cm.PeekConnection(backends)
+				_ = peekConnection(cm, backends)
 				_ = cm.GetConnectionStatus(backends)
 			}
 		}()

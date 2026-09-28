@@ -187,7 +187,7 @@ func TestIsMultiBackendServiceNormalize(t *testing.T) {
 }
 
 func TestBackendStreamContextStopOpenClearsTimeout(t *testing.T) {
-	ctx, cancel, stopOpen := BackendStreamContext("10.0.0.1:9,10.0.0.2:9", time.Second)
+	ctx, cancel, stopOpen := BackendStreamContext(time.Second)
 	defer cancel()
 	if stopOpen() {
 		t.Fatal("immediate stopOpen must not report timedOut")
@@ -196,7 +196,7 @@ func TestBackendStreamContextStopOpenClearsTimeout(t *testing.T) {
 }
 
 func TestBackendStreamContextReportsTimedOut(t *testing.T) {
-	ctx, cancel, stopOpen := BackendStreamContext("10.0.0.1:9,10.0.0.2:9", time.Millisecond)
+	ctx, cancel, stopOpen := BackendStreamContext(time.Millisecond)
 	defer cancel()
 	cancel()
 	if !stopOpen() {
@@ -208,10 +208,10 @@ func TestBackendStreamContextReportsTimedOut(t *testing.T) {
 }
 
 func TestBackendRPCContextMultiHasDeadline(t *testing.T) {
-	ctx, cancel := BackendRPCContext("10.0.0.1:9,10.0.0.2:9", time.Second)
+	ctx, cancel := BackendRPCContext(time.Second)
 	defer cancel()
 	if _, ok := ctx.Deadline(); !ok {
-		t.Fatal("multi-address BackendRPCContext must set a deadline")
+		t.Fatal("BackendRPCContext must set a deadline")
 	}
 }
 

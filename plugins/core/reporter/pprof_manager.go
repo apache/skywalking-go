@@ -24,6 +24,8 @@ import (
 	"strconv"
 	"time"
 
+	"google.golang.org/grpc/metadata"
+
 	"github.com/apache/skywalking-go/plugins/core/operator"
 	commonv3 "github.com/apache/skywalking-go/protocols/collect/common/v3"
 	pprofv10 "github.com/apache/skywalking-go/protocols/collect/pprof/v10"
@@ -106,17 +108,19 @@ func (r *PprofTaskManager) InitPprofTask(entity *Entity) {
 				time.Sleep(r.pprofInterval)
 				continue
 			}
-			ctx, cancel := BackendRPCContext(r.serverAddr, r.pprofInterval)
+			ctx, cancel := BackendRPCContext(r.pprofInterval)
 			if r.pprofClient == nil {
 				cancel()
 				time.Sleep(r.pprofInterval)
 				continue
 			}
-			pprofCommand, err := r.pprofClient.GetPprofTaskCommands(ctx, &pprofv10.PprofTaskCommandQuery{
-				Service:         r.entity.ServiceName,
-				ServiceInstance: r.entity.ServiceInstanceName,
-				LastCommandTime: r.LastUpdateTime,
-			})
+			pprofCommand, err := r.pprofClient.GetPprofTaskCommands(
+				metadata.NewOutgoingContext(ctx, r.connManager.GetMD()),
+				&pprofv10.PprofTaskCommandQuery{
+					Service:         r.entity.ServiceName,
+					ServiceInstance: r.entity.ServiceInstanceName,
+					LastCommandTime: r.LastUpdateTime,
+				})
 			cancel()
 			if err != nil {
 				r.logger.Errorf("fetch pprof task commands error %v", err)
@@ -314,7 +318,7 @@ func (r *PprofTaskManager) uploadPprofDataOnce(pprofData *pprofv10.PprofData) er
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	stream, err := r.pprofClient.Collect(ctx)
+	stream, err := r.pprofClient.Collect(metadata.NewOutgoingContext(ctx, r.connManager.GetMD()))
 	if err != nil {
 		return fmt.Errorf("start collect stream: %w", err)
 	}

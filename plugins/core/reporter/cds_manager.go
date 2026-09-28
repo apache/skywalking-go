@@ -20,6 +20,8 @@ package reporter
 import (
 	"time"
 
+	"google.golang.org/grpc/metadata"
+
 	"github.com/apache/skywalking-go/plugins/core/operator"
 
 	configuration "github.com/apache/skywalking-go/protocols/collect/agent/configuration/v3"
@@ -72,17 +74,19 @@ func (r *CDSManager) InitCDS(entity *Entity, cdsWatchers []AgentConfigChangeWatc
 		for {
 			switch r.connManager.GetConnectionStatus(r.serverAddr) {
 			case ConnectionStatusShutdown:
-				break
+				return
 			case ConnectionStatusDisconnect:
 				time.Sleep(r.cdsInterval)
 				continue
 			}
 
-			ctx, cancel := BackendRPCContext(r.serverAddr, r.cdsInterval)
-			configurations, err := r.cdsClient.FetchConfigurations(ctx, &configuration.ConfigurationSyncRequest{
-				Service: r.entity.ServiceName,
-				Uuid:    r.cdsService.UUID,
-			})
+			ctx, cancel := BackendRPCContext(r.cdsInterval)
+			configurations, err := r.cdsClient.FetchConfigurations(
+				metadata.NewOutgoingContext(ctx, r.connManager.GetMD()),
+				&configuration.ConfigurationSyncRequest{
+					Service: r.entity.ServiceName,
+					Uuid:    r.cdsService.UUID,
+				})
 			cancel()
 
 			if err != nil {

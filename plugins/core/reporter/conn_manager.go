@@ -22,6 +22,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"net"
 	"os"
 	"strings"
 	"sync"
@@ -34,6 +35,7 @@ import (
 	"google.golang.org/grpc/backoff"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/metadata"
 
 	"github.com/apache/skywalking-go/plugins/core/operator"
@@ -66,6 +68,16 @@ const multiBackendServiceConfig = `{
 }`
 
 const multiBackendDialTimeout = 5 * time.Second
+
+// multiBackendPerAddrDialTimeout caps each TCP dial so a blackholed first
+// address cannot consume the shared pick_first MinConnectTimeout alone.
+const multiBackendPerAddrDialTimeout = 2 * time.Second
+
+var agentKeepaliveParams = keepalive.ClientParameters{
+	Time:                30 * time.Second,
+	Timeout:             10 * time.Second,
+	PermitWithoutStream: true,
+}
 
 func NewConnectionManager(logger operator.LogOperator, checkInterval time.Duration,
 	serverAddr string, auth string, creds credentials.TransportCredentials) (*ConnectionManager, error) {
@@ -176,14 +188,16 @@ func (cm *ConnectionManager) createConnection() (*grpc.ClientConn, error) {
 			credsDialOption = grpc.WithTransportCredentials(insecure.NewCredentials())
 		}
 
-		conn, err := grpc.Dial(cm.serverAddr, credsDialOption, grpc.WithConnectParams(grpc.ConnectParams{
-			Backoff: backoff.Config{
-				BaseDelay:  1.0 * time.Second,
-				Multiplier: 1.6,
-				Jitter:     0.2,
-				MaxDelay:   cm.checkInterval,
-			},
-		}))
+		conn, err := grpc.Dial(cm.serverAddr, credsDialOption,
+			grpc.WithKeepaliveParams(agentKeepaliveParams),
+			grpc.WithConnectParams(grpc.ConnectParams{
+				Backoff: backoff.Config{
+					BaseDelay:  1.0 * time.Second,
+					Multiplier: 1.6,
+					Jitter:     0.2,
+					MaxDelay:   cm.checkInterval,
+				},
+			}))
 		return conn, err
 	}
 
@@ -202,15 +216,19 @@ func (cm *ConnectionManager) dialMultiBackend(backends []string) (*grpc.ClientCo
 		return nil, multiErr
 	}
 	opts = append(opts, multiOpts...)
-	opts = append(opts, grpc.WithConnectParams(grpc.ConnectParams{
-		MinConnectTimeout: multiBackendDialTimeout,
-		Backoff: backoff.Config{
-			BaseDelay:  1.0 * time.Second,
-			Multiplier: 1.6,
-			Jitter:     0.2,
-			MaxDelay:   cm.checkInterval,
-		},
-	}))
+	opts = append(opts,
+		grpc.WithKeepaliveParams(agentKeepaliveParams),
+		grpc.WithContextDialer(multiBackendContextDialer(multiBackendPerAddrDialTimeout)),
+		grpc.WithConnectParams(grpc.ConnectParams{
+			MinConnectTimeout: multiBackendDialTimeout,
+			Backoff: backoff.Config{
+				BaseDelay:  1.0 * time.Second,
+				Multiplier: 1.6,
+				Jitter:     0.2,
+				MaxDelay:   cm.checkInterval,
+			},
+		}),
+	)
 	conn, dialErr := grpc.Dial(target, opts...)
 	if dialErr != nil {
 		if cm.logger != nil {
@@ -219,6 +237,50 @@ func (cm *ConnectionManager) dialMultiBackend(backends []string) (*grpc.ClientCo
 		return nil, fmt.Errorf("dial backend %q via static multi-backend resolver: %w", target, dialErr)
 	}
 	return conn, nil
+}
+
+// multiBackendContextDialer gives each pick_first address its own dial/handshake
+// budget so one silent peer cannot starve the rest of MinConnectTimeout.
+// TCP connect is capped by DialContext; Accept-never-called peers still pass
+// Dial but hang on the HTTP/2 preface read — a temporary conn deadline bounds
+// that hang and is cleared once the peer responds.
+func multiBackendContextDialer(perAddrTimeout time.Duration) func(context.Context, string) (net.Conn, error) {
+	return func(ctx context.Context, addr string) (net.Conn, error) {
+		d := net.Dialer{}
+		dialCtx, cancel := context.WithTimeout(ctx, perAddrTimeout)
+		defer cancel()
+		raw, err := d.DialContext(dialCtx, "tcp", addr)
+		if err != nil {
+			return nil, err
+		}
+		deadline := time.Now().Add(perAddrTimeout)
+		if err := raw.SetDeadline(deadline); err != nil {
+			_ = raw.Close()
+			return nil, err
+		}
+		return &handshakeBoundedConn{Conn: raw}, nil
+	}
+}
+
+// handshakeBoundedConn clears the dialer-imposed deadline after the peer
+// responds (first successful Read), so long-lived Collect streams are unbound.
+type handshakeBoundedConn struct {
+	net.Conn
+	cleared atomic.Bool
+}
+
+func (c *handshakeBoundedConn) clearDeadline() {
+	if c.cleared.CompareAndSwap(false, true) {
+		_ = c.Conn.SetDeadline(time.Time{})
+	}
+}
+
+func (c *handshakeBoundedConn) Read(b []byte) (int, error) {
+	n, err := c.Conn.Read(b)
+	if n > 0 {
+		c.clearDeadline()
+	}
+	return n, err
 }
 
 // multiBackendDialOptions configures the static pick_first resolver path used
@@ -270,7 +332,7 @@ func (cm *ConnectionManager) ResolvedBackendAddresses() []string {
 var boundSendTimeoutNs atomic.Int64
 
 func init() {
-	boundSendTimeoutNs.Store(int64(8 * time.Second))
+	boundSendTimeoutNs.Store(int64(60 * time.Second))
 }
 
 func boundSendTimeout() time.Duration {
@@ -278,45 +340,64 @@ func boundSendTimeout() time.Duration {
 }
 
 // BoundSendTimeoutForTest / SetBoundSendTimeoutForTest let unit tests exercise
-// kill→standby without waiting the production 8s bound.
+// kill→standby without waiting the production BoundSend timeout.
 func BoundSendTimeoutForTest() time.Duration { return boundSendTimeout() }
 func SetBoundSendTimeoutForTest(d time.Duration) {
 	boundSendTimeoutNs.Store(int64(d))
 }
 
-// Deprecated no-ops retained so existing tests compile; BoundSend no longer
-// uses a post-cancel grace period.
-func BoundSendCancelGraceForTest() time.Duration            { return 0 }
-func SetBoundSendCancelGraceForTest(time.Duration)          {}
-func MultiBackendSendTimeoutForTest() time.Duration         { return BoundSendTimeoutForTest() }
-func SetMultiBackendSendTimeoutForTest(d time.Duration)     { SetBoundSendTimeoutForTest(d) }
-func MultiBackendSendCancelGraceForTest() time.Duration     { return BoundSendCancelGraceForTest() }
-func SetMultiBackendSendCancelGraceForTest(d time.Duration) { SetBoundSendCancelGraceForTest(d) }
+// BoundSendWatchdog reuses a single timer across many Send/CloseAndRecv calls
+// on one Collect stream (Reset instead of allocating AfterFunc per message).
+type BoundSendWatchdog struct {
+	cancel  context.CancelFunc
+	timeout time.Duration
+	timer   *time.Timer
+}
 
-// BoundSend cancels the stream context if send takes longer than timeout.
-// grpc-go SendMsg/CloseAndRecv return once the stream context is canceled, so
-// a watchdog cancel is enough — no helper goroutine on the hot path.
-// Panics from send propagate to the caller for sendWithRecover.
-func BoundSend(cancel context.CancelFunc, send func() error, timeout time.Duration) error {
+// NewBoundSendWatchdog prepares a stopped watchdog. Pass timeout<=0 to use the
+// configured BoundSend default. Stop must be called when the stream ends.
+func NewBoundSendWatchdog(cancel context.CancelFunc, timeout time.Duration) *BoundSendWatchdog {
 	if timeout <= 0 {
 		timeout = boundSendTimeout()
 	}
-	if cancel == nil {
+	w := &BoundSendWatchdog{cancel: cancel, timeout: timeout}
+	if cancel != nil {
+		w.timer = time.AfterFunc(time.Hour, cancel)
+		w.timer.Stop()
+	}
+	return w
+}
+
+// Do runs send under the watchdog; cancel fires if send exceeds timeout.
+// Panics from send propagate to the caller for sendWithRecover.
+func (w *BoundSendWatchdog) Do(send func() error) error {
+	if w == nil || w.cancel == nil || w.timer == nil {
 		return send()
 	}
-	watchdog := time.AfterFunc(timeout, cancel)
-	defer watchdog.Stop()
+	_ = w.timer.Stop()
+	w.timer.Reset(w.timeout)
+	defer w.timer.Stop()
 	return send()
 }
 
-// MultiBackendSend is an alias for BoundSend.
-func MultiBackendSend(cancel context.CancelFunc, send func() error, timeout time.Duration) error {
-	return BoundSend(cancel, send, timeout)
+// Stop releases the timer. Safe to call more than once.
+func (w *BoundSendWatchdog) Stop() {
+	if w == nil || w.timer == nil {
+		return
+	}
+	w.timer.Stop()
+}
+
+// BoundSend is a one-shot watchdog for tests and CloseAndRecv helpers.
+// Prefer BoundSendWatchdog.Do on Collect hot paths.
+func BoundSend(cancel context.CancelFunc, send func() error, timeout time.Duration) error {
+	w := NewBoundSendWatchdog(cancel, timeout)
+	defer w.Stop()
+	return w.Do(send)
 }
 
 // BackendRPCContext returns the context for an outbound unary backend RPC.
-func BackendRPCContext(serverAddr string, atLeast time.Duration) (context.Context, context.CancelFunc) {
-	_ = serverAddr
+func BackendRPCContext(atLeast time.Duration) (context.Context, context.CancelFunc) {
 	timeout := 30 * time.Second
 	if atLeast > timeout {
 		timeout = atLeast
@@ -328,10 +409,9 @@ func BackendRPCContext(serverAddr string, atLeast time.Duration) (context.Contex
 // immediately after Collect returns; if it reports timedOut, discard the stream.
 // After a successful open, callers should start WatchConnCancelOnUnready so a
 // hung Send unblocks when the channel leaves Ready.
-func BackendStreamContext(serverAddr string, atLeast time.Duration) (
+func BackendStreamContext(atLeast time.Duration) (
 	ctx context.Context, cancel context.CancelFunc, stopOpenTimer func() (timedOut bool),
 ) {
-	_ = serverAddr
 	ctx, cancel = context.WithCancel(context.Background())
 	timeout := 30 * time.Second
 	if atLeast > timeout {
@@ -358,8 +438,10 @@ func BackendStreamContext(serverAddr string, atLeast time.Duration) (
 }
 
 // WatchConnCancelOnUnready cancels ctx once conn has been Ready and later
-// enters TransientFailure or Shutdown. Start only after Collect succeeds so
-// pick_first can finish Connecting → Ready on the standby without being
+// leaves Ready (Idle, TransientFailure, or Shutdown). pick_first often moves
+// to Idle before TransientFailure when a peer goes dark; keepalive accelerates
+// detection, and canceling Idle after seenReady unblocks hung Send.
+// Start only after Collect succeeds so Connecting → Ready on a standby is not
 // canceled early.
 func WatchConnCancelOnUnready(ctx context.Context, cancel context.CancelFunc, conn *grpc.ClientConn) {
 	if conn == nil {
@@ -371,7 +453,9 @@ func WatchConnCancelOnUnready(ctx context.Context, cancel context.CancelFunc, co
 		if state == connectivity.Ready {
 			seenReady = true
 		}
-		if seenReady && (state == connectivity.TransientFailure || state == connectivity.Shutdown) {
+		if seenReady && (state == connectivity.Idle ||
+			state == connectivity.TransientFailure ||
+			state == connectivity.Shutdown) {
 			cancel()
 			return
 		}
@@ -379,18 +463,6 @@ func WatchConnCancelOnUnready(ctx context.Context, cancel context.CancelFunc, co
 			return
 		}
 	}
-}
-
-// PeekConnection returns the managed ClientConn for serverAddr without
-// changing refCount. Nil when missing.
-func (cm *ConnectionManager) PeekConnection(serverAddr string) *grpc.ClientConn {
-	cm.mu.Lock()
-	defer cm.mu.Unlock()
-	managed, exists := cm.connManager[serverAddr]
-	if !exists {
-		return nil
-	}
-	return managed.connection
 }
 
 func (cm *ConnectionManager) checkConnectionStatus(serverAddr string) {

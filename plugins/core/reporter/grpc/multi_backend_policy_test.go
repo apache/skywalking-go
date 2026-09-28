@@ -155,7 +155,7 @@ func runNoReplayOnRPCErrorCase(t *testing.T, code codes.Code) {
 	if segCalls() < 2 {
 		t.Fatalf("Collect opened %d times, want >=2 after RPC error reconnect", segCalls())
 	}
-	if f.cm.PeekConnection(f.r.serverAddr) != f.conn {
+	if f.r.conn != f.conn {
 		t.Fatal("RPC path replaced the shared channel")
 	}
 
@@ -185,11 +185,12 @@ func TestMultiBackendPipelineRecoversSendPanic(t *testing.T) {
 	}
 	t.Cleanup(cm.Close)
 	r := &gRPCReporter{logger: logger, connManager: cm}
-	recovered, err := r.pipelineSend(func() {}, func() error { panic("corrupt protobuf payload") })
+	watchdog := reporter.NewBoundSendWatchdog(nil, 0)
+	recovered, err := r.pipelineSend(watchdog, func() error { panic("corrupt protobuf payload") })
 	if !recovered || err != nil {
 		t.Fatalf("panic result: recovered=%v, err=%v", recovered, err)
 	}
-	recovered, err = r.pipelineSend(func() {}, func() error { return nil })
+	recovered, err = r.pipelineSend(watchdog, func() error { return nil })
 	if recovered || err != nil {
 		t.Fatalf("subsequent send failed: recovered=%v, err=%v", recovered, err)
 	}

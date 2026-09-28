@@ -32,8 +32,22 @@ var errNoValidBackendService = fmt.Errorf("no valid backend service addresses")
 // parseBackendServiceList splits a comma-separated backend_service config into
 // normalized host:port entries. Invalid entries are warned about and skipped;
 // empty segments and duplicates are removed.
+//
+// A single token that is not host:port (for example dns:///oap:11800 or
+// unix:///tmp/oap.sock) is passed through unchanged so legacy gRPC target URIs
+// keep working. Comma-separated lists still require host:port entries.
 func parseBackendServiceList(raw string, logger operator.LogOperator) ([]string, error) {
 	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return nil, errNoValidBackendService
+	}
+	if !strings.Contains(raw, ",") {
+		host, port, err := splitBackendServiceAddress(raw)
+		if err != nil {
+			return []string{raw}, nil
+		}
+		return []string{net.JoinHostPort(host, port)}, nil
+	}
 	parts := strings.Split(raw, ",")
 	out := make([]string, 0, len(parts))
 	seen := make(map[string]struct{}, len(parts))
@@ -84,17 +98,6 @@ func splitBackendServiceAddress(serverAddr string) (host, port string, err error
 		return "", "", fmt.Errorf("invalid backend service port %q", port)
 	}
 	return host, strconv.Itoa(portNumber), nil
-}
-
-func isIPLiteralHost(host string) bool {
-	host = strings.TrimSpace(host)
-	if host == "" {
-		return false
-	}
-	if strings.HasPrefix(host, "[") && strings.HasSuffix(host, "]") {
-		host = host[1 : len(host)-1]
-	}
-	return net.ParseIP(host) != nil
 }
 
 // configuredAddressesAsResolverState builds resolver addresses with ServerName

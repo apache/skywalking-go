@@ -123,12 +123,10 @@ func (m *backendMocks) addr() string { return m.lis.Addr().String() }
 
 func setupMultiReporter(t *testing.T, backends string) *gRPCReporter {
 	t.Helper()
-	oldTimeout, oldGrace := reporter.MultiBackendSendTimeoutForTest(), reporter.MultiBackendSendCancelGraceForTest()
-	reporter.SetMultiBackendSendTimeoutForTest(400 * time.Millisecond)
-	reporter.SetMultiBackendSendCancelGraceForTest(100 * time.Millisecond)
+	oldTimeout := reporter.BoundSendTimeoutForTest()
+	reporter.SetBoundSendTimeoutForTest(400 * time.Millisecond)
 	t.Cleanup(func() {
-		reporter.SetMultiBackendSendTimeoutForTest(oldTimeout)
-		reporter.SetMultiBackendSendCancelGraceForTest(oldGrace)
+		reporter.SetBoundSendTimeoutForTest(oldTimeout)
 	})
 
 	logger := &capturingLogger{}

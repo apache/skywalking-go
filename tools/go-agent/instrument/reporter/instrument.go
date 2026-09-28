@@ -226,12 +226,12 @@ func initManager(logger operator.LogOperator, checkInterval time.Duration) (*Con
 		err        error
 	)
 	if {{.Config.Reporter.GRPC.TLS.Enable.ToGoBoolValue}} {
-		tc, err := generateTLSCredential({{.Config.Reporter.GRPC.TLS.CAPath.ToGoStringValue}}, 
+		tc, tlsErr := generateTLSCredential({{.Config.Reporter.GRPC.TLS.CAPath.ToGoStringValue}}, 
 			{{.Config.Reporter.GRPC.TLS.ClientKeyPath.ToGoStringValue}},
 			{{.Config.Reporter.GRPC.TLS.ClientCertChainPath.ToGoStringValue}},
 			{{.Config.Reporter.GRPC.TLS.InsecureSkipVerify.ToGoBoolValue}})
-		if err != nil {
-			panic(fmt.Sprintf("generate go agent tls credential error: %v", err))
+		if tlsErr != nil {
+			panic(fmt.Sprintf("generate go agent tls credential error: %v", tlsErr))
 		}
 		connManager, err = NewConnectionManager(logger, checkInterval, backendServiceVal, authenticationVal, tc)
 	} else {

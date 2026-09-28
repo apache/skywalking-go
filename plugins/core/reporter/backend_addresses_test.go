@@ -170,8 +170,9 @@ func TestParseBackendServiceList(t *testing.T) {
 	if _, emptyErr := parseBackendServiceList("", nil); emptyErr != errNoValidBackendService {
 		t.Fatal("expected empty error")
 	}
-	if _, badErr := parseBackendServiceList("bad", nil); badErr != errNoValidBackendService {
-		t.Fatal("expected invalid address error")
+	passthrough, passthroughErr := parseBackendServiceList("bad", nil)
+	if passthroughErr != nil || len(passthrough) != 1 || passthrough[0] != "bad" {
+		t.Fatalf("single non-host:port must passthrough, got %#v err=%v", passthrough, passthroughErr)
 	}
 	v6, err := parseBackendServiceList("[2001:db8::1]:11800", nil)
 	if err != nil {
@@ -182,6 +183,24 @@ func TestParseBackendServiceList(t *testing.T) {
 	}
 }
 
+func TestParseBackendServiceListURIPassthrough(t *testing.T) {
+	for _, uri := range []string{
+		"dns:///oap.example:11800",
+		"unix:///tmp/oap.sock",
+		"dns:oap.example:11800",
+	} {
+		got, err := parseBackendServiceList(uri, nil)
+		if err != nil || len(got) != 1 || got[0] != uri {
+			t.Fatalf("%q: got %#v err=%v", uri, got, err)
+		}
+	}
+	// Multi-address lists still skip invalid host:port entries.
+	got, err := parseBackendServiceList("dns:///x,"+testBackendAddr, nil)
+	if err != nil || !reflect.DeepEqual(got, []string{testBackendAddr}) {
+		t.Fatalf("multi list must skip URI tokens: %#v err=%v", got, err)
+	}
+}
+
 func TestIsIPLiteralHost(t *testing.T) {
 	if !isIPLiteralHost("127.0.0.1") || !isIPLiteralHost("::1") || !isIPLiteralHost("[::1]") {
 		t.Fatal("expected IP literals")
@@ -189,6 +208,17 @@ func TestIsIPLiteralHost(t *testing.T) {
 	if isIPLiteralHost(testBackendHost) || isIPLiteralHost("") {
 		t.Fatal("expected non-IP")
 	}
+}
+
+func isIPLiteralHost(host string) bool {
+	host = strings.TrimSpace(host)
+	if host == "" {
+		return false
+	}
+	if strings.HasPrefix(host, "[") && strings.HasSuffix(host, "]") {
+		host = host[1 : len(host)-1]
+	}
+	return net.ParseIP(host) != nil
 }
 
 func TestBackendServicePortValidation(t *testing.T) {

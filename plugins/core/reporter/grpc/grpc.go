@@ -214,12 +214,40 @@ func (r *gRPCReporter) sendWithRecover(send func() error) (recovered bool, err e
 	return recovered, err
 }
 
-// pipelineSend wraps stream Send with BoundSend so a half-open connection cannot
-// stall the Collect loop forever.
-func (r *gRPCReporter) pipelineSend(cancel context.CancelFunc, send func() error) (recovered bool, err error) {
+// pipelineSend wraps stream Send with a reusable BoundSendWatchdog so a
+// half-open connection cannot stall the Collect loop forever.
+func (r *gRPCReporter) pipelineSend(watchdog *reporter.BoundSendWatchdog, send func() error) (recovered bool, err error) {
 	return r.sendWithRecover(func() error {
-		return reporter.BoundSend(cancel, send, 0)
+		return watchdog.Do(send)
 	})
+}
+
+// openBackendStream opens a Collect-style stream with auth metadata, open-timeout,
+// and an unready watcher. On failure cancel is already invoked.
+func openBackendStream[S any](
+	r *gRPCReporter,
+	open func(ctx context.Context) (S, error),
+) (ctx context.Context, cancel context.CancelFunc, stream S, err error) {
+	var zero S
+	ctx, cancel, stopOpen := reporter.BackendStreamContext(r.checkInterval)
+	stream, err = open(metadata.NewOutgoingContext(ctx, r.connManager.GetMD()))
+	if timedOut := stopOpen(); err != nil || timedOut {
+		cancel()
+		if err == nil {
+			err = ctx.Err()
+		}
+		return ctx, cancel, zero, err
+	}
+	go reporter.WatchConnCancelOnUnready(ctx, cancel, r.conn)
+	return ctx, cancel, stream, nil
+}
+
+// closeStream runs CloseAndRecv under BoundSend so a half-open peer cannot
+// stall StreamLoop (and pick_first failover) after Send already failed.
+func (r *gRPCReporter) closeStream(cancel context.CancelFunc, closeAndRecv func() error, errLog string) {
+	if err := reporter.BoundSend(cancel, closeAndRecv, 0); err != nil {
+		r.logger.Errorf("%s %v", errLog, err)
+	}
 }
 
 // nolint
@@ -243,34 +271,48 @@ func (r *gRPCReporter) initSendPipeline() {
 				continue StreamLoop
 			}
 
-			ctx, cancel, stopOpen := reporter.BackendStreamContext(r.serverAddr, r.checkInterval)
-			stream, err := r.traceClient.Collect(metadata.NewOutgoingContext(ctx, r.connManager.GetMD()))
-			if timedOut := stopOpen(); err != nil || timedOut {
-				cancel()
-				if err == nil {
-					err = ctx.Err()
-				}
+			ctx, cancel, stream, err := openBackendStream(r, func(ctx context.Context) (
+				agentv3.TraceSegmentReportService_CollectClient, error,
+			) {
+				return r.traceClient.Collect(ctx)
+			})
+			if err != nil {
 				r.logger.Errorf("open stream error %v", err)
 				time.Sleep(5 * time.Second)
 				continue StreamLoop
 			}
-			go reporter.WatchConnCancelOnUnready(ctx, cancel, r.conn)
+			_ = ctx
+			watchdog := reporter.NewBoundSendWatchdog(cancel, 0)
 
 			for s := range r.tracingSendCh {
-				recovered, sendErr := r.pipelineSend(cancel, func() error { return stream.Send(s) })
+				recovered, sendErr := r.pipelineSend(watchdog, func() error { return stream.Send(s) })
 				if recovered {
 					continue
 				}
 				if sendErr != nil {
 					r.logger.Errorf("send segment error %v", sendErr)
 					cancel()
-					r.closeTracingStream(cancel, stream)
+					r.closeStream(cancel, func() error {
+						_, err := stream.CloseAndRecv()
+						if err == io.EOF {
+							return nil
+						}
+						return err
+					}, "send closing error")
+					watchdog.Stop()
 					continue StreamLoop
 				}
 			}
 			// Graceful drain: CloseAndRecv before cancel so OAP can ack in-flight
 			// data. BoundSend still cancels if close hangs.
-			r.closeTracingStream(cancel, stream)
+			r.closeStream(cancel, func() error {
+				_, err := stream.CloseAndRecv()
+				if err == io.EOF {
+					return nil
+				}
+				return err
+			}, "send closing error")
+			watchdog.Stop()
 			cancel()
 			r.closeGRPCConn()
 			break
@@ -292,21 +334,21 @@ func (r *gRPCReporter) initSendPipeline() {
 				continue StreamLoop
 			}
 
-			ctx, cancel, stopOpen := reporter.BackendStreamContext(r.serverAddr, r.checkInterval)
-			stream, err := r.metricsClient.CollectBatch(metadata.NewOutgoingContext(ctx, r.connManager.GetMD()))
-			if timedOut := stopOpen(); err != nil || timedOut {
-				cancel()
-				if err == nil {
-					err = ctx.Err()
-				}
+			ctx, cancel, stream, err := openBackendStream(r, func(ctx context.Context) (
+				agentv3.MeterReportService_CollectBatchClient, error,
+			) {
+				return r.metricsClient.CollectBatch(ctx)
+			})
+			if err != nil {
 				r.logger.Errorf("open stream error %v", err)
 				time.Sleep(5 * time.Second)
 				continue StreamLoop
 			}
-			go reporter.WatchConnCancelOnUnready(ctx, cancel, r.conn)
+			_ = ctx
+			watchdog := reporter.NewBoundSendWatchdog(cancel, 0)
 
 			for s := range r.metricsSendCh {
-				recovered, sendErr := r.pipelineSend(cancel, func() error {
+				recovered, sendErr := r.pipelineSend(watchdog, func() error {
 					return stream.Send(&agentv3.MeterDataCollection{MeterData: s})
 				})
 				if recovered {
@@ -317,11 +359,25 @@ func (r *gRPCReporter) initSendPipeline() {
 					// CloseAndRecv forever and block reconnect.
 					cancel()
 					r.logger.Errorf("send metrics error %v", sendErr)
-					r.closeMetricsStream(cancel, stream)
+					r.closeStream(cancel, func() error {
+						_, err := stream.CloseAndRecv()
+						if err == io.EOF {
+							return nil
+						}
+						return err
+					}, "send closing error")
+					watchdog.Stop()
 					continue StreamLoop
 				}
 			}
-			r.closeMetricsStream(cancel, stream)
+			r.closeStream(cancel, func() error {
+				_, err := stream.CloseAndRecv()
+				if err == io.EOF {
+					return nil
+				}
+				return err
+			}, "send closing error")
+			watchdog.Stop()
 			cancel()
 			break
 		}
@@ -342,32 +398,46 @@ func (r *gRPCReporter) initSendPipeline() {
 				continue StreamLoop
 			}
 
-			ctx, cancel, stopOpen := reporter.BackendStreamContext(r.serverAddr, r.checkInterval)
-			stream, err := r.logClient.Collect(metadata.NewOutgoingContext(ctx, r.connManager.GetMD()))
-			if timedOut := stopOpen(); err != nil || timedOut {
-				cancel()
-				if err == nil {
-					err = ctx.Err()
-				}
+			ctx, cancel, stream, err := openBackendStream(r, func(ctx context.Context) (
+				logv3.LogReportService_CollectClient, error,
+			) {
+				return r.logClient.Collect(ctx)
+			})
+			if err != nil {
 				r.logger.Errorf("open stream error %v", err)
 				time.Sleep(5 * time.Second)
 				continue StreamLoop
 			}
-			go reporter.WatchConnCancelOnUnready(ctx, cancel, r.conn)
+			_ = ctx
+			watchdog := reporter.NewBoundSendWatchdog(cancel, 0)
 
 			for s := range r.logSendCh {
-				recovered, sendErr := r.pipelineSend(cancel, func() error { return stream.Send(s) })
+				recovered, sendErr := r.pipelineSend(watchdog, func() error { return stream.Send(s) })
 				if recovered {
 					continue
 				}
 				if sendErr != nil {
 					cancel()
 					r.logger.Errorf("send log error %v", sendErr)
-					r.closeLogStream(cancel, stream)
+					r.closeStream(cancel, func() error {
+						_, err := stream.CloseAndRecv()
+						if err == io.EOF {
+							return nil
+						}
+						return err
+					}, "send closing error")
+					watchdog.Stop()
 					continue StreamLoop
 				}
 			}
-			r.closeLogStream(cancel, stream)
+			r.closeStream(cancel, func() error {
+				_, err := stream.CloseAndRecv()
+				if err == io.EOF {
+					return nil
+				}
+				return err
+			}, "send closing error")
+			watchdog.Stop()
 			cancel()
 			break
 		}
@@ -389,18 +459,18 @@ func (r *gRPCReporter) initSendPipeline() {
 				continue StreamLoop
 			}
 
-			ctx, cancel, stopOpen := reporter.BackendStreamContext(r.serverAddr, r.checkInterval)
-			stream, err := r.profileTaskClient.GoProfileReport(metadata.NewOutgoingContext(ctx, r.connManager.GetMD()))
-			if timedOut := stopOpen(); err != nil || timedOut {
-				cancel()
-				if err == nil {
-					err = ctx.Err()
-				}
+			ctx, cancel, stream, err := openBackendStream(r, func(ctx context.Context) (
+				profilev3.ProfileTask_GoProfileReportClient, error,
+			) {
+				return r.profileTaskClient.GoProfileReport(ctx)
+			})
+			if err != nil {
 				r.logger.Errorf("open profile stream error %v", err)
 				time.Sleep(5 * time.Second)
 				continue StreamLoop
 			}
-			go reporter.WatchConnCancelOnUnready(ctx, cancel, r.conn)
+			_ = ctx
+			watchdog := reporter.NewBoundSendWatchdog(cancel, 0)
 
 			re := r.profileTaskManager.GetProfileResults()
 
@@ -412,14 +482,21 @@ func (r *gRPCReporter) initSendPipeline() {
 				}
 				r.logger.Infof("Sending profile task: TaskID='%s', PayloadSize=%d, IsLast=%v",
 					task.TaskID, len(task.Payload), task.IsLast)
-				recovered, sendErr := r.pipelineSend(cancel, func() error { return stream.Send(profileData) })
+				recovered, sendErr := r.pipelineSend(watchdog, func() error { return stream.Send(profileData) })
 				if recovered {
 					continue
 				}
 				if sendErr != nil {
 					cancel()
 					r.logger.Errorf("send profile data error %v", sendErr)
-					r.closeProfileStream(cancel, stream)
+					r.closeStream(cancel, func() error {
+						_, err := stream.CloseAndRecv()
+						if err == io.EOF {
+							return nil
+						}
+						return err
+					}, "send profile closing error")
+					watchdog.Stop()
 					continue StreamLoop
 				}
 				if task.IsLast {
@@ -429,7 +506,7 @@ func (r *gRPCReporter) initSendPipeline() {
 						Service:         r.entity.ServiceName,
 						ServiceInstance: r.entity.ServiceInstanceName,
 					}
-					finishCtx, finishCancel := reporter.BackendRPCContext(r.serverAddr, r.checkInterval)
+					finishCtx, finishCancel := reporter.BackendRPCContext(r.checkInterval)
 					_, err = r.profileTaskClient.ReportTaskFinish(
 						metadata.NewOutgoingContext(finishCtx, r.connManager.GetMD()), &report)
 					finishCancel()
@@ -438,64 +515,22 @@ func (r *gRPCReporter) initSendPipeline() {
 					}
 				}
 			}
-			r.closeProfileStream(cancel, stream)
+			r.closeStream(cancel, func() error {
+				_, err := stream.CloseAndRecv()
+				if err == io.EOF {
+					return nil
+				}
+				return err
+			}, "send profile closing error")
+			watchdog.Stop()
 			cancel()
 			break
 		}
 	}()
 }
 
-// close*Stream runs CloseAndRecv under BoundSend so a half-open peer cannot
-// stall StreamLoop (and pick_first failover) after Send already failed.
-func (r *gRPCReporter) closeTracingStream(cancel context.CancelFunc, stream agentv3.TraceSegmentReportService_CollectClient) {
-	if err := reporter.BoundSend(cancel, func() error {
-		_, err := stream.CloseAndRecv()
-		if err == io.EOF {
-			return nil
-		}
-		return err
-	}, 0); err != nil {
-		r.logger.Errorf("send closing error %v", err)
-	}
-}
-
-func (r *gRPCReporter) closeMetricsStream(cancel context.CancelFunc, stream agentv3.MeterReportService_CollectBatchClient) {
-	if err := reporter.BoundSend(cancel, func() error {
-		_, err := stream.CloseAndRecv()
-		if err == io.EOF {
-			return nil
-		}
-		return err
-	}, 0); err != nil {
-		r.logger.Errorf("send closing error %v", err)
-	}
-}
-
-func (r *gRPCReporter) closeLogStream(cancel context.CancelFunc, stream logv3.LogReportService_CollectClient) {
-	if err := reporter.BoundSend(cancel, func() error {
-		_, err := stream.CloseAndRecv()
-		if err == io.EOF {
-			return nil
-		}
-		return err
-	}, 0); err != nil {
-		r.logger.Errorf("send closing error %v", err)
-	}
-}
-
-func (r *gRPCReporter) closeProfileStream(cancel context.CancelFunc, stream profilev3.ProfileTask_GoProfileReportClient) {
-	if err := reporter.BoundSend(cancel, func() error {
-		_, err := stream.CloseAndRecv()
-		if err == io.EOF {
-			return nil
-		}
-		return err
-	}, 0); err != nil {
-		r.logger.Errorf("send profile closing error %v", err)
-	}
-}
 func (r *gRPCReporter) reportInstanceProperties() (err error) {
-	ctx, cancel := reporter.BackendRPCContext(r.serverAddr, r.checkInterval)
+	ctx, cancel := reporter.BackendRPCContext(r.checkInterval)
 	defer cancel()
 	_, err = r.managementClient.ReportInstanceProperties(
 		metadata.NewOutgoingContext(ctx, r.connManager.GetMD()),
@@ -508,7 +543,7 @@ func (r *gRPCReporter) reportInstanceProperties() (err error) {
 }
 
 func (r *gRPCReporter) sendKeepAlive() error {
-	ctx, cancel := reporter.BackendRPCContext(r.serverAddr, r.checkInterval)
+	ctx, cancel := reporter.BackendRPCContext(r.checkInterval)
 	defer cancel()
 	_, err := r.managementClient.KeepAlive(
 		metadata.NewOutgoingContext(ctx, r.connManager.GetMD()),
@@ -597,12 +632,13 @@ func (r *gRPCReporter) fetchProfileTasksOnce() {
 		LastCommandTime: r.lastProfileCommandTime,
 	}
 
-	ctx, cancel := reporter.BackendRPCContext(r.serverAddr, r.profileFetchInterval)
+	ctx, cancel := reporter.BackendRPCContext(r.profileFetchInterval)
 	defer cancel()
 	if r.profileTaskClient == nil {
 		return
 	}
-	resp, err := r.profileTaskClient.GetProfileTaskCommands(ctx, req)
+	resp, err := r.profileTaskClient.GetProfileTaskCommands(
+		metadata.NewOutgoingContext(ctx, r.connManager.GetMD()), req)
 	if err != nil {
 		r.logger.Errorf("fetch profile task error: %v", err)
 		return

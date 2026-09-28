@@ -50,12 +50,17 @@ reporter is disabled (discard reporter) and the application continues; the Kafka
 reporter still initializes and runs without CDS when the gRPC backend list is
 invalid.
 
+A single non-`host:port` token such as `dns:///oap:11800` or `unix:///tmp/oap.sock`
+is passed through unchanged so legacy gRPC target URIs keep working.
+
 For multiple addresses, the agent creates one gRPC channel and shuffles its
 static endpoint list once. Native `pick_first` selects the first reachable
 backend in that order and keeps using it until its transport fails. Resolver
 refreshes preserve the shuffled order. The configured list stays fixed; Go's TCP
 dialer resolves hostname entries when opening a connection, with no periodic DNS
-refresh of the list.
+refresh of the list. Each address has its own dial timeout so a silent peer
+cannot starve the rest of the connect budget. Client keepalive probes help
+detect half-open peers so `pick_first` can move to a standby.
 
 Telemetry uses long-lived Collect streams. A failed send is discarded and
 **never replayed**: the backend may already have accepted it. Automatic gRPC
