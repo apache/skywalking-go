@@ -443,7 +443,7 @@ func TestConnectionManagerFailoverAfterActiveStops(t *testing.T) {
 	}, 8*time.Second)
 
 	// pick_first uses the shuffled resolver order; stop the active (first) peer.
-	resolved := cm.ResolvedBackendAddresses()
+	resolved := resolvedBackendAddressesForTest(cm)
 	if len(resolved) == 0 {
 		t.Fatal("expected published resolver addresses")
 	}

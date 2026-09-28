@@ -200,7 +200,7 @@ func TestMultiBackendPerAddrDialTimeoutFailsOverPastBlackhole(t *testing.T) {
 		publishDeadline := time.Now().Add(3 * time.Second)
 		var resolved []string
 		for time.Now().Before(publishDeadline) {
-			resolved = cm.ResolvedBackendAddresses()
+			resolved = resolvedBackendAddressesForTest(cm)
 			if len(resolved) == 2 {
 				break
 			}

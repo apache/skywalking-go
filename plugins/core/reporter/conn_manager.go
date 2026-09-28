@@ -318,15 +318,6 @@ func (cm *ConnectionManager) storeResolvedBackendAddresses(addrs []string) {
 	cm.resolvedMu.Unlock()
 }
 
-// ResolvedBackendAddresses returns the last address list published to gRPC.
-// Empty when the static multi-backend resolver is unused. Intended for tests
-// and diagnostics.
-func (cm *ConnectionManager) ResolvedBackendAddresses() []string {
-	cm.resolvedMu.RLock()
-	defer cm.resolvedMu.RUnlock()
-	return append([]string(nil), cm.resolvedBackendAddrs...)
-}
-
 // boundSendTimeoutNs is atomic so tests can shorten BoundSend without racing
 // pipeline goroutines that still read the default.
 var boundSendTimeoutNs atomic.Int64

@@ -239,12 +239,12 @@ func TestConnectionManagerResolvedBackendAddresses(t *testing.T) {
 	defer cm.Close()
 	const resolvedA = "10.0.0.1:9"
 	cm.storeResolvedBackendAddresses([]string{resolvedA, "10.0.0.2:9"})
-	got := cm.ResolvedBackendAddresses()
+	got := resolvedBackendAddressesForTest(cm)
 	if len(got) != 2 || got[0] != resolvedA {
 		t.Fatalf("got %#v", got)
 	}
 	got[0] = "mutated"
-	if cm.ResolvedBackendAddresses()[0] != resolvedA {
-		t.Fatal("ResolvedBackendAddresses must return a copy")
+	if resolvedBackendAddressesForTest(cm)[0] != resolvedA {
+		t.Fatal("resolvedBackendAddressesForTest must return a copy")
 	}
 }
