@@ -58,8 +58,9 @@ static endpoint list once. Native `pick_first` selects the first reachable
 backend in that order and keeps using it until its transport fails. Resolver
 refreshes preserve the shuffled order. The configured list stays fixed; Go's TCP
 dialer resolves hostname entries when opening a connection, with no periodic DNS
-refresh of the list. Each address has its own dial timeout so a silent peer
-cannot starve the rest of the connect budget. Client keepalive probes help
+refresh of the list. Each address has its own dial/handshake timeout covering
+TCP, TLS, and HTTP/2 negotiation so a silent peer cannot starve the rest of the
+connect budget. Client keepalive probes help
 detect half-open peers so `pick_first` can move to a standby; keepalive Time
 is at least 30s and otherwise follows `reporter.check_interval` plus 10s so
 healthy management heartbeats suppress pings against OAP's default server
@@ -71,8 +72,9 @@ retries apply only to the idempotent `reportInstanceProperties` RPC on
 `UNAVAILABLE`, with at most three attempts.
 
 RPC deadlines and stream cancellation bound individual operations. Bound send
-timeouts and connection-state watchers help unblock half-open peers so
-`pick_first` can move to a standby.
+timeouts and watchers that cancel on TransientFailure/Shutdown help unblock
+half-open peers so `pick_first` can move to a standby; channel Idle alone
+(for example after graceful GOAWAY) does not cancel established streams.
 
 ### TLS ServerName per address
 

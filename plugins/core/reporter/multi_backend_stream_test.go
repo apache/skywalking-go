@@ -18,8 +18,14 @@ package reporter
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/tls"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/json"
 	"io"
+	"math/big"
 	"net"
 	"strconv"
 	"sync"
@@ -29,6 +35,8 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/connectivity"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/metadata"
 
 	v3 "github.com/apache/skywalking-go/protocols/collect/common/v3"
@@ -227,6 +235,211 @@ func TestMultiBackendPerAddrDialTimeoutFailsOverPastBlackhole(t *testing.T) {
 		t.Fatalf("probe after blackhole failover: %v", sendErr)
 	}
 	waitFor(t, func() bool { return healthySrv.count.Load() >= 1 }, 5*time.Second)
+}
+
+// TestMultiBackendPerAddrDialTimeoutFailsOverPastTLSSilentPeer proves a first
+// address that finishes TLS but never speaks HTTP/2 cannot starve the standby.
+// Clearing the dialer deadline on the first raw Read would pass here and hang.
+func TestMultiBackendPerAddrDialTimeoutFailsOverPastTLSSilentPeer(t *testing.T) {
+	serverTLS, clientCreds := testTLSMaterial(t)
+
+	silentLis := serveSilentTLS(t, serverTLS)
+	defer silentLis.Close()
+
+	healthySrv := &countingTraceServer{}
+	healthyLis, healthyGS := serveTraceTLS(t, healthySrv, serverTLS)
+	defer healthyLis.Close()
+	defer healthyGS.Stop()
+
+	silentAddr := silentLis.Addr().String()
+	healthyAddr := healthyLis.Addr().String()
+
+	var cm *ConnectionManager
+	var conn *grpc.ClientConn
+	deadline := time.Now().Add(30 * time.Second)
+	for time.Now().Before(deadline) {
+		backends := silentAddr + "," + healthyAddr
+		var cmErr error
+		cm, cmErr = NewConnectionManager(nil, time.Second, backends, "", clientCreds)
+		if cmErr != nil {
+			t.Fatalf("NewConnectionManager: %v", cmErr)
+		}
+		conn, cmErr = cm.GetConnection(backends)
+		if cmErr != nil {
+			cm.Close()
+			t.Fatalf("GetConnection: %v", cmErr)
+		}
+		publishDeadline := time.Now().Add(3 * time.Second)
+		var resolved []string
+		for time.Now().Before(publishDeadline) {
+			resolved = resolvedBackendAddressesForTest(cm)
+			if len(resolved) == 2 {
+				break
+			}
+			time.Sleep(20 * time.Millisecond)
+		}
+		if len(resolved) == 2 && resolved[0] == silentAddr {
+			break
+		}
+		cm.Close()
+		cm = nil
+		conn = nil
+	}
+	if cm == nil || conn == nil {
+		t.Fatal("could not obtain a channel with TLS-silent peer as first resolved address")
+	}
+	defer cm.Close()
+
+	waitFor(t, func() bool {
+		return conn.GetState() == connectivity.Ready
+	}, 15*time.Second)
+
+	client := agentv3.NewTraceSegmentReportServiceClient(conn)
+	if sendErr := sendTraceProbe(client, cm.GetMD(), "tls-silent-failover"); sendErr != nil {
+		t.Fatalf("probe after TLS-silent failover: %v", sendErr)
+	}
+	waitFor(t, func() bool { return healthySrv.count.Load() >= 1 }, 5*time.Second)
+}
+
+// TestWatchConnCancelOnUnreadyIgnoresIdleAfterGOAWAY ensures graceful GOAWAY
+// (channel Idle, accepted streams still draining) does not cancel the stream.
+func TestWatchConnCancelOnUnreadyIgnoresIdleAfterGOAWAY(t *testing.T) {
+	srv := &countingTraceServer{}
+	lis, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	defer lis.Close()
+	gs := grpc.NewServer(grpc.KeepaliveParams(keepalive.ServerParameters{
+		MaxConnectionAge:      300 * time.Millisecond,
+		MaxConnectionAgeGrace: 5 * time.Second,
+	}))
+	agentv3.RegisterTraceSegmentReportServiceServer(gs, srv)
+	go func() { _ = gs.Serve(lis) }()
+	defer gs.Stop()
+
+	addr := lis.Addr().String()
+	cm, err := NewConnectionManager(nil, time.Second, addr, "", nil)
+	if err != nil {
+		t.Fatalf("NewConnectionManager: %v", err)
+	}
+	defer cm.Close()
+	conn, err := cm.GetConnection(addr)
+	if err != nil {
+		t.Fatalf("GetConnection: %v", err)
+	}
+	client := agentv3.NewTraceSegmentReportServiceClient(conn)
+
+	ctx, cancel, stopOpen := BackendStreamContext(time.Second)
+	defer cancel()
+	stream, err := client.Collect(metadata.NewOutgoingContext(ctx, cm.GetMD()))
+	if timedOut := stopOpen(); err != nil || timedOut {
+		t.Fatalf("open Collect: err=%v timedOut=%v", err, timedOut)
+	}
+	go WatchConnCancelOnUnready(ctx, cancel, conn)
+
+	if sendErr := stream.Send(&agentv3.SegmentObject{TraceId: "goaway-1", TraceSegmentId: "s1"}); sendErr != nil {
+		t.Fatalf("first Send: %v", sendErr)
+	}
+	waitFor(t, func() bool { return conn.GetState() == connectivity.Idle }, 5*time.Second)
+
+	select {
+	case <-ctx.Done():
+		t.Fatal("WatchConnCancelOnUnready canceled on Idle during GOAWAY drain")
+	default:
+	}
+	if sendErr := stream.Send(&agentv3.SegmentObject{TraceId: "goaway-2", TraceSegmentId: "s2"}); sendErr != nil {
+		t.Fatalf("second Send during Idle drain: %v", sendErr)
+	}
+	if _, closeErr := stream.CloseAndRecv(); closeErr != nil {
+		t.Fatalf("CloseAndRecv during Idle drain: %v", closeErr)
+	}
+}
+
+func testTLSMaterial(t *testing.T) (*tls.Config, credentials.TransportCredentials) {
+	t.Helper()
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("generate key: %v", err)
+	}
+	tmpl := &x509.Certificate{
+		SerialNumber: big.NewInt(1),
+		Subject:      pkix.Name{CommonName: "localhost"},
+		NotBefore:    time.Now().Add(-time.Hour),
+		NotAfter:     time.Now().Add(time.Hour),
+		KeyUsage:     x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
+		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		IPAddresses:  []net.IP{net.ParseIP("127.0.0.1")},
+		DNSNames:     []string{"localhost"},
+	}
+	certDER, err := x509.CreateCertificate(rand.Reader, tmpl, tmpl, &key.PublicKey, key)
+	if err != nil {
+		t.Fatalf("create cert: %v", err)
+	}
+	leaf, err := x509.ParseCertificate(certDER)
+	if err != nil {
+		t.Fatalf("parse cert: %v", err)
+	}
+	pool := x509.NewCertPool()
+	pool.AddCert(leaf)
+	serverTLS := &tls.Config{
+		Certificates: []tls.Certificate{{
+			Certificate: [][]byte{certDER},
+			PrivateKey:  key,
+		}},
+		MinVersion: tls.VersionTLS12,
+	}
+	clientCreds := credentials.NewTLS(&tls.Config{
+		RootCAs:    pool,
+		ServerName: "localhost",
+		MinVersion: tls.VersionTLS12,
+	})
+	return serverTLS, clientCreds
+}
+
+func serveSilentTLS(t *testing.T, serverTLS *tls.Config) net.Listener {
+	t.Helper()
+	lis, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("silent TLS listen: %v", err)
+	}
+	go func() {
+		for {
+			raw, acceptErr := lis.Accept()
+			if acceptErr != nil {
+				return
+			}
+			go func(c net.Conn) {
+				tc := tls.Server(c, serverTLS.Clone())
+				if hsErr := tc.Handshake(); hsErr != nil {
+					_ = c.Close()
+					return
+				}
+				// Stay silent after TLS — never speak HTTP/2 SETTINGS.
+				buf := make([]byte, 1)
+				for {
+					_ = tc.SetReadDeadline(time.Now().Add(time.Hour))
+					if _, readErr := tc.Read(buf); readErr != nil {
+						_ = tc.Close()
+						return
+					}
+				}
+			}(raw)
+		}
+	}()
+	return lis
+}
+
+func serveTraceTLS(t *testing.T, srv agentv3.TraceSegmentReportServiceServer, serverTLS *tls.Config) (net.Listener, *grpc.Server) {
+	t.Helper()
+	lis, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	gs := grpc.NewServer(grpc.Creds(credentials.NewTLS(serverTLS)))
+	agentv3.RegisterTraceSegmentReportServiceServer(gs, srv)
+	go func() { _ = gs.Serve(lis) }()
+	return lis, gs
 }
 
 func TestBoundSendCancelsOnTimeout(t *testing.T) {

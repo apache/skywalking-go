@@ -218,11 +218,14 @@ func (cm *ConnectionManager) createConnection() (*grpc.ClientConn, error) {
 }
 
 func (cm *ConnectionManager) dialMultiBackend(backends []string) (*grpc.ClientConn, error) {
-	var opts []grpc.DialOption
-	if cm.creds != nil {
-		opts = append(opts, grpc.WithTransportCredentials(cm.creds))
-	} else {
-		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	baseCreds := cm.creds
+	if baseCreds == nil {
+		baseCreds = insecure.NewCredentials()
+	}
+	// Wrap credentials so the dialer deadline survives TLS ClientHandshake and
+	// is cleared only after the first post-handshake read (HTTP/2 SETTINGS).
+	opts := []grpc.DialOption{
+		grpc.WithTransportCredentials(&handshakeDeadlineCreds{TransportCredentials: baseCreds}),
 	}
 	target, multiOpts, multiErr := cm.multiBackendDialOptions(backends)
 	if multiErr != nil {
@@ -258,9 +261,11 @@ func (cm *ConnectionManager) dialMultiBackend(backends []string) (*grpc.ClientCo
 
 // multiBackendContextDialer gives each pick_first address its own dial/handshake
 // budget so one silent peer cannot starve the rest of MinConnectTimeout.
-// TCP connect is capped by DialContext; Accept-never-called peers still pass
-// Dial but hang on the HTTP/2 preface read — a temporary conn deadline bounds
-// that hang and is cleared once the peer responds.
+// TCP connect is capped by DialContext; a temporary conn deadline then bounds
+// TLS and HTTP/2 negotiation. The deadline must not be cleared on the first raw
+// socket read: with TLS that read is handshake traffic, and a peer that stops
+// after TLS would consume the shared connect deadline and block failover.
+// handshakeDeadlineCreds clears it after the first post-handshake read instead.
 func multiBackendContextDialer(perAddrTimeout time.Duration) func(context.Context, string) (net.Conn, error) {
 	return func(ctx context.Context, addr string) (net.Conn, error) {
 		d := net.Dialer{}
@@ -270,32 +275,47 @@ func multiBackendContextDialer(perAddrTimeout time.Duration) func(context.Contex
 		if err != nil {
 			return nil, err
 		}
-		deadline := time.Now().Add(perAddrTimeout)
-		if err := raw.SetDeadline(deadline); err != nil {
+		if err := raw.SetDeadline(time.Now().Add(perAddrTimeout)); err != nil {
 			_ = raw.Close()
 			return nil, err
 		}
-		return &handshakeBoundedConn{Conn: raw}, nil
+		return raw, nil
 	}
 }
 
-// handshakeBoundedConn clears the dialer-imposed deadline after the peer
-// responds (first successful Read), so long-lived Collect streams are unbound.
-type handshakeBoundedConn struct {
+// handshakeDeadlineCreds clears the dialer-imposed deadline after transport
+// credentials finish (TLS or insecure no-op) and the first application read
+// succeeds — typically the peer's HTTP/2 SETTINGS — so long-lived Collect
+// streams are unbound while TLS-only silent peers still hit the deadline.
+type handshakeDeadlineCreds struct {
+	credentials.TransportCredentials
+}
+
+func (c *handshakeDeadlineCreds) ClientHandshake(ctx context.Context, authority string, rawConn net.Conn) (net.Conn, credentials.AuthInfo, error) {
+	conn, info, err := c.TransportCredentials.ClientHandshake(ctx, authority, rawConn)
+	if err != nil {
+		return nil, nil, err
+	}
+	return &clearDeadlineAfterFirstReadConn{Conn: conn}, info, nil
+}
+
+func (c *handshakeDeadlineCreds) Clone() credentials.TransportCredentials {
+	return &handshakeDeadlineCreds{TransportCredentials: c.TransportCredentials.Clone()}
+}
+
+func (c *handshakeDeadlineCreds) OverrideServerName(serverName string) error {
+	return c.TransportCredentials.OverrideServerName(serverName)
+}
+
+type clearDeadlineAfterFirstReadConn struct {
 	net.Conn
 	cleared atomic.Bool
 }
 
-func (c *handshakeBoundedConn) clearDeadline() {
-	if c.cleared.CompareAndSwap(false, true) {
-		_ = c.Conn.SetDeadline(time.Time{})
-	}
-}
-
-func (c *handshakeBoundedConn) Read(b []byte) (int, error) {
+func (c *clearDeadlineAfterFirstReadConn) Read(b []byte) (int, error) {
 	n, err := c.Conn.Read(b)
-	if n > 0 {
-		c.clearDeadline()
+	if n > 0 && c.cleared.CompareAndSwap(false, true) {
+		_ = c.Conn.SetDeadline(time.Time{})
 	}
 	return n, err
 }
@@ -446,11 +466,12 @@ func BackendStreamContext(atLeast time.Duration) (
 }
 
 // WatchConnCancelOnUnready cancels ctx once conn has been Ready and later
-// leaves Ready (Idle, TransientFailure, or Shutdown). pick_first often moves
-// to Idle before TransientFailure when a peer goes dark; keepalive accelerates
-// detection, and canceling Idle after seenReady unblocks hung Send.
-// Start only after Collect succeeds so Connecting → Ready on a standby is not
-// canceled early.
+// enters TransientFailure or Shutdown. Idle alone is not treated as failure:
+// graceful GOAWAY can move the channel to Idle while already accepted streams
+// remain usable, and canceling them would discard the next dequeued Send.
+// Dead peers are detected by keepalive (transport drop → TransientFailure /
+// Shutdown) and BoundSend. Start only after Collect succeeds so Connecting →
+// Ready on a standby is not canceled early.
 func WatchConnCancelOnUnready(ctx context.Context, cancel context.CancelFunc, conn *grpc.ClientConn) {
 	if conn == nil {
 		return
@@ -461,8 +482,7 @@ func WatchConnCancelOnUnready(ctx context.Context, cancel context.CancelFunc, co
 		if state == connectivity.Ready {
 			seenReady = true
 		}
-		if seenReady && (state == connectivity.Idle ||
-			state == connectivity.TransientFailure ||
+		if seenReady && (state == connectivity.TransientFailure ||
 			state == connectivity.Shutdown) {
 			cancel()
 			return
