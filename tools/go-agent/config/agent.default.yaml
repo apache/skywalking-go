@@ -46,7 +46,8 @@ reporter:
   # The interval(s) of checking service and backend service
   check_interval: ${SW_AGENT_REPORTER_CHECK_INTERVAL:20}
   grpc:
-    # The gRPC server address of the backend service.
+    # The gRPC server address of the backend service (host:port). Comma-separated
+    # multi-address lists are supported; gRPC pick_first fails over across them.
     backend_service: ${SW_AGENT_REPORTER_GRPC_BACKEND_SERVICE:127.0.0.1:11800}
     # The maximum count of segment for reporting tracing data.
     max_send_queue: ${SW_AGENT_REPORTER_GRPC_MAX_SEND_QUEUE:5000}

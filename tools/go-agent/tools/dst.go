@@ -106,30 +106,66 @@ func DeletePackageImports(file dst.Node, imports ...string) {
 }
 
 func RemovePackageRef(parent dst.Node, current *dst.SelectorExpr, inx int) {
+	ident := dst.NewIdent(current.Sel.Name)
+	if replacePackageRefType(parent, ident) || replacePackageRefExpr(parent, ident, inx) {
+		return
+	}
+	switch p := parent.(type) {
+	case *dst.BinaryExpr:
+		if p.X == current {
+			p.X = ident
+		} else if p.Y == current {
+			p.Y = ident
+		}
+	case *dst.ReturnStmt:
+		for i, result := range p.Results {
+			if result == current {
+				p.Results[i] = ident
+			}
+		}
+	}
+}
+
+func replacePackageRefType(parent dst.Node, ident *dst.Ident) bool {
 	switch p := parent.(type) {
 	case *dst.Field:
-		p.Type = dst.NewIdent(current.Sel.Name)
+		p.Type = ident
 	case *dst.Ellipsis:
-		p.Elt = dst.NewIdent(current.Sel.Name)
+		p.Elt = ident
 	case *dst.StarExpr:
-		p.X = dst.NewIdent(current.Sel.Name)
+		p.X = ident
 	case *dst.TypeAssertExpr:
-		p.Type = dst.NewIdent(current.Sel.Name)
+		p.Type = ident
 	case *dst.CompositeLit:
-		p.Type = dst.NewIdent(current.Sel.Name)
+		p.Type = ident
 	case *dst.ArrayType:
-		p.Elt = dst.NewIdent(current.Sel.Name)
+		p.Elt = ident
 	case *dst.ChanType:
-		p.Value = dst.NewIdent(current.Sel.Name)
-	case *dst.CallExpr:
-		p.Fun = dst.NewIdent(current.Sel.Name)
-	case *dst.KeyValueExpr:
-		p.Value = dst.NewIdent(current.Sel.Name)
-	case *dst.AssignStmt:
-		p.Rhs = []dst.Expr{dst.NewIdent(current.Sel.Name)}
-	case *dst.CaseClause:
-		p.List[inx] = dst.NewIdent(current.Sel.Name)
+		p.Value = ident
+	default:
+		return false
 	}
+	return true
+}
+
+func replacePackageRefExpr(parent dst.Node, ident *dst.Ident, inx int) bool {
+	switch p := parent.(type) {
+	case *dst.CallExpr:
+		p.Fun = ident
+	case *dst.KeyValueExpr:
+		p.Value = ident
+	case *dst.AssignStmt:
+		p.Rhs = []dst.Expr{ident}
+	case *dst.CaseClause:
+		p.List[inx] = ident
+	case *dst.ParenExpr:
+		p.X = ident
+	case *dst.UnaryExpr:
+		p.X = ident
+	default:
+		return false
+	}
+	return true
 }
 
 func RemoveImportDefineIfNoPackage(file dst.Node) {

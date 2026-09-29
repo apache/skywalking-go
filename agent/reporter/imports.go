@@ -25,12 +25,15 @@ import (
 	_ "crypto/x509"
 	_ "fmt"
 	_ "io"
+	_ "math/rand"
+	_ "net"
 	_ "os"
 	_ "runtime"
 	_ "runtime/pprof"
 	_ "strconv"
 	_ "strings"
 	_ "sync"
+	_ "sync/atomic"
 	_ "time"
 
 	// imports the logs and profiles for reporter

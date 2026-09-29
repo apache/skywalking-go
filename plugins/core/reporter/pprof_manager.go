@@ -24,6 +24,8 @@ import (
 	"strconv"
 	"time"
 
+	"google.golang.org/grpc/metadata"
+
 	"github.com/apache/skywalking-go/plugins/core/operator"
 	commonv3 "github.com/apache/skywalking-go/protocols/collect/common/v3"
 	pprofv10 "github.com/apache/skywalking-go/protocols/collect/pprof/v10"
@@ -61,13 +63,13 @@ type PprofTaskManager struct {
 	logger         operator.LogOperator
 	serverAddr     string
 	pprofInterval  time.Duration
-	PprofClient    pprofv10.PprofTaskClient // for grpc
 	connManager    *ConnectionManager
 	entity         *Entity
 	pprofFilePath  string
 	LastUpdateTime int64
 	commands       PprofTaskCommand
 	pprofSendCh    chan *pprofv10.PprofData
+	pprofClient    pprofv10.PprofTaskClient
 }
 
 func NewPprofTaskManager(logger operator.LogOperator, serverAddr string,
@@ -89,7 +91,7 @@ func NewPprofTaskManager(logger operator.LogOperator, serverAddr string,
 	if err != nil {
 		return nil, err
 	}
-	pprofManager.PprofClient = pprofv10.NewPprofTaskClient(conn)
+	pprofManager.pprofClient = pprofv10.NewPprofTaskClient(conn)
 	pprofManager.commands = nil
 	return pprofManager, nil
 }
@@ -106,11 +108,20 @@ func (r *PprofTaskManager) InitPprofTask(entity *Entity) {
 				time.Sleep(r.pprofInterval)
 				continue
 			}
-			pprofCommand, err := r.PprofClient.GetPprofTaskCommands(context.Background(), &pprofv10.PprofTaskCommandQuery{
-				Service:         r.entity.ServiceName,
-				ServiceInstance: r.entity.ServiceInstanceName,
-				LastCommandTime: r.LastUpdateTime,
-			})
+			ctx, cancel := BackendRPCContext(r.pprofInterval)
+			if r.pprofClient == nil {
+				cancel()
+				time.Sleep(r.pprofInterval)
+				continue
+			}
+			pprofCommand, err := r.pprofClient.GetPprofTaskCommands(
+				metadata.NewOutgoingContext(ctx, r.connManager.GetMD()),
+				&pprofv10.PprofTaskCommandQuery{
+					Service:         r.entity.ServiceName,
+					ServiceInstance: r.entity.ServiceInstanceName,
+					LastCommandTime: r.LastUpdateTime,
+				})
+			cancel()
 			if err != nil {
 				r.logger.Errorf("fetch pprof task commands error %v", err)
 				time.Sleep(r.pprofInterval)
@@ -291,13 +302,25 @@ func (r *PprofTaskManager) initPprofSendPipeline() {
 }
 
 func (r *PprofTaskManager) uploadPprofData(pprofData *pprofv10.PprofData) {
+	err := r.uploadPprofDataOnce(pprofData)
+	if err == nil {
+		return
+	}
+	r.logger.Errorf("failed to upload pprof: %v", err)
+	// The collector may already have accepted chunks before the failure.
+	// Keep the channel and let the next upload use its recovered transport.
+}
+
+func (r *PprofTaskManager) uploadPprofDataOnce(pprofData *pprofv10.PprofData) error {
+	if r.pprofClient == nil {
+		return fmt.Errorf("pprof client unavailable")
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	stream, err := r.PprofClient.Collect(ctx)
+	stream, err := r.pprofClient.Collect(metadata.NewOutgoingContext(ctx, r.connManager.GetMD()))
 	if err != nil {
-		r.logger.Errorf("failed to start collect stream: %v", err)
-		return
+		return fmt.Errorf("start collect stream: %w", err)
 	}
 
 	// Send metadata first
@@ -305,25 +328,21 @@ func (r *PprofTaskManager) uploadPprofData(pprofData *pprofv10.PprofData) {
 		Metadata: pprofData.Metadata,
 	}
 	if err = stream.Send(metadataMsg); err != nil {
-		r.logger.Errorf("failed to send metadata: %v", err)
-		return
+		return fmt.Errorf("send metadata: %w", err)
 	}
 
 	resp, err := stream.Recv()
 	if err != nil {
-		r.logger.Errorf("failed to receive server response: %v", err)
-		return
+		return fmt.Errorf("receive server response: %w", err)
 	}
 
 	switch resp.Status {
 	case pprofv10.PprofProfilingStatus_PPROF_TERMINATED_BY_OVERSIZE:
-		r.logger.Errorf("pprof is too large to be received by the oap server")
 		r.closePprofStream(stream)
-		return
+		return fmt.Errorf("pprof is too large to be received by the oap server")
 	case pprofv10.PprofProfilingStatus_PPROF_EXECUTION_TASK_ERROR:
-		r.logger.Errorf("server rejected pprof upload due to execution task error")
 		r.closePprofStream(stream)
-		return
+		return fmt.Errorf("server rejected pprof upload due to execution task error")
 	}
 
 	// Upload content in chunks
@@ -344,20 +363,19 @@ func (r *PprofTaskManager) uploadPprofData(pprofData *pprofv10.PprofData) {
 		}
 
 		if err := stream.Send(chunkData); err != nil {
-			r.logger.Errorf("failed to send pprof chunk %d: %v", chunkCount, err)
-			return
+			return fmt.Errorf("send pprof chunk %d: %w", chunkCount, err)
 		}
 		chunkCount++
 		// Check context timeout
 		select {
 		case <-ctx.Done():
-			r.logger.Errorf("context timeout during chunk upload for task %s", pprofData.Metadata.TaskId)
-			return
+			return fmt.Errorf("context timeout during chunk upload for task %s", pprofData.Metadata.TaskId)
 		default:
 		}
 	}
 
 	r.closePprofStream(stream)
+	return nil
 }
 func (r *PprofTaskManager) closePprofStream(stream pprofv10.PprofTask_CollectClient) {
 	if err := stream.CloseSend(); err != nil {

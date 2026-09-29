@@ -161,6 +161,12 @@ func (i *Instrument) generateReporterInitFile(dir, reporterType string) (string,
 	if reporterType == consts.KafkaReporter {
 		reporterInitTemplate += `
 	_, cdsManager, _, err := initManager(logger, checkInterval)
+	if err == errNoValidBackendService {
+		if logger != nil {
+			logger.Warnf("%v; Kafka reporter continues without CDS", err)
+		}
+		return initKafkaReporter(logger, checkInterval, nil)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -170,6 +176,9 @@ func (i *Instrument) generateReporterInitFile(dir, reporterType string) (string,
 	} else {
 		reporterInitTemplate += `
 	connManager, cdsManager, pprofTaskManager, err := initManager(logger, checkInterval)
+	if err == errNoValidBackendService {
+		return NewDiscardReporter(), nil
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -217,12 +226,12 @@ func initManager(logger operator.LogOperator, checkInterval time.Duration) (*Con
 		err        error
 	)
 	if {{.Config.Reporter.GRPC.TLS.Enable.ToGoBoolValue}} {
-		tc, err := generateTLSCredential({{.Config.Reporter.GRPC.TLS.CAPath.ToGoStringValue}}, 
+		tc, tlsErr := generateTLSCredential({{.Config.Reporter.GRPC.TLS.CAPath.ToGoStringValue}}, 
 			{{.Config.Reporter.GRPC.TLS.ClientKeyPath.ToGoStringValue}},
 			{{.Config.Reporter.GRPC.TLS.ClientCertChainPath.ToGoStringValue}},
 			{{.Config.Reporter.GRPC.TLS.InsecureSkipVerify.ToGoBoolValue}})
-		if err != nil {
-			panic(fmt.Sprintf("generate go agent tls credential error: %v", err))
+		if tlsErr != nil {
+			panic(fmt.Sprintf("generate go agent tls credential error: %v", tlsErr))
 		}
 		connManager, err = NewConnectionManager(logger, checkInterval, backendServiceVal, authenticationVal, tc)
 	} else {

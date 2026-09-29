@@ -18,8 +18,9 @@
 package reporter
 
 import (
-	"context"
 	"time"
+
+	"google.golang.org/grpc/metadata"
 
 	"github.com/apache/skywalking-go/plugins/core/operator"
 
@@ -73,16 +74,20 @@ func (r *CDSManager) InitCDS(entity *Entity, cdsWatchers []AgentConfigChangeWatc
 		for {
 			switch r.connManager.GetConnectionStatus(r.serverAddr) {
 			case ConnectionStatusShutdown:
-				break
+				return
 			case ConnectionStatusDisconnect:
 				time.Sleep(r.cdsInterval)
 				continue
 			}
 
-			configurations, err := r.cdsClient.FetchConfigurations(context.Background(), &configuration.ConfigurationSyncRequest{
-				Service: r.entity.ServiceName,
-				Uuid:    r.cdsService.UUID,
-			})
+			ctx, cancel := BackendRPCContext(r.cdsInterval)
+			configurations, err := r.cdsClient.FetchConfigurations(
+				metadata.NewOutgoingContext(ctx, r.connManager.GetMD()),
+				&configuration.ConfigurationSyncRequest{
+					Service: r.entity.ServiceName,
+					Uuid:    r.cdsService.UUID,
+				})
+			cancel()
 
 			if err != nil {
 				r.logger.Errorf("fetch dynamic configuration error %v", err)

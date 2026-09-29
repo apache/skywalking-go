@@ -103,7 +103,9 @@ func (r *kafkaReporter) Boot(entity *reporter.Entity, cdsWatchers []reporter.Age
 	r.updateConnectionStatus()
 	r.initSendPipeline()
 	r.check()
-	r.cdsManager.InitCDS(entity, cdsWatchers)
+	if r.cdsManager != nil {
+		r.cdsManager.InitCDS(entity, cdsWatchers)
+	}
 	r.bootFlag = true
 }
 

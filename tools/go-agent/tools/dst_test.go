@@ -93,6 +93,22 @@ func TestDeletePackageImports(t *testing.T) {
 			},
 		},
 		{
+			goCode:  "status == test.Disconnect",
+			isValue: true,
+			validate: func(result dst.Node) bool {
+				bin := result.(*dst.BinaryExpr)
+				return reflect.DeepEqual(bin.Y, dst.NewIdent("Disconnect"))
+			},
+		},
+		{
+			goCode:  "(test.Disconnect)",
+			isValue: true,
+			validate: func(result dst.Node) bool {
+				paren := result.(*dst.ParenExpr)
+				return reflect.DeepEqual(paren.X, dst.NewIdent("Disconnect"))
+			},
+		},
+		{
 			goCode:  "[]test.Int{}",
 			isValue: true,
 			validate: func(result dst.Node) bool {

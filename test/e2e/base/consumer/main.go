@@ -87,6 +87,11 @@ func usersHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Consumer processed %s request to /users", r.Method)
 }
 
+func failoverProbeHandler(w http.ResponseWriter, r *http.Request) {
+	log.Printf("Consumer processed %s request to %s", r.Method, r.URL.Path)
+	_, _ = w.Write([]byte("ok"))
+}
+
 func correlationHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Received %s request to /correlation", r.Method)
 	sleepTime := rand.Intn(500) + 500
@@ -126,6 +131,11 @@ func main() {
 	http.HandleFunc("/info", infoHandler)
 	http.HandleFunc("/users", usersHandler)
 	http.HandleFunc("/correlation", correlationHandler)
+	// Lightweight probes for multi-backend failover e2e (no downstream call).
+	// Unique /sw-failover-probe/{token} paths identify the active collector
+	// without relying on buffered /info.
+	http.HandleFunc("/sw-failover-probe", failoverProbeHandler)
+	http.HandleFunc("/sw-failover-probe/", failoverProbeHandler)
 
 	if err := http.ListenAndServe(":8080", nil); err != nil {
 		log.Fatalf("Error starting server: %v", err)

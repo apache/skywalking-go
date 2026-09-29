@@ -45,8 +45,10 @@ jobs:
     strategy:
       matrix:
         case:
-          - name: gRPC
+          - name: gRPC single-backend
             path: test/e2e/case/grpc/e2e.yaml
+          - name: gRPC multi-backend
+            path: test/e2e/case/grpc-multi-backend/e2e.yaml
           - name: Kafka
             path: test/e2e/case/kafka/e2e.yaml
     steps:
