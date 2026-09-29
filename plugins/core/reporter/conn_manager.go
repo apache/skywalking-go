@@ -303,10 +303,6 @@ func (c *handshakeDeadlineCreds) Clone() credentials.TransportCredentials {
 	return &handshakeDeadlineCreds{TransportCredentials: c.TransportCredentials.Clone()}
 }
 
-func (c *handshakeDeadlineCreds) OverrideServerName(serverName string) error {
-	return c.TransportCredentials.OverrideServerName(serverName)
-}
-
 type clearDeadlineAfterFirstReadConn struct {
 	net.Conn
 	cleared atomic.Bool
