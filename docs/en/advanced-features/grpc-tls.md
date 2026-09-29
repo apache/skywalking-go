@@ -60,7 +60,10 @@ refreshes preserve the shuffled order. The configured list stays fixed; Go's TCP
 dialer resolves hostname entries when opening a connection, with no periodic DNS
 refresh of the list. Each address has its own dial timeout so a silent peer
 cannot starve the rest of the connect budget. Client keepalive probes help
-detect half-open peers so `pick_first` can move to a standby.
+detect half-open peers so `pick_first` can move to a standby; keepalive Time
+is at least 30s and otherwise follows `reporter.check_interval` plus 10s so
+healthy management heartbeats suppress pings against OAP's default server
+policy.
 
 Telemetry uses long-lived Collect streams. A failed send is discarded and
 **never replayed**: the backend may already have accepted it. Automatic gRPC

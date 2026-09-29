@@ -227,7 +227,7 @@ func (r *gRPCReporter) pipelineSend(watchdog *reporter.BoundSendWatchdog, send f
 func openBackendStream[S any](
 	r *gRPCReporter,
 	open func(ctx context.Context) (S, error),
-) (ctx context.Context, cancel context.CancelFunc, stream S, err error) {
+) (cancel context.CancelFunc, stream S, err error) {
 	var zero S
 	ctx, cancel, stopOpen := reporter.BackendStreamContext(r.checkInterval)
 	stream, err = open(metadata.NewOutgoingContext(ctx, r.connManager.GetMD()))
@@ -236,16 +236,22 @@ func openBackendStream[S any](
 		if err == nil {
 			err = ctx.Err()
 		}
-		return ctx, cancel, zero, err
+		return cancel, zero, err
 	}
 	go reporter.WatchConnCancelOnUnready(ctx, cancel, r.conn)
-	return ctx, cancel, stream, nil
+	return cancel, stream, nil
 }
 
 // closeStream runs CloseAndRecv under BoundSend so a half-open peer cannot
 // stall StreamLoop (and pick_first failover) after Send already failed.
-func (r *gRPCReporter) closeStream(cancel context.CancelFunc, closeAndRecv func() error, errLog string) {
-	if err := reporter.BoundSend(cancel, closeAndRecv, 0); err != nil {
+func closeStream[R any](r *gRPCReporter, cancel context.CancelFunc,
+	stream interface{ CloseAndRecv() (R, error) }, errLog string) {
+	if err := reporter.BoundSend(cancel, func() error {
+		if _, err := stream.CloseAndRecv(); err != io.EOF {
+			return err
+		}
+		return nil
+	}, 0); err != nil {
 		r.logger.Errorf("%s %v", errLog, err)
 	}
 }
@@ -271,7 +277,7 @@ func (r *gRPCReporter) initSendPipeline() {
 				continue StreamLoop
 			}
 
-			ctx, cancel, stream, err := openBackendStream(r, func(ctx context.Context) (
+			cancel, stream, err := openBackendStream(r, func(ctx context.Context) (
 				agentv3.TraceSegmentReportService_CollectClient, error,
 			) {
 				return r.traceClient.Collect(ctx)
@@ -281,7 +287,6 @@ func (r *gRPCReporter) initSendPipeline() {
 				time.Sleep(5 * time.Second)
 				continue StreamLoop
 			}
-			_ = ctx
 			watchdog := reporter.NewBoundSendWatchdog(cancel, 0)
 
 			for s := range r.tracingSendCh {
@@ -292,26 +297,14 @@ func (r *gRPCReporter) initSendPipeline() {
 				if sendErr != nil {
 					r.logger.Errorf("send segment error %v", sendErr)
 					cancel()
-					r.closeStream(cancel, func() error {
-						_, err := stream.CloseAndRecv()
-						if err == io.EOF {
-							return nil
-						}
-						return err
-					}, "send closing error")
+					closeStream(r, cancel, stream, "send closing error")
 					watchdog.Stop()
 					continue StreamLoop
 				}
 			}
 			// Graceful drain: CloseAndRecv before cancel so OAP can ack in-flight
 			// data. BoundSend still cancels if close hangs.
-			r.closeStream(cancel, func() error {
-				_, err := stream.CloseAndRecv()
-				if err == io.EOF {
-					return nil
-				}
-				return err
-			}, "send closing error")
+			closeStream(r, cancel, stream, "send closing error")
 			watchdog.Stop()
 			cancel()
 			r.closeGRPCConn()
@@ -334,7 +327,7 @@ func (r *gRPCReporter) initSendPipeline() {
 				continue StreamLoop
 			}
 
-			ctx, cancel, stream, err := openBackendStream(r, func(ctx context.Context) (
+			cancel, stream, err := openBackendStream(r, func(ctx context.Context) (
 				agentv3.MeterReportService_CollectBatchClient, error,
 			) {
 				return r.metricsClient.CollectBatch(ctx)
@@ -344,7 +337,6 @@ func (r *gRPCReporter) initSendPipeline() {
 				time.Sleep(5 * time.Second)
 				continue StreamLoop
 			}
-			_ = ctx
 			watchdog := reporter.NewBoundSendWatchdog(cancel, 0)
 
 			for s := range r.metricsSendCh {
@@ -359,24 +351,12 @@ func (r *gRPCReporter) initSendPipeline() {
 					// CloseAndRecv forever and block reconnect.
 					cancel()
 					r.logger.Errorf("send metrics error %v", sendErr)
-					r.closeStream(cancel, func() error {
-						_, err := stream.CloseAndRecv()
-						if err == io.EOF {
-							return nil
-						}
-						return err
-					}, "send closing error")
+					closeStream(r, cancel, stream, "send closing error")
 					watchdog.Stop()
 					continue StreamLoop
 				}
 			}
-			r.closeStream(cancel, func() error {
-				_, err := stream.CloseAndRecv()
-				if err == io.EOF {
-					return nil
-				}
-				return err
-			}, "send closing error")
+			closeStream(r, cancel, stream, "send closing error")
 			watchdog.Stop()
 			cancel()
 			break
@@ -398,7 +378,7 @@ func (r *gRPCReporter) initSendPipeline() {
 				continue StreamLoop
 			}
 
-			ctx, cancel, stream, err := openBackendStream(r, func(ctx context.Context) (
+			cancel, stream, err := openBackendStream(r, func(ctx context.Context) (
 				logv3.LogReportService_CollectClient, error,
 			) {
 				return r.logClient.Collect(ctx)
@@ -408,7 +388,6 @@ func (r *gRPCReporter) initSendPipeline() {
 				time.Sleep(5 * time.Second)
 				continue StreamLoop
 			}
-			_ = ctx
 			watchdog := reporter.NewBoundSendWatchdog(cancel, 0)
 
 			for s := range r.logSendCh {
@@ -419,24 +398,12 @@ func (r *gRPCReporter) initSendPipeline() {
 				if sendErr != nil {
 					cancel()
 					r.logger.Errorf("send log error %v", sendErr)
-					r.closeStream(cancel, func() error {
-						_, err := stream.CloseAndRecv()
-						if err == io.EOF {
-							return nil
-						}
-						return err
-					}, "send closing error")
+					closeStream(r, cancel, stream, "send closing error")
 					watchdog.Stop()
 					continue StreamLoop
 				}
 			}
-			r.closeStream(cancel, func() error {
-				_, err := stream.CloseAndRecv()
-				if err == io.EOF {
-					return nil
-				}
-				return err
-			}, "send closing error")
+			closeStream(r, cancel, stream, "send closing error")
 			watchdog.Stop()
 			cancel()
 			break
@@ -459,7 +426,7 @@ func (r *gRPCReporter) initSendPipeline() {
 				continue StreamLoop
 			}
 
-			ctx, cancel, stream, err := openBackendStream(r, func(ctx context.Context) (
+			cancel, stream, err := openBackendStream(r, func(ctx context.Context) (
 				profilev3.ProfileTask_GoProfileReportClient, error,
 			) {
 				return r.profileTaskClient.GoProfileReport(ctx)
@@ -469,7 +436,6 @@ func (r *gRPCReporter) initSendPipeline() {
 				time.Sleep(5 * time.Second)
 				continue StreamLoop
 			}
-			_ = ctx
 			watchdog := reporter.NewBoundSendWatchdog(cancel, 0)
 
 			re := r.profileTaskManager.GetProfileResults()
@@ -489,13 +455,7 @@ func (r *gRPCReporter) initSendPipeline() {
 				if sendErr != nil {
 					cancel()
 					r.logger.Errorf("send profile data error %v", sendErr)
-					r.closeStream(cancel, func() error {
-						_, err := stream.CloseAndRecv()
-						if err == io.EOF {
-							return nil
-						}
-						return err
-					}, "send profile closing error")
+					closeStream(r, cancel, stream, "send profile closing error")
 					watchdog.Stop()
 					continue StreamLoop
 				}
@@ -515,13 +475,7 @@ func (r *gRPCReporter) initSendPipeline() {
 					}
 				}
 			}
-			r.closeStream(cancel, func() error {
-				_, err := stream.CloseAndRecv()
-				if err == io.EOF {
-					return nil
-				}
-				return err
-			}, "send profile closing error")
+			closeStream(r, cancel, stream, "send profile closing error")
 			watchdog.Stop()
 			cancel()
 			break

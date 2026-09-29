@@ -73,10 +73,23 @@ const multiBackendDialTimeout = 5 * time.Second
 // address cannot consume the shared pick_first MinConnectTimeout alone.
 const multiBackendPerAddrDialTimeout = 2 * time.Second
 
-var agentKeepaliveParams = keepalive.ClientParameters{
-	Time:                30 * time.Second,
-	Timeout:             10 * time.Second,
-	PermitWithoutStream: true,
+// keepaliveParams derives client ping spacing from the management heartbeat
+// interval so healthy heartbeats suppress pings (avoids server too_many_pings
+// when check_interval is long) while still detecting a dark peer.
+func (cm *ConnectionManager) keepaliveParams() keepalive.ClientParameters {
+	interval := cm.checkInterval
+	if interval < 0 {
+		interval = 0
+	}
+	timeParam := 30 * time.Second
+	if derived := interval + 10*time.Second; derived > timeParam {
+		timeParam = derived
+	}
+	return keepalive.ClientParameters{
+		Time:                timeParam,
+		Timeout:             10 * time.Second,
+		PermitWithoutStream: true,
+	}
 }
 
 func NewConnectionManager(logger operator.LogOperator, checkInterval time.Duration,
@@ -189,7 +202,7 @@ func (cm *ConnectionManager) createConnection() (*grpc.ClientConn, error) {
 		}
 
 		conn, err := grpc.Dial(cm.serverAddr, credsDialOption,
-			grpc.WithKeepaliveParams(agentKeepaliveParams),
+			grpc.WithKeepaliveParams(cm.keepaliveParams()),
 			grpc.WithConnectParams(grpc.ConnectParams{
 				Backoff: backoff.Config{
 					BaseDelay:  1.0 * time.Second,
@@ -215,12 +228,16 @@ func (cm *ConnectionManager) dialMultiBackend(backends []string) (*grpc.ClientCo
 	if multiErr != nil {
 		return nil, multiErr
 	}
+	minConnect := multiBackendDialTimeout
+	if perList := multiBackendPerAddrDialTimeout * time.Duration(len(backends)); perList > minConnect {
+		minConnect = perList
+	}
 	opts = append(opts, multiOpts...)
 	opts = append(opts,
-		grpc.WithKeepaliveParams(agentKeepaliveParams),
+		grpc.WithKeepaliveParams(cm.keepaliveParams()),
 		grpc.WithContextDialer(multiBackendContextDialer(multiBackendPerAddrDialTimeout)),
 		grpc.WithConnectParams(grpc.ConnectParams{
-			MinConnectTimeout: multiBackendDialTimeout,
+			MinConnectTimeout: minConnect,
 			Backoff: backoff.Config{
 				BaseDelay:  1.0 * time.Second,
 				Multiplier: 1.6,
