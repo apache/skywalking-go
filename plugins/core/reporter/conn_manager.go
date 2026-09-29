@@ -223,7 +223,7 @@ func (cm *ConnectionManager) dialMultiBackend(backends []string) (*grpc.ClientCo
 		baseCreds = insecure.NewCredentials()
 	}
 	// Wrap credentials so the dialer deadline survives TLS ClientHandshake and
-	// is cleared only after the first post-handshake read (HTTP/2 SETTINGS).
+	// is cleared only after the server's first complete HTTP/2 frame (SETTINGS).
 	opts := []grpc.DialOption{
 		grpc.WithTransportCredentials(&handshakeDeadlineCreds{TransportCredentials: baseCreds}),
 	}
@@ -265,7 +265,7 @@ func (cm *ConnectionManager) dialMultiBackend(backends []string) (*grpc.ClientCo
 // TLS and HTTP/2 negotiation. The deadline must not be cleared on the first raw
 // socket read: with TLS that read is handshake traffic, and a peer that stops
 // after TLS would consume the shared connect deadline and block failover.
-// handshakeDeadlineCreds clears it after the first post-handshake read instead.
+// handshakeDeadlineCreds clears it once the server's SETTINGS frame is read.
 func multiBackendContextDialer(perAddrTimeout time.Duration) func(context.Context, string) (net.Conn, error) {
 	return func(ctx context.Context, addr string) (net.Conn, error) {
 		d := net.Dialer{}
@@ -284,9 +284,9 @@ func multiBackendContextDialer(perAddrTimeout time.Duration) func(context.Contex
 }
 
 // handshakeDeadlineCreds clears the dialer-imposed deadline after transport
-// credentials finish (TLS or insecure no-op) and the first application read
-// succeeds — typically the peer's HTTP/2 SETTINGS — so long-lived Collect
-// streams are unbound while TLS-only silent peers still hit the deadline.
+// credentials finish (TLS or insecure no-op) and the peer's first complete
+// HTTP/2 frame (its SETTINGS preface) is read, so long-lived Collect streams
+// are unbound while silent or stalled peers still hit the deadline.
 type handshakeDeadlineCreds struct {
 	credentials.TransportCredentials
 }

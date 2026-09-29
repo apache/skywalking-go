@@ -71,10 +71,11 @@ Telemetry uses long-lived Collect streams. A failed send is discarded and
 retries apply only to the idempotent `reportInstanceProperties` RPC on
 `UNAVAILABLE`, with at most three attempts.
 
-RPC deadlines and stream cancellation bound individual operations. Bound send
-timeouts and watchers that cancel on TransientFailure/Shutdown help unblock
-half-open peers so `pick_first` can move to a standby; channel Idle alone
-(for example after graceful GOAWAY) does not cancel established streams.
+RPC deadlines and stream cancellation bound individual operations. Client
+keepalive closes the transport to a half-open peer so `pick_first` can move to
+a standby, and a bounded send timeout unblocks a stuck Send. Established
+streams are not canceled based on channel state, so streams draining after a
+graceful GOAWAY can finish.
 
 ### TLS ServerName per address
 
