@@ -223,7 +223,7 @@ func (r *gRPCReporter) pipelineSend(watchdog *reporter.BoundSendWatchdog, send f
 }
 
 // openBackendStream opens a Collect-style stream with auth metadata, open-timeout,
-// and an unready watcher. On failure cancel is already invoked.
+// On failure cancel is already invoked.
 func openBackendStream[S any](
 	r *gRPCReporter,
 	open func(ctx context.Context) (S, error),
@@ -238,7 +238,6 @@ func openBackendStream[S any](
 		}
 		return cancel, zero, err
 	}
-	go reporter.WatchConnCancelOnUnready(ctx, cancel, r.conn)
 	return cancel, stream, nil
 }
 

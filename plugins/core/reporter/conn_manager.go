@@ -303,15 +303,31 @@ func (c *handshakeDeadlineCreds) Clone() credentials.TransportCredentials {
 	return &handshakeDeadlineCreds{TransportCredentials: c.TransportCredentials.Clone()}
 }
 
+// clearDeadlineAfterFirstReadConn keeps the dial deadline until the first
+// complete HTTP/2 frame (the server SETTINGS preface) has been read, so a peer
+// that sends a partial frame and stalls still hits the per-address deadline.
+// Read is only called from the transport's reader goroutine.
 type clearDeadlineAfterFirstReadConn struct {
 	net.Conn
-	cleared atomic.Bool
+	hdr     [9]byte
+	read    int
+	cleared bool
 }
 
 func (c *clearDeadlineAfterFirstReadConn) Read(b []byte) (int, error) {
 	n, err := c.Conn.Read(b)
-	if n > 0 && c.cleared.CompareAndSwap(false, true) {
-		_ = c.Conn.SetDeadline(time.Time{})
+	if n > 0 && !c.cleared {
+		if c.read < len(c.hdr) {
+			copy(c.hdr[c.read:], b[:n])
+		}
+		c.read += n
+		if c.read >= len(c.hdr) {
+			frameLen := int(c.hdr[0])<<16 | int(c.hdr[1])<<8 | int(c.hdr[2])
+			if c.read >= len(c.hdr)+frameLen {
+				c.cleared = true
+				_ = c.Conn.SetDeadline(time.Time{})
+			}
+		}
 	}
 	return n, err
 }
@@ -431,8 +447,6 @@ func BackendRPCContext(atLeast time.Duration) (context.Context, context.CancelFu
 
 // BackendStreamContext is for long-lived Collect streams. Call stopOpenTimer
 // immediately after Collect returns; if it reports timedOut, discard the stream.
-// After a successful open, callers should start WatchConnCancelOnUnready so a
-// hung Send unblocks when the channel leaves Ready.
 func BackendStreamContext(atLeast time.Duration) (
 	ctx context.Context, cancel context.CancelFunc, stopOpenTimer func() (timedOut bool),
 ) {
@@ -459,34 +473,6 @@ func BackendStreamContext(atLeast time.Duration) (
 		return timedOut
 	}
 	return ctx, cancel, stopOpenTimer
-}
-
-// WatchConnCancelOnUnready cancels ctx once conn has been Ready and later
-// enters TransientFailure or Shutdown. Idle alone is not treated as failure:
-// graceful GOAWAY can move the channel to Idle while already accepted streams
-// remain usable, and canceling them would discard the next dequeued Send.
-// Dead peers are detected by keepalive (transport drop → TransientFailure /
-// Shutdown) and BoundSend. Start only after Collect succeeds so Connecting →
-// Ready on a standby is not canceled early.
-func WatchConnCancelOnUnready(ctx context.Context, cancel context.CancelFunc, conn *grpc.ClientConn) {
-	if conn == nil {
-		return
-	}
-	seenReady := false
-	for {
-		state := conn.GetState()
-		if state == connectivity.Ready {
-			seenReady = true
-		}
-		if seenReady && (state == connectivity.TransientFailure ||
-			state == connectivity.Shutdown) {
-			cancel()
-			return
-		}
-		if !conn.WaitForStateChange(ctx, state) {
-			return
-		}
-	}
 }
 
 func (cm *ConnectionManager) checkConnectionStatus(serverAddr string) {

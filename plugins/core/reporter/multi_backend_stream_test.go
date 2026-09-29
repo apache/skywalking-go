@@ -93,7 +93,6 @@ func TestMultiBackendCollectSendFailsOverAfterActiveStops(t *testing.T) {
 		cancel()
 		t.Fatalf("open Collect: err=%v timedOut=%v", err, timedOut)
 	}
-	go WatchConnCancelOnUnready(ctx, cancel, conn)
 
 	seg := &agentv3.SegmentObject{TraceId: "t1", TraceSegmentId: "s1"}
 	if sendErr := BoundSend(cancel, func() error { return stream.Send(seg) }, time.Second); sendErr != nil {
@@ -301,9 +300,9 @@ func TestMultiBackendPerAddrDialTimeoutFailsOverPastTLSSilentPeer(t *testing.T) 
 	waitFor(t, func() bool { return healthySrv.count.Load() >= 1 }, 5*time.Second)
 }
 
-// TestWatchConnCancelOnUnreadyIgnoresIdleAfterGOAWAY ensures graceful GOAWAY
+// TestCollectStreamSurvivesIdleAfterGOAWAY ensures graceful GOAWAY
 // (channel Idle, accepted streams still draining) does not cancel the stream.
-func TestWatchConnCancelOnUnreadyIgnoresIdleAfterGOAWAY(t *testing.T) {
+func TestCollectStreamSurvivesIdleAfterGOAWAY(t *testing.T) {
 	srv := &countingTraceServer{}
 	lis, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -336,7 +335,6 @@ func TestWatchConnCancelOnUnreadyIgnoresIdleAfterGOAWAY(t *testing.T) {
 	if timedOut := stopOpen(); err != nil || timedOut {
 		t.Fatalf("open Collect: err=%v timedOut=%v", err, timedOut)
 	}
-	go WatchConnCancelOnUnready(ctx, cancel, conn)
 
 	if sendErr := stream.Send(&agentv3.SegmentObject{TraceId: "goaway-1", TraceSegmentId: "s1"}); sendErr != nil {
 		t.Fatalf("first Send: %v", sendErr)
@@ -345,7 +343,7 @@ func TestWatchConnCancelOnUnreadyIgnoresIdleAfterGOAWAY(t *testing.T) {
 
 	select {
 	case <-ctx.Done():
-		t.Fatal("WatchConnCancelOnUnready canceled on Idle during GOAWAY drain")
+		t.Fatal("stream canceled on Idle during GOAWAY drain")
 	default:
 	}
 	if sendErr := stream.Send(&agentv3.SegmentObject{TraceId: "goaway-2", TraceSegmentId: "s2"}); sendErr != nil {
