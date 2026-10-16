@@ -4,7 +4,7 @@ metrics based on the tracing data.
 
 * HTTP Server
   * `gin`: [Gin](https://github.com/gin-gonic/gin) tested v1.7.0 to v1.9.0 and v1.10.1.
-  * `http`: [Native HTTP](https://pkg.go.dev/net/http) tested go v1.24 to go v1.26.
+  * `http`: [Native HTTP](https://pkg.go.dev/net/http) tested go v1.25 to go v1.26.
   * `go-restfulv3`: [Go-Restful](https://github.com/emicklei/go-restful) tested v3.7.1 to 3.10.2.
   * `mux`: [Mux](https://github.com/gorilla/mux) tested v1.7.0 to v1.8.0.
   * `iris`: [Iris](https://github.com/kataras/iris) tested v12.1.0 to 12.2.5.
@@ -13,19 +13,19 @@ metrics based on the tracing data.
   * `echov4`: [Echov4](https://github.com/labstack/echo) tested v4.0.0 to v4.11.4
   * `goframe`: [GoFrame](https://github.com/gogf/gf/) tested v2.6.0 to v2.7.3
 * HTTP Client
-  * `http`: [Native HTTP](https://pkg.go.dev/net/http) tested go v1.24 to go v1.26.
+  * `http`: [Native HTTP](https://pkg.go.dev/net/http) tested go v1.25 to go v1.26.
   * `fasthttp`: [FastHttp](https://github.com/valyala/fasthttp) tested v1.10.0 to v1.50.0.
 * RPC Frameworks
   * `dubbo`: [Dubbo](https://github.com/apache/dubbo-go) tested v3.0.1 to v3.0.5.
   * `kratosv2`: [Kratos](https://github.com/go-kratos/kratos) tested v2.3.1 to v2.6.2.
   * `microv4`: [Go-Micro](https://github.com/go-micro/go-micro) tested v4.6.0 to v4.10.2.
-  * `grpc` : [gRPC](https://github.com/grpc/grpc-go) tested v1.55.0 to v1.81.1.
+  * `grpc` : [gRPC](https://github.com/grpc/grpc-go). The agent module requires v1.83.2 or newer (the reporter links this library). Plugin hooks still match the client and server methods present in that release.
 * Database Client
   * `gorm`: [GORM](https://github.com/go-gorm/gorm) tested v1.22.0 to v1.25.10.
     * [MySQL Driver](https://github.com/go-gorm/mysql)
     * [PostgreSQL Driver](https://github.com/go-gorm/postgres) tested v1.5.2 to v1.6.0.
   * `mongo`: [Mongo](https://github.com/mongodb/mongo-go-driver) tested v1.11.1 to v1.11.7.
-  * `sql`: [Native SQL](https://pkg.go.dev/database/sql) tested go v1.24 to go v1.26.
+  * `sql`: [Native SQL](https://pkg.go.dev/database/sql) tested go v1.25 to go v1.26.
     * [MySQL Driver](https://github.com/go-sql-driver/mysql) tested v1.4.0 to v1.7.1.
     * [pgx/v5 stdlib](https://github.com/jackc/pgx/tree/master/stdlib) tested v5.5.5 to v5.7.2.
   * `go-elasticsearchv8`: [go-elasticsearch](https://github.com/elastic/go-elasticsearch) tested v8.10.0 to v8.11.1.
@@ -40,7 +40,7 @@ metrics based on the tracing data.
 # Metrics Plugins
 The meter plugin provides the advanced metrics collections.
 
-* `runtimemetrics`: [Native Runtime Metrics](https://pkg.go.dev/runtime/metrics) tested go v1.24 to go v1.26.
+* `runtimemetrics`: [Native Runtime Metrics](https://pkg.go.dev/runtime/metrics) tested go v1.25 to go v1.26.
 
 # Logging Plugins
 The logging plugin provides the advanced logging collections.

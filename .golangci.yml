@@ -14,70 +14,107 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-linters-settings:
-  govet:
-    enable:
-      - shadow
-  gocyclo:
-    min-complexity: 15
-  dupl:
-    threshold: 200
-  goconst:
-    min-len: 2
-    min-occurrences: 2
-  misspell:
-    locale: US
-  lll:
-    line-length: 150
-  goimports:
-    local-prefixes: github.com/apache/skywalking-go
-  gocritic:
-    enabled-tags:
-      - diagnostic
-      - experimental
-      - opinionated
-      - performance
-      - style
-    disabled-checks:
-      - ifElseChain
-  funlen:
-    lines: 100
-    statements: 50
-  whitespace:
-    multi-if: false
-    multi-func: false
-  gosec:
-    includes:
-      - G401
-      - G306
-      - G101
-    excludes:
-      - G204
-
+version: "2"
 linters:
   enable:
     - bodyclose
     - dogsled
     - dupl
-    - errcheck
     - funlen
     - goconst
     - gocritic
     - gocyclo
-    - gofmt
-    - goimports
     - gosec
-    - gosimple
-    - govet
-    - ineffassign
     - lll
     - misspell
     - nakedret
     - staticcheck
-    - stylecheck
-    - typecheck
     - unconvert
     - unparam
     - whitespace
   disable:
     - unused
+  settings:
+    dupl:
+      threshold: 200
+    funlen:
+      lines: 100
+      statements: 50
+    goconst:
+      min-len: 2
+      min-occurrences: 2
+    gocritic:
+      disabled-checks:
+        - ifElseChain
+      enabled-tags:
+        - diagnostic
+        - experimental
+        - opinionated
+        - performance
+        - style
+    gocyclo:
+      min-complexity: 15
+    gosec:
+      includes:
+        - G401
+        - G306
+        - G101
+      excludes:
+        - G204
+    govet:
+      enable:
+        - shadow
+    lll:
+      line-length: 150
+    misspell:
+      locale: US
+    # v1.64.8 did not run staticcheck quickfix analyzers. Keep that set so the
+    # Go 1.25 linter upgrade does not rewrite existing code. ST* exclusions match
+    # the v1 staticcheck defaults. grpc.Dial and credentials.ProtocolInfo.ServerName
+    # stay in use: Dial is supported through grpc 1.x, and NewClient changes the
+    # default resolver scheme and idle behavior the reporter relies on.
+    staticcheck:
+      checks:
+        - all
+        - -ST1000
+        - -ST1003
+        - -ST1016
+        - -ST1020
+        - -ST1021
+        - -ST1022
+        - -QF*
+    whitespace:
+      multi-if: false
+      multi-func: false
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+    rules:
+      - linters:
+          - staticcheck
+        text: 'SA1019: grpc\.Dial(Context)? is deprecated'
+      - linters:
+          - staticcheck
+        text: 'SA1019: info\.ServerName is deprecated'
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/apache/skywalking-go
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
