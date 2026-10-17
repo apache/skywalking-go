@@ -153,13 +153,12 @@ release: ## Build skywalking-go agent release
 	/bin/sh tools/release/create_bin_release.sh
 	/bin/sh tools/release/create_source_release.sh
 
-base.all := go1.25 go1.26
+base.all := go1.26
 base.each = $(word 1, $@)
 
 
 ##@ Docker
 
-base.image.go1.25 := golang:1.25
 base.image.go1.26 := golang:1.26
 
 docker.%: PLATFORMS =

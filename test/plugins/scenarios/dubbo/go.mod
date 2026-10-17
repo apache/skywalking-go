@@ -1,6 +1,6 @@
 module test/plugins/scenarios/dubbo
 
-go 1.25.0
+go 1.26.0
 
 require dubbo.apache.org/dubbo-go/v3 v3.0.1
 
@@ -115,20 +115,21 @@ require (
 	go.etcd.io/etcd/api/v3 v3.5.33 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.5.33 // indirect
 	go.etcd.io/etcd/client/v3 v3.5.33 // indirect
-	// Newest etcd 3.5 that still builds on Go 1.25. dubbo-go v3.0.1 tests import
-	// server v3.5.2, whose otel 0.20 APIs are absent from otel v1.44 (pulled in
-	// by grpc v1.83.2). Without this pin, tidy probes otel v1.47.0 and fails
-	// because that module requires Go 1.26.
+	// Newest etcd 3.5 that still provides the otel 0.20 APIs. dubbo-go v3.0.1
+	// tests import server v3.5.2, whose otel 0.20 APIs are absent from otel
+	// v1.44+ (pulled in by grpc v1.83.2). Without this pin, tidy probes otel
+	// v1.47.0 and fails because that module no longer contains
+	// otel/sdk/metric/selector/simple or otel/metric/number.
 	go.etcd.io/etcd/server/v3 v3.5.33 // indirect
 	go.opencensus.io v0.23.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.21.0 // indirect
-	golang.org/x/crypto v0.55.0 // indirect
-	golang.org/x/net v0.58.0 // indirect
-	golang.org/x/sync v0.22.0 // indirect
-	golang.org/x/sys v0.47.0 // indirect
-	golang.org/x/text v0.41.0 // indirect
+	golang.org/x/crypto v0.58.0 // indirect
+	golang.org/x/net v0.61.0 // indirect
+	golang.org/x/sync v0.24.0 // indirect
+	golang.org/x/sys v0.49.0 // indirect
+	golang.org/x/text v0.43.0 // indirect
 	google.golang.org/grpc v1.83.2 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.51.0 // indirect
@@ -136,7 +137,7 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	k8s.io/apimachinery v0.22.4 // indirect
 	// otel v1.44 requires logr v1.4, where Logger is a struct. klog v2.9 does
-	// not compile against it. v2.140.0 is the newest klog that does, on Go 1.25.
+	// not compile against it. v2.140.0 is the newest klog that does.
 	k8s.io/klog/v2 v2.140.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.1.2 // indirect
 )

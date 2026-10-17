@@ -20,7 +20,7 @@ start-script: ./bin/startup.sh
 framework: github.com/apache/pulsar-client-go
 export-port: 8080
 support-version:
-  - go: 1.25
+  - go: 1.26
     framework:
       - v0.12.0
 dependencies:
