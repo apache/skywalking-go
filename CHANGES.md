@@ -14,6 +14,7 @@ Release Notes.
 
 #### Bug Fixes
 
+* Bump vulnerable dependencies in the agent module, the reporter (`plugins/core`), and the go-agent tool. `google.golang.org/grpc` moves from v1.55.0 to v1.83.2, the lowest release that fixes every current grpc advisory, including CVE-2026-33186 (GO-2026-4762, fixed in v1.79.3), the HTTP/2 issues fixed in v1.82.1 and v1.83.1, and CVE-2026-84445 (GO-2026-6443), which was reintroduced in v1.83.0 and fixed again in v1.83.2. `golang.org/x/net` moves from v0.10.0 to v0.58.0 (required by grpc v1.83.2; this is above v0.56.0, which is the lowest release that fixes every x/net advisory except the ones fixed only in v0.60.0) and `golang.org/x/text` moves to v0.41.0. These releases require Go 1.25, so the module floor and CI move from Go 1.24 to Go 1.25 and Go 1.26. golangci-lint moves from v1.64.8 to v2.5.0, because v1.64.8 is built with Go 1.24 and refuses modules that declare `go 1.25.0`. The v2 config keeps the v1 staticcheck set (no quickfix rewrites) and leaves `grpc.Dial` in place, since it stays supported through grpc 1.x and `NewClient` would change the reporter's resolver scheme and idle behavior. grpc v1.84.0 needs the same Go 1.25 and fixes no additional advisory. `golang.org/x/net` v0.60.0 would fix the remaining HTTP/2 advisories but requires Go 1.26 and would drop Go 1.25, so those stay open.
 * Fix panic when converting NoInit histograms during meter collect.
 * Fix concurrent map access in RuntimeContext Get/Set/clone.
 
