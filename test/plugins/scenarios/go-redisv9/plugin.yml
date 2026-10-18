@@ -20,10 +20,18 @@ start-script: ./bin/startup.sh
 framework: github.com/redis/go-redis/v9
 export-port: 8080
 support-version:
-  - go: 1.25
+  - go: 1.26
     framework:
       - v9.0.4
       - v9.0.5
+  - go: 1.26
+    framework:
+      - v9.23.0
+    excepted-file: config/excepted-v9.22.yml
+  - go: 1.27
+    framework:
+      - v9.23.0
+    excepted-file: config/excepted-v9.22.yml
 dependencies:
   redis-server:
     image: redis:6.2

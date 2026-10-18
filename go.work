@@ -1,4 +1,4 @@
-go 1.25.0
+go 1.26.0
 
 use (
 	.
@@ -6,6 +6,7 @@ use (
 	// define the plugins
 	./plugins/core
 	./plugins/dubbo
+	./plugins/dubbo-v331
 	./plugins/gin
 	./plugins/http
 	./plugins/go-redisv9
@@ -18,6 +19,7 @@ use (
 	./plugins/runtimemetrics
 	./plugins/mux
 	./plugins/grpc
+	./plugins/grpc-v184
 	./plugins/irisv12
 	./plugins/toolkit-activation
 	./plugins/fasthttp

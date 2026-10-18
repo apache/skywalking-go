@@ -80,6 +80,9 @@ func (r *redisHook) DialHook(next redis.DialHook) redis.DialHook {
 
 func (r *redisHook) ProcessHook(next redis.ProcessHook) redis.ProcessHook {
 	return func(ctx context.Context, cmd redis.Cmder) error {
+		if isConnectionHandshake(cmd) {
+			return next(ctx, cmd)
+		}
 		var s tracing.Span
 		var err error
 		if r.Addr != "" {
@@ -124,6 +127,9 @@ func (r *redisHook) ProcessHook(next redis.ProcessHook) redis.ProcessHook {
 
 func (r *redisHook) ProcessPipelineHook(next redis.ProcessPipelineHook) redis.ProcessPipelineHook {
 	return func(ctx context.Context, cmds []redis.Cmder) error {
+		if isConnectionHandshakePipeline(cmds) {
+			return next(ctx, cmds)
+		}
 		summary := ""
 		summaryCmds := cmds
 		if len(summaryCmds) > 10 {
@@ -171,6 +177,47 @@ func (r *redisHook) ProcessPipelineHook(next redis.ProcessPipelineHook) redis.Pr
 
 		return nil
 	}
+}
+
+// isConnectionHandshake reports whether the command is one that go-redis sends on its
+// own while initializing a new connection. Since v9.9.0 the connection setup runs
+// through the client hooks: HELLO (with credentials), the AUTH fallback, SELECT,
+// READONLY, and CLIENT SETNAME, SETINFO, MAINT_NOTIFICATIONS, and TRACKING (client-side
+// caching). They are not user
+// operations, and HELLO and AUTH carry the password, so no span is created for them.
+func isConnectionHandshake(cmd redis.Cmder) bool {
+	switch strings.ToLower(cmd.Name()) {
+	case "hello", "auth", "select", "readonly":
+		return true
+	case "client":
+	default:
+		return false
+	}
+	args := cmd.Args()
+	if len(args) < 2 {
+		return false
+	}
+	sub, ok := args[1].(string)
+	if !ok {
+		return false
+	}
+	switch strings.ToLower(sub) {
+	case "setname", "setinfo", "maint_notifications", "tracking":
+		return true
+	}
+	return false
+}
+
+func isConnectionHandshakePipeline(cmds []redis.Cmder) bool {
+	if len(cmds) == 0 {
+		return false
+	}
+	for _, cmd := range cmds {
+		if !isConnectionHandshake(cmd) {
+			return false
+		}
+	}
+	return true
 }
 
 func recordError(span tracing.Span, err error) {

@@ -22,19 +22,11 @@ import (
 	"testing"
 )
 
-func TestRenderDockerFileRefreshesWorkspaceGoDirective(t *testing.T) {
-	tests := []struct {
-		goVersion string
-		want      bool
-	}{
-		{goVersion: "1.17", want: false},
-		{goVersion: "1.18", want: true},
-		{goVersion: "1.25", want: true},
-		{goVersion: "1.26", want: true},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.goVersion, func(t *testing.T) {
+func TestRenderDockerFileBuildsOutsideWorkspace(t *testing.T) {
+	// The repository go.work lists the plugin and scenario modules, so building
+	// inside it would lift the framework above the version the case pins.
+	for _, goVersion := range []string{"1.17", "1.18", "1.26", "1.27"} {
+		t.Run(goVersion, func(t *testing.T) {
 			projectDir := t.TempDir()
 			workspaceDir := filepath.Join(projectDir, "workspace")
 			if err := os.MkdirAll(workspaceDir, 0o755); err != nil {
@@ -43,7 +35,7 @@ func TestRenderDockerFileRefreshesWorkspaceGoDirective(t *testing.T) {
 			context := &Context{
 				WorkSpaceDir: workspaceDir,
 				ProjectDir:   projectDir,
-				GoVersion:    tt.goVersion,
+				GoVersion:    goVersion,
 				ScenarioName: "grpc",
 				CaseName:     "compatibility",
 				GoAgentPath:  filepath.Join(projectDir, "agent"),
@@ -57,10 +49,11 @@ func TestRenderDockerFileRefreshesWorkspaceGoDirective(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			got := strings.Contains(string(content), "RUN go mod tidy\n# go mod tidy") &&
-				strings.Contains(string(content), "RUN go work use .")
-			if got != tt.want {
-				t.Fatalf("workspace refresh present = %v, want %v", got, tt.want)
+			if !strings.Contains(string(content), "ENV GOWORK=off\nRUN go mod tidy") {
+				t.Fatalf("generated Dockerfile does not disable the workspace before tidy:\n%s", content)
+			}
+			if strings.Contains(string(content), "go work use") {
+				t.Fatalf("generated Dockerfile still adds the case to the workspace:\n%s", content)
 			}
 		})
 	}
@@ -69,7 +62,7 @@ func TestRenderDockerFileRefreshesWorkspaceGoDirective(t *testing.T) {
 func TestRenderDockerFilePinsAgentToLocalModule(t *testing.T) {
 	// `go mod tidy` ignores go.work, so without an explicit replace the scenario
 	// would resolve github.com/apache/skywalking-go from the module proxy.
-	for _, goVersion := range []string{"1.17", "1.18", "1.25", "1.26"} {
+	for _, goVersion := range []string{"1.17", "1.18", "1.26", "1.27"} {
 		t.Run(goVersion, func(t *testing.T) {
 			projectDir := t.TempDir()
 			workspaceDir := filepath.Join(projectDir, "workspace")

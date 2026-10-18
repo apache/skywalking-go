@@ -97,10 +97,12 @@ func producer(queue string, client RabbitClient) {
 	}); err != nil {
 		fmt.Println("Failed to Send msg, err: ", err)
 	}
-	if err = client.Send(context.Background(), "", queue, amqp.Publishing{
+	// Since amqp091-go v1.10.0, PublishWithContext no longer goes through
+	// PublishWithDeferredConfirmWithContext. Nil headers check that the injected
+	// context still reaches the message.
+	if err = client.ch.PublishWithContext(context.Background(), "", queue, true, false, amqp.Publishing{
 		ContentType:   "text/plain",
 		Body:          []byte(body),
-		Headers:       amqp.Table{},
 		CorrelationId: "2",
 		MessageId:     "2",
 	}); err != nil {

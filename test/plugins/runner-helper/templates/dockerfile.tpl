@@ -36,21 +36,17 @@ RUN go mod edit -replace=github.com/apache/skywalking-go=../../../../../ test/pl
 # first version that no longer carries those packages so the two can coexist.
 # Scenarios that do not need the monolith at all drop it again during tidy.
 RUN go mod edit -require=google.golang.org/genproto@v0.0.0-20230530153820-e85fd2cbaebc test/plugins/workspace/{{.Context.ScenarioName}}/{{.Context.CaseName}}/go.mod
-{{ if .GreaterThanGo18 -}}
-RUN go work use test/plugins/workspace/{{.Context.ScenarioName}}/{{.Context.CaseName}}
-{{ end -}}
 
 WORKDIR /skywalking-go/test/plugins/workspace/{{.Context.ScenarioName}}/{{.Context.CaseName}}/
 {{ if .Context.Config.Toolkit -}}
 RUN go mod edit -replace=github.com/apache/skywalking-go/toolkit=../../../../../toolkit
 {{ end }}
+# Build the case outside the repository workspace. go.work also lists the plugin
+# and scenario modules, and minimal version selection across the workspace would
+# lift the framework above the version this case pins. The replace directives
+# above already point the agent and toolkit at the code under test.
+ENV GOWORK=off
 RUN go mod tidy
-{{ if .GreaterThanGo18 -}}
-# go mod tidy may raise the scenario module's Go directive to a patch release
-# (for example 1.25.0). Refresh the workspace directive so Go does not reject
-# the generated module as requiring a newer version than go.work.
-RUN go work use .
-{{ end }}
 
 ENV GO_BUILD_OPTS=" -toolexec \"/skywalking-go{{.ToolExecPath}}\" -a -work "
 

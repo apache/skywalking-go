@@ -25,6 +25,14 @@ import (
 
 func ReportLogFromZapEntry(entry *zapcore.CheckedEntry, fields, needs []zapcore.Field, tracingContext interface{},
 	tracingContextField *zapcore.Field, reporterEnable, logEnable bool, reportLabelsKeys []string) []zapcore.Field {
+	return ReportLogFromTransformedZapEntry(&entry.Entry, fields, needs, tracingContext, tracingContextField,
+		reporterEnable, logEnable, reportLabelsKeys)
+}
+
+// ReportLogFromTransformedZapEntry reports the entry and fields that the cores write, which
+// zap v1.28.0 and later produce by applying the pre-write hooks.
+func ReportLogFromTransformedZapEntry(entry *zapcore.Entry, fields, needs []zapcore.Field, tracingContext interface{},
+	tracingContextField *zapcore.Field, reporterEnable, logEnable bool, reportLabelsKeys []string) []zapcore.Field {
 	if reporterEnable && tracingContext != nil {
 		labels := make(map[string]string, len(reportLabelsKeys))
 		for _, key := range reportLabelsKeys {

@@ -20,7 +20,11 @@ start-script: ./bin/startup.sh
 framework: github.com/kataras/iris/v12
 export-port: 8080
 support-version:
-  - go: 1.25
+  - go: 1.26
     framework:
       - v12.2.5
       - v12.2.0
+      - v12.2.11
+  - go: 1.27
+    framework:
+      - v12.2.11

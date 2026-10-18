@@ -22,6 +22,7 @@ import (
 	"github.com/apache/skywalking-go/plugins/amqp"
 	"github.com/apache/skywalking-go/plugins/core/instrument"
 	"github.com/apache/skywalking-go/plugins/dubbo"
+	dubbov331 "github.com/apache/skywalking-go/plugins/dubbo-v331"
 	"github.com/apache/skywalking-go/plugins/echov4"
 	fasthttp_client "github.com/apache/skywalking-go/plugins/fasthttp/hostclient"
 	fasthttp_router "github.com/apache/skywalking-go/plugins/fasthttp/router"
@@ -35,6 +36,7 @@ import (
 	gorm_mysql "github.com/apache/skywalking-go/plugins/gorm/mysql"
 	gorm_postgres "github.com/apache/skywalking-go/plugins/gorm/postgres"
 	"github.com/apache/skywalking-go/plugins/grpc"
+	grpcv184 "github.com/apache/skywalking-go/plugins/grpc-v184"
 	"github.com/apache/skywalking-go/plugins/http"
 	"github.com/apache/skywalking-go/plugins/irisv12"
 	"github.com/apache/skywalking-go/plugins/kratosv2"
@@ -58,6 +60,7 @@ func init() {
 	registerFramework(gin.NewInstrument())
 	registerFramework(http.NewInstrument())
 	registerFramework(dubbo.NewInstrument())
+	registerFramework(dubbov331.NewInstrument())
 	registerFramework(restfulv3.NewInstrument())
 	registerFramework(kratosv2.NewInstrument())
 	registerFramework(microv4.NewInstrument())
@@ -66,6 +69,7 @@ func init() {
 	registerFramework(runtime_metrics.NewInstrument())
 	registerFramework(mux.NewInstrument())
 	registerFramework(grpc.NewInstrument())
+	registerFramework(grpcv184.NewInstrument())
 	registerFramework(irisv12.NewInstrument())
 	registerFramework(traceactivation.NewInstrument())
 	registerFramework(fiber.NewInstrument())

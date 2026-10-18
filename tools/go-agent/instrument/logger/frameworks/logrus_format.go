@@ -61,7 +61,10 @@ func (format *WrapFormat) Format(entry *logrus.Entry) ([]byte, error) {
 		}
 		ReportLog(ctx, entry.Time, entry.Level.String(), entry.Message, labels)
 	}
-	// append trace context
+	// append trace context; since v1.10.0 Entry.Dup keeps a nil Data map as nil
+	if entry.Data == nil {
+		entry.Data = make(map[string]interface{}, 1)
+	}
 	if logContext == nil {
 		entry.Data[format.traceContextKey] = GetLogContextString()
 	} else {

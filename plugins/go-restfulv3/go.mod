@@ -1,9 +1,9 @@
 module github.com/apache/skywalking-go/plugins/go-restfulv3
 
-go 1.24
+go 1.26.0
 
 require (
-	github.com/emicklei/go-restful/v3 v3.10.2
+	github.com/emicklei/go-restful/v3 v3.14.0
 	github.com/stretchr/testify v1.8.2
 	skywalking.apache.org/repo/goapi v0.0.0-20230314034821-0c5a44bb767a
 )

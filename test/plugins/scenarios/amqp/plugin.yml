@@ -20,9 +20,13 @@ start-script: ./bin/startup.sh
 framework: github.com/rabbitmq/amqp091-go
 export-port: 8080
 support-version:
-  - go: 1.25
+  - go: 1.26
     framework:
       - v1.9.0
+      - v1.15.0
+  - go: 1.27
+    framework:
+      - v1.15.0
 dependencies:
   amqp-server:
     image: rabbitmq:3.11.14-management
