@@ -33,10 +33,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     steps:
-      - name: Set up Go 1.25
+      - name: Set up Go 1.26
         uses: actions/setup-go@v2
         with:
-          go-version: 1.25
+          go-version: 1.26
       - name: Setup docker (missing on MacOS)
         if: runner.os == 'macos'
         env:
@@ -72,6 +72,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 90
     strategy:
+      fail-fast: false
       matrix:
         case:
           - gin
@@ -81,7 +82,7 @@ jobs:
           - go-restfulv3
           - gorm
           - gorm-postgres
-          #          - kratosv2 temporary disable because it's not stable
+          - kratosv2
           - microv4
           - mongo
           - mysql
@@ -154,10 +155,10 @@ jobs:
         with:
           name: test-tools-macos-12
           path: test/plugins/dist
-      - name: Set up Go 1.25
+      - name: Set up Go 1.26
         uses: actions/setup-go@v2
         with:
-          go-version: 1.25
+          go-version: 1.26
       - name: Setup docker (missing on MacOS)
         if: runner.os == 'macos'
         env:

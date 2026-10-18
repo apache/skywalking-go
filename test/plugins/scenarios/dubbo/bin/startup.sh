@@ -29,7 +29,9 @@ go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.2
 export PATH="$PATH:$(go env GOPATH)/bin"
 
 echo "building API"
-protoc -I=${home}/api --go_out=${home}/api --go-triple_out=${home}/api ${home}/api/api.proto
+# A unique file name: protobuf registers files by name, and dubbo-go v3.3.1 pulls in another "api.proto"
+# (github.com/aliyun/alibabacloud-dkms-gcs-go-sdk), which makes the generic name panic at startup.
+protoc -I=${home}/api --go_out=${home}/api --go-triple_out=${home}/api ${home}/api/dubbo_scenario_api.proto
 
 echo "building applications"
 go build ${GO_BUILD_OPTS} -o server ./go-server/cmd/server.go

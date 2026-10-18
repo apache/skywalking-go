@@ -20,7 +20,7 @@ start-script: ./bin/startup.sh
 framework: github.com/gorilla/mux
 export-port: 8080
 support-version:
-  - go: 1.25
+  - go: 1.26
     framework:
       - v1.7.0
       - v1.7.1
@@ -28,4 +28,8 @@ support-version:
       - v1.7.3
       - v1.7.4
       - v1.8.0
+      - v1.8.1
+  - go: 1.27
+    framework:
+      - v1.8.1
 dependencies:

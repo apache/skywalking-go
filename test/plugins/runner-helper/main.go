@@ -73,23 +73,16 @@ func RenderDockerFile(context *Context) error {
 	if !found {
 		return errors.New("invalid go version")
 	}
-	i, err := strconv.ParseInt(v, 10, 64)
-	if err != nil {
+	if _, err := strconv.ParseInt(v, 10, 64); err != nil {
 		return errors.New("invalid go version")
-	}
-	var greaterThanGo18 bool
-	if i >= 18 {
-		greaterThanGo18 = true
 	}
 
 	render, err := templates.Render("dockerfile.tpl", struct {
-		ToolExecPath    string
-		GreaterThanGo18 bool
-		Context         *Context
+		ToolExecPath string
+		Context      *Context
 	}{
-		ToolExecPath:    strings.TrimPrefix(context.GoAgentPath, context.ProjectDir),
-		GreaterThanGo18: greaterThanGo18,
-		Context:         context,
+		ToolExecPath: strings.TrimPrefix(context.GoAgentPath, context.ProjectDir),
+		Context:      context,
 	})
 	if err != nil {
 		return err

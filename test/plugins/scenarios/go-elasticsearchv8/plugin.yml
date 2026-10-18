@@ -17,14 +17,18 @@
 entry-service: http://${HTTP_HOST}:${HTTP_PORT}/execute
 health-checker: http://${HTTP_HOST}:${HTTP_PORT}/health
 start-script: ./bin/startup.sh
-framework: github.com/elastic/go-elasticsearch
+framework: github.com/elastic/go-elasticsearch/v8
 export-port: 8080
 support-version:
-  - go: 1.25
+  - go: 1.26
     framework:
       - v8.11.1
       - v8.11.0
       - v8.10.0
+      - v8.19.7
+  - go: 1.27
+    framework:
+      - v8.19.7
 dependencies:
   elasticsearch:
     image: elasticsearch:8.13.4

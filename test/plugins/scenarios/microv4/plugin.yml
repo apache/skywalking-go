@@ -20,13 +20,14 @@ start-script: ./bin/startup.sh
 framework: go-micro.dev/v4
 export-port: 8080
 support-version:
-  - go: 1.25
+  - go: 1.26
     framework:
-      - v4.6.0
-      - v4.7.0
-      - v4.8.0
-      - v4.8.1
       - v4.9.0
       - v4.10.0
       - v4.10.1
       - v4.10.2
+      - v4.11.2
+
+  - go: 1.27
+    framework:
+      - v4.11.2

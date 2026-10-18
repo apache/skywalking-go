@@ -20,9 +20,17 @@ start-script: ./bin/startup.sh
 framework: dubbo.apache.org/dubbo-go/v3
 export-port: 8080
 support-version:
-  - go: 1.25
+  - go: 1.26
     framework:
-      - v3.0.1
       - v3.0.2
       - v3.0.4
       - v3.0.5
+      - v3.1.1
+  - go: 1.26
+    framework:
+      - v3.3.1
+    excepted-file: config/excepted-v3.3.1.yml
+  - go: 1.27
+    framework:
+      - v3.3.1
+    excepted-file: config/excepted-v3.3.1.yml

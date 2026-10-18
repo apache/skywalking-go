@@ -33,29 +33,62 @@ const (
 	tagMQRoutingKey     = "mq.routing_key"
 )
 
+// The publish methods call each other, and the order changed in amqp091-go v1.10.0:
+// PublishWithDeferredConfirmWithContext was the common implementation before, and
+// PublishWithDeferredConfirm is the common one since, reached by Publish and
+// PublishWithContext. Both are intercepted, and producerActiveKey keeps the nested
+// call from creating a second span for the same message.
+const producerActiveKey = "amqp-producer-active"
+
+// ProducerInterceptor intercepts (*Channel).PublishWithDeferredConfirmWithContext.
 type ProducerInterceptor struct{}
 
 func (p *ProducerInterceptor) BeforeInvoke(invocation operator.Invocation) error {
-	channel := invocation.CallerInstance().(*nativeChannel)
-	peer := getPeerInfo(channel.connection)
-	exchange, routingKey, operationName := invocation.Args()[1].(string), invocation.Args()[2].(string), amqpSendPrefix
+	return beforePublish(invocation, 1)
+}
+
+func (p *ProducerInterceptor) AfterInvoke(invocation operator.Invocation, results ...interface{}) error {
+	return afterPublish(invocation, results...)
+}
+
+// ProducerWithoutContextInterceptor intercepts (*Channel).PublishWithDeferredConfirm.
+type ProducerWithoutContextInterceptor struct{}
+
+func (p *ProducerWithoutContextInterceptor) BeforeInvoke(invocation operator.Invocation) error {
+	return beforePublish(invocation, 0)
+}
+
+func (p *ProducerWithoutContextInterceptor) AfterInvoke(invocation operator.Invocation, results ...interface{}) error {
+	return afterPublish(invocation, results...)
+}
+
+// beforePublish creates the producer span. offset is the index of the exchange
+// argument, which is followed by the routing key, mandatory, immediate, and the message.
+func beforePublish(invocation operator.Invocation, offset int) error {
+	if tracing.GetRuntimeContextValue(producerActiveKey) != nil {
+		return nil
+	}
+	args := invocation.Args()
+	publishing, ok := args[offset+4].(amqp091.Publishing)
+	if !ok {
+		return nil
+	}
+	exchange, _ := args[offset].(string)
+	routingKey, _ := args[offset+1].(string)
+	operationName := amqpSendPrefix
 	if exchange != "" {
-		exchange = invocation.Args()[1].(string)
 		operationName += delimiter + exchange
 	}
 	if routingKey != "" {
-		routingKey = invocation.Args()[2].(string)
 		operationName += delimiter + routingKey
 	}
-	publishing := invocation.Args()[5].(amqp091.Publishing)
 	operationName += amqpSendSuffix
 
+	channel := invocation.CallerInstance().(*nativeChannel)
+	peer := getPeerInfo(channel.connection)
 	span, err := tracing.CreateExitSpan(operationName, peer, func(headerKey, headerValue string) error {
 		if publishing.Headers == nil {
-			publishing.Headers = amqp091.Table{
-				headerKey: headerValue,
-			}
-			return nil
+			publishing.Headers = amqp091.Table{}
 		}
 		publishing.Headers[headerKey] = headerValue
 		return nil
@@ -68,14 +101,19 @@ func (p *ProducerInterceptor) BeforeInvoke(invocation operator.Invocation) error
 	if err != nil {
 		return err
 	}
+	// The message is passed by value, so a header table created by the injector
+	// only reaches the broker through the changed argument.
+	invocation.ChangeArg(offset+4, publishing)
+	tracing.SetRuntimeContextValue(producerActiveKey, true)
 	invocation.SetContext(span)
 	return nil
 }
 
-func (p *ProducerInterceptor) AfterInvoke(invocation operator.Invocation, results ...interface{}) error {
+func afterPublish(invocation operator.Invocation, results ...interface{}) error {
 	if invocation.GetContext() == nil {
 		return nil
 	}
+	tracing.SetRuntimeContextValue(producerActiveKey, nil)
 	span := invocation.GetContext().(tracing.Span)
 	if err, ok := results[1].(error); ok && err != nil {
 		span.Error(err.Error())

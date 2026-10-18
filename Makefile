@@ -55,7 +55,7 @@ deps:
 	$(GO_GET) -v -t -d ./...
 
 linter:
-	$(GO_LINT) version || curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/v2.5.0/install.sh | sh -s -- -b $(GO_PATH)/bin v2.5.0
+	$(GO_LINT) version || curl -sSfL https://golangci-lint.run/install.sh | sh -s -- -b $(GO_PATH)/bin v2.15.0
 
 ##@ General
 
@@ -153,14 +153,14 @@ release: ## Build skywalking-go agent release
 	/bin/sh tools/release/create_bin_release.sh
 	/bin/sh tools/release/create_source_release.sh
 
-base.all := go1.25 go1.26
+base.all := go1.26 go1.27
 base.each = $(word 1, $@)
 
 
 ##@ Docker
 
-base.image.go1.25 := golang:1.25
 base.image.go1.26 := golang:1.26
+base.image.go1.27 := golang:1.27
 
 docker.%: PLATFORMS =
 docker.%: LOAD_OR_PUSH = --load

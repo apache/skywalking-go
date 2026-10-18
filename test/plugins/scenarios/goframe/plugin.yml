@@ -17,10 +17,10 @@
 entry-service: http://${HTTP_HOST}:${HTTP_PORT}/consumer
 health-checker: http://${HTTP_HOST}:${HTTP_PORT}/health
 start-script: ./bin/startup.sh
-framework: github.com/gogf/gf
+framework: github.com/gogf/gf/v2
 export-port: 8080
 support-version:
-  - go: 1.25
+  - go: 1.26
     framework:
       - v2.7.3
       - v2.7.2
@@ -31,3 +31,8 @@ support-version:
       - v2.6.2
       - v2.6.1
       - v2.6.0
+      - v2.10.3
+
+  - go: 1.27
+    framework:
+      - v2.10.3

@@ -29,8 +29,14 @@ type ServerInterceptor struct {
 }
 
 func (c *ServerInterceptor) BeforeInvoke(invocation operator.Invocation) error {
-	filterInvoker := invocation.Args()[1].(protocol.Invoker)
-	dubboInv := invocation.Args()[2].(protocol.Invocation)
+	filterInvoker, ok := invocation.Args()[1].(protocol.Invoker)
+	if !ok {
+		return nil
+	}
+	dubboInv, ok := invocation.Args()[2].(protocol.Invocation)
+	if !ok {
+		return nil
+	}
 	url := filterInvoker.GetURL()
 	if url == nil {
 		return nil

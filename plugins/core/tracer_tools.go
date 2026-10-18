@@ -57,7 +57,7 @@ type ReflectFieldFilterOpts interface {
 
 func (t *TracerTools) ReflectGetValue(instance interface{}, filterOpts []interface{}) interface{} {
 	instanceVal := reflect.ValueOf(instance)
-	if instanceVal.Kind() == reflect.Ptr && instanceVal.Elem().Kind() == reflect.Struct {
+	if instanceVal.Kind() == reflect.Pointer && instanceVal.Elem().Kind() == reflect.Struct {
 		instanceVal = instanceVal.Elem()
 	} else {
 		// only support the pointer struct

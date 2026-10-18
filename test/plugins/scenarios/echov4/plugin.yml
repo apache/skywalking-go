@@ -20,7 +20,7 @@ start-script: ./bin/startup.sh
 framework: github.com/labstack/echo/v4
 export-port: 8080
 support-version:
-  - go: 1.25
+  - go: 1.26
     framework:
       - v4.0.0
       - v4.1.0
@@ -35,3 +35,7 @@ support-version:
       - v4.10.0
       - v4.11.0
       - v4.11.4
+      - v4.16.0
+  - go: 1.27
+    framework:
+      - v4.16.0

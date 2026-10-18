@@ -20,18 +20,23 @@ start-script: ./bin/startup.sh
 framework: gorm.io/driver/postgres
 export-port: 8080
 support-version:
-  - go: 1.25
+  - go: 1.26
     framework:
       - v1.5.2
       - v1.5.4
-  - go: 1.25
+  - go: 1.26
     framework:
       - v1.5.10
       - v1.5.11
     excepted-file: config/excepted-gorm-v1.25.10.yml
-  - go: 1.25
+  - go: 1.26
     framework:
       - v1.6.0
+      - v1.6.3
+    excepted-file: config/excepted-gorm-v1.25.10.yml
+  - go: 1.27
+    framework:
+      - v1.6.3
     excepted-file: config/excepted-gorm-v1.25.10.yml
 dependencies:
   postgres-server:

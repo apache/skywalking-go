@@ -52,10 +52,15 @@ When starting, just let the program keep running.
 
 Multi-version support is a crucial step in plugin testing. It can test whether the plugin runs stably across multiple framework versions and go versions.
 
-Plugin testing would use the `go get` command to modify the plugin version. Please make sure you have filled in the correct **framework** and **support-version.framework**.
-The format is: `${framework}@${support-version.framework}`
+For each **support-version.framework** version, plugin testing rewrites the requirement of **framework** in the scenario's `go.mod` to that version.
+**framework** must therefore be the module path exactly as it appears in `go.mod`, including a major version suffix such as `/v8`; otherwise the version is not applied.
+
+Each case is built outside the repository `go.work` (with `GOWORK=off`), so the application links exactly the framework version of the case.
+The agent is replaced with the local code. Set **toolkit** to `true` when the test code imports `github.com/apache/skywalking-go/toolkit`, so the toolkit is replaced with the local code as well.
 
 During plugin execution, the specified official Golang image would be used, allowing the plugin to run in the designated Golang version.
+
+When a framework version changes the observable data, a **support-version** entry can set **excepted-file** to validate its versions against another expected file, for example `config/excepted-v9.22.yml`.
 
 ### Excepted File
 

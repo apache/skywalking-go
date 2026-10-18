@@ -186,6 +186,13 @@ zapcore.SWLogEnable = %s
 			tools.GenerateTypeNameByExp(n.Type.Params.List[0].Type) == "[]Field" {
 			recvs := tools.EnhanceParameterNames(n.Recv, tools.FieldListTypeRecv)
 			parameters := tools.EnhanceParameterNames(n.Type.Params, tools.FieldListTypeParam)
+			// zap v1.28.0 transforms the entry and fields with the pre-write hooks
+			// (CheckedEntry.before) inside Write, so report what the cores receive.
+			if loop, entryName := findPreWriteTransformLoop(n, recvs[0].Name); loop != nil {
+				return z.enhanceAfterStatement(n, loop, fmt.Sprintf(`%s = %sZapcore%s(&%s, %s, %s.SWFields, %s.SWContext, %s.SWContextField, SWReporterEnable, SWLogEnable, SWReporterLabelKeys)`,
+					parameters[0].Name, rewrite.StaticMethodPrefix, "ReportLogFromTransformedZapEntry", entryName,
+					parameters[0].Name, recvs[0].Name, recvs[0].Name, recvs[0].Name)), true
+			}
 			return z.enhanceMethod(n, fmt.Sprintf(`if %s != nil { %s = %sZapcore%s(%s, %s, %s.SWFields, %s.SWContext, %s.SWContextField, SWReporterEnable, SWLogEnable, SWReporterLabelKeys) }`,
 				recvs[0].Name, parameters[0].Name, rewrite.StaticMethodPrefix, "ReportLogFromZapEntry", recvs[0].Name,
 				parameters[0].Name, recvs[0].Name, recvs[0].Name, recvs[0].Name)), true
@@ -200,6 +207,46 @@ func (z *Zap) enhanceMethod(fun *dst.FuncDecl, goCode string) map[string]string 
 	fun.Body.Decs.Lbrace.Prepend("\n", replaceKey)
 
 	return map[string]string{replaceKey: goCode}
+}
+
+// enhanceAfterStatement inserts the code right after the statement in the function body.
+func (z *Zap) enhanceAfterStatement(fun *dst.FuncDecl, stmt dst.Stmt, goCode string) map[string]string {
+	funcID := tools.BuildFuncIdentity(zapPackageRootPath, fun)
+	replaceKey := fmt.Sprintf("//goagent:enhance_%s", funcID)
+	stmt.Decorations().After = dst.NewLine
+	stmt.Decorations().End.Append("\n", replaceKey)
+
+	return map[string]string{replaceKey: goCode}
+}
+
+// findPreWriteTransformLoop finds the loop of zap v1.28.0+ in CheckedEntry.Write that applies
+// the pre-write hooks, "for i := range ce.before { ent, fields = ce.before[i](ent, fields) }",
+// and returns it with the name of the transformed entry variable.
+func findPreWriteTransformLoop(fun *dst.FuncDecl, recvName string) (loop *dst.RangeStmt, entryName string) {
+	for _, stmt := range fun.Body.List {
+		rangeStmt, ok := stmt.(*dst.RangeStmt)
+		if !ok {
+			continue
+		}
+		sel, ok := rangeStmt.X.(*dst.SelectorExpr)
+		if !ok || sel.Sel.Name != "before" {
+			continue
+		}
+		if recv, isIdent := sel.X.(*dst.Ident); !isIdent || recv.Name != recvName {
+			continue
+		}
+		if len(rangeStmt.Body.List) == 0 {
+			continue
+		}
+		assign, isAssign := rangeStmt.Body.List[0].(*dst.AssignStmt)
+		if !isAssign || len(assign.Lhs) != 2 {
+			continue
+		}
+		if ident, isIdent := assign.Lhs[0].(*dst.Ident); isIdent {
+			return rangeStmt, ident.Name
+		}
+	}
+	return nil, ""
 }
 
 func (z *Zap) InitFunctions() []*dst.FuncDecl {

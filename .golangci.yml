@@ -43,6 +43,10 @@ linters:
     goconst:
       min-len: 2
       min-occurrences: 2
+      # goconst 1.10 started checking composite literals by default; keep the previous scope.
+      exclude-types:
+        - Call
+        - CompositeLit
     gocritic:
       disabled-checks:
         - ifElseChain
@@ -100,10 +104,10 @@ linters:
     rules:
       - linters:
           - staticcheck
-        text: 'SA1019: grpc\.Dial(Context)? is deprecated'
+        text: 'SA1019: (google\.golang\.org/)?grpc\.Dial(Context)? is deprecated'
       - linters:
           - staticcheck
-        text: 'SA1019: info\.ServerName is deprecated'
+        text: 'SA1019: (info|\(google\.golang\.org/grpc/credentials\.ProtocolInfo\))\.ServerName is deprecated'
 formatters:
   enable:
     - gofmt

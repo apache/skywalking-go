@@ -19,6 +19,8 @@ package dubbo
 
 import (
 	"embed"
+	"strconv"
+	"strings"
 
 	"github.com/apache/skywalking-go/plugins/core/instrument"
 )
@@ -42,8 +44,48 @@ func (i *Instrument) BasePackage() string {
 	return "dubbo.apache.org/dubbo-go/v3"
 }
 
+// VersionChecker accepts dubbo-go releases before v3.3.1. Since v3.3.1 the
+// filter/graceful_shutdown package imports protocol/base and protocol/result
+// instead of protocol, which the interceptors of this plugin import, so those
+// releases are handled by the dubbo-v331 plugin.
 func (i *Instrument) VersionChecker(version string) bool {
-	return true
+	v, ok := parseVersion(version)
+	if !ok {
+		// The version is empty when dubbo-go is replaced by a local module. Keep
+		// instrumenting it with this plugin, as before the version split.
+		return true
+	}
+	return !atLeastV331(v)
+}
+
+// parseVersion extracts the numeric major, minor, and patch parts of a module
+// version, such as v3.3.1 or a pseudo version based on it.
+func parseVersion(version string) (v [3]int, ok bool) {
+	parts := strings.SplitN(strings.TrimPrefix(version, "v"), ".", 3)
+	if len(parts) < 3 {
+		return v, false
+	}
+	for i, part := range parts {
+		if idx := strings.IndexFunc(part, func(r rune) bool { return r < '0' || r > '9' }); idx >= 0 {
+			part = part[:idx]
+		}
+		n, err := strconv.Atoi(part)
+		if err != nil {
+			return v, false
+		}
+		v[i] = n
+	}
+	return v, true
+}
+
+func atLeastV331(v [3]int) bool {
+	if v[0] != 3 {
+		return v[0] > 3
+	}
+	if v[1] != 3 {
+		return v[1] > 3
+	}
+	return v[2] >= 1
 }
 
 func (i *Instrument) Points() []*instrument.Point {

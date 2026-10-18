@@ -35,7 +35,7 @@ func TestOpenConnectorBuildDBInfoFromDSN(t *testing.T) {
 	tracing.SetRuntimeContextValue(tracing.SQLNeedInfoRuntimeContextKey, true)
 
 	interceptor := &OpenConnectorInterceptor{}
-	dsn := "postgres://user:password@postgres:5432/database?sslmode=disable"
+	dsn := "postgres://user:password@postgres:5432/database?sslmode=disable" //nolint:gosec // test DSN, not a real credential
 	err := interceptor.AfterInvoke(operator.NewInvocation(nil, dsn), nil, nil)
 	assert.Nil(t, err)
 

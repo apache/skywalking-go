@@ -20,9 +20,13 @@ start-script: ./bin/startup.sh
 framework: github.com/segmentio/kafka-go
 export-port: 8080
 support-version:
-  - go: 1.25
+  - go: 1.26
     framework:
       - v0.4.47
+      - v0.4.51
+  - go: 1.27
+    framework:
+      - v0.4.51
 dependencies:
   zookeeper-server:
     image: zookeeper:3.9.2

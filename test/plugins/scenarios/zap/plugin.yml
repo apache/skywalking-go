@@ -20,7 +20,7 @@ start-script: ./bin/startup.sh
 framework: go.uber.org/zap
 export-port: 8080
 support-version:
-  - go: 1.25
+  - go: 1.26
     framework:
       - v1.17.0
       - v1.18.0
@@ -32,3 +32,8 @@ support-version:
       - v1.22.0
       - v1.23.0
       - v1.24.0
+      - v1.28.0
+
+  - go: 1.27
+    framework:
+      - v1.28.0

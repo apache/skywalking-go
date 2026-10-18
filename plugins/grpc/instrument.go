@@ -19,6 +19,8 @@ package grpc
 
 import (
 	"embed"
+	"strconv"
+	"strings"
 
 	"github.com/apache/skywalking-go/plugins/core/instrument"
 )
@@ -42,8 +44,39 @@ func (i *Instrument) BasePackage() string {
 	return "google.golang.org/grpc"
 }
 
+// VersionChecker accepts grpc v1.x releases before v1.84.0. Since v1.84.0 the
+// server merged processUnaryRPC/processStreamingRPC into processRPC and routes
+// unary RPCs through serverStream, which is handled by the grpc-v184 plugin.
 func (i *Instrument) VersionChecker(version string) bool {
-	return true
+	major, minor, ok := parseMajorMinor(version)
+	if !ok {
+		// The version is empty when grpc is replaced by a local module. Keep
+		// instrumenting it with this plugin, as before the version split.
+		return true
+	}
+	return major == 1 && minor < 84
+}
+
+// parseMajorMinor extracts the numeric major and minor parts of a module
+// version such as "v1.83.2", "v1.84.0-dev" or a pseudo version.
+func parseMajorMinor(version string) (major, minor int, ok bool) {
+	parts := strings.SplitN(strings.TrimPrefix(version, "v"), ".", 3)
+	if len(parts) < 2 {
+		return 0, 0, false
+	}
+	major, err := strconv.Atoi(parts[0])
+	if err != nil {
+		return 0, 0, false
+	}
+	minorPart := parts[1]
+	if idx := strings.IndexFunc(minorPart, func(r rune) bool { return r < '0' || r > '9' }); idx >= 0 {
+		minorPart = minorPart[:idx]
+	}
+	minor, err = strconv.Atoi(minorPart)
+	if err != nil {
+		return 0, 0, false
+	}
+	return major, minor, true
 }
 
 func (i *Instrument) Points() []*instrument.Point {
