@@ -11,3 +11,5 @@ coverage.txt
 /tools/protocols/temp/
 vendor/
 VERSION
+.claude/worktrees/
+.claude/settings.local.json
