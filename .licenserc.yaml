@@ -24,6 +24,8 @@ header:
 
   paths-ignore:
     - '**/*.md'
+    # Symlink to .claude/skills; the pinned license-eye recurses forever on directory symlinks.
+    - '.agents/skills'
     - 'licenses'
     - '**/go.mod'
     - '**/go.sum'
