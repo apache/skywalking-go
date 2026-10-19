@@ -37,7 +37,7 @@ func (h *ClientSendMsgInterceptor) BeforeInvoke(invocation operator.Invocation) 
 	csEnhanced, ok := invocation.CallerInstance().(operator.EnhancedInstance)
 	if ok && csEnhanced.GetSkyWalkingDynamicField() != nil {
 		contextdata := csEnhanced.GetSkyWalkingDynamicField().(*contextData)
-		tracing.ContinueContext(contextdata.continueSnapShot)
+		tracing.ContinueContext(contextdata.continueSnapshot())
 	}
 	s, err := tracing.CreateLocalSpan(formatOperationName(method, "/Client/Request/SendMsg"),
 		tracing.WithLayer(tracing.SpanLayerRPCFramework),

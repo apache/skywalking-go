@@ -79,7 +79,13 @@ func (span *NoopSpan) GetEndPointName() string {
 }
 
 func GetLogContext(withEndpoint bool) interface{} {
-	report, ok := GetOperator().LogReporter().(LogReporter)
+	// the operator is nil until the agent core is initialized, for example
+	// when the application logs from a package init function
+	op := GetOperator()
+	if op == nil {
+		return nil
+	}
+	report, ok := op.LogReporter().(LogReporter)
 	if !ok || report == nil {
 		return nil
 	}

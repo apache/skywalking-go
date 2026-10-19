@@ -52,6 +52,7 @@ func main() {
 			{"stmt", testStmt},
 			{"commitTx", testCommitTx},
 			{"rollbackTx", testRollbackTx},
+			{"connRaw", testConnRaw},
 		}
 
 		for _, test := range tests {
@@ -158,4 +159,18 @@ func testRollbackTx(ctx context.Context, db *sql.DB) error {
 		return err
 	}
 	return nil
+}
+
+func testConnRaw(ctx context.Context, db *sql.DB) error {
+	conn, err := db.Conn(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = conn.Close()
+	}()
+
+	return conn.Raw(func(driverConn interface{}) error {
+		return nil
+	})
 }

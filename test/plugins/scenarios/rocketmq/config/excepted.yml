@@ -148,6 +148,25 @@ segmentItems:
                   refType: CrossProcess, parentSpanId: 6, parentTraceSegmentId: not null,
                   parentServiceInstance: not null, parentService: rocketmq,
                   traceId: not null }
+          - operationName: RocketMQ/sw-topic-failed/Producer
+            parentSpanId: 0
+            spanId: 8
+            spanLayer: MQ
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 38
+            isError: true
+            spanType: Exit
+            peer: 127.0.0.1:1
+            skipAnalysis: false
+            tags:
+              - { key: mq.topic, value: sw-topic-failed }
+              - { key: mq.status, value: SendUnknownError }
+              - { key: mq.msg.id, value: '' }
+              - { key: mq.offset.msg.id, value: '' }
+            logs:
+              - logEvent:
+                  - { key: 'the topic=sw-topic-failed route info not found', value: '' }
           - operationName: GET:/execute
             parentSpanId: -1
             spanId: 0

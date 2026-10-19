@@ -22,9 +22,11 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"sync/atomic"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
@@ -46,9 +48,18 @@ type User struct {
 	Age  int                `bson:"age"`
 }
 
+// succeededCommands is counted by a user CommandMonitor that sets only
+// Succeeded: the agent must not call the callbacks the user left nil.
+var succeededCommands atomic.Int64
+
 func main() {
 	// init connect mongodb.
-	client, err := mongo.Connect(context.Background(), options.Client().ApplyURI(dsn))
+	monitor := &event.CommandMonitor{
+		Succeeded: func(context.Context, *event.CommandSucceededEvent) {
+			succeededCommands.Add(1)
+		},
+	}
+	client, err := mongo.Connect(context.Background(), options.Client().ApplyURI(dsn).SetMonitor(monitor))
 	if err != nil {
 		panic(fmt.Sprintf("connect mongodb error %v \n", err))
 	}
@@ -71,6 +82,11 @@ func main() {
 			if err = test.fn(req.Context(), client); err != nil {
 				log.Printf("test case %s failed: %v", test.name, err)
 			}
+		}
+		if succeededCommands.Load() == 0 {
+			res.WriteHeader(http.StatusInternalServerError)
+			_, _ = res.Write([]byte("the user command monitor was not called"))
+			return
 		}
 		_, _ = res.Write([]byte("execute success"))
 	})

@@ -16,7 +16,7 @@
 
 segmentItems:
   - serviceName: http
-    segmentSize: ge 3
+    segmentSize: ge 4
     segments:
       - segmentId: not null
         spans:
@@ -72,6 +72,21 @@ segmentItems:
               - {key: http.method, value: GET}
               - {key: url, value: 'localhost:8080/errortest'}
               - {key: status_code, value: '500'}
+          - operationName: GET:/stream
+            parentSpanId: 0
+            spanId: 3
+            spanLayer: Http
+            startTime: gt 0
+            endTime: gt 0
+            componentId: 5005
+            isError: false
+            spanType: Exit
+            peer: localhost:8080
+            skipAnalysis: false
+            tags:
+              - {key: http.method, value: GET}
+              - {key: url, value: 'localhost:8080/stream'}
+              - {key: status_code, value: '200'}
           - operationName: GET:/consumer
             parentSpanId: -1
             spanId: 0
@@ -109,6 +124,28 @@ segmentItems:
             refs:
               - {parentEndpoint: 'GET:/consumer', networkAddress: 'localhost:8080', refType: CrossProcess,
                  parentSpanId: 2, parentTraceSegmentId: not null, parentServiceInstance: not null,
+                 parentService: http, traceId: not null}
+      - segmentId: not null
+        spans:
+          - operationName: GET:/stream
+            parentSpanId: -1
+            spanId: 0
+            spanLayer: Http
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 5004
+            isError: false
+            spanType: Entry
+            peer: ''
+            skipAnalysis: false
+            tags:
+              - {key: http.method, value: GET}
+              - {key: url, value: 'localhost:8080/stream'}
+              - {key: http.params, value: ''}
+              - {key: status_code, value: '200'}
+            refs:
+              - {parentEndpoint: 'GET:/consumer', networkAddress: 'localhost:8080', refType: CrossProcess,
+                 parentSpanId: 3, parentTraceSegmentId: not null, parentServiceInstance: not null,
                  parentService: http, traceId: not null}
 meterItems: []
 logItems: []

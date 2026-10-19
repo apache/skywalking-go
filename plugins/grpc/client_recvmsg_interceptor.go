@@ -34,11 +34,9 @@ func (h *ClientRecvMsgInterceptor) BeforeInvoke(invocation operator.Invocation) 
 	if strings.HasPrefix(method, skywalkingService) {
 		return nil
 	}
-	csEnhanced, ok := invocation.CallerInstance().(operator.EnhancedInstance)
-	if ok && csEnhanced.GetSkyWalkingDynamicField() != nil {
-		contextdata := csEnhanced.GetSkyWalkingDynamicField().(*contextData)
-		tracing.ContinueContext(contextdata.continueSnapShot)
-		contextdata.interceptFinish.Store(true)
+	contextdata := clientStreamContextData(invocation.CallerInstance())
+	if contextdata != nil {
+		tracing.ContinueContext(contextdata.continueSnapshot())
 	}
 	s, err := tracing.CreateLocalSpan(formatOperationName(method, "/Client/Response/RecvMsg"),
 		tracing.WithLayer(tracing.SpanLayerRPCFramework),
@@ -57,20 +55,29 @@ func (h *ClientRecvMsgInterceptor) AfterInvoke(invocation operator.Invocation, r
 		return nil
 	}
 	span := invocation.GetContext().(tracing.Span)
-	err, ok := result[0].(error)
-	if ok && err != nil && err != io.EOF {
+	err, _ := result[0].(error)
+	if err != nil && err != io.EOF {
 		span.Error(err.Error())
 	}
-	if err == io.EOF {
-		cs := invocation.CallerInstance().(*nativeclientStream)
-		method := cs.callHdr.Method
-		span.SetOperationName(formatOperationName(method, "/Client/Response/CloseRecv"))
+	cs := invocation.CallerInstance().(*nativeclientStream)
+	contextdata := clientStreamContextData(invocation.CallerInstance())
+	if endsStream(cs, contextdata, err) {
+		span.SetOperationName(formatOperationName(cs.callHdr.Method, "/Client/Response/CloseRecv"))
 	}
 	span.End()
-	csEnhanced, ok := invocation.CallerInstance().(operator.EnhancedInstance)
-	if ok && csEnhanced.GetSkyWalkingDynamicField() != nil {
-		contextdata := csEnhanced.GetSkyWalkingDynamicField().(*contextData)
-		tracing.ContinueContext(contextdata.endSnapShot)
+	if contextdata != nil {
+		tracing.ContinueContext(contextdata.endSnapshot())
 	}
 	return nil
+}
+
+// endsStream reports whether the RecvMsg ended the stream: grpc finishes a
+// stream when RecvMsg fails (io.EOF is the successful end), and after the
+// single response of a stream that the server does not stream. A RecvMsg of a
+// unary RPC has no stream data and ends it only with io.EOF.
+func endsStream(cs *nativeclientStream, contextdata *contextData, err error) bool {
+	if contextdata == nil {
+		return err == io.EOF
+	}
+	return err != nil || (cs.desc != nil && !cs.desc.ServerStreams)
 }

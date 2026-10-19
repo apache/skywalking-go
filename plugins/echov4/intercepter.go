@@ -22,9 +22,14 @@ import (
 
 	"github.com/labstack/echo/v4"
 
+	"github.com/apache/skywalking-go/plugins/core/log"
 	"github.com/apache/skywalking-go/plugins/core/operator"
 	"github.com/apache/skywalking-go/plugins/core/tracing"
 )
+
+// abnormalEndMessage is logged on the entry span when the request handler
+// panics or calls runtime.Goexit.
+const abnormalEndMessage = "the request handler did not return: it panicked or called runtime.Goexit"
 
 type EchoInterceptor struct{}
 
@@ -58,8 +63,26 @@ func middleware() echo.MiddlewareFunc {
 				tracing.WithTag(tracing.TagURL, request.Host+request.URL.Path),
 				tracing.WithComponent(5015))
 			if err != nil {
-				return err
+				// serve the request untraced instead of failing it, for example
+				// when the propagation header cannot be decoded
+				log.Warnf("cannot create the entry span of %s:%s, serving it untraced: %v", request.Method, c.Path(), err)
+				return next(c)
 			}
+			returned := false
+			defer func() {
+				if returned {
+					return
+				}
+				// The handler panicked or called runtime.Goexit. End the span
+				// before that leaves the middleware, without recovering it:
+				// recover would also stop a nil panic (GODEBUG=panicnil=1).
+				// Whoever recovers a panic decides the response status.
+				span.Error(abnormalEndMessage)
+				if c.Response().Committed {
+					span.Tag(tracing.TagStatusCode, fmt.Sprintf("%d", c.Response().Status))
+				}
+				span.End()
+			}()
 			// serve the request to the next middleware
 			if err = next(c); err != nil {
 				span.Error(err.Error())
@@ -67,6 +90,7 @@ func middleware() echo.MiddlewareFunc {
 				c.Error(err)
 			}
 			span.Tag(tracing.TagStatusCode, fmt.Sprintf("%d", c.Response().Status))
+			returned = true
 			span.End()
 			return nil
 		}

@@ -63,7 +63,7 @@ func TestServerInvokeError(t *testing.T) {
 	invocation := operator.NewInvocation(nil, responseWriter, request)
 	_ = interceptor.BeforeInvoke(invocation)
 
-	wrapped, _ := invocation.Args()[0].(*writerWrapper)
+	wrapped, _ := invocation.Args()[0].(http.ResponseWriter)
 
 	wrapped.WriteHeader(http.StatusInternalServerError)
 

@@ -23,6 +23,9 @@ import (
 	"io"
 	"sync"
 	"testing"
+	"time"
+
+	"google.golang.org/grpc"
 
 	"github.com/apache/skywalking-go/plugins/core"
 	"github.com/apache/skywalking-go/plugins/core/operator"
@@ -44,6 +47,26 @@ func (cs *nativeclientStream) SetSkyWalkingDynamicField(v interface{}) {
 
 func newTestClientStream(method string, desc *nativeStreamDesc) *nativeclientStream {
 	return &nativeclientStream{callHdr: &nativeCallHdr{Method: method}, desc: desc}
+}
+
+// startTestStream runs the NewStream and newClientStreamWithParams interceptors
+// for the clientStream, as an instrumented ClientConn.NewStream does, and
+// returns the call options that the clientStream was created with.
+func startTestStream(t *testing.T, cs *nativeclientStream) []grpc.CallOption {
+	t.Helper()
+	streaming := &ClientStreamingInterceptor{}
+	newStream := operator.NewInvocation(&nativeClientConn{}, context.Background(), cs.desc, cs.callHdr.Method, []grpc.CallOption(nil))
+	if err := streaming.BeforeInvoke(newStream); err != nil {
+		t.Fatal(err)
+	}
+	create := operator.NewInvocation(nil, newStream.Args()[0], cs.desc, &nativeClientConn{}, cs.callHdr.Method,
+		nil, func() {}, false, []grpc.CallOption(nil))
+	invokeInterceptor(t, streaming, create, cs, error(nil))
+	if err := streaming.AfterInvoke(newStream, &testClientStreamWrapper{clientStream: cs}, error(nil)); err != nil {
+		t.Fatal(err)
+	}
+	opts, _ := create.Args()[len(create.Args())-1].([]grpc.CallOption)
+	return opts
 }
 
 func invokeInterceptor(t *testing.T, interceptor operator.Interceptor, invocation operator.Invocation, result ...interface{}) {
@@ -78,12 +101,10 @@ func TestClientUnaryKeepsSpansOfOlderGrpc(t *testing.T) {
 
 	recv := &ClientRecvMsgInterceptor{}
 	invokeInterceptor(t, recv, operator.NewInvocation(cs, struct{}{}), error(nil))
-	// finish is called inside the trailer read, it must stay a no-op for unary RPCs
 	trailer := operator.NewInvocation(cs, struct{}{})
 	if err := recv.BeforeInvoke(trailer); err != nil {
 		t.Fatal(err)
 	}
-	invokeInterceptor(t, &ClientFinishInterceptor{}, operator.NewInvocation(cs, error(nil)))
 	if err := recv.AfterInvoke(trailer, io.EOF); err != nil {
 		t.Fatal(err)
 	}
@@ -150,15 +171,7 @@ func TestClientStreamingCardinalityViolationFinishesStream(t *testing.T) {
 
 	const method = "/api.Echo/ClientStreamingEcho"
 	cs := newTestClientStream(method, &nativeStreamDesc{ClientStreams: true})
-	exit, err := tracing.CreateExitSpan("api.Echo.ClientStreamingEcho", "localhost:9999", func(k, v string) error { return nil })
-	if err != nil {
-		t.Fatal(err)
-	}
-	newStream := operator.NewInvocation(&nativeClientConn{}, context.Background(), &nativeStreamDesc{ClientStreams: true}, method)
-	newStream.SetContext(exit)
-	if err := (&ClientStreamingInterceptor{}).AfterInvoke(newStream, &nativeclientStreamWrapper{ClientStream: cs}, error(nil)); err != nil {
-		t.Fatal(err)
-	}
+	opts := startTestStream(t, cs)
 
 	recv := &ClientRecvMsgInterceptor{}
 	invokeInterceptor(t, recv, operator.NewInvocation(cs, struct{}{}), error(nil))
@@ -172,7 +185,11 @@ func TestClientStreamingCardinalityViolationFinishesStream(t *testing.T) {
 		t.Fatal("the RecvMsg span must be marked with the cardinality error")
 	}
 	// a later finish from grpc must stay a no-op
-	invokeInterceptor(t, &ClientFinishInterceptor{}, operator.NewInvocation(cs, error(nil)))
+	callOnFinish(opts, nil)
+	time.Sleep(100 * time.Millisecond)
+	if got := len(core.GetReportedSpans()); got != 2 {
+		t.Fatalf("a later finish must not report spans again, got %d spans", got)
+	}
 }
 
 // TestClientStreamingKeepsSpansOfOlderGrpc replays a client-streaming
@@ -185,19 +202,9 @@ func TestClientStreamingKeepsSpansOfOlderGrpc(t *testing.T) {
 
 	const method = "/api.Echo/ClientStreamingEcho"
 	cs := newTestClientStream(method, &nativeStreamDesc{ClientStreams: true})
-	// the exit span ClientStreamingInterceptor.BeforeInvoke creates (the mirrored
-	// ClientConn has no target to use as peer)
-	exit, err := tracing.CreateExitSpan("api.Echo.ClientStreamingEcho", "localhost:9999", func(k, v string) error { return nil })
-	if err != nil {
-		t.Fatal(err)
-	}
-	newStream := operator.NewInvocation(&nativeClientConn{}, context.Background(), &nativeStreamDesc{ClientStreams: true}, method)
-	newStream.SetContext(exit)
-	if err := (&ClientStreamingInterceptor{}).AfterInvoke(newStream, &nativeclientStreamWrapper{ClientStream: cs}, error(nil)); err != nil {
-		t.Fatal(err)
-	}
+	opts := startTestStream(t, cs)
 	if clientStreamContextData(cs) == nil {
-		t.Fatal("the context data must be attached to the clientStream behind the wrapper")
+		t.Fatal("the context data must be attached to the clientStream")
 	}
 
 	recv := &ClientRecvMsgInterceptor{}
@@ -206,7 +213,8 @@ func TestClientStreamingKeepsSpansOfOlderGrpc(t *testing.T) {
 	if err := recv.BeforeInvoke(trailer); err != nil {
 		t.Fatal(err)
 	}
-	invokeInterceptor(t, &ClientFinishInterceptor{}, operator.NewInvocation(cs, error(nil)))
+	// the trailer read gets io.EOF and finishes the stream
+	callOnFinish(opts, nil)
 	if err := recv.AfterInvoke(trailer, io.EOF); err != nil {
 		t.Fatal(err)
 	}
@@ -220,18 +228,5 @@ func TestClientStreamingKeepsSpansOfOlderGrpc(t *testing.T) {
 	}
 	if closeRecv.IsError() {
 		t.Fatal("CloseRecv must not be an error span")
-	}
-}
-
-func TestUnwrapClientStream(t *testing.T) {
-	cs := newTestClientStream(testUnaryMethod, &nativeStreamDesc{})
-	if got := unwrapClientStream(&nativeclientStreamWrapper{ClientStream: cs}); got != cs {
-		t.Fatalf("unwrap wrapper = %v, want the clientStream", got)
-	}
-	if got := unwrapClientStream(cs); got != cs {
-		t.Fatalf("unwrap clientStream = %v, want itself", got)
-	}
-	if got := unwrapClientStream(nil); got != nil {
-		t.Fatalf("unwrap nil = %v", got)
 	}
 }

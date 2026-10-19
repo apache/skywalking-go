@@ -63,6 +63,16 @@ func consumerHandler(w nativeHTTP.ResponseWriter, r *nativeHTTP.Request) {
 		w.WriteHeader(nativeHTTP.StatusInternalServerError)
 		return
 	}
+	// a body-less call that reads the reply header into a nil header: from kratos
+	// v2.7.2 the request is then sent with a nil header map
+	var replyHeader nativeHTTP.Header
+	var headerResp *helloworld.HelloReply
+	err = httpClient.Invoke(context.Background(), "GET", "/helloworld/header", nil, &headerResp, http.Header(&replyHeader))
+	if err != nil {
+		log.Printf("request provider with reply header error: %v", err)
+		w.WriteHeader(nativeHTTP.StatusInternalServerError)
+		return
+	}
 	_, _ = w.Write([]byte(resp.Message + hello.Message))
 }
 

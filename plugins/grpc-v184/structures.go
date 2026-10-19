@@ -39,22 +39,16 @@ func (s *nativeStream) Context() context.Context {
 type nativeClientConn struct {
 }
 
+// Target stands in for (*ClientConn).Target in the unit tests. This file is not
+// copied into grpc, so instrumented code calls the real method.
 func (cc *nativeClientConn) Target() string {
-	return ""
+	return "localhost:9999"
 }
 
 //skywalking:native google.golang.org/grpc clientStream
 type nativeclientStream struct {
 	callHdr *nativeCallHdr
 	desc    *nativeStreamDesc
-}
-
-// grpc v1.84.0 always returns this wrapper (installed by defaultStreamInterceptor)
-// from ClientConn.NewStream, with the enhanced *clientStream embedded in it.
-//
-//skywalking:native google.golang.org/grpc clientStreamWrapper
-type nativeclientStreamWrapper struct {
-	ClientStream interface{}
 }
 
 //skywalking:native google.golang.org/grpc/internal/transport Stream

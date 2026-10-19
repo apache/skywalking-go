@@ -50,6 +50,21 @@ func (i *Instrument) Points() []*instrument.Point {
 	return []*instrument.Point{
 		{
 			PackagePath: "pulsar",
+			At:          instrument.NewStructEnhance("client"),
+		},
+		{
+			PackagePath: "pulsar",
+			At: instrument.NewStaticMethodEnhance("NewClient",
+				instrument.WithArgsCount(1),
+				instrument.WithArgType(0, "ClientOptions"),
+				instrument.WithResultCount(2),
+				instrument.WithResultType(0, "Client"),
+				instrument.WithResultType(1, "error"),
+			),
+			Interceptor: "NewClientInterceptor",
+		},
+		{
+			PackagePath: "pulsar",
 			At: instrument.NewMethodEnhance("*partitionProducer", "Send",
 				instrument.WithArgsCount(2),
 				instrument.WithArgType(0, "context.Context"),

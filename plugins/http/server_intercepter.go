@@ -18,9 +18,7 @@
 package http
 
 import (
-	"bufio"
 	"fmt"
-	"net"
 	"net/http"
 
 	"github.com/apache/skywalking-go/plugins/core/operator"
@@ -46,7 +44,7 @@ func (h *ServerInterceptor) BeforeInvoke(invocation operator.Invocation) error {
 	}
 
 	writer := invocation.Args()[0].(http.ResponseWriter)
-	invocation.ChangeArg(0, &writerWrapper{ResponseWriter: writer, statusCode: http.StatusOK})
+	invocation.ChangeArg(0, wrapResponseWriter(writer))
 	invocation.SetContext(s)
 	return nil
 }
@@ -56,14 +54,41 @@ func (h *ServerInterceptor) AfterInvoke(invocation operator.Invocation, result .
 		return nil
 	}
 	span := invocation.GetContext().(tracing.Span)
-	if wrapped, ok := invocation.Args()[0].(*writerWrapper); ok {
-		span.Tag(tracing.TagStatusCode, fmt.Sprintf("%d", wrapped.statusCode))
-		if wrapped.statusCode >= 400 {
+	if wrapped, ok := invocation.Args()[0].(statusCodeHolder); ok {
+		statusCode := wrapped.cachedStatusCode()
+		span.Tag(tracing.TagStatusCode, fmt.Sprintf("%d", statusCode))
+		if statusCode >= 400 {
 			span.ErrorOccured()
 		}
 	}
 	span.End()
 	return nil
+}
+
+// wrapResponseWriter wraps the writer to cache the response status code. The
+// wrapper implements http.Flusher and http.Hijacker exactly when the wrapped
+// writer does, so that type assertions in handlers take the same branch as
+// without the agent, and Unwrap lets http.ResponseController reach every
+// optional feature of the wrapped writer.
+func wrapResponseWriter(writer http.ResponseWriter) http.ResponseWriter {
+	wrapper := &writerWrapper{ResponseWriter: writer, statusCode: http.StatusOK}
+	flusher, isFlusher := writer.(http.Flusher)
+	hijacker, isHijacker := writer.(http.Hijacker)
+	switch {
+	case isFlusher && isHijacker:
+		return &flushHijackWriterWrapper{wrapper, flusher, hijacker}
+	case isFlusher:
+		return &flushWriterWrapper{wrapper, flusher}
+	case isHijacker:
+		return &hijackWriterWrapper{wrapper, hijacker}
+	default:
+		return wrapper
+	}
+}
+
+// statusCodeHolder is implemented by all the writer wrappers.
+type statusCodeHolder interface {
+	cachedStatusCode() int
 }
 
 type writerWrapper struct {
@@ -77,9 +102,37 @@ func (w *writerWrapper) WriteHeader(statusCode int) {
 	w.ResponseWriter.WriteHeader(statusCode)
 }
 
-func (w *writerWrapper) Hijack() (rwc net.Conn, buf *bufio.ReadWriter, err error) {
-	if h, ok := w.ResponseWriter.(http.Hijacker); ok {
-		return h.Hijack()
-	}
-	return nil, nil, fmt.Errorf("responseWriter does not implement http.Hijacker")
+// Unwrap returns the wrapped writer, for http.ResponseController.
+func (w *writerWrapper) Unwrap() http.ResponseWriter {
+	return w.ResponseWriter
+}
+
+func (w *writerWrapper) cachedStatusCode() int {
+	return w.statusCode
+}
+
+type flushWriterWrapper struct {
+	*writerWrapper
+	http.Flusher
+}
+
+// FlushError lets http.ResponseController.Flush return the flush error of the wrapped writer.
+func (w *flushWriterWrapper) FlushError() error {
+	return http.NewResponseController(w.ResponseWriter).Flush()
+}
+
+type hijackWriterWrapper struct {
+	*writerWrapper
+	http.Hijacker
+}
+
+type flushHijackWriterWrapper struct {
+	*writerWrapper
+	http.Flusher
+	http.Hijacker
+}
+
+// FlushError lets http.ResponseController.Flush return the flush error of the wrapped writer.
+func (w *flushHijackWriterWrapper) FlushError() error {
+	return http.NewResponseController(w.ResponseWriter).Flush()
 }

@@ -90,9 +90,24 @@ segmentItems:
               - { key: db.type, value: mysql }
               - { key: db.statement, value: 'SELECT * FROM `users` ORDER BY `users`.`id` LIMIT ?' }
               - { key: db.sql.parameters, value: '1' }
-          - operationName: users/row
+          - operationName: users/query
             parentSpanId: 0
             spanId: 6
+            spanLayer: Database
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 5012
+            isError: true
+            spanType: Exit
+            peer: mysql-server:3306
+            skipAnalysis: false
+            tags:
+              - { key: db.type, value: mysql }
+              - { key: db.statement, value: 'SELECT * FROM `users` ORDER BY `users`.`id` LIMIT ?' }
+              - { key: db.sql.parameters, value: '1' }
+          - operationName: users/row
+            parentSpanId: 0
+            spanId: 7
             spanLayer: Database
             startTime: nq 0
             endTime: nq 0
@@ -107,7 +122,7 @@ segmentItems:
               - { key: db.sql.parameters, value: 'jinzhu' }
           - operationName: Mysql/BeginTx
             parentSpanId: 0
-            spanId: 7
+            spanId: 8
             spanLayer: Database
             startTime: nq 0
             endTime: nq 0
@@ -120,7 +135,7 @@ segmentItems:
               - { key: db.type, value: Mysql }
           - operationName: users/update
             parentSpanId: 0
-            spanId: 8
+            spanId: 9
             spanLayer: Database
             startTime: nq 0
             endTime: nq 0
@@ -135,7 +150,7 @@ segmentItems:
               - { key: db.sql.parameters, value: 'hello, jinzhu' }
           - operationName: Mysql/Tx/Commit
             parentSpanId: 0
-            spanId: 9
+            spanId: 10
             spanLayer: Database
             startTime: nq 0
             endTime: nq 0
@@ -148,7 +163,7 @@ segmentItems:
               - { key: db.type, value: Mysql }
           - operationName: Mysql/BeginTx
             parentSpanId: 0
-            spanId: 10
+            spanId: 11
             spanLayer: Database
             startTime: nq 0
             endTime: nq 0
@@ -161,7 +176,7 @@ segmentItems:
               - { key: db.type, value: Mysql }
           - operationName: users/delete
             parentSpanId: 0
-            spanId: 11
+            spanId: 12
             spanLayer: Database
             startTime: nq 0
             endTime: nq 0
@@ -176,7 +191,7 @@ segmentItems:
               - { key: db.sql.parameters, value: '1' }
           - operationName: Mysql/Tx/Commit
             parentSpanId: 0
-            spanId: 12
+            spanId: 13
             spanLayer: Database
             startTime: nq 0
             endTime: nq 0

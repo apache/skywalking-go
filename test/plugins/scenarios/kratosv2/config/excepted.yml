@@ -16,7 +16,7 @@
 
 segmentItems:
   - serviceName: kratosv2
-    segmentSize: ge 4
+    segmentSize: ge 5
     segments:
       - segmentId: not null
         spans:
@@ -38,6 +38,27 @@ segmentItems:
             refs:
               - {parentEndpoint: 'GET:/consumer', networkAddress: 'localhost:8000', refType: CrossProcess,
                  parentSpanId: 1, parentTraceSegmentId: not null, parentServiceInstance: not null,
+                 parentService: kratosv2, traceId: not null}
+      - segmentId: not null
+        spans:
+          - operationName: /helloworld.Greeter/SayHello
+            parentSpanId: -1
+            spanId: 0
+            spanLayer: Http
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 5017
+            isError: false
+            spanType: Entry
+            peer: ''
+            skipAnalysis: false
+            tags:
+              - { key: http.method, value: GET }
+              - { key: url, value: 'localhost:8000/helloworld/header' }
+              - { key: status_code, value: '200' }
+            refs:
+              - {parentEndpoint: 'GET:/consumer', networkAddress: 'localhost:8000', refType: CrossProcess,
+                 parentSpanId: 5, parentTraceSegmentId: not null, parentServiceInstance: not null,
                  parentService: kratosv2, traceId: not null}
       - segmentId: not null
         spans:
@@ -115,6 +136,20 @@ segmentItems:
             tags:
               - {key: url, value: not null}
               - {key: rpc.type, value: 'Unary'}
+          - operationName: /helloworld/header
+            parentSpanId: 0
+            spanId: 5
+            spanLayer: RPCFramework
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 5010
+            isError: false
+            spanType: Exit
+            peer: localhost:8000
+            skipAnalysis: false
+            tags:
+              - { key: transport, value: HTTP }
+              - { key: status_code, value: '200' }
           - operationName: GET:/consumer
             parentSpanId: -1
             spanId: 0

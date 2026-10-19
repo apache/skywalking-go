@@ -24,6 +24,7 @@ import (
 	"go-micro.dev/v4/client"
 	"go-micro.dev/v4/metadata"
 
+	"github.com/apache/skywalking-go/plugins/core/log"
 	"github.com/apache/skywalking-go/plugins/core/tracing"
 )
 
@@ -47,7 +48,9 @@ func (s *clientWrapper) Call(ctx context.Context, req client.Request, rsp interf
 	}, tracing.WithComponent(5008),
 		tracing.WithLayer(tracing.SpanLayerRPCFramework))
 	if err != nil {
-		return err
+		// a tracing failure must not fail the call, e.g. an empty service with client.WithAddress
+		log.Warnf("cannot create exit span: %v", err)
+		return s.Client.Call(ctx, req, rsp, opts...)
 	}
 
 	defer span.End()
@@ -68,7 +71,8 @@ func (s *clientWrapper) Stream(ctx context.Context, req client.Request, opts ...
 	}, tracing.WithComponent(5008),
 		tracing.WithLayer(tracing.SpanLayerRPCFramework))
 	if err != nil {
-		return nil, err
+		log.Warnf("cannot create exit span: %v", err)
+		return s.Client.Stream(ctx, req, opts...)
 	}
 
 	defer span.End()
@@ -90,7 +94,8 @@ func (s *clientWrapper) Publish(ctx context.Context, p client.Message, opts ...c
 	}, tracing.WithComponent(5008),
 		tracing.WithLayer(tracing.SpanLayerRPCFramework))
 	if err != nil {
-		return err
+		log.Warnf("cannot create exit span: %v", err)
+		return s.Client.Publish(ctx, p, opts...)
 	}
 
 	defer span.End()

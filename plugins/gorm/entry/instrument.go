@@ -57,6 +57,13 @@ func (i *Instrument) Points() []*instrument.Point {
 				instrument.WithResultType(0, "*DB"), instrument.WithResultType(1, "error")),
 			Interceptor: "OpenInterceptor",
 		},
+		{
+			PackagePath: "",
+			At: instrument.NewMethodEnhance("*processor", "Execute",
+				instrument.WithArgsCount(1), instrument.WithArgType(0, "*DB"),
+				instrument.WithResultCount(1), instrument.WithResultType(0, "*DB")),
+			Interceptor: "ExecuteInterceptor",
+		},
 	}
 }
 

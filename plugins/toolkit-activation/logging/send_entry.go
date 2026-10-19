@@ -32,7 +32,12 @@ func sendLogEntry(level string, args ...interface{}) {
 	if len(args) == 0 {
 		return
 	}
-	logReporter, ok := operator.GetOperator().LogReporter().(operator.LogReporter)
+	// the operator is nil until the agent core is initialized
+	op := operator.GetOperator()
+	if op == nil {
+		return
+	}
+	logReporter, ok := op.LogReporter().(operator.LogReporter)
 	if !ok || logReporter == nil {
 		return
 	}

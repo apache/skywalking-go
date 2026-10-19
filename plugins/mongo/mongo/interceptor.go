@@ -56,9 +56,7 @@ func (m *NewClientInterceptor) BeforeInvoke(invocation operator.Invocation) erro
 		// overwrite monitor, if define multiple opts, it should only keep the latest on the mongo client
 		opt.Monitor = &event.CommandMonitor{
 			Started: func(ctx context.Context, startedEvent *event.CommandStartedEvent) {
-				if configuredMonitor != nil {
-					configuredMonitor.Started(ctx, startedEvent)
-				}
+				callUserStarted(ctx, configuredMonitor, startedEvent)
 				host := hosts[0]
 				if hostLength > 1 {
 					if infoSplit := strings.Index(startedEvent.ConnectionID, "["); infoSplit > 0 && strings.HasSuffix(startedEvent.ConnectionID, "]") {
@@ -87,25 +85,48 @@ func (m *NewClientInterceptor) BeforeInvoke(invocation operator.Invocation) erro
 				syncMap.Put(fmt.Sprintf("%d", startedEvent.RequestID), span)
 			},
 			Succeeded: func(ctx context.Context, succeededEvent *event.CommandSucceededEvent) {
-				if configuredMonitor != nil {
-					configuredMonitor.Succeeded(ctx, succeededEvent)
-				}
-				if span, ok := syncMap.Remove(fmt.Sprintf("%d", succeededEvent.RequestID)); ok && span != nil {
-					span.(tracing.Span).AsyncFinish()
-				}
+				// finish the span after the user's callback, also when it panics
+				defer func() {
+					if span, ok := syncMap.Remove(fmt.Sprintf("%d", succeededEvent.RequestID)); ok && span != nil {
+						span.(tracing.Span).AsyncFinish()
+					}
+				}()
+				callUserSucceeded(ctx, configuredMonitor, succeededEvent)
 			},
 			Failed: func(ctx context.Context, failedEvent *event.CommandFailedEvent) {
-				if configuredMonitor != nil {
-					configuredMonitor.Failed(ctx, failedEvent)
-				}
-				if span, ok := syncMap.Remove(fmt.Sprintf("%d", failedEvent.RequestID)); ok && span != nil {
-					span.(tracing.Span).Error(failedEvent.Failure)
-					span.(tracing.Span).AsyncFinish()
-				}
+				// finish the span after the user's callback, also when it panics
+				defer func() {
+					if span, ok := syncMap.Remove(fmt.Sprintf("%d", failedEvent.RequestID)); ok && span != nil {
+						span.(tracing.Span).Error(failedEvent.Failure)
+						span.(tracing.Span).AsyncFinish()
+					}
+				}()
+				callUserFailed(ctx, configuredMonitor, failedEvent)
 			},
 		}
 	}
 	return nil
+}
+
+// callUserStarted and the two functions below call a callback of the user's
+// monitor only when it is set: every callback of a CommandMonitor is optional,
+// and the driver has no recover, so calling a nil one panics the application.
+func callUserStarted(ctx context.Context, monitor *event.CommandMonitor, e *event.CommandStartedEvent) {
+	if monitor != nil && monitor.Started != nil {
+		monitor.Started(ctx, e)
+	}
+}
+
+func callUserSucceeded(ctx context.Context, monitor *event.CommandMonitor, e *event.CommandSucceededEvent) {
+	if monitor != nil && monitor.Succeeded != nil {
+		monitor.Succeeded(ctx, e)
+	}
+}
+
+func callUserFailed(ctx context.Context, monitor *event.CommandMonitor, e *event.CommandFailedEvent) {
+	if monitor != nil && monitor.Failed != nil {
+		monitor.Failed(ctx, e)
+	}
 }
 
 func (m *NewClientInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {

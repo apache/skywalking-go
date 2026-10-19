@@ -114,6 +114,32 @@ func unary(client api.EchoClient, writer http.ResponseWriter) {
 	_, _ = writer.Write([]byte(resp.String()))
 }
 
+// failedStream starts a stream with a canceled context, so NewStream fails
+// before anything is sent.
+func failedStream(client api.EchoClient) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if _, err := client.ServerStreamingEcho(ctx, &api.EchoRequest{Message: "Hello World"}); err != nil {
+		log.Printf("failed stream: %v", err)
+	}
+}
+
+// wrappedStream is the stream that wrapStream returns.
+type wrappedStream struct {
+	grpc.ClientStream
+}
+
+// wrapStream is a stream interceptor that wraps every stream, as logging or
+// metrics interceptors do.
+func wrapStream(ctx context.Context, desc *grpc.StreamDesc, cc *grpc.ClientConn, method string,
+	streamer grpc.Streamer, opts ...grpc.CallOption) (grpc.ClientStream, error) {
+	stream, err := streamer(ctx, desc, cc, method, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &wrappedStream{ClientStream: stream}, nil
+}
+
 func main() {
 	conn, err := grpc.Dial("127.0.0.1:9999", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -122,6 +148,15 @@ func main() {
 	defer conn.Close()
 
 	client := api.NewEchoClient(conn)
+
+	wrappedConn, err := grpc.Dial("127.0.0.1:9999", grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithStreamInterceptor(wrapStream))
+	if err != nil {
+		panic(err)
+	}
+	defer wrappedConn.Close()
+
+	wrappedClient := api.NewEchoClient(wrappedConn)
 
 	http.HandleFunc("/health", func(writer http.ResponseWriter, request *http.Request) {
 		_, _ = writer.Write([]byte("ok"))
@@ -132,6 +167,8 @@ func main() {
 		serverStream(client, writer)
 		clientStream(client, writer)
 		bidirectionalStream(client, writer)
+		serverStream(wrappedClient, writer)
+		failedStream(client)
 	})
 
 	_ = http.ListenAndServe(":8080", nil)

@@ -41,9 +41,13 @@ type SendASyncInterceptor struct {
 }
 
 func (sa *SendASyncInterceptor) BeforeInvoke(invocation operator.Invocation) error {
+	msgList, _ := invocation.Args()[2].([]*primitive.Message)
+	if len(msgList) == 0 {
+		// the SDK returns ErrMessageEmpty, nothing is sent
+		return nil
+	}
 	defaultProducer := invocation.CallerInstance().(*nativedefaultProducer)
 	peer := strings.Join(defaultProducer.client.GetNameSrv().AddrList(), aSyncSemicolon)
-	msgList := invocation.Args()[2].([]*primitive.Message)
 	topic := msgList[0].Topic
 	operationName := rmqASyncSendPrefix + topic + rmqASyncSuffix
 

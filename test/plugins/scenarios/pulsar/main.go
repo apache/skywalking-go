@@ -32,6 +32,10 @@ import (
 
 type testFunc func() error
 
+// nilCallbackTopic has no consumer, so the nil-callback send adds only the
+// producer spans.
+const nilCallbackTopic = "sw-topic-nil-callback"
+
 var (
 	url          = "pulsar://pulsar-server:6650"
 	msg          = "I love skywalking 3 thousand"
@@ -71,6 +75,7 @@ func testProCon() {
 	}{
 		{"sendMsg", sendMsg},
 		{"sendAsyncMsg", sendAsyncMsg},
+		{"sendAsyncNilCallbackMsg", sendAsyncNilCallbackMsg},
 	}
 	for _, test := range tests {
 		fmt.Printf("excute test case: %s\n", test.name)
@@ -136,6 +141,23 @@ func sendAsyncMsg() error {
 	}, func(id pulsar.MessageID, message *pulsar.ProducerMessage, err error) {
 		log.Printf("ID = %v, Properties = %v", id, message.Properties)
 	})
+	time.Sleep(time.Second)
+	return nil
+}
+
+// sendAsyncNilCallbackMsg sends without a callback (fire and forget), which
+// the SDK allows. The agent must not call the nil callback.
+func sendAsyncNilCallbackMsg() error {
+	producer, err := client.CreateProducer(pulsar.ProducerOptions{
+		Topic: nilCallbackTopic,
+	})
+	if err != nil {
+		return err
+	}
+
+	producer.SendAsync(ctx, &pulsar.ProducerMessage{
+		Payload: []byte(msg),
+	}, nil)
 	time.Sleep(time.Second)
 	return nil
 }
