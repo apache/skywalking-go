@@ -26,6 +26,11 @@ type nativepartitionProducer struct {
 	options *nativeProducerOptions
 }
 
+// The interceptors must not use lookupService: every Lookup is a broker RPC.
+// The span peer is the service URL that NewClientInterceptor saves on the
+// client. The field stays so that the tests can put a lookup that counts its
+// calls here.
+//
 //skywalking:native github.com/apache/pulsar-client-go/pulsar client
 type nativeclient struct {
 	lookupService nativeLookupService

@@ -181,7 +181,8 @@ func GeneralRawAfterInvoke(invocation operator.Invocation, results ...interface{
 	if ctx == nil {
 		return nil
 	}
-	if err, ok := results[1].(error); ok && err != nil {
+	// (*Conn).Raw returns only an error
+	if err, ok := results[0].(error); ok && err != nil {
 		ctx.(tracing.Span).Error(err.Error())
 	}
 	ctx.(tracing.Span).End()

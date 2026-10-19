@@ -38,6 +38,23 @@ type User struct {
 	Age  uint8
 }
 
+const hookPanic = "after find hook failed"
+
+// PanicUser reads the users table with an AfterFind hook that panics.
+type PanicUser struct {
+	ID   uint
+	Name string
+	Age  uint8
+}
+
+func (PanicUser) TableName() string {
+	return "users"
+}
+
+func (*PanicUser) AfterFind(*gorm.DB) error {
+	panic(hookPanic)
+}
+
 func executeHandler(w http.ResponseWriter, r *http.Request) {
 	tests := []struct {
 		name string
@@ -46,6 +63,7 @@ func executeHandler(w http.ResponseWriter, r *http.Request) {
 		{"raw", TestRaw},
 		{"create", TestCreate},
 		{"query", TestQuery},
+		{"hook-panic", TestHookPanic},
 		{"row", TestRow},
 		{"update", TestUpdate},
 		{"delete", TestDelete},
@@ -84,6 +102,19 @@ func TestQuery(db *gorm.DB) error {
 		return fmt.Errorf("query error: %w", err)
 	}
 
+	return nil
+}
+
+// TestHookPanic recovers the panic of a gorm hook, as a web framework would:
+// the gorm span must still end, so that the segment is reported.
+func TestHookPanic(db *gorm.DB) (err error) {
+	defer func() {
+		if r := recover(); r != hookPanic {
+			err = fmt.Errorf("unexpected hook panic: %v", r)
+		}
+	}()
+	var user PanicUser
+	db.First(&user)
 	return nil
 }
 

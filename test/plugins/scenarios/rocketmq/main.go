@@ -41,6 +41,11 @@ const (
 	topic = "sw-topic"
 	group = "sw-group"
 	msg   = "I love skywalking %s thousand"
+
+	// failedTopic has no consumer
+	failedTopic = "sw-topic-failed"
+	// nothing listens on this port
+	unreachableNameServer = "127.0.0.1:1"
 )
 
 func main() {
@@ -67,6 +72,8 @@ func TestProCon() {
 		{"sendSyncMsg", sendSyncMsg},
 		{"sendAsyncMsg", sendAsyncMsg},
 		{"sendOneWayMsg", sendOneWayMsg},
+		{"sendEmptyMsg", sendEmptyMsg},
+		{"sendSyncFailedMsg", sendSyncFailedMsg},
 	}
 	for _, test := range tests {
 		fmt.Printf("excute test case: %s\n", test.name)
@@ -193,6 +200,51 @@ func sendOneWayMsg() error {
 	}
 	consumerMsg()
 	return nil
+}
+
+// sendEmptyMsg sends no message. The SDK returns ErrMessageEmpty, and no span
+// is created.
+func sendEmptyMsg() error {
+	p, err := rocketmq.NewProducer(
+		producer.WithNsResolver(primitive.NewPassthroughResolver([]string{uri})),
+		producer.WithRetry(retry),
+		producer.WithGroupName(group),
+	)
+	if err != nil {
+		return err
+	}
+	if err = p.Start(); err != nil {
+		return err
+	}
+	if _, err = p.SendSync(context.Background()); err == nil {
+		fmt.Println("send of no message should fail")
+	}
+	return p.Shutdown()
+}
+
+// sendSyncFailedMsg sends through a name server that refuses connections, so
+// SendSync fails with "route info not found" and returns a SendResult without
+// a MessageQueue. The exit span must still end, as an error. The own instance
+// name gives this producer its own client, apart from the working name server.
+func sendSyncFailedMsg() error {
+	p, err := rocketmq.NewProducer(
+		producer.WithNsResolver(primitive.NewPassthroughResolver([]string{unreachableNameServer})),
+		producer.WithInstanceName("sw-failed"),
+		producer.WithRetry(retry),
+		producer.WithGroupName(group),
+	)
+	if err != nil {
+		return err
+	}
+	if err = p.Start(); err != nil {
+		return err
+	}
+	if _, err = p.SendSync(context.Background(), primitive.NewMessage(failedTopic, []byte(fmt.Sprintf(msg, "0")))); err == nil {
+		fmt.Println("send through an unreachable name server should fail")
+	} else {
+		fmt.Printf("send message error as expected: %s\n", err)
+	}
+	return p.Shutdown()
 }
 
 func consumerMsg() {

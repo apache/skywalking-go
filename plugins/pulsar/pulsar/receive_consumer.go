@@ -38,14 +38,16 @@ func (r *ReceiveInterceptor) BeforeInvoke(invocation operator.Invocation) error 
 }
 
 func (r *ReceiveInterceptor) AfterInvoke(invocation operator.Invocation, result ...interface{}) error {
+	// A failed Receive returns (nil, err): nothing was received, so there is
+	// nothing to trace. An entry span here would reuse, rename, and end the
+	// entry span of the caller, such as the one of an HTTP request.
+	message, _ := result[0].(pulsar.Message)
+	if message == nil {
+		return nil
+	}
 	nativeConsumer := invocation.CallerInstance().(*nativeconsumer)
 	topic := nativeConsumer.options.Topic
-	lookup, err := nativeConsumer.client.lookupService.Lookup(topic)
-	if err != nil {
-		return err
-	}
-	message := result[0].(pulsar.Message)
-	peer := lookup.PhysicalAddr.String()
+	peer := serviceURL(nativeConsumer.client)
 	operationName := pulsarReceivePrefix + topic + pulsarReceiveSuffix
 
 	span, err := tracing.CreateEntrySpan(operationName, func(headerKey string) (string, error) {
@@ -53,17 +55,13 @@ func (r *ReceiveInterceptor) AfterInvoke(invocation operator.Invocation, result 
 	},
 		tracing.WithLayer(tracing.SpanLayerMQ),
 		tracing.WithComponent(pulsarReceiveComponentID),
-		tracing.WithTag(tracing.TagMQBroker, lookup.PhysicalAddr.String()),
+		tracing.WithTag(tracing.TagMQBroker, peer),
 		tracing.WithTag(tracing.TagMQTopic, nativeConsumer.topic),
 	)
 	if err != nil {
 		return err
 	}
 
-	if err, ok := result[1].(pulsar.Error); ok {
-		span.Tag(tracing.TagMQStatus, err.Error())
-		span.Error(err.Error())
-	}
 	span.SetPeer(peer)
 	span.End()
 	return nil

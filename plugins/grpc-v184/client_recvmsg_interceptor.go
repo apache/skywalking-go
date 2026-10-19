@@ -54,14 +54,12 @@ func (h *ClientRecvMsgInterceptor) BeforeInvoke(invocation operator.Invocation) 
 	}
 	contextdata := clientStreamContextData(invocation.CallerInstance())
 	if contextdata != nil && contextdata.pendingRecvSpan != nil {
-		// trailer read: the span opened by the previous RecvMsg stays active,
-		// so the finish interceptor works on it as it did with grpc < v1.84.0
+		// trailer read: the span opened by the previous RecvMsg stays active
 		invocation.SetContext(&clientRecvTrailer{data: contextdata})
 		return nil
 	}
 	if contextdata != nil {
-		tracing.ContinueContext(contextdata.continueSnapShot)
-		contextdata.interceptFinish.Store(true)
+		tracing.ContinueContext(contextdata.continueSnapshot())
 	}
 	s, err := tracing.CreateLocalSpan(formatOperationName(method, "/Client/Response/RecvMsg"),
 		tracing.WithLayer(tracing.SpanLayerRPCFramework),
@@ -80,63 +78,63 @@ func (h *ClientRecvMsgInterceptor) AfterInvoke(invocation operator.Invocation, r
 		return nil
 	}
 	err, _ := result[0].(error)
+	cs := invocation.CallerInstance().(*nativeclientStream)
 	if trailer, ok := invocation.GetContext().(*clientRecvTrailer); ok {
-		span := trailer.data.pendingRecvSpan
-		trailer.data.pendingRecvSpan = nil
-		switch {
-		case err == nil:
-			// Another response message arrived instead of the trailer. grpc v1.84.0
-			// returns the cardinality error from invoke or clientStreamWrapper after
-			// this hook and does not finish the stream, so report it here as the
-			// single RecvMsg of grpc < v1.84.0 did, and finish the stream span.
-			span.Error(cardinalityViolation)
-			if trailer.data.asyncSpan != nil {
-				trailer.data.asyncSpan.Error(cardinalityViolation)
-			}
-			span.End()
-			finishStreamSpan(trailer.data)
-		case err != io.EOF:
-			span.Error(err.Error())
-			span.End()
-		default:
-			// io.EOF is the successful end of the trailer read, the single RecvMsg of
-			// grpc < v1.84.0 returned nil in that case
-			span.End()
-		}
-		tracing.ContinueContext(trailer.data.endSnapShot)
+		endTrailerRead(cs, trailer.data, err)
 		return nil
 	}
 	span := invocation.GetContext().(tracing.Span)
-	cs := invocation.CallerInstance().(*nativeclientStream)
 	if err == nil && cs.desc != nil && !cs.desc.ServerStreams && keepRecvSpanUntilTrailer(invocation.CallerInstance(), span) {
 		return nil
 	}
 	if err != nil && err != io.EOF {
 		span.Error(err.Error())
 	}
-	if err == io.EOF {
+	if err == io.EOF || endsStream(clientStreamContextData(invocation.CallerInstance()), err) {
 		span.SetOperationName(formatOperationName(cs.callHdr.Method, "/Client/Response/CloseRecv"))
 	}
 	span.End()
 	if contextdata := clientStreamContextData(invocation.CallerInstance()); contextdata != nil {
-		tracing.ContinueContext(contextdata.endSnapShot)
+		tracing.ContinueContext(contextdata.endSnapshot())
 	}
 	return nil
 }
 
-// clientStreamContextData returns the context data attached to the client stream, or nil.
-func clientStreamContextData(stream interface{}) *contextData {
-	csEnhanced, ok := stream.(operator.EnhancedInstance)
-	if !ok || csEnhanced.GetSkyWalkingDynamicField() == nil {
-		return nil
+// endTrailerRead ends the span that the previous RecvMsg kept open until this
+// trailer read, as the single RecvMsg of grpc < v1.84.0 did.
+func endTrailerRead(cs *nativeclientStream, data *contextData, err error) {
+	span := data.pendingRecvSpan
+	data.pendingRecvSpan = nil
+	if endsStream(data, err) {
+		// the single RecvMsg of grpc < v1.84.0 had this name
+		span.SetOperationName(formatOperationName(cs.callHdr.Method, "/Client/Response/CloseRecv"))
 	}
-	contextdata, _ := csEnhanced.GetSkyWalkingDynamicField().(*contextData)
-	return contextdata
+	switch {
+	case err == nil:
+		// Another response message arrived instead of the trailer. grpc v1.84.0
+		// returns the cardinality error from invoke or clientStreamWrapper after
+		// this hook and does not finish the stream, so report it here as the
+		// single RecvMsg of grpc < v1.84.0 did, and finish the stream span.
+		span.Error(cardinalityViolation)
+		if data.asyncSpan != nil {
+			data.asyncSpan.Error(cardinalityViolation)
+		}
+		span.End()
+		finishStreamSpan(data, nil)
+	case err != io.EOF:
+		span.Error(err.Error())
+		span.End()
+	default:
+		// io.EOF is the successful end of the trailer read, the single RecvMsg of
+		// grpc < v1.84.0 returned nil in that case
+		span.End()
+	}
+	tracing.ContinueContext(data.endSnapshot())
 }
 
 // keepRecvSpanUntilTrailer stores the span in the client stream context data,
 // so the trailer read ends it. Unary RPCs have no context data yet, so an empty
-// one is attached, which leaves the finish interceptor a no-op as before.
+// one is attached, without a stream span.
 func keepRecvSpanUntilTrailer(stream interface{}, span tracing.Span) bool {
 	csEnhanced, ok := stream.(operator.EnhancedInstance)
 	if !ok {
@@ -149,4 +147,11 @@ func keepRecvSpanUntilTrailer(stream interface{}, span tracing.Span) bool {
 	}
 	contextdata.pendingRecvSpan = span
 	return true
+}
+
+// endsStream reports whether a RecvMsg of a stream with a stream span ended
+// the stream: grpc v1.84.0 finishes the stream when RecvMsg fails (io.EOF is
+// the successful end, after the trailer).
+func endsStream(contextdata *contextData, err error) bool {
+	return contextdata != nil && contextdata.asyncSpan != nil && err != nil
 }

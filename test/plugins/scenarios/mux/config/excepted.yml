@@ -16,7 +16,7 @@
 
 segmentItems:
   - serviceName: mux
-    segmentSize: ge 4
+    segmentSize: ge 5
     segments:
       - segmentId: not null
         spans:
@@ -51,6 +51,21 @@ segmentItems:
             tags:
               - { key: http.method, value: GET }
               - { key: url, value: 'localhost:8080/provider/test' }
+              - { key: status_code, value: '200' }
+          - operationName: GET:/stream
+            parentSpanId: 0
+            spanId: 2
+            spanLayer: Http
+            startTime: gt 0
+            endTime: gt 0
+            componentId: 5005
+            isError: false
+            spanType: Exit
+            peer: localhost:8080
+            skipAnalysis: false
+            tags:
+              - { key: http.method, value: GET }
+              - { key: url, value: 'localhost:8080/stream' }
               - { key: status_code, value: '200' }
           - operationName: GET:/consumer
             parentSpanId: -1
@@ -87,6 +102,28 @@ segmentItems:
             refs:
               - { parentEndpoint: GET:/consumer, networkAddress: 'localhost:8080', refType: CrossProcess,
                   parentSpanId: 1, parentTraceSegmentId: not null,
+                  parentServiceInstance: not null, parentService: mux,
+                  traceId: not null }
+      - segmentId: not null
+        spans:
+          - operationName: GET:/stream
+            parentSpanId: -1
+            spanId: 0
+            spanLayer: Http
+            startTime: gt 0
+            endTime: gt 0
+            componentId: 5017
+            isError: false
+            spanType: Entry
+            peer: ''
+            skipAnalysis: false
+            tags:
+              - { key: http.method, value: GET }
+              - { key: url, value: 'localhost:8080/stream' }
+              - { key: status_code, value: '200' }
+            refs:
+              - { parentEndpoint: GET:/consumer, networkAddress: 'localhost:8080', refType: CrossProcess,
+                  parentSpanId: 2, parentTraceSegmentId: not null,
                   parentServiceInstance: not null, parentService: mux,
                   traceId: not null }
 meterItems: [ ]

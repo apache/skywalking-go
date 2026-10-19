@@ -34,9 +34,13 @@ const (
 )
 
 func GeneralProducerBeforeInvoke(invocation operator.Invocation) error {
+	msgList, _ := invocation.Args()[1].([]*primitive.Message)
+	if len(msgList) == 0 {
+		// the SDK returns ErrMessageEmpty, nothing is sent
+		return nil
+	}
 	defaultProducer := invocation.CallerInstance().(*nativedefaultProducer)
 	peer := strings.Join(defaultProducer.client.GetNameSrv().AddrList(), semicolon)
-	msgList := invocation.Args()[1].([]*primitive.Message)
 	topic := msgList[0].Topic
 	operationName := rmqSyncSendPrefix + topic + rmqProducerSuffix
 

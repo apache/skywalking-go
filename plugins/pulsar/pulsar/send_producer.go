@@ -37,11 +37,7 @@ func (s *SendInterceptor) BeforeInvoke(invocation operator.Invocation) error {
 	defaultProducer := invocation.CallerInstance().(*nativepartitionProducer)
 	topic := defaultProducer.options.Topic
 	msg := invocation.Args()[1].(*pulsar.ProducerMessage)
-	lookup, err := defaultProducer.client.lookupService.Lookup(topic)
-	if err != nil {
-		return err
-	}
-	peer := lookup.PhysicalAddr.String()
+	peer := serviceURL(defaultProducer.client)
 	operationName := pulsarSyncPrefix + topic + pulsarSyncSuffix
 
 	span, err := tracing.CreateExitSpan(operationName, peer, func(headerKey, headerValue string) error {
@@ -56,7 +52,7 @@ func (s *SendInterceptor) BeforeInvoke(invocation operator.Invocation) error {
 	},
 		tracing.WithLayer(tracing.SpanLayerMQ),
 		tracing.WithComponent(pulsarSyncComponentID),
-		tracing.WithTag(tracing.TagMQBroker, lookup.PhysicalAddr.String()),
+		tracing.WithTag(tracing.TagMQBroker, peer),
 		tracing.WithTag(tracing.TagMQTopic, defaultProducer.topic),
 	)
 	if err != nil {

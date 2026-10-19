@@ -36,11 +36,7 @@ func (s *SendAsyncInterceptor) BeforeInvoke(invocation operator.Invocation) erro
 	nativeProducer := invocation.CallerInstance().(*nativepartitionProducer)
 	topic := nativeProducer.options.Topic
 	msg := invocation.Args()[1].(*ProducerMessage)
-	lookup, err := nativeProducer.client.lookupService.Lookup(topic)
-	if err != nil {
-		return err
-	}
-	peer := lookup.PhysicalAddr.String()
+	peer := serviceURL(nativeProducer.client)
 	operationName := pulsarAsyncPrefix + topic + pulsarAsyncSuffix
 
 	span, err := tracing.CreateExitSpan(operationName, peer, func(headerKey, headerValue string) error {
@@ -55,7 +51,7 @@ func (s *SendAsyncInterceptor) BeforeInvoke(invocation operator.Invocation) erro
 	},
 		tracing.WithLayer(tracing.SpanLayerMQ),
 		tracing.WithComponent(pulsarAsyncComponentID),
-		tracing.WithTag(tracing.TagMQBroker, lookup.PhysicalAddr.String()),
+		tracing.WithTag(tracing.TagMQBroker, peer),
 		tracing.WithTag(tracing.TagMQTopic, nativeProducer.topic),
 	)
 	if err != nil {
@@ -63,17 +59,22 @@ func (s *SendAsyncInterceptor) BeforeInvoke(invocation operator.Invocation) erro
 	}
 
 	continueSnapShot := tracing.CaptureContext()
-	zuper := invocation.Args()[2].(func(id MessageID, message *ProducerMessage, err error))
-
-	// enhance async callback method: the agent part is fully isolated inside
-	// traceAsyncSendCallback (see its doc), the user callback runs after it
-	callbackFunc := func(id MessageID, message *ProducerMessage, err error) {
-		traceAsyncSendCallback(continueSnapShot, topic, nativeProducer.topic, peer, lookup.PhysicalAddr.String(), id, err)
-		zuper(id, message, err)
+	if zuper, ok := invocation.Args()[2].(func(id MessageID, message *ProducerMessage, err error)); ok {
+		// enhance async callback method: the agent part is fully isolated inside
+		// traceAsyncSendCallback (see its doc), the user callback runs after it
+		callbackFunc := func(id MessageID, message *ProducerMessage, err error) {
+			traceAsyncSendCallback(continueSnapShot, topic, nativeProducer.topic, peer, peer, id, err)
+			// SendAsync(ctx, msg, nil) is valid, and the SDK skips a nil
+			// callback. Calling it here would panic on an SDK goroutine,
+			// which crashes the application.
+			if zuper != nil {
+				zuper(id, message, err)
+			}
+		}
+		invocation.ChangeArg(2, callbackFunc)
 	}
 
 	span.SetPeer(peer)
-	invocation.ChangeArg(2, callbackFunc)
 	invocation.SetContext(span)
 	return nil
 }

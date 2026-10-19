@@ -102,6 +102,35 @@ segmentItems:
                   refType: CrossProcess, parentSpanId: 3, parentTraceSegmentId: not null,
                   parentServiceInstance: not null, parentService: pulsar,
                   traceId: not null }
+          - operationName: Pulsar/sw-topic-nil-callback/AsyncProducer
+            parentSpanId: 0
+            spanId: 6
+            spanLayer: MQ
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 73
+            isError: false
+            spanType: Exit
+            peer: pulsar://pulsar-server:6650
+            skipAnalysis: false
+            tags:
+              - { key: mq.broker, value: not null }
+              - { key: mq.topic, value: not null }
+          - operationName: Pulsar/sw-topic-nil-callback/Producer/Callback
+            parentSpanId: 6
+            spanId: 7
+            spanLayer: MQ
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 73
+            isError: false
+            spanType: Local
+            peer: pulsar://pulsar-server:6650
+            skipAnalysis: false
+            tags:
+              - { key: mq.topic, value: not null }
+              - { key: mq.broker, value: not null }
+              - { key: mq.msg.id, value: not null }
           - operationName: GET:/execute
             parentSpanId: -1
             spanId: 0

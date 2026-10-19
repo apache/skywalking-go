@@ -164,6 +164,9 @@ func (t *Tracer) CreateExitSpan(operationName, peer string, injector interface{}
 
 	err = spanContext.Encode(injector.(tracing.InjectorWrapper).Fun())
 	if err != nil {
+		// the caller gets no span to end, so end it here, otherwise the
+		// segment waits for it forever and is never reported
+		span.End()
 		return nil, err
 	}
 	return span, nil

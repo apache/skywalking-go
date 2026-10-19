@@ -231,6 +231,32 @@ segmentItems:
             skipAnalysis: false
             tags:
               - { key: db.type, value: Mysql }
+          - operationName: Mysql/Conn
+            parentSpanId: 0
+            spanId: 16
+            spanLayer: Database
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 5012
+            isError: false
+            spanType: Local
+            peer: ''
+            skipAnalysis: false
+            tags:
+              - { key: db.type, value: Mysql }
+          - operationName: Mysql/Conn/Raw
+            parentSpanId: 0
+            spanId: 17
+            spanLayer: Database
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 5012
+            isError: false
+            spanType: Exit
+            peer: mysql:3306
+            skipAnalysis: false
+            tags:
+              - { key: db.type, value: Mysql }
           - operationName: GET:/execute
             parentSpanId: -1
             spanId: 0

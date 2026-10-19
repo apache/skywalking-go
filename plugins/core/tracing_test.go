@@ -18,6 +18,7 @@
 package core
 
 import (
+	"errors"
 	"testing"
 	"time"
 
@@ -252,6 +253,22 @@ func TestSpanContextWriting(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	s.End()
+}
+
+func TestCreateExitSpanInjectorError(t *testing.T) {
+	defer ResetTracingContext()
+	entry, err := tracing.CreateEntrySpan("/entry", func(key string) (string, error) { return "", nil })
+	assert.NoError(t, err)
+	injectErr := errors.New("inject failure")
+	exit, err := tracing.CreateExitSpan("/exit", "localhost:8080", func(key, value string) error { return injectErr })
+	assert.ErrorIs(t, err, injectErr)
+	assert.Nil(t, exit, "the caller gets no span when the injection fails")
+	assert.Equal(t, entry, tracing.ActiveSpan(), "the entry span should stay active")
+	entry.End()
+	time.Sleep(time.Millisecond * 50)
+	// the exit span that failed to inject must not keep the segment from being reported
+	spans := GetReportedSpans()
+	assert.Equal(t, 2, len(spans), "span count not correct")
 }
 
 func TestSpanContextReading(t *testing.T) {

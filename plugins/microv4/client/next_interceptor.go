@@ -18,6 +18,7 @@
 package client
 
 import (
+	"go-micro.dev/v4/client"
 	"go-micro.dev/v4/registry"
 	"go-micro.dev/v4/selector"
 
@@ -33,6 +34,12 @@ func (n *NextInterceptor) BeforeInvoke(invocation operator.Invocation) error {
 }
 
 func (n *NextInterceptor) AfterInvoke(invocation operator.Invocation, results ...interface{}) error {
+	// Without a service, the client wrapper cannot create the exit span (its
+	// peer would be empty) and runs the call untraced, so the active span is
+	// the caller's, and its peer must not change.
+	if req, ok := invocation.Args()[0].(client.Request); ok && req.Service() == "" {
+		return nil
+	}
 	span := tracing.ActiveSpan()
 	if span != nil {
 		if err, ok := results[1].(error); ok || err != nil {

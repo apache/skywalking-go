@@ -19,6 +19,7 @@ package http
 
 import (
 	"context"
+	nethttp "net/http"
 	"net/url"
 
 	"github.com/apache/skywalking-go/plugins/core/log"
@@ -37,7 +38,7 @@ var clientMiddleware = func(handler middleware.Handler) middleware.Handler {
 				peer = parse.Host
 			}
 			span, err := tracing.CreateExitSpan(tr.Operation(), peer, func(key, value string) error {
-				tr.RequestHeader().Add(key, value)
+				addRequestHeader(tr, key, value)
 				return nil
 			}, tracing.WithComponent(5010),
 				tracing.WithLayer(tracing.SpanLayerRPCFramework),
@@ -55,6 +56,28 @@ var clientMiddleware = func(handler middleware.Handler) middleware.Handler {
 			return reply, err
 		}
 		return handler(c, req)
+	}
+}
+
+// addRequestHeader adds the header to the outgoing request. Since kratos
+// v2.7.2, a call with the Header(&h) option sends h as the request header, so
+// the header map is nil when h is nil and the call has no body and no
+// User-Agent. net/http accepts a nil header, so create it on the request
+// instead of writing into the nil map.
+// net/http is imported as nethttp: this file is compiled into the kratos http
+// package, where the agent rewrites references through the name "http".
+func addRequestHeader(tr transport.Transporter, key, value string) {
+	if ht, ok := tr.(interface{ Request() *nethttp.Request }); ok {
+		if req := ht.Request(); req != nil {
+			if req.Header == nil {
+				req.Header = make(nethttp.Header)
+			}
+			req.Header.Add(key, value)
+			return
+		}
+	}
+	if header := tr.RequestHeader(); header != nil {
+		header.Add(key, value)
 	}
 }
 

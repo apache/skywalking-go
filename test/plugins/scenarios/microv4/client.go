@@ -21,10 +21,12 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"time"
 
 	hello "github.com/go-micro/examples/greeter/srv/proto/hello"
 
 	"go-micro.dev/v4"
+	"go-micro.dev/v4/client"
 
 	_ "github.com/apache/skywalking-go"
 )
@@ -34,6 +36,24 @@ func main() {
 	service := micro.NewService()
 	service.Init()
 	cl := hello.NewSayService("go.micro.srv.greeter", service.Client())
+
+	// go-micro serves a call without a service name when the address is given,
+	// so the agent must not fail it, even though it cannot trace it. It uses its
+	// own client, so that the traced call below does not reuse its connection.
+	addressService := micro.NewService(micro.Client(client.NewClient()))
+	addressReq := addressService.Client().NewRequest("", "Say.Hello", &hello.Request{Name: "address"})
+	var err error
+	// retry while the server is starting
+	for i := 0; i < 10; i++ {
+		if err = addressService.Client().Call(context.Background(), addressReq, &hello.Response{},
+			client.WithAddress("localhost:8888")); err == nil {
+			break
+		}
+		time.Sleep(time.Second)
+	}
+	if err != nil {
+		log.Fatalf("call by address error: %v", err)
+	}
 
 	http.HandleFunc("/consumer", func(writer http.ResponseWriter, request *http.Request) {
 		resp, err := cl.Hello(context.Background(), &hello.Request{Name: "John"})

@@ -43,17 +43,21 @@ func (s *SendSyncInterceptor) AfterInvoke(invocation operator.Invocation, result
 	}
 	defaultProducer := invocation.CallerInstance().(*nativedefaultProducer)
 	span := invocation.GetContext().(tracing.Span)
+	// end the span even if tagging fails, an active span blocks the segment
+	defer span.End()
 	if err, ok := result[1].(error); ok && err != nil {
 		span.Error(err.Error())
 	}
 	if sendRet, ok := result[0].(*primitive.SendResult); ok && sendRet != nil {
 		span.Tag(tracing.TagMQStatus, SendStatusStr(sendRet.Status))
-		span.Tag(tracing.TagMQQueue, fmt.Sprintf("%d", sendRet.MessageQueue.QueueId))
-		span.Tag(tracing.TagMQBroker, defaultProducer.client.GetNameSrv().
-			FindBrokerAddrByName(sendRet.MessageQueue.BrokerName))
+		// a failed send returns a SendResult without a MessageQueue
+		if sendRet.MessageQueue != nil {
+			span.Tag(tracing.TagMQQueue, fmt.Sprintf("%d", sendRet.MessageQueue.QueueId))
+			span.Tag(tracing.TagMQBroker, defaultProducer.client.GetNameSrv().
+				FindBrokerAddrByName(sendRet.MessageQueue.BrokerName))
+		}
 		span.Tag(tracing.TagMQMsgID, sendRet.MsgID)
 		span.Tag(syncTagMQOffsetMsgID, sendRet.OffsetMsgID)
 	}
-	span.End()
 	return nil
 }

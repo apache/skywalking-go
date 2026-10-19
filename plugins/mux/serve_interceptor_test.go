@@ -35,18 +35,21 @@ import (
 func TestNonHijackerWriterIsUsable(t *testing.T) {
 	recorder := httptest.NewRecorder() // does not implement http.Hijacker
 
-	rw := newResponseWriter(recorder)
+	rw := wrapResponseWriter(recorder)
 	rw.WriteHeader(http.StatusNotFound)
 	if _, err := rw.Write([]byte("not found")); err != nil {
 		t.Fatal(err)
 	}
 
-	wrapped, ok := rw.(*writerWrapper)
-	if !ok {
-		t.Fatalf("non-hijacker writer must use the plain wrapper, got %T", rw)
+	if _, ok := rw.(http.Hijacker); ok {
+		t.Fatalf("non-hijacker writer must not be wrapped as a hijacker, got %T", rw)
 	}
-	if wrapped.statusCode != http.StatusNotFound {
-		t.Fatalf("status code was not captured, got %d", wrapped.statusCode)
+	wrapped, ok := rw.(statusCodeHolder)
+	if !ok {
+		t.Fatalf("the wrapper must cache the status code, got %T", rw)
+	}
+	if wrapped.cachedStatusCode() != http.StatusNotFound {
+		t.Fatalf("status code was not captured, got %d", wrapped.cachedStatusCode())
 	}
 	if recorder.Body.String() != "not found" {
 		t.Fatalf("response body was not written through, got %q", recorder.Body.String())

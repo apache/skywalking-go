@@ -18,9 +18,12 @@
 package main
 
 import (
+	"bufio"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
+	"time"
 
 	_ "github.com/apache/skywalking-go"
 )
@@ -59,6 +62,66 @@ func consumerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_, _ = w.Write(body)
+
+	if err := requestStream("http://localhost:8080/stream"); err != nil {
+		log.Printf("request stream error: %v", err)
+	}
+}
+
+// streamReceived tells streamHandler that the client has read the first event.
+var streamReceived = make(chan struct{}, 1)
+
+// streamHandler streams server-sent events. It needs http.Flusher and the
+// http.ResponseController features of the server's writer, and it holds the
+// response open until the client has read the first event, so the event only
+// arrives if the flush reached the client.
+func streamHandler(w http.ResponseWriter, r *http.Request) {
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		http.Error(w, "the writer does not implement http.Flusher", http.StatusInternalServerError)
+		return
+	}
+	if err := http.NewResponseController(w).SetWriteDeadline(time.Now().Add(10 * time.Second)); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/event-stream")
+	_, _ = io.WriteString(w, "data: ping\n\n")
+	flusher.Flush()
+	select {
+	case <-streamReceived:
+		_, _ = io.WriteString(w, "data: done\n\n")
+	case <-time.After(2 * time.Second):
+		_, _ = io.WriteString(w, "data: timeout\n\n")
+	}
+}
+
+// requestStream reads the event stream. The response headers only arrive in
+// time if the first event was flushed, otherwise the request times out.
+func requestStream(url string) error {
+	client := &http.Client{Transport: &http.Transport{ResponseHeaderTimeout: time.Second}}
+	resp, err := client.Get(url)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	reader := bufio.NewReader(resp.Body)
+	first, err := reader.ReadString('\n')
+	if err != nil {
+		return err
+	}
+	select {
+	case streamReceived <- struct{}{}:
+	default:
+	}
+	rest, err := io.ReadAll(reader)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != http.StatusOK || first != "data: ping\n" || string(rest) != "\ndata: done\n\n" {
+		return fmt.Errorf("unexpected stream: %d %q %q", resp.StatusCode, first, rest)
+	}
+	return nil
 }
 
 func errorHandler(w http.ResponseWriter, r *http.Request) {
@@ -70,6 +133,7 @@ func main() {
 	http.HandleFunc("/provider", providerHandler)
 	http.HandleFunc("/consumer", consumerHandler)
 	http.HandleFunc("/errortest", errorHandler)
+	http.HandleFunc("/stream", streamHandler)
 
 	http.HandleFunc("/health", func(writer http.ResponseWriter, request *http.Request) {
 		writer.WriteHeader(http.StatusOK)

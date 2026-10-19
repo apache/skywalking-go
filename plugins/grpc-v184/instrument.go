@@ -98,6 +98,18 @@ func (i *Instrument) Points() []*instrument.Point {
 			Interceptor: "ClientStreamingInterceptor",
 		},
 		{
+			// creates the clientStream of NewStream, which the stream interceptors wrap
+			PackagePath: "",
+			At: instrument.NewStaticMethodEnhance("newClientStreamWithParams",
+				instrument.WithStaticMethod(),
+				instrument.WithArgType(0, "context.Context"),
+				instrument.WithArgType(1, "*StreamDesc"),
+				instrument.WithResultCount(2),
+				instrument.WithResultType(0, "ClientStream"),
+				instrument.WithResultType(1, "error")),
+			Interceptor: "ClientStreamingInterceptor",
+		},
+		{
 			PackagePath: "",
 			At: instrument.NewMethodEnhance("*Server", "handleStream",
 				instrument.WithArgType(0, "transport.ServerTransport")),
@@ -143,12 +155,6 @@ func (i *Instrument) Points() []*instrument.Point {
 			At: instrument.NewMethodEnhance("*clientStream", "CloseSend",
 				instrument.WithResultType(0, "error")),
 			Interceptor: "ClientCloseSendInterceptor",
-		},
-		{
-			PackagePath: "",
-			At: instrument.NewMethodEnhance("*clientStream", "finish",
-				instrument.WithArgType(0, "error")),
-			Interceptor: "ClientFinishInterceptor",
 		},
 	}
 }

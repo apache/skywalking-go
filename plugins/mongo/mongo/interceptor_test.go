@@ -142,3 +142,123 @@ func TestCommandSucceededReportsOnce(t *testing.T) {
 		t.Fatalf("the command span must be reported exactly once, got %d", got)
 	}
 }
+
+// TestPartialUserMonitor covers user CommandMonitors that set only some of
+// the callbacks. The driver checks each field separately, so every field is
+// optional, and the wrapper must not call a nil user callback: the driver has
+// no recover, so such a call panics the application on the first command.
+func TestPartialUserMonitor(t *testing.T) {
+	cases := []struct {
+		name string
+		user func(calls map[string]int) *event.CommandMonitor
+		want map[string]int
+	}{
+		{"only Started", func(calls map[string]int) *event.CommandMonitor {
+			return &event.CommandMonitor{Started: func(context.Context, *event.CommandStartedEvent) {
+				calls["started"]++
+			}}
+		}, map[string]int{"started": 2}},
+		{"only Succeeded", func(calls map[string]int) *event.CommandMonitor {
+			return &event.CommandMonitor{Succeeded: func(context.Context, *event.CommandSucceededEvent) {
+				calls["succeeded"]++
+			}}
+		}, map[string]int{"succeeded": 1}},
+		{"only Failed", func(calls map[string]int) *event.CommandMonitor {
+			return &event.CommandMonitor{Failed: func(context.Context, *event.CommandFailedEvent) {
+				calls["failed"]++
+			}}
+		}, map[string]int{"failed": 1}},
+		{"no callbacks", func(map[string]int) *event.CommandMonitor {
+			return &event.CommandMonitor{}
+		}, map[string]int{}},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			core.ResetTracingContext()
+			defer core.ResetTracingContext()
+
+			calls := map[string]int{}
+			opts := []*options.ClientOptions{
+				options.Client().SetHosts([]string{"127.0.0.1:27017"}).SetMonitor(c.user(calls)),
+			}
+			if err := (&NewClientInterceptor{}).BeforeInvoke(operator.NewInvocation(nil, opts)); err != nil {
+				t.Fatal(err)
+			}
+			monitor := opts[0].Monitor
+
+			ctx := context.Background()
+			monitor.Started(ctx, &event.CommandStartedEvent{CommandName: "insert", RequestID: 1})
+			monitor.Succeeded(ctx, &event.CommandSucceededEvent{
+				CommandFinishedEvent: event.CommandFinishedEvent{RequestID: 1},
+			})
+			monitor.Started(ctx, &event.CommandStartedEvent{CommandName: "find", RequestID: 2})
+			monitor.Failed(ctx, &event.CommandFailedEvent{
+				CommandFinishedEvent: event.CommandFinishedEvent{RequestID: 2},
+				Failure:              "boom",
+			})
+
+			deadline := time.Now().Add(2 * time.Second)
+			for len(core.GetReportedSpans()) < 2 {
+				if time.Now().After(deadline) {
+					t.Fatalf("expected 2 reported spans, got %d", len(core.GetReportedSpans()))
+				}
+				time.Sleep(20 * time.Millisecond)
+			}
+
+			// the callbacks the user did set are still called, once per event
+			if len(calls) != len(c.want) {
+				t.Fatalf("user callbacks: want %v, got %v", c.want, calls)
+			}
+			for k, v := range c.want {
+				if calls[k] != v {
+					t.Fatalf("user callbacks: want %v, got %v", c.want, calls)
+				}
+			}
+		})
+	}
+}
+
+// TestPanickingUserMonitorFinishesSpan lets the user's Succeeded and Failed
+// callbacks panic, and the application recover: the driver does not recover,
+// so the panic reaches the application, and the spans must still finish.
+func TestPanickingUserMonitorFinishesSpan(t *testing.T) {
+	core.ResetTracingContext()
+	defer core.ResetTracingContext()
+
+	user := &event.CommandMonitor{
+		Succeeded: func(context.Context, *event.CommandSucceededEvent) { panic("succeeded callback") },
+		Failed:    func(context.Context, *event.CommandFailedEvent) { panic("failed callback") },
+	}
+	opts := []*options.ClientOptions{options.Client().SetHosts([]string{"127.0.0.1:27017"}).SetMonitor(user)}
+	if err := (&NewClientInterceptor{}).BeforeInvoke(operator.NewInvocation(nil, opts)); err != nil {
+		t.Fatal(err)
+	}
+	monitor := opts[0].Monitor
+	recovered := func(call func()) (r interface{}) {
+		defer func() { r = recover() }()
+		call()
+		return nil
+	}
+
+	ctx := context.Background()
+	monitor.Started(ctx, &event.CommandStartedEvent{CommandName: "insert", RequestID: 1})
+	if r := recovered(func() {
+		monitor.Succeeded(ctx, &event.CommandSucceededEvent{CommandFinishedEvent: event.CommandFinishedEvent{RequestID: 1}})
+	}); r != "succeeded callback" {
+		t.Fatalf("the application must see the callback panic, got %v", r)
+	}
+	monitor.Started(ctx, &event.CommandStartedEvent{CommandName: "find", RequestID: 2})
+	if r := recovered(func() {
+		monitor.Failed(ctx, &event.CommandFailedEvent{CommandFinishedEvent: event.CommandFinishedEvent{RequestID: 2}, Failure: "boom"})
+	}); r != "failed callback" {
+		t.Fatalf("the application must see the callback panic, got %v", r)
+	}
+
+	deadline := time.Now().Add(2 * time.Second)
+	for len(core.GetReportedSpans()) < 2 {
+		if time.Now().After(deadline) {
+			t.Fatalf("expected 2 reported spans, got %d", len(core.GetReportedSpans()))
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+}

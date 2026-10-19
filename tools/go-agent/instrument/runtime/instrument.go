@@ -57,49 +57,118 @@ func (r *Instrument) FilterAndEdit(path string, curFile *dst.File, cursor *dstut
 				r.goIDType = f.Type.(*dst.Ident).Name
 			}
 		}
-		// append the tls field
+		// append the tls field, and the field that passes the context snapshot of a
+		// goroutine to the goroutine it creates
 		st.Fields.List = append(st.Fields.List, &dst.Field{
 			Names: []*dst.Ident{dst.NewIdent(consts.TLSFieldName)},
+			Type:  dst.NewIdent("interface{}")}, &dst.Field{
+			Names: []*dst.Ident{dst.NewIdent(consts.TLSSnapshotFieldName)},
 			Type:  dst.NewIdent("interface{}")})
 		tools.LogWithStructEnhance("runtime", "g", consts.TLSFieldName, "tls field")
 		return true
 	case *dst.FuncDecl:
-		if n.Name.Name != "newproc1" {
+		if n.Recv != nil {
 			return false
 		}
-		if len(n.Type.Results.List) != 1 {
-			return false
+		switch n.Name.Name {
+		case "newproc", "newcoro":
+			return r.enhanceGoroutineCreator(n)
+		case "newproc1":
+			return r.enhanceNewProc1(n)
 		}
-		expectedParamCount := 3
-		if r.opts.CheckGoVersionGreaterOrEqual(1, 23) {
-			expectedParamCount = 5
-		}
-		if len(n.Type.Params.List) != expectedParamCount {
-			return false
-		}
-		parameters := tools.EnhanceParameterNames(n.Type.Params, tools.FieldListTypeParam)
-		results := tools.EnhanceParameterNames(n.Type.Results, tools.FieldListTypeResult)
-
-		tools.InsertStmtsBeforeBody(n.Body, `defer func() {
-	{{(index .Results 0).Name}}.{{.TLSField}} = goroutineChange({{(index .Parameters 1).Name}}.{{.TLSField}})
-}()
-`, struct {
-			Parameters        []*tools.ParameterInfo
-			Results           []*tools.ParameterInfo
-			TLSField          string
-			OperatorField     string
-			SnapshotInterface string
-		}{
-			Parameters:        parameters,
-			Results:           results,
-			TLSField:          consts.TLSFieldName,
-			OperatorField:     consts.GlobalTracerFieldName,
-			SnapshotInterface: consts.GlobalTracerSnapshotInterface,
-		})
-		tools.LogWithMethodEnhance("runtime", "", "newproc1", "support cross goroutine context propagating")
-		return true
 	}
 	return false
+}
+
+// enhanceGoroutineCreator takes the context snapshot for the new goroutine in
+// the functions that call newproc1. They run on the stack of the goroutine
+// that creates the new one, before they switch to the system stack, so the
+// snapshot can take the span and context locks. newproc1 runs on the system
+// stack, where blocking on a contended lock is a fatal error.
+//
+// The snapshot is taken right before the switch, so that no allocation (which
+// can start GC workers through a nested newproc) runs between taking and
+// handing it over. It is only taken on a user goroutine that holds no runtime
+// locks: the runtime starts its GC workers between acquirem and releasem, where
+// blocking is a fatal error too, and they need no trace context.
+func (r *Instrument) enhanceGoroutineCreator(n *dst.FuncDecl) bool {
+	if len(n.Type.Params.List) != 1 {
+		return false
+	}
+	switchIndex := -1
+	for i, stmt := range n.Body.List {
+		if isSystemStackCall(stmt) {
+			switchIndex = i
+		}
+	}
+	if switchIndex < 0 {
+		return false
+	}
+	stmts := tools.GoStringToStats(tools.ExecuteTemplate(`if gp := getg(); gp == gp.m.curg && gp.m.locks == 0 && gp.m.preemptoff == "" {
+	gp.{{.SnapshotField}} = goroutineChange(gp.{{.TLSField}})
+}
+`, struct {
+		TLSField      string
+		SnapshotField string
+	}{
+		TLSField:      consts.TLSFieldName,
+		SnapshotField: consts.TLSSnapshotFieldName,
+	}))
+	body := make([]dst.Stmt, 0, len(n.Body.List)+len(stmts))
+	body = append(body, n.Body.List[:switchIndex]...)
+	body = append(body, stmts...)
+	n.Body.List = append(body, n.Body.List[switchIndex:]...)
+	tools.LogWithMethodEnhance("runtime", "", n.Name.Name, "take the context snapshot for the new goroutine")
+	return true
+}
+
+// isSystemStackCall reports whether the statement is a systemstack(...) call.
+func isSystemStackCall(stmt dst.Stmt) bool {
+	expr, ok := stmt.(*dst.ExprStmt)
+	if !ok {
+		return false
+	}
+	call, ok := expr.X.(*dst.CallExpr)
+	if !ok {
+		return false
+	}
+	fun, ok := call.Fun.(*dst.Ident)
+	return ok && fun.Name == "systemstack"
+}
+
+// enhanceNewProc1 hands the snapshot taken by the caller to the new goroutine.
+// It only moves the reference, because newproc1 runs on the system stack.
+func (r *Instrument) enhanceNewProc1(n *dst.FuncDecl) bool {
+	if n.Type.Results == nil || len(n.Type.Results.List) != 1 {
+		return false
+	}
+	expectedParamCount := 3
+	if r.opts.CheckGoVersionGreaterOrEqual(1, 23) {
+		expectedParamCount = 5
+	}
+	if len(n.Type.Params.List) != expectedParamCount {
+		return false
+	}
+	parameters := tools.EnhanceParameterNames(n.Type.Params, tools.FieldListTypeParam)
+	results := tools.EnhanceParameterNames(n.Type.Results, tools.FieldListTypeResult)
+
+	tools.InsertStmtsBeforeBody(n.Body, `defer func() {
+	{{(index .Results 0).Name}}.{{.TLSField}} = {{(index .Parameters 1).Name}}.{{.SnapshotField}}
+	{{(index .Parameters 1).Name}}.{{.SnapshotField}} = nil
+}()
+`, struct {
+		Parameters    []*tools.ParameterInfo
+		Results       []*tools.ParameterInfo
+		TLSField      string
+		SnapshotField string
+	}{
+		Parameters:    parameters,
+		Results:       results,
+		TLSField:      consts.TLSFieldName,
+		SnapshotField: consts.TLSSnapshotFieldName,
+	})
+	tools.LogWithMethodEnhance("runtime", "", "newproc1", "support cross goroutine context propagating")
+	return true
 }
 
 func (r *Instrument) AfterEnhanceFile(fromPath, newPath string) error {

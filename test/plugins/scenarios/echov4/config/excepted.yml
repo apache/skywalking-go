@@ -16,7 +16,7 @@
 
 segmentItems:
   - serviceName: echov4
-    segmentSize: ge 3
+    segmentSize: ge 4
     segments:
       - segmentId: not null
         spans:
@@ -63,6 +63,21 @@ segmentItems:
               - { key: http.method, value: GET }
               - { key: url, value: "localhost:8080/provider" }
               - { key: status_code, value: "200" }
+          - operationName: GET:/panic
+            parentSpanId: 0
+            spanId: 2
+            spanLayer: Http
+            startTime: gt 0
+            endTime: gt 0
+            componentId: 5005
+            isError: true
+            spanType: Exit
+            peer: localhost:8080
+            skipAnalysis: false
+            tags:
+              - { key: http.method, value: GET }
+              - { key: url, value: "localhost:8080/panic" }
+              - { key: status_code, value: "500" }
           - operationName: GET:/consumer
             parentSpanId: -1
             spanId: 0
@@ -78,5 +93,35 @@ segmentItems:
               - { key: http.method, value: GET }
               - { key: url, value: "service:8080/consumer" }
               - { key: status_code, value: "200" }
+      - segmentId: not null
+        spans:
+          - operationName: GET:/panic
+            parentSpanId: -1
+            spanId: 0
+            spanLayer: Http
+            startTime: nq 0
+            endTime: nq 0
+            componentId: 5015
+            isError: true
+            spanType: Entry
+            peer: ""
+            skipAnalysis: false
+            tags:
+              - { key: http.method, value: GET }
+              - { key: url, value: "localhost:8080/panic" }
+            logs:
+              - logEvent:
+                  - { key: "the request handler did not return: it panicked or called runtime.Goexit", value: "" }
+            refs:
+              - {
+                parentEndpoint: "GET:/consumer",
+                networkAddress: "localhost:8080",
+                refType: CrossProcess,
+                parentSpanId: 2,
+                parentTraceSegmentId: not null,
+                parentServiceInstance: not null,
+                parentService: echov4,
+                traceId: not null,
+              }
 meterItems: []
 logItems: []
