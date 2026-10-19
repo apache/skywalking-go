@@ -105,6 +105,9 @@ segmentItems:
               - { key: db.type, value: mysql }
               - { key: db.statement, value: 'SELECT * FROM `users` ORDER BY `users`.`id` LIMIT ?' }
               - { key: db.sql.parameters, value: '1' }
+            logs:
+              - logEvent:
+                  - { key: "the gorm callbacks did not complete, a callback or hook panicked", value: "" }
           - operationName: users/row
             parentSpanId: 0
             spanId: 7

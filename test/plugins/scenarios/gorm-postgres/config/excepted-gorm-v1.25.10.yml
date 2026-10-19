@@ -147,6 +147,9 @@ segmentItems:
               - { key: db.type, value: PostgreSQL }
               - { key: db.statement, value: 'SELECT * FROM "users" ORDER BY "users"."id" LIMIT $1' }
               - { key: db.sql.parameters, value: '1' }
+            logs:
+              - logEvent:
+                  - { key: "the gorm callbacks did not complete, a callback or hook panicked", value: "" }
           - operationName: PostgreSQL/Prepare
             parentSpanId: 10
             spanId: 11
