@@ -107,7 +107,7 @@ jobs:
           go version
 
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           submodules: true
 
@@ -135,9 +135,10 @@ jobs:
           sudo cp -rf ~/repo/*  /mnt/d/a/skywalking-go
 
       - name: Windows Set up Go 1.26
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v7
         with:
           go-version: 1.26
+          cache: false
       - name: WSL Setup Tools
         shell: wsl-run {0}
         run: |
@@ -154,7 +155,7 @@ jobs:
           head -n -2 Makefile > temp && rm Makefile && mv temp Makefile
           make build os=windows
           bash run.sh http
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         name: Upload Agent
         if: ${{ failure() }}
         with:

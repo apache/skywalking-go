@@ -34,9 +34,10 @@ jobs:
     timeout-minutes: 60
     steps:
       - name: Set up Go 1.26
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v7
         with:
           go-version: 1.26
+          cache: false
       - name: Setup docker (missing on MacOS)
         if: runner.os == 'macos'
         env:
@@ -52,12 +53,12 @@ jobs:
           # https://github.com/abiosoft/colima/blob/main/docs/FAQ.md#cannot-connect-to-the-docker-daemon-at-unixvarrundockersock-is-the-docker-daemon-running
           sudo ln -sf $HOME/.colima/default/docker.sock /var/run/docker.sock
       - name: Check out code into the Go module directory
-        uses: actions/checkout@v2
+        uses: actions/checkout@v7
         with:
           submodules: true
       - name: Build
         run: make -C test/plugins build
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         name: Upload Test Base
         with:
           name: test-tools-${{ matrix.os }}
@@ -110,10 +111,10 @@ jobs:
           - so11y
           - cross-goroutine
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v7
         with:
           submodules: true
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: test-tools-ubuntu-latest
           path: test/plugins/dist
@@ -126,14 +127,18 @@ jobs:
       - name: Install docker-compose
         shell: bash
         run: |
-          if ! command docker-compose 2>&1 > /dev/null; then
-            echo "Installing docker-compose"
-            sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+          # Docker Compose v1 is end of life, and Docker 29 raised the minimum
+          # API version it accepts, so route docker-compose to the runner's
+          # Compose v2 plugin instead of downloading Compose v1.29.2.
+          if ! command -v docker-compose > /dev/null 2>&1; then
+            echo "Installing a docker-compose wrapper for the Docker Compose plugin"
+            printf '#!/bin/sh\nexec docker compose "$@"\n' | sudo tee /usr/local/bin/docker-compose > /dev/null
             sudo chmod +x /usr/local/bin/docker-compose
           fi
+          docker-compose version
       - name: Run Test
         run: bash test/plugins/run.sh ${{ matrix.case }}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         name: Upload Agent
         if: ${{ failure() }}
         with:
@@ -148,17 +153,18 @@ jobs:
     runs-on: macos-12
     timeout-minutes: 90
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v7
         with:
           submodules: true
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: test-tools-macos-12
           path: test/plugins/dist
       - name: Set up Go 1.26
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v7
         with:
           go-version: 1.26
+          cache: false
       - name: Setup docker (missing on MacOS)
         if: runner.os == 'macos'
         env:
@@ -189,7 +195,7 @@ jobs:
           fi
       - name: Run Test
         run: bash test/plugins/run.sh short_versions_gin
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         name: Upload Agent
         if: ${{ failure() }}
         with:

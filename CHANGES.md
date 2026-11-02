@@ -45,6 +45,7 @@ Release Notes.
 * rocketmq: end the exit span of a failed `SendSync`, which stayed open and kept the segment from being reported, and do not panic on a send without messages.
 * kratos: do not panic in the client middleware when a body-less HTTP call reads the reply header into a nil `http.Header`. Since kratos v2.7.2, that header is sent as the request header.
 * go-micro: do not fail a call, stream, or publish when its exit span cannot be created, for example a call with an empty service name and `client.WithAddress`. The call runs untraced, and the peer of the caller's span does not change.
+* Bump vulnerable dependencies in the agent module, the reporter (`plugins/core`), and the go-agent tool. `github.com/klauspost/compress` moves from v1.15.9 to v1.18.7 to fix CVE-2026-63209, `golang.org/x/net` moves from v0.61.0 to v0.62.0 to fix GO-2026-6860 and GO-2026-6866, and `github.com/sirupsen/logrus` in the go-agent tool moves from v1.9.0 to v1.9.4 to fix CVE-2025-65637.
 
 #### Unsupported Library Versions
 

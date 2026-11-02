@@ -209,35 +209,6 @@ subcomponents is subject to the terms and conditions of the following
 licenses.
 
 ========================================================================
-MIT licenses
-========================================================================
-
-The following components are provided under the MIT License. See project link for details.
-The text of each license is also included at licenses/license-[project].txt.
-
-    github.com/benbjohnson/clock v1.1.0 MIT
-    github.com/dave/jennifer v1.5.0 MIT
-    github.com/kr/pretty v0.3.0 MIT
-    github.com/kr/text v0.2.0 MIT
-    github.com/sergi/go-diff v1.2.0 MIT
-    github.com/sirupsen/logrus v1.9.0 MIT
-    github.com/stretchr/objx v0.5.0 MIT
-    github.com/stretchr/testify v1.8.2 MIT
-    go.uber.org/atomic v1.9.0 MIT
-    go.uber.org/goleak v1.1.12 MIT
-    go.uber.org/multierr v1.8.0 MIT
-    go.uber.org/zap v1.24.0 MIT
-
-========================================================================
-MIT and BSD-3-Clause licenses
-========================================================================
-
-The following components are provided under the MIT and BSD-3-Clause License. See project link for details.
-The text of each license is also included at licenses/license-[project].txt.
-
-    github.com/dave/dst v0.27.2 MIT and BSD-3-Clause
-
-========================================================================
 BSD-2-Clause licenses
 ========================================================================
 
@@ -255,12 +226,11 @@ The following components are provided under the BSD-3-Clause License. See projec
 The text of each license is also included at licenses/license-[project].txt.
 
     github.com/pmezard/go-difflib v1.0.0 BSD-3-Clause
-    github.com/rogpeppe/go-internal v1.10.0 BSD-3-Clause
-    golang.org/x/mod v0.9.0 BSD-3-Clause
-    golang.org/x/sync v0.1.0 BSD-3-Clause
-    golang.org/x/sys v0.8.0 BSD-3-Clause
-    golang.org/x/text v0.9.0 BSD-3-Clause
-    golang.org/x/tools v0.7.0 BSD-3-Clause
+    github.com/rogpeppe/go-internal v1.9.0 BSD-3-Clause
+    golang.org/x/mod v0.42.0 BSD-3-Clause
+    golang.org/x/sys v0.49.0 BSD-3-Clause
+    golang.org/x/text v0.43.0 BSD-3-Clause
+    golang.org/x/tools v0.52.0 BSD-3-Clause
 
 ========================================================================
 ISC licenses
@@ -272,6 +242,20 @@ The text of each license is also included at licenses/license-[project].txt.
     github.com/davecgh/go-spew v1.1.1 ISC
 
 ========================================================================
+MIT licenses
+========================================================================
+
+The following components are provided under the MIT License. See project link for details.
+The text of each license is also included at licenses/license-[project].txt.
+
+    github.com/kr/pretty v0.3.0 MIT
+    github.com/sirupsen/logrus v1.9.4 MIT
+    github.com/stretchr/testify v1.10.0 MIT
+    go.uber.org/atomic v1.9.0 MIT
+    go.uber.org/multierr v1.8.0 MIT
+    go.uber.org/zap v1.24.0 MIT
+
+========================================================================
 MIT and Apache-2.0 licenses
 ========================================================================
 
@@ -279,3 +263,12 @@ The following components are provided under the MIT and Apache-2.0 License. See 
 The text of each license is also included at licenses/license-[project].txt.
 
     gopkg.in/yaml.v3 v3.0.1 MIT and Apache-2.0
+
+========================================================================
+MIT and BSD-3-Clause licenses
+========================================================================
+
+The following components are provided under the MIT and BSD-3-Clause License. See project link for details.
+The text of each license is also included at licenses/license-[project].txt.
+
+    github.com/dave/dst v0.27.2 MIT and BSD-3-Clause
