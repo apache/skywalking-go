@@ -27,6 +27,7 @@ header:
     # Symlink to .claude/skills; the pinned license-eye recurses forever on directory symlinks.
     - '.agents/skills'
     - 'licenses'
+    - 'dist/licenses'
     - '**/go.mod'
     - '**/go.sum'
     - 'go.work'
@@ -35,6 +36,7 @@ header:
     - 'NOTICE'
     - '.gitignore'
     - 'dist/LICENSE.tpl'
+    - 'tools/release/LICENSE.tpl'
     - '**/*.tmpl'
     - 'tools/go-agent/tools/testdata/*'
     - 'VERSION'
@@ -46,4 +48,4 @@ header:
 
 dependency:
   files:
-    - go.mod
+    - tools/go-agent/go.mod

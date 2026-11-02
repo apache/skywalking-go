@@ -30,7 +30,7 @@ healthCheck() {
     i=1
     while [[ $i -lt ${TIMES} ]];
     do
-        STATUS=$(curl --max-time 3 -is ${HEALTH_CHECK_URL} | grep -oE "HTTP/.*\s+200")
+        STATUS=$(curl --max-time 3 -is ${HEALTH_CHECK_URL} | grep -oE "HTTP/.*\s+200" || true)
         if [[ -n "$STATUS" ]]; then
           echo "${HEALTH_CHECK_URL}: ${STATUS}"
           return 0

@@ -53,7 +53,7 @@ healthCheck() {
     i=1
     while [[ $i -lt ${TIMES} ]];
     do
-        STATUS=$(curl --max-time 5 -is ${HEALTH_CHECK_URL} | grep -oE "HTTP/.*\s+200")
+        STATUS=$(curl --max-time 5 -is ${HEALTH_CHECK_URL} | grep -oE "HTTP/.*\s+200" || true)
         if [[ -n "$STATUS" ]]; then
           echo "[DEBUG] Success: ${HEALTH_CHECK_URL}: ${STATUS}" >&2
           return 0
