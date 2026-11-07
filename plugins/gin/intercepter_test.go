@@ -119,6 +119,43 @@ func TestCollectHeaders(t *testing.T) {
 	assert.Equal(t, "h1=h1-value\nh2=h2", spans[0].Tags()[index].Value, "the tag Value should be h1=h1-value\nh2=h2-value")
 }
 
+func TestCollectHeadersWithoutLimit(t *testing.T) {
+	headers, threshold := config.CollectRequestHeaders, config.HeaderLengthThreshold
+	defer func() {
+		config.CollectRequestHeaders, config.HeaderLengthThreshold = headers, threshold
+	}()
+	config.CollectRequestHeaders = []string{"h1"}
+
+	for _, limit := range []int{0, -1} {
+		t.Run(fmt.Sprintf("threshold %d", limit), func(t *testing.T) {
+			defer core.ResetTracingContext()
+			config.HeaderLengthThreshold = limit
+
+			request, err := http.NewRequest("GET", "http://localhost/skywalking/trace", http.NoBody)
+			assert.Nil(t, err, "new request error should be nil")
+			request.Header.Set("h1", "h1-value")
+			invocation := operator.NewInvocation(&gin.Context{Request: request, Writer: &testWriter{}})
+			interceptor := &ContextInterceptor{}
+			assert.NotPanics(t, func() { _ = interceptor.BeforeInvoke(invocation) }, "the threshold must not panic")
+			assert.NotNil(t, invocation.GetContext(), "context should not be nil")
+			assert.Nil(t, interceptor.AfterInvoke(invocation), "after invoke error should be nil")
+
+			time.Sleep(100 * time.Millisecond)
+			spans := core.GetReportedSpans()
+			if !assert.Equal(t, 1, len(spans), "spans length should be 1") {
+				return
+			}
+			for _, tag := range spans[0].Tags() {
+				if tag.Key == tracing.TagHTTPHeaders {
+					assert.Equal(t, "h1=h1-value", tag.Value, "0 or a negative threshold means no limit")
+					return
+				}
+			}
+			t.Fatal("the header tag is missing")
+		})
+	}
+}
+
 type notFoundWriter struct {
 	gin.ResponseWriter
 }

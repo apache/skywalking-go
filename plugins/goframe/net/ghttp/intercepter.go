@@ -42,6 +42,9 @@ func (h *GoFrameServerInterceptor) BeforeInvoke(invocation operator.Invocation) 
 	if err != nil {
 		return err
 	}
+	// set the context first, so AfterInvoke ends the span even when the
+	// processing below fails
+	invocation.SetContext(s)
 
 	if config.CollectRequestParameters && request.URL != nil {
 		s.Tag(tracing.TagHTTPParams, request.URL.RawQuery)
@@ -52,7 +55,6 @@ func (h *GoFrameServerInterceptor) BeforeInvoke(invocation operator.Invocation) 
 
 	writer := invocation.Args()[0].(http.ResponseWriter)
 	invocation.ChangeArg(0, wrapResponseWriter(writer))
-	invocation.SetContext(s)
 	return nil
 }
 
@@ -149,8 +151,9 @@ func collectRequestHeaders(span tracing.Span, requestHeaders http.Header) {
 	}
 
 	tagValue := strings.Join(headerTagValues, "\n")
-	if len(tagValue) > config.HeaderLengthThreshold {
-		maxLen := config.HeaderLengthThreshold
+	// a threshold of 0 or less means no limit; collect_request_headers decides
+	// whether to collect at all
+	if maxLen := config.HeaderLengthThreshold; maxLen > 0 && len(tagValue) > maxLen {
 		tagValue = tagValue[:maxLen]
 	}
 

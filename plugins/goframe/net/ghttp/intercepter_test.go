@@ -19,6 +19,7 @@ package ghttp
 
 import (
 	"bufio"
+	"fmt"
 	"net"
 	"net/http"
 	"testing"
@@ -26,6 +27,7 @@ import (
 
 	"github.com/apache/skywalking-go/plugins/core"
 	"github.com/apache/skywalking-go/plugins/core/operator"
+	"github.com/apache/skywalking-go/plugins/core/tracing"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -53,6 +55,43 @@ func TestGoFrameServerInterceptorInvoke(t *testing.T) {
 	assert.Equal(t, "GET:/", spans[0].OperationName(), "operation name should be GET:/")
 	assert.Nil(t, spans[0].Refs(), "refs should be nil")
 	assert.Greater(t, spans[0].EndTime(), spans[0].StartTime(), "end time should be greater than start time")
+}
+
+func TestCollectHeadersWithoutLimit(t *testing.T) {
+	headers, threshold := config.CollectRequestHeaders, config.HeaderLengthThreshold
+	defer func() {
+		config.CollectRequestHeaders, config.HeaderLengthThreshold = headers, threshold
+	}()
+	config.CollectRequestHeaders = []string{"h1"}
+
+	for _, limit := range []int{0, -1} {
+		t.Run(fmt.Sprintf("threshold %d", limit), func(t *testing.T) {
+			defer core.ResetTracingContext()
+			config.HeaderLengthThreshold = limit
+
+			request, err := http.NewRequest("GET", "http://localhost/", http.NoBody)
+			assert.Nil(t, err, "new request error should be nil")
+			request.Header.Set("h1", "h1-value")
+			invocation := operator.NewInvocation(nil, &testResponseWriter{}, request)
+			interceptor := &GoFrameServerInterceptor{}
+			assert.NotPanics(t, func() { _ = interceptor.BeforeInvoke(invocation) }, "the threshold must not panic")
+			assert.NotNil(t, invocation.GetContext(), "context should not be nil")
+			assert.Nil(t, interceptor.AfterInvoke(invocation), "after invoke error should be nil")
+
+			time.Sleep(100 * time.Millisecond)
+			spans := core.GetReportedSpans()
+			if !assert.Equal(t, 1, len(spans), "spans length should be 1") {
+				return
+			}
+			for _, tag := range spans[0].Tags() {
+				if tag.Key == tracing.TagHTTPHeaders {
+					assert.Equal(t, "h1=h1-value", tag.Value, "0 or a negative threshold means no limit")
+					return
+				}
+			}
+			t.Fatal("the header tag is missing")
+		})
+	}
 }
 
 type testResponseWriter struct {
