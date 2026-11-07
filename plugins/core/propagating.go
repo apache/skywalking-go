@@ -159,8 +159,19 @@ func (s *SpanContext) DecodeSW8(header string) error {
 	if err != nil {
 		return errors.Wrap(err, "network address parse error")
 	}
-	s.Valid = true
+	s.Valid = s.hasRequiredFields()
 	return nil
+}
+
+// hasRequiredFields reports whether the decoded sw8 header carries every
+// required field. A valid header forces sampling, so like the Java agent's
+// ContextCarrier#isValid, a header that decodes but misses a field, such as
+// "1---0----", is ignored: the request starts a new trace, subject to the
+// local sampler.
+func (s *SpanContext) hasRequiredFields() bool {
+	return s.TraceID != "" && s.ParentSegmentID != "" && s.ParentSpanID >= 0 &&
+		s.ParentService != "" && s.ParentServiceInstance != "" &&
+		s.ParentEndpoint != "" && s.AddressUsedAtClient != ""
 }
 
 // EncodeSW8 converts SpanContext to string header
