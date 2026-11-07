@@ -297,6 +297,69 @@ func TestSpanContextReading(t *testing.T) {
 	assert.Equal(t, parentEndpoint, refCtx.GetParentEndpoint(), "ref endpoint not correct")
 }
 
+type recordingSampler struct {
+	decision   bool
+	operations []string
+}
+
+func (s *recordingSampler) IsSampled(operation string) bool {
+	s.operations = append(s.operations, operation)
+	return s.decision
+}
+
+func TestPropagatedContextIsNotResampled(t *testing.T) {
+	defer ResetTracingContext()
+	sampler := &recordingSampler{decision: false}
+	Tracing.Sampler = sampler
+	s, err := tracing.CreateEntrySpan("/entry", func(key string) (string, error) {
+		if key == Header {
+			return header, nil
+		}
+		return "", nil
+	})
+	assert.NoError(t, err)
+	assert.Empty(t, sampler.operations, "the sampler must not run for a propagated context")
+	assert.Equal(t, traceID, s.TraceID(), "the upstream trace id should be kept")
+	s.End()
+	spans := waitReportedSpans(t, 1)
+	if !assert.Equal(t, 1, len(spans[0].Refs()), "refs not correct") {
+		return
+	}
+	assert.Equal(t, parentSegmentID, spans[0].Refs()[0].GetParentSegmentID(), "ref segment id not correct")
+}
+
+func TestIncompletePropagatedContextIsIgnored(t *testing.T) {
+	defer ResetTracingContext()
+	sampler := &recordingSampler{decision: true}
+	Tracing.Sampler = sampler
+	incomplete := (&SpanContext{Sample: sample, ParentSpanID: parentSpanID}).EncodeSW8() // "1---0----"
+	s, err := tracing.CreateEntrySpan("/entry", func(key string) (string, error) {
+		if key == Header {
+			return incomplete, nil
+		}
+		return "", nil
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, []string{"/entry"}, sampler.operations, "an incomplete header must not force sampling")
+	assert.NotEmpty(t, s.TraceID(), "the request should start a new trace")
+	assert.NotEqual(t, "N/A", s.TraceID(), "the request should start a new trace")
+	s.End()
+	spans := waitReportedSpans(t, 1)
+	assert.Empty(t, spans[0].Refs(), "an incomplete header must not become a ref")
+}
+
+func TestSamplerReceivesOperationName(t *testing.T) {
+	defer ResetTracingContext()
+	sampler := &recordingSampler{decision: false}
+	Tracing.Sampler = sampler
+	s, err := tracing.CreateEntrySpan("/entry", func(key string) (string, error) {
+		return "", nil
+	})
+	assert.NoError(t, err)
+	s.End()
+	assert.Equal(t, []string{"/entry"}, sampler.operations, "the sampler should receive the operation name")
+}
+
 func TestReporterDisconnect(t *testing.T) {
 	defer ResetTracingContext()
 	ReportConnectionStatus = reporter.ConnectionStatusDisconnect

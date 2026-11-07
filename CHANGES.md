@@ -23,6 +23,7 @@ Release Notes.
 * Update `docs/en/agent/support-plugins.md` with the framework version ranges verified by the plugin test scenarios, and describe the two grpc plugins.
 * Update the Go versions of the published base images in `docs/en/setup/docker.md` to Go 1.26 and Go 1.27.
 * Describe in `docs/en/development-and-contribution/write-plugin-testing.md` how each plugin test case pins its framework version and builds outside the repository workspace, and document the `toolkit` and `excepted-file` options.
+* Describe the sampling policy in `docs/en/agent/tracing-metrics-logging.md`: `agent.sampler` applies only to the traces that a service starts, and a request with a valid upstream `sw8` header is always traced. Fix the environment key of `agent.sampler` there, which is `SW_AGENT_SAMPLE`, not `SW_AGENT_SAMPLER`.
 
 #### Bug Fixes
 
@@ -46,6 +47,7 @@ Release Notes.
 * kratos: do not panic in the client middleware when a body-less HTTP call reads the reply header into a nil `http.Header`. Since kratos v2.7.2, that header is sent as the request header.
 * go-micro: do not fail a call, stream, or publish when its exit span cannot be created, for example a call with an empty service name and `client.WithAddress`. The call runs untraced, and the peer of the caller's span does not change.
 * Bump vulnerable dependencies in the agent module, the reporter (`plugins/core`), and the go-agent tool. `github.com/klauspost/compress` moves from v1.15.9 to v1.18.7 to fix CVE-2026-63209, `golang.org/x/net` moves from v0.61.0 to v0.62.0 to fix GO-2026-6860 and GO-2026-6866, and `github.com/sirupsen/logrus` in the go-agent tool moves from v1.9.0 to v1.9.4 to fix CVE-2025-65637.
+* Keep a trace that the caller has already sampled. An entry span that starts a tracing context checked for the upstream `sw8` reference before attaching it, so the local sampler ran even when the request carried a valid `sw8` header: with `agent.sampler` below 1, a downstream service dropped already-sampled traces, sent no `sw8` header onward, and its own downstream services could start unrelated traces. The sampler also received an empty operation name, and the `sw_go_created_tracing_context_counter{created_by="propagated"}` self-observability counter never increased. A `sw8` header now counts as valid only when every required field is set, as in the Java agent, so a header such as `1---0----` no longer creates a segment with an empty trace ID.
 
 #### Unsupported Library Versions
 

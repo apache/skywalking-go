@@ -342,6 +342,12 @@ func (t *Tracer) createNoop(operationName string) (*TracingContext, TracingSpan,
 func (t *Tracer) createSpan0(ctx *TracingContext, parent TracingSpan, pluginOpts []interface{},
 	coreOpts ...interface{}) (s TracingSpan, noop bool, err error) {
 	ds := NewDefaultSpan(t, parent)
+	// process the opts from agent core for prepare building segment span.
+	// They must run before the sampling decision below: they set the upstream
+	// refs (which force sampling) and the operation name passed to the sampler.
+	for _, opt := range coreOpts {
+		opt.(tracing.SpanOption).Apply(ds)
+	}
 	var parentSpan SegmentSpan
 	if parent != nil {
 		tmpSpan, ok := parent.(SegmentSpan)
@@ -359,10 +365,6 @@ func (t *Tracer) createSpan0(ctx *TracingContext, parent TracingSpan, pluginOpts
 			// Filter by sample just return noop span
 			return newNoopSpan(t), true, nil
 		}
-	}
-	// process the opts from agent core for prepare building segment span
-	for _, opt := range coreOpts {
-		opt.(tracing.SpanOption).Apply(ds)
 	}
 	s, err = NewSegmentSpan(ctx, ds, parentSpan)
 	if err != nil {
