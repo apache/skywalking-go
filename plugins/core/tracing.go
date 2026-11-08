@@ -252,9 +252,15 @@ func (t *Tracer) ContinueContext(snapshot interface{}) {
 			ctx = NewTracingContext()
 			SetGLS(ctx)
 		}
+		activeSpan := snap.activeSpan
+		if _, isNoop := activeSpan.(*NoopSpan); isNoop {
+			// A noop span counts its nested spans, so each continuation of a
+			// snapshot needs its own one.
+			activeSpan = newSnapshotNoopSpan()
+		}
 		ctx.activeSpanLock.Lock()
 		defer ctx.activeSpanLock.Unlock()
-		ctx.activeSpan = snap.activeSpan
+		ctx.activeSpan = activeSpan
 		// Clone on continue as well (capture already clones): the same snapshot
 		// may be continued by multiple goroutines (e.g. the send and receive
 		// goroutines of one gRPC stream), and sharing one RuntimeContext map
@@ -319,23 +325,31 @@ func (s *ContextSnapshot) IsValid() bool {
 func (t *Tracer) createNoop(operationName string) (*TracingContext, TracingSpan, bool) {
 	ctx := getTracingContext()
 	if ctx != nil {
-		span := ctx.ActiveSpan()
-		noop, ok := span.(*NoopSpan)
-		if ok {
-			// increase the stack count for ensure the noop span can be clear in the context
-			noop.enterNoSpan()
+		// Under an active span, the new span is a child of it, or a noop when
+		// the active span is a noop. The checks below don't apply to it.
+		if span := ctx.ActiveSpan(); span != nil {
+			noop, ok := span.(*NoopSpan)
+			if ok {
+				// increase the stack count for ensure the noop span can be clear in the context
+				noop.enterNoSpan()
+			}
+			return ctx, span, ok
 		}
-		return ctx, span, ok
+	} else {
+		ctx = NewTracingContext()
 	}
-	if !t.InitSuccess() || t.Reporter.ConnectionStatus() == reporter.ConnectionStatusDisconnect {
+	// Without an active span, the new span starts a tracing context. That holds
+	// even when the goroutine kept the context of a finished trace, such as a
+	// keep-alive HTTP connection serving its next request.
+	if !t.InitSuccess() || t.Reporter.ConnectionStatus() == reporter.ConnectionStatusDisconnect ||
+		tracerIgnore(operationName, t.ignoreSuffix, t.traceIgnorePath) {
 		GetSo11y(t).MeasureTracingContextCreation(false, true)
-		return nil, newNoopSpan(t), true
+		// Keep the noop span active, as for a context the sampler drops, so the
+		// spans created under it are ignored too.
+		noop := newNoopSpan(t)
+		saveSpanToActiveIfNotError(ctx, noop, nil)
+		return ctx, noop, true
 	}
-	if tracerIgnore(operationName, t.ignoreSuffix, t.traceIgnorePath) {
-		GetSo11y(t).MeasureTracingContextCreation(false, true)
-		return nil, newNoopSpan(t), true
-	}
-	ctx = NewTracingContext()
 	return ctx, nil, false
 }
 

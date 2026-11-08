@@ -8,7 +8,7 @@
 | redis.max_args_bytes               | SW_AGENT_PLUGIN_CONFIG_REDIS_MAX_ARGS_BYTES               | 1024          | Limit the bytes size of redis args request.                    |
 | reporter.discard                   | SW_AGENT_REPORTER_DISCARD                                 | false         | Discard the reporter.                                          |
 | gin.collect_request_headers        | SW_AGENT_PLUGIN_CONFIG_GIN_COLLECT_REQUEST_HEADERS        |               | Collect the http header of gin request.                        |
-| gin.header_length_threshold        | SW_AGENT_PLUGIN_CONFIG_GIN_HEADER_LENGTH_THRESHOLD        | 2048          | Controlling the length limitation of all header values.        |
+| gin.header_length_threshold        | SW_AGENT_PLUGIN_CONFIG_GIN_HEADER_LENGTH_THRESHOLD        | 2048          | Controlling the length limitation of all header values. 0 or a negative value means no limit. |
 | goframe.collect_request_parameters | SW_AGENT_PLUGIN_CONFIG_GOFRAME_COLLECT_REQUEST_PARAMETERS | false         | Collect the parameters of the HTTP request on the server side. |
 | goframe.collect_request_headers    | SW_AGENT_PLUGIN_CONFIG_GOFRAME_COLLECT_REQUEST_HEADERS    |               | Collect the http header of goframe request.                    |
-| goframe.header_length_threshold    | SW_AGENT_PLUGIN_CONFIG_GOFRAME_HEADER_LENGTH_THRESHOLD    | 2048          | Controlling the length limitation of all header values.        |
+| goframe.header_length_threshold    | SW_AGENT_PLUGIN_CONFIG_GOFRAME_HEADER_LENGTH_THRESHOLD    | 2048          | Controlling the length limitation of all header values. 0 or a negative value means no limit. |

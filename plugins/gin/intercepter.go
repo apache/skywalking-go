@@ -51,12 +51,13 @@ func (h *ContextInterceptor) BeforeInvoke(invocation operator.Invocation) error 
 	if err != nil {
 		return err
 	}
+	// set the context first, so AfterInvoke ends the span even when the
+	// processing below fails
+	invocation.SetContext(s)
 
 	if len(config.CollectRequestHeaders) > 0 {
 		collectRequestHeaders(s, context.Request.Header)
 	}
-
-	invocation.SetContext(s)
 	return nil
 }
 
@@ -99,8 +100,9 @@ func collectRequestHeaders(span tracing.Span, requestHeaders http.Header) {
 	}
 
 	tagValue := strings.Join(headerTagValues, "\n")
-	if len(tagValue) > config.HeaderLengthThreshold {
-		maxLen := config.HeaderLengthThreshold
+	// a threshold of 0 or less means no limit; collect_request_headers decides
+	// whether to collect at all
+	if maxLen := config.HeaderLengthThreshold; maxLen > 0 && len(tagValue) > maxLen {
 		tagValue = tagValue[:maxLen]
 	}
 
