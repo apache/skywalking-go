@@ -199,7 +199,7 @@ func TestFailedNestedBeforeInvokeKeepsTheOuterSpan(t *testing.T) {
 			outerDepth = spanDepth(outer)
 			intercept(c.inner, nil)
 			afterInner = activeTracingSpan()
-			afterInnerDepth = spanDepth(outer)
+			afterInnerDepth = spanDepth(afterInner)
 		})
 		assert.Samef(t, outer, afterInner, "%s: the outer span should stay active", c.name)
 		assert.Equalf(t, outerDepth, afterInnerDepth, "%s: the nesting of the failed hook should be undone", c.name)
