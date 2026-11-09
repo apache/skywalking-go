@@ -27,6 +27,10 @@ type realInvocation struct {
 	returnValues []interface{}
 
 	context interface{}
+	// owner is closed when the interceptor has finished, so the span it
+	// stored with SetContext can be ended if it is still active. It is a
+	// channel because this copied file cannot import sync/atomic.
+	owner chan struct{}
 
 	// self obs
 	interTimeCost    int64
@@ -56,6 +60,68 @@ func (i *realInvocation) DefineReturnValues(values ...interface{}) {
 
 func (i *realInvocation) SetContext(context interface{}) {
 	i.context = context
+	if span, ok := context.(spanOwnerBinder); ok {
+		if i.owner == nil {
+			i.owner = make(chan struct{})
+		}
+		span.BindOwner(i.owner)
+	}
+}
+
+// spanOwnerBinder is a span that can be bound to the invocation that ends it.
+// Only builtin types are used, because every instrumented package has its own
+// copy of this package.
+type spanOwnerBinder interface {
+	BindOwner(owner chan struct{})
+}
+
+type activeSpanMarker interface {
+	ActiveSpanMark() (interface{}, int)
+	RollbackActiveSpan(mark interface{}, depth int)
+}
+
+// markExited records that the interceptor of the invocation has finished, so
+// the span it stored with SetContext must no longer be active.
+func (i *realInvocation) markExited() {
+	if i != nil && i.owner != nil {
+		close(i.owner)
+		i.owner = nil
+	}
+}
+
+func spanMarker() activeSpanMarker {
+	op := GetOperator()
+	if op == nil {
+		return nil
+	}
+	marker, _ := op.Tracing().(activeSpanMarker)
+	return marker
+}
+
+// markActiveSpan returns the active span before BeforeInvoke runs.
+func markActiveSpan() (mark interface{}, depth int) {
+	if marker := spanMarker(); marker != nil {
+		return marker.ActiveSpanMark()
+	}
+	return nil, 0
+}
+
+// rollbackActiveSpan ends the spans that a failed BeforeInvoke created and did
+// not store with SetContext, so nothing else would end them.
+func rollbackActiveSpan(i *realInvocation, mark interface{}, depth int) {
+	// It runs in the recover of the before-hook too, where a panic would
+	// reach the application.
+	defer func() {
+		_ = recover()
+	}()
+	if i == nil || i.context != nil || depth < 0 {
+		// the after-hook still runs and ends the span it got, or the active
+		// span was not marked
+		return
+	}
+	if marker := spanMarker(); marker != nil {
+		marker.RollbackActiveSpan(mark, depth)
+	}
 }
 
 func (i *realInvocation) GetContext() interface{} {

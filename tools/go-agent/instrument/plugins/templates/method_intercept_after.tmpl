@@ -1,3 +1,5 @@
+// runs last: the interceptor has finished, even when the after-hook panics
+defer invocation.markExited()
 defer func() {
 	if r := recover(); r != nil {
         operator.ErrorOfPlugin("{{.InstrumentName}}")

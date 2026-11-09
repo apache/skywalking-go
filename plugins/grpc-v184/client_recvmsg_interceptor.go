@@ -46,6 +46,14 @@ type clientRecvTrailer struct {
 	data *contextData
 }
 
+// clientRecvSpan is the invocation context of a RecvMsg call that creates a
+// span. The span is wrapped, not stored directly, because it may stay active
+// after this call until the trailer read: the agent ends a span stored with
+// SetContext that is still active after its interceptor finished.
+type clientRecvSpan struct {
+	span tracing.Span
+}
+
 func (h *ClientRecvMsgInterceptor) BeforeInvoke(invocation operator.Invocation) error {
 	cs := invocation.CallerInstance().(*nativeclientStream)
 	method := cs.callHdr.Method
@@ -69,7 +77,7 @@ func (h *ClientRecvMsgInterceptor) BeforeInvoke(invocation operator.Invocation) 
 	if err != nil {
 		return err
 	}
-	invocation.SetContext(s)
+	invocation.SetContext(&clientRecvSpan{span: s})
 	return nil
 }
 
@@ -83,7 +91,11 @@ func (h *ClientRecvMsgInterceptor) AfterInvoke(invocation operator.Invocation, r
 		endTrailerRead(cs, trailer.data, err)
 		return nil
 	}
-	span := invocation.GetContext().(tracing.Span)
+	recv, ok := invocation.GetContext().(*clientRecvSpan)
+	if !ok {
+		return nil
+	}
+	span := recv.span
 	if err == nil && cs.desc != nil && !cs.desc.ServerStreams && keepRecvSpanUntilTrailer(invocation.CallerInstance(), span) {
 		return nil
 	}

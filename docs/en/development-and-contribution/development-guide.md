@@ -238,6 +238,16 @@ rather than creating a new instance each time a method is intercepted.
 
 Therefore, do not declare objects in the interceptor, and instead use `Invocation.Context` to pass data.
 
+##### Span lifecycle
+
+A span that an interceptor creates must be ended by the same interception, usually in `AfterInvoke`. Store it with `invocation.SetContext` right after creating it, before anything that can fail, so that `AfterInvoke` gets it.
+
+The agent protects the goroutine from a span that is not ended:
+- A span stored with `SetContext` belongs to that interception. If it is still active when a later span starts on the goroutine after the interception has finished, the agent ends it and counts it in `sw_go_possible_leaked_context_counter`. Only the span itself is bound: a value that wraps the span, such as a struct stored with `SetContext`, is not.
+- If `BeforeInvoke` returns an error or panics after creating spans and before storing anything with `SetContext`, the agent ends the spans it created and counts them the same way. A context that the hook continued with `ContinueContext` is kept. Nothing is ended when the hook stored any value with `SetContext`, because `AfterInvoke` still runs and ends it, or when the hook changed the active span in another way, for example by ending a span that was active before it.
+
+A span that must stay active after its interception has finished, such as a span that a later call ends, must not be stored directly with `SetContext`: store it in a wrapper value. A span ended with `PrepareAsync` is not active anymore once `End` is called in the interception, and is finished later with `AsyncFinish`.
+
 ##### Package Path
 
 If the method you want to intercept is not located in the root directory of the framework, 
