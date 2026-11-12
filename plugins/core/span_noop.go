@@ -26,12 +26,17 @@ const noopContextValue = "N/A"
 type NoopSpan struct {
 	stackCount int
 	tracer     *Tracer
+	// owner is closed when the interceptor that stored the span has finished
+	owner chan struct{}
+	// snapshot is set on the span that stands for a continued context
+	snapshot bool
 }
 
 func newSnapshotNoopSpan() *NoopSpan {
 	// snapshot noop span is not a real span
 	return &NoopSpan{
 		stackCount: 0,
+		snapshot:   true,
 	}
 }
 
@@ -99,6 +104,12 @@ func (*NoopSpan) ErrorOccured() {
 }
 
 func (n *NoopSpan) enterNoSpan() {
+	if n.owner == nil && n.stackCount > 0 {
+		// the creator holds the span but did not store it, so it is not an
+		// interceptor. A continued snapshot span starts at 0 without a holder,
+		// so its first nested span may own it.
+		n.owner = noOwner
+	}
 	n.stackCount++
 }
 

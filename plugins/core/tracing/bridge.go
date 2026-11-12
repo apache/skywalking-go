@@ -51,6 +51,13 @@ func newSpanAdapter(s AdaptSpan) Span {
 	return &SpanWrapper{Span: s}
 }
 
+// BindOwner binds the span to the invocation that stores it with SetContext.
+func (s *SpanWrapper) BindOwner(owner chan struct{}) {
+	if binder, ok := s.Span.(interface{ BindOwner(chan struct{}) }); ok {
+		binder.BindOwner(owner)
+	}
+}
+
 func (s *SpanWrapper) TraceID() string {
 	return s.Span.GetTraceID()
 }

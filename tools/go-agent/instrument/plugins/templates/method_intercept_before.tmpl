@@ -1,8 +1,12 @@
 invocation = &operator.realInvocation{}
 invocation.interTimeCost = int64(0)
 invocation.beforeInterStart = operator.NanoTime()
+var _sw_span_mark interface{}
+// no mark yet, so a rollback does nothing
+var _sw_span_depth = -1
 defer func() {
 	if err := recover(); err != nil {
+		operator.rollbackActiveSpan(invocation, _sw_span_mark, _sw_span_depth)
 	    operator.ErrorOfPlugin("{{.InstrumentName}}")
 		// log error
 		log.Errorf("execute interceptor before invoke error, instrument name: %s, interceptor name: %s, function ID: %s, error: %v, stack: %s",
@@ -32,8 +36,10 @@ invocation.changeArgCallback = func(index int, value interface{}) {
 {{- range $index, $value := .Results }}
 var def_res_{{$index}} {{$value.PackagedTypeName}}
 {{- end}}
+_sw_span_mark, _sw_span_depth = operator.markActiveSpan()
 // real invoke
 if err := {{.InterceptorVarName}}.BeforeInvoke(invocation); err != nil {
+	operator.rollbackActiveSpan(invocation, _sw_span_mark, _sw_span_depth)
 	// using go2sky log error
 	log.Warnf("execute interceptor before invoke error, instrument name: %s, interceptor name: %s, function ID: %s, error: %v",
     		    "{{.InstrumentName}}", "{{.InterceptorDefineName}}", "{{.FuncID}}", err)
@@ -49,6 +55,8 @@ if (invocation.isContinue) {
         def_res_{{$index}} = (invocation.returnValues[{{$index}}]).({{$value.PackagedTypeName}})
     }
     {{- end}}
+    // the after-hook is not called, so the interceptor has finished
+    invocation.markExited()
     invocation.interTimeCost += operator.NanoTime() - invocation.beforeInterStart
 
 	return {{ range $index, $value := .Results -}}

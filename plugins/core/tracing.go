@@ -327,7 +327,9 @@ func (t *Tracer) createNoop(operationName string) (*TracingContext, TracingSpan,
 	if ctx != nil {
 		// Under an active span, the new span is a child of it, or a noop when
 		// the active span is a noop. The checks below don't apply to it.
-		if span := ctx.ActiveSpan(); span != nil {
+		// A span left active by an interceptor that has finished is ended
+		// first: it doesn't belong to this request.
+		if span := t.endOrphanSpans(ctx); span != nil {
 			noop, ok := span.(*NoopSpan)
 			if ok {
 				// increase the stack count for ensure the noop span can be clear in the context

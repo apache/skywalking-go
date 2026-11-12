@@ -342,9 +342,17 @@ func (c *Context) enhanceTypeNameWhenRewrite(fieldType dst.Expr, parent dst.Node
 	return "", ""
 }
 
+// builtinFuncs are the predeclared functions of Go. They are not declared in
+// the copied packages, so they must never be renamed.
+var builtinFuncs = map[string]bool{
+	"append": true, "cap": true, "clear": true, "close": true, "complex": true, "copy": true,
+	"delete": true, "imag": true, "len": true, "make": true, "max": true, "min": true,
+	"new": true, "panic": true, "print": true, "println": true, "real": true, "recover": true,
+}
+
 func (c *Context) typeIsBasicTypeValueOrEnhanceName(name string) bool {
 	if strings.HasPrefix(name, OperatePrefix) || strings.HasPrefix(name, GenerateMethodPrefix) || tools.IsBasicDataType(name) ||
-		name == "nil" || name == "true" || name == "false" || name == "append" || name == "panic" || name == "new" || name == "delete" {
+		name == "nil" || name == "true" || name == "false" || builtinFuncs[name] {
 		return true
 	}
 	if _, valErr := strconv.ParseFloat(name, 64); valErr == nil {
@@ -358,8 +366,7 @@ func (c *Context) alreadyGenerated(name string) bool {
 }
 
 func (c *Context) callIsBasicNamesOrEnhanceName(name string) bool {
-	return strings.HasPrefix(name, OperatePrefix) || strings.HasPrefix(name, GenerateMethodPrefix) ||
-		name == "make" || name == "recover" || name == "len"
+	return strings.HasPrefix(name, OperatePrefix) || strings.HasPrefix(name, GenerateMethodPrefix) || builtinFuncs[name]
 }
 
 func (r *rewriteImportInfo) generateStaticMethod(name string) *dst.Ident {

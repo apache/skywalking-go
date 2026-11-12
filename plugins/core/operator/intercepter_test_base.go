@@ -31,3 +31,47 @@ func NewInvocation(receiver interface{}, args ...interface{}) Invocation {
 		},
 	}
 }
+
+// InvokeIntercepted runs the interceptor around call in the same order as the
+// code that the agent generates: method_intercept_before.tmpl,
+// method_inserts.tmpl and method_intercept_after.tmpl. A panic in an
+// interceptor is recovered, as in the generated code. It returns false when
+// the before-hook skipped the call.
+func InvokeIntercepted(interceptor Interceptor, invocation Invocation, call func() []interface{}) (called bool) {
+	inv, ok := invocation.(*realInvocation)
+	if !ok {
+		panic("InvokeIntercepted needs an invocation from NewInvocation")
+	}
+	skip := func() (skip bool) {
+		var mark interface{}
+		depth := -1
+		defer func() {
+			if r := recover(); r != nil {
+				rollbackActiveSpan(inv, mark, depth)
+			}
+		}()
+		mark, depth = markActiveSpan()
+		if err := interceptor.BeforeInvoke(inv); err != nil {
+			rollbackActiveSpan(inv, mark, depth)
+			return false
+		}
+		if inv.isContinue {
+			inv.markExited()
+			return true
+		}
+		return false
+	}()
+	if skip {
+		return false
+	}
+	var results []interface{}
+	defer func() {
+		defer inv.markExited()
+		defer func() {
+			_ = recover()
+		}()
+		_ = interceptor.AfterInvoke(inv, results...)
+	}()
+	results = call()
+	return true
+}

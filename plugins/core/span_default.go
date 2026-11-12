@@ -56,6 +56,9 @@ type DefaultSpan struct {
 	// into SegmentSpanImpl/SnapshotSpan, and an embedded sync.Mutex value would
 	// trip the go vet copylocks check.
 	opLock *sync.Mutex
+	// owner is closed when the interceptor that stored the span with
+	// SetContext has finished (see BindOwner). Guarded by opLock.
+	owner chan struct{}
 	// ended is set by endAndFreeze right before the span is handed over to the
 	// segment collector. Once set, every late mutation is dropped, so the span
 	// data is frozen and the reporting path may read it without locking
@@ -65,11 +68,12 @@ type DefaultSpan struct {
 	// span leaked across goroutines would otherwise flood the log with one
 	// line per dropped write.
 	droppedLogged bool
-	// reuseCount counts the extra logical owners that the span reuse rule in
-	// CreateEntrySpan/CreateExitSpan hands this span to. Every owner calls End
-	// exactly once and only the LAST End freezes and reports the span (see
-	// enterReuse and endSyncAndFreeze). Guarded by opLock.
-	reuseCount int
+	// reuses has one entry per extra owner that the span reuse rule in
+	// CreateEntrySpan/CreateExitSpan hands this span to, innermost last; only
+	// the LAST End freezes and reports the span. An entry is true when that
+	// owner is an interceptor that stored the span with SetContext. Guarded
+	// by opLock.
+	reuses []bool
 }
 
 func NewDefaultSpan(tracer *Tracer, parent TracingSpan) *DefaultSpan {
@@ -280,7 +284,7 @@ func (ds *DefaultSpan) enterReuse() {
 	ds.opLock.Lock()
 	defer ds.opLock.Unlock()
 	if !ds.ended {
-		ds.reuseCount++
+		ds.reuses = append(ds.reuses, false)
 	}
 }
 
@@ -293,22 +297,30 @@ func (ds *DefaultSpan) enterReuse() {
 // PrepareAsync/End pair free of data races).
 func (ds *DefaultSpan) endSyncAndFreeze() bool {
 	ds.opLock.Lock()
-	if ds.reuseCount > 0 {
+	if n := len(ds.reuses); n > 0 {
 		// a nested owner of a reused span (see enterReuse) finished: this is
 		// not the last End, so keep the span open - the outer owner still
 		// writes to it (e.g. gorm tags db.statement after the sql driver's
-		// End) and will freeze it with its own End. Restoring the active span
-		// is kept here because the nested plugin expects its End to pop the
-		// span, exactly like before the freeze mechanism.
-		ds.reuseCount--
+		// End) and will freeze it with its own End.
+		stored := ds.reuses[n-1]
+		ds.reuses = ds.reuses[:n-1]
 		ds.opLock.Unlock()
-		if ctx := getTracingContext(); ctx != nil {
-			ctx.SaveActiveSpan(ds.Parent)
+		// An entry span that a nested interceptor stored, such as gin inside
+		// the net/http server, stays active for the outer owner's request.
+		// Otherwise it is popped, so the next call of the outer owner, such as
+		// a gorm hook query or a pull consumer's next message, gets its own span.
+		if ds.SpanType != SpanTypeEntry || !stored {
+			if ctx := getTracingContext(); ctx != nil {
+				ctx.SaveActiveSpan(ds.Parent)
+			}
 		}
 		return false
 	}
 	if !ds.EndTime.IsZero() { // already ended
 		ds.opLock.Unlock()
+		// A reused entry span stays active after its nested End, and
+		// AsyncFinish may have ended it since: the last End still pops it.
+		ds.popIfActive()
 		return false
 	}
 	ds.EndTime = time.Now()
@@ -326,6 +338,17 @@ func (ds *DefaultSpan) endSyncAndFreeze() bool {
 		ctx.SaveActiveSpan(ds.Parent)
 	}
 	return frozen
+}
+
+// popIfActive makes the parent active when this span is the active span.
+func (ds *DefaultSpan) popIfActive() {
+	ctx := getTracingContext()
+	if ctx == nil {
+		return
+	}
+	if active, ok := ctx.ActiveSpan().(SegmentSpan); ok && active.GetDefaultSpan() == ds {
+		ctx.SaveActiveSpan(ds.Parent)
+	}
 }
 
 func (ds *DefaultSpan) IsEntry() bool {
